@@ -1,12 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AACP Pilot Dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/frontend/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AACP — Aviation & Aerospace Competence Program</title>
+  <meta name="description" content="AACP is a workforce intelligence platform for aviation and aerospace — competency validation, AI-powered career matching, and real-time cohort analytics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #020817;
+      --surface: #0f172a;
+      --surface2: #1e293b;
+      --border: #1e3a5f;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --cyan: #0ea5e9;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --dim: #475569;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 64px;
+      background: rgba(2, 8, 23, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(30, 58, 95, 0.5);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 13px; color: #fff; letter-spacing: -0.5px;
+    }
+    .nav-logo-text { font-weight: 700; font-size: 15px; color: var(--text); }
+    .nav-logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--blue); color: #fff; text-decoration: none;
+      padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      transition: background .2s;
+    }
+    .nav-cta:hover { background: #1d4ed8; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 120px 5vw 80px;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background: url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1800&q=80') center/cover no-repeat;
+    }
+    .hero-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(2,8,23,0.7) 0%, rgba(2,8,23,0.55) 40%, rgba(2,8,23,0.95) 100%);
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 860px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(37,99,235,0.15); border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 600;
+      color: #93c5fd; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 28px;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .hero h1 {
+      font-size: clamp(2.6rem, 6vw, 5rem); font-weight: 900; line-height: 1.08;
+      letter-spacing: -2px; margin-bottom: 24px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #60a5fa, #0ea5e9, #38bdf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem); color: var(--muted);
+      max-width: 620px; margin: 0 auto 44px; line-height: 1.7; font-weight: 400;
+    }
+    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue); color: #fff; text-decoration: none;
+      padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 700;
+      transition: all .2s; box-shadow: 0 0 32px rgba(37,99,235,0.35);
+    }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 0 48px rgba(37,99,235,0.5); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--text); text-decoration: none;
+      padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 600;
+      border: 1px solid var(--border); transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--blue-light); color: #93c5fd; }
+    .hero-stats {
+      display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+      margin-top: 72px; padding-top: 48px;
+      border-top: 1px solid rgba(30,58,95,0.6);
+    }
+    .stat-item { text-align: center; }
+    .stat-item .num { font-size: 2.2rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
+    .stat-item .num span { color: var(--cyan); }
+    .stat-item .lbl { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── SECTION COMMON ── */
+    section { padding: 96px 5vw; }
+    .section-label {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--cyan); margin-bottom: 16px;
+    }
+    .section-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin-bottom: 16px; }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 560px; line-height: 1.7; }
+    .section-header { max-width: 1200px; margin: 0 auto 56px; }
+    .grid-max { max-width: 1200px; margin: 0 auto; }
+
+    /* ── PLATFORM ── */
+    .platform { background: var(--surface); }
+    .platform-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px;
+      background: var(--border); border-radius: 16px; overflow: hidden;
+    }
+    .platform-card {
+      background: var(--surface); padding: 36px 32px;
+      transition: background .2s;
+    }
+    .platform-card:hover { background: #162032; }
+    .platform-icon {
+      width: 48px; height: 48px; border-radius: 12px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .icon-blue { background: rgba(37,99,235,0.15); }
+    .icon-cyan { background: rgba(14,165,233,0.15); }
+    .icon-purple { background: rgba(139,92,246,0.15); }
+    .icon-green { background: rgba(34,197,94,0.15); }
+    .platform-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .platform-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── ANALYTICS ── */
+    .analytics-wrap {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+    }
+    .analytics-copy .section-sub { margin-bottom: 32px; }
+    .analytics-features { display: flex; flex-direction: column; gap: 16px; }
+    .af-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .af-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .af-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 3px; }
+    .af-text p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+    .analytics-visual {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; position: relative; overflow: hidden;
+    }
+    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .av-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .av-badge { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+    .readiness-ring { display: flex; align-items: center; gap: 24px; margin-bottom: 24px; }
+    .ring-svg { flex-shrink: 0; }
+    .ring-label .big { font-size: 2rem; font-weight: 900; }
+    .ring-label .sub { font-size: 12px; color: var(--muted); }
+    .mini-bars { display: flex; flex-direction: column; gap: 10px; }
+    .mb-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+    .mb-lbl { color: var(--muted); width: 100px; flex-shrink: 0; }
+    .mb-track { flex: 1; height: 6px; background: #1e2d45; border-radius: 3px; }
+    .mb-fill { height: 6px; border-radius: 3px; }
+    .mb-val { color: var(--muted); width: 32px; text-align: right; }
+    .av-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .av-card { background: #0a1628; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .av-card .n { font-size: 1.4rem; font-weight: 800; }
+    .av-card .l { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ── ROLES ── */
+    .roles { background: var(--surface); }
+    .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .role-card {
+      border-radius: 16px; padding: 32px 28px; border: 1px solid var(--border);
+      background: var(--bg); position: relative; overflow: hidden;
+      transition: transform .2s, border-color .2s;
+    }
+    .role-card:hover { transform: translateY(-4px); border-color: var(--blue); }
+    .role-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .role-youth::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .role-coach::before { background: linear-gradient(90deg, #6366f1, #a78bfa); }
+    .role-employer::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .role-admin::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .role-emoji { font-size: 2rem; margin-bottom: 16px; }
+    .role-card h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+    .role-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 20px; }
+    .role-tag {
+      display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 6px;
+    }
+    .tag-green { background: rgba(34,197,94,0.1); color: #4ade80; }
+    .tag-purple { background: rgba(139,92,246,0.1); color: #a78bfa; }
+    .tag-yellow { background: rgba(245,158,11,0.1); color: #fbbf24; }
+    .tag-red { background: rgba(239,68,68,0.1); color: #f87171; }
+
+    /* ── IMAGERY STRIP ── */
+    .imagery { padding: 0; }
+    .img-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr; height: 440px;
+    }
+    .img-panel { position: relative; overflow: hidden; }
+    .img-panel img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .6s ease; filter: brightness(0.75) saturate(1.1);
+    }
+    .img-panel:hover img { transform: scale(1.04); filter: brightness(0.9) saturate(1.2); }
+    .img-panel-label {
+      position: absolute; bottom: 20px; left: 20px;
+      background: rgba(2,8,23,0.8); backdrop-filter: blur(8px);
+      border: 1px solid rgba(30,58,95,0.6); border-radius: 8px;
+      padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text);
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      text-align: center; padding: 120px 5vw;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(37,99,235,0.12) 0%, transparent 70%);
+    }
+    .cta-section h2 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 16px; }
+    .cta-section p { font-size: 1.1rem; color: var(--muted); margin-bottom: 40px; }
+    .cta-card {
+      display: inline-flex; flex-direction: column; align-items: center;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 48px 64px; max-width: 560px; width: 100%;
+      box-shadow: 0 0 80px rgba(37,99,235,0.1);
+    }
+    .cta-icon { font-size: 3rem; margin-bottom: 20px; }
+    .cta-card h3 { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+    .cta-card p { font-size: 0.95rem; color: var(--muted); margin-bottom: 28px; text-align: center; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #fff;
+      text-decoration: none; padding: 16px 36px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; letter-spacing: -0.3px;
+      transition: all .2s; box-shadow: 0 4px 32px rgba(37,99,235,0.4);
+      width: 100%; justify-content: center;
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 48px rgba(37,99,235,0.55); }
+    .cta-note { margin-top: 16px; font-size: 12px; color: var(--dim); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 48px 5vw;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .footer-logo-mark {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 11px; color: #fff;
+    }
+    .footer-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .footer-tagline { font-size: 11px; color: var(--dim); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--dim); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--muted); }
+    .footer-copy { font-size: 12px; color: var(--dim); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .analytics-wrap { grid-template-columns: 1fr; }
+      .img-grid { grid-template-columns: 1fr; height: auto; }
+      .img-panel { height: 220px; }
+      .nav-links { display: none; }
+      .cta-card { padding: 36px 24px; }
+      footer { flex-direction: column; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">AACP</div>
+    <div>
+      <div class="nav-logo-text">AACP</div>
+      <div class="nav-logo-sub">Workforce Intelligence</div>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a href="#platform">Platform</a>
+    <a href="#analytics">Analytics</a>
+    <a href="#roles">Roles</a>
+    <a href="#cohort">Cohort</a>
+  </div>
+  <a href="/app.html" class="nav-cta">Sign In →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span></span>
+      Workforce Intelligence Platform · Pilot Cohort Active
+    </div>
+    <h1>The Intelligence Layer for<br/><em>Aviation &amp; Aerospace</em><br/>Workforce Development</h1>
+    <p class="hero-sub">
+      AACP validates competencies, maps skill gaps, and matches talent to roles — using AI, VR telemetry, and real-time cohort analytics aligned to Canadian Aviation Regulations.
+    </p>
+    <div class="hero-actions">
+      <a href="/app.html" class="btn-primary">
+        ✈ Sign In to Your Cohort
+      </a>
+      <a href="#platform" class="btn-secondary">
+        Explore the Platform →
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="num">50<span>+</span></div>
+        <div class="lbl">Pilot Participants</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">12<span></span></div>
+        <div class="lbl">Core Competencies</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">4<span></span></div>
+        <div class="lbl">Role Families</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">72<span>%</span></div>
+        <div class="lbl">Avg Readiness Score</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">138<span></span></div>
+        <div class="lbl">VR Sessions Logged</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IMAGERY STRIP -->
+<div class="imagery">
+  <div class="img-grid">
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80" alt="Aviation workforce" loading="lazy" />
+      <div class="img-panel-label">✈ Aviation Operations</div>
+    </div>
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=80" alt="Aerospace technology" loading="lazy" />
+      <div class="img-panel-label">🚀 Aerospace</div>
+    </div>
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600&q=80" alt="Workforce development" loading="lazy" />
+      <div class="img-panel-label">👥 Workforce</div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORM -->
+<section class="platform" id="platform">
+  <div class="section-header">
+    <div class="section-label">Platform Capabilities</div>
+    <h2 class="section-title">Built for the Demands of<br/>High-Stakes Aviation Careers</h2>
+    <p class="section-sub">Every feature is designed around regulatory compliance, real-world skill validation, and data-driven career outcomes.</p>
+  </div>
+  <div class="grid-max">
+    <div class="platform-grid">
+      <div class="platform-card">
+        <div class="platform-icon icon-blue">🎯</div>
+        <h3>Competency Validation</h3>
+        <p>Multi-source evidence framework — VR telemetry, direct observation, and coach review — maps to CARs regulatory standards in real time.</p>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon icon-cyan">🤖</div>
+        <h3>AI Career Advisor</h3>
+        <p>Personalized training recommendations and role-match scoring powered by a competency index algorithm that factors telemetry, evidence quality, and rubric alignment.</p>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon icon-purple">🥽</div>
+        <h3>VR Simulation Telemetry</h3>
+        <p>Real-time performance data from virtual aviation simulations feeds directly into the competency index — head pose accuracy, task completion, error rates, and more.</p>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon icon-green">📊</div>
+        <h3>Cohort Analytics</h3>
+        <p>Employer-facing dashboards with readiness bands, gap maps by role family, and workforce trend analysis across the full pilot cohort.</p>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon icon-blue">🔒</div>
+        <h3>Privacy &amp; Audit</h3>
+        <p>Granular consent management, immutable audit logging, and RBAC access control ensure participant data is handled to the highest standard.</p>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon icon-cyan">🤝</div>
+        <h3>Role Matching Engine</h3>
+        <p>Weighted fit-score algorithm connects job-ready participants to role families — Jet Tech, Avionics Specialist, AMT — with explainable gap analysis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+<section id="analytics">
+  <div class="grid-max">
+    <div class="analytics-wrap">
+      <div class="analytics-copy">
+        <div class="section-label">Real-Time Intelligence</div>
+        <h2 class="section-title">Analytics That Drive<br/>Hiring Decisions</h2>
+        <p class="section-sub">Every stakeholder gets a purpose-built view — youth participants see their pathway, coaches manage their cohort, employers track workforce readiness.</p>
+        <div class="analytics-features">
+          <div class="af-item">
+            <div class="af-icon icon-blue">📈</div>
+            <div class="af-text">
+              <h4>Live Readiness Scoring</h4>
+              <p>Composite score updated after every assessment, VR session, and evidence submission.</p>
+            </div>
+          </div>
+          <div class="af-item">
+            <div class="af-icon icon-cyan">🗺</div>
+            <div class="af-text">
+              <h4>Gap Map by Role Family</h4>
+              <p>Visual breakdown of competency gaps across Aviation Ops, Flight Support, and Avionics roles.</p>
+            </div>
+          </div>
+          <div class="af-item">
+            <div class="af-icon icon-purple">⚡</div>
+            <div class="af-text">
+              <h4>Regulatory Flag Alerts</h4>
+              <p>Automatic detection of CARs-aligned training gaps before they impact placement eligibility.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="analytics-visual">
+        <div class="av-header">
+          <div class="av-title">Cohort Readiness Dashboard</div>
+          <div class="av-badge">● Live</div>
+        </div>
+        <div class="readiness-ring">
+          <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#1e2d45" stroke-width="9"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#3b82f6" stroke-width="9"
+              stroke-dasharray="226" stroke-dashoffset="63" stroke-linecap="round"
+              transform="rotate(-90 45 45)"/>
+          </svg>
+          <div class="ring-label">
+            <div class="big">72%</div>
+            <div class="sub">Avg Readiness</div>
+          </div>
+        </div>
+        <div class="mini-bars">
+          <div class="mb-row">
+            <div class="mb-lbl">Navigation</div>
+            <div class="mb-track"><div class="mb-fill" style="width:82%;background:#3b82f6"></div></div>
+            <div class="mb-val">82%</div>
+          </div>
+          <div class="mb-row">
+            <div class="mb-lbl">Safety Ops</div>
+            <div class="mb-track"><div class="mb-fill" style="width:95%;background:#22c55e"></div></div>
+            <div class="mb-val">95%</div>
+          </div>
+          <div class="mb-row">
+            <div class="mb-lbl">Reg. Docs</div>
+            <div class="mb-track"><div class="mb-fill" style="width:48%;background:#f59e0b"></div></div>
+            <div class="mb-val">48%</div>
+          </div>
+          <div class="mb-row">
+            <div class="mb-lbl">Emergency</div>
+            <div class="mb-track"><div class="mb-fill" style="width:60%;background:#8b5cf6"></div></div>
+            <div class="mb-val">60%</div>
+          </div>
+        </div>
+        <div class="av-cards" style="margin-top:20px">
+          <div class="av-card">
+            <div class="n" style="color:#4ade80">28</div>
+            <div class="l">High Ready</div>
+          </div>
+          <div class="av-card">
+            <div class="n" style="color:#fbbf24">23</div>
+            <div class="l">In Progress</div>
+          </div>
+          <div class="av-card">
+            <div class="n" style="color:#f87171">3</div>
+            <div class="l">Flags</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MORE IMAGERY -->
+<div class="imagery">
+  <div class="img-grid" style="grid-template-columns:1fr 1fr 2fr">
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1569629743817-70d8db6c323b?w=600&q=80" alt="Aircraft maintenance" loading="lazy"/>
+      <div class="img-panel-label">🔧 Maintenance Tech</div>
+    </div>
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1608023136037-626dad6c9b4f?w=600&q=80" alt="Aviation instruments" loading="lazy"/>
+      <div class="img-panel-label">🎛 Avionics</div>
+    </div>
+    <div class="img-panel">
+      <img src="https://images.unsplash.com/photo-1517976547714-720226b864c1?w=1200&q=80" alt="Aerospace engineering team" loading="lazy"/>
+      <div class="img-panel-label">🛠 Aerospace Engineering</div>
+    </div>
+  </div>
+</div>
+
+<!-- ROLES -->
+<section class="roles" id="roles">
+  <div class="section-header">
+    <div class="section-label">Who It's For</div>
+    <h2 class="section-title">Four Roles. One Platform.</h2>
+    <p class="section-sub">AACP serves every stakeholder in the aviation workforce pipeline — from trainee to employer.</p>
+  </div>
+  <div class="grid-max">
+    <div class="roles-grid">
+      <div class="role-card role-youth">
+        <div class="role-emoji">🧑‍✈️</div>
+        <h3>Youth Participant</h3>
+        <p>Track your competency progress, earn badges, submit evidence, and follow a personalized pathway toward your aviation career.</p>
+        <span class="role-tag tag-green">Pathway Tracking</span>
+      </div>
+      <div class="role-card role-coach">
+        <div class="role-emoji">🧑‍🏫</div>
+        <h3>Coach</h3>
+        <p>Manage your cohort's review queue, certify competencies, monitor readiness trends, and flag regulatory concerns before they escalate.</p>
+        <span class="role-tag tag-purple">Cohort Management</span>
+      </div>
+      <div class="role-card role-employer">
+        <div class="role-emoji">🏢</div>
+        <h3>Employer</h3>
+        <p>Access workforce readiness reports, browse role-matched candidates, view gap analysis by role family, and make confident hiring decisions.</p>
+        <span class="role-tag tag-yellow">Talent Intelligence</span>
+      </div>
+      <div class="role-card role-admin">
+        <div class="role-emoji">⚙️</div>
+        <h3>Administrator</h3>
+        <p>Full platform visibility — audit logs, user management, regulatory compliance tracking, and cross-cohort analytics across all roles.</p>
+        <span class="role-tag tag-red">Full Access</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cohort">
+  <h2>Ready to Join the Cohort?</h2>
+  <p>Create your account and start your aviation career intelligence journey today.</p>
+  <div style="display:flex;justify-content:center">
+    <div class="cta-card">
+      <div class="cta-icon">✈️</div>
+      <h3>Sign In to Your Cohort</h3>
+      <p>Access your personalized dashboard — competency tracker, VR results, coach feedback, and role match scores.</p>
+      <a href="/app.html" class="cta-btn">
+        Launch Dashboard →
+      </a>
+      <div class="cta-note">Pilot cohort · Invite only · Secured with MFA</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="/" class="footer-logo">
+    <div class="footer-logo-mark">AACP</div>
+    <div>
+      <div class="footer-name">AACP</div>
+      <div class="footer-tagline">Aviation &amp; Aerospace Competence Program</div>
+    </div>
+  </a>
+  <div class="footer-links">
+    <a href="#platform">Platform</a>
+    <a href="#analytics">Analytics</a>
+    <a href="#roles">Roles</a>
+    <a href="/app.html">Sign In</a>
+  </div>
+  <div class="footer-copy">© 2026 AACP. All rights reserved.</div>
+</footer>
+
+</body>
 </html>

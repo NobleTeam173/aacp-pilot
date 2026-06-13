@@ -436,6 +436,11 @@ export default {
     if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
     if (path === '/ping')   return new Response('pong');
 
+    // /app → serve the React dashboard
+    if (path === '/app' || path === '/app/') {
+      return Response.redirect(new URL('/app.html', request.url).toString(), 301);
+    }
+
     // Auth routes (no token required)
     if (path === '/auth/register' && request.method === 'POST') return handleRegister(request, env);
     if (path === '/auth/login'    && request.method === 'POST') return handleLogin(request, env);
