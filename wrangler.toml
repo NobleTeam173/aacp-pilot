@@ -2,6 +2,11 @@ name = "aacp-backend"
 main = "worker.js"
 compatibility_date = "2024-09-23"
 
+routes = [
+  { pattern = "aviationaerospacecompetency.com/*", zone_name = "aviationaerospacecompetency.com" },
+  { pattern = "www.aviationaerospacecompetency.com/*", zone_name = "aviationaerospacecompetency.com" }
+]
+
 [assets]
 directory = "./dist"
 
