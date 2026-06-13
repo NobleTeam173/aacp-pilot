@@ -1,0 +1,270 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f4f7fb;
+  color: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  background: #1f2937;
+  color: #f8fafc;
+  padding: 24px 18px;
+}
+
+.brand {
+  margin-bottom: 24px;
+}
+
+.app-sidebar p,
+.app-sidebar strong {
+  line-height: 1.4;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.nav-button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #111827;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.nav-button:hover,
+.nav-button:focus-visible {
+  border-color: #60a5fa;
+  outline: none;
+}
+
+.nav-button.active {
+  background: #2563eb;
+  color: white;
+}
+
+.app-content {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.app-content p[role='alert'] {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar {
+    padding: 18px 14px;
+  }
+
+  .app-content {
+    padding: 18px;
+  }
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  margin-right: 12px;
+}
+
+.brand strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.brand p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.nav-button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #111827;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.nav-button:hover,
+.nav-button:focus-visible {
+  border-color: #60a5fa;
+  outline: none;
+}
+
+.nav-button.active {
+  background: #2563eb;
+  color: white;
+}
+
+.app-content {
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.dashboard-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-layout header h1 {
+  margin: 0 0 18px;
+  font-size: clamp(1.9rem, 2.2vw, 2.6rem);
+}
+
+.metric-grid,
+.card-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.dashboard-layout section {
+  margin-bottom: 24px;
+}
+
+.summary-metric-card,
+.chart-card,
+.table-card,
+.action-list-card,
+.regulatory-flag-card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  padding: 18px;
+}
+
+.summary-metric-card .label,
+.summary-metric-card .subtext {
+  color: #475569;
+}
+
+.summary-metric-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 12px 0;
+}
+
+.chart-card header,
+.action-list-card h3,
+.table-card h3,
+.regulatory-flag-card h3 {
+  margin: 0 0 12px;
+}
+
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-card th,
+.table-card td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-card th {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.table-card tr:last-child td {
+  border-bottom: none;
+}
+
+.action-list-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.action-list-card li {
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.action-list-card li:last-child {
+  border-bottom: none;
+}
+
+.action-list-card strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar {
+    padding: 18px 14px;
+  }
+
+  .app-content {
+    padding: 18px;
+  }
+}
