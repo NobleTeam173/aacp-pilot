@@ -69,7 +69,7 @@ textarea {
 }
 
 .nav-button.active {
-  background: #2563eb;
+  background: #80011f;
   color: white;
 }
 
@@ -108,7 +108,7 @@ textarea {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #2563eb;
+  background: #80011f;
   color: white;
   font-weight: 700;
   margin-right: 12px;
@@ -152,7 +152,7 @@ textarea {
 }
 
 .nav-button.active {
-  background: #2563eb;
+  background: #80011f;
   color: white;
 }
 
@@ -206,7 +206,7 @@ textarea {
 /* ── Login page ──────────────────────────────────────────────────────────── */
 .login-page {
   min-height: 100vh;
-  background: #0f172a;
+  background: #0f0a0b;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,8 +214,8 @@ textarea {
 }
 
 .login-card {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #1a0d10;
+  border: 1px solid #3d1020;
   border-radius: 20px;
   padding: 36px 32px;
   width: 100%;
@@ -234,7 +234,7 @@ textarea {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #2563eb;
+  background: #80011f;
   color: white;
   font-weight: 700;
   font-size: 1.1rem;
@@ -250,7 +250,7 @@ textarea {
 .login-tabs {
   display: flex;
   gap: 0;
-  background: #0f172a;
+  background: #0f0a0b;
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 20px;
@@ -269,13 +269,13 @@ textarea {
 }
 
 .login-tabs button.active {
-  background: #2563eb;
+  background: #80011f;
   color: white;
 }
 
 .login-msg {
-  background: #1e3a5f;
-  color: #93c5fd;
+  background: #2a0a10;
+  color: #f87171;
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.85rem;
@@ -299,8 +299,8 @@ textarea {
 
 .login-form input,
 .login-form select {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #0f0a0b;
+  border: 1px solid #3d1020;
   border-radius: 10px;
   color: #f1f5f9;
   padding: 10px 14px;
@@ -310,11 +310,11 @@ textarea {
 
 .login-form input:focus,
 .login-form select:focus {
-  border-color: #3b82f6;
+  border-color: #80011f;
 }
 
 .login-submit {
-  background: #2563eb;
+  background: #80011f;
   color: white;
   border: none;
   border-radius: 10px;
@@ -326,7 +326,7 @@ textarea {
 }
 
 .login-submit:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #5c0116;
 }
 
 .login-submit:disabled {

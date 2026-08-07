@@ -7,11 +7,33 @@ const refreshTokens = new Map(); // token → RefreshTokenRecord
 const auditLog = [];
 const consents = new Map();      // userId → ConsentRecord[]
 
+// ── Seed default admin (runs once on cold start) ─────────────────────────────
+// Default credentials: admin@aviationaerospacecompetency.com / AACP@Admin2024
+(async () => {
+  const adminEmail = 'admin@aviationaerospacecompetency.com';
+  if (!usersByEmail.has(adminEmail)) {
+    const enc = new TextEncoder();
+    const saltBytes = new Uint8Array([0xaa,0xc9,0x00,0x1f,0x2d,0x4e,0x7b,0x3c,0x91,0x08,0x55,0xd6,0xe2,0xf7,0x14,0xa0]);
+    const keyMat = await crypto.subtle.importKey('raw', enc.encode('AACP@Admin2024'), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: 10000 }, keyMat, 256);
+    const toHex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    const passwordHash = `10000:${toHex(saltBytes)}:${toHex(bits)}`;
+    const id = 'admin-seed-0001';
+    const now = new Date().toISOString();
+    users.set(id, { id, email: adminEmail, passwordHash, name: 'AACP Administrator', role: 'admin', phone: '', status: 'active', mfaEnabled: false, mfaSecret: null, createdAt: now, updatedAt: now });
+    usersByEmail.set(adminEmail, id);
+  }
+})();
+
 // ── Config ──────────────────────────────────────────────────────────────────
 const ACCESS_EXPIRES_SEC  = 15 * 60;
 const REFRESH_EXPIRES_SEC = 7 * 24 * 60 * 60;
 const PBKDF2_ITERATIONS   = 10000;
-const MFA_ENFORCED_ROLES  = new Set(['admin', 'coach']);
+// Roles: admin (full), youth, employer, postsecondary
+// admin is the only role that can approve registrations, view all, change anything
+// New registrations for non-admin roles start with status 'pending' until admin approves
+const MFA_ENFORCED_ROLES  = new Set(['admin']);
+const VALID_ROLES = new Set(['youth', 'employer', 'postsecondary', 'admin']);
 
 // ── Crypto helpers ───────────────────────────────────────────────────────────
 
@@ -171,15 +193,22 @@ function audit(action, userId, entityType, details = {}) {
 
 async function handleRegister(request, env) {
   const body = await request.json().catch(() => null);
-  if (!body?.email || !body?.password || !body?.name || !body?.role) {
-    return err('email, password, name, and role are required');
+  if (!body?.email || !body?.password || !body?.name || !body?.role || !body?.phone) {
+    return err('email, password, name, phone, and role are required');
   }
 
   const email = body.email.trim().toLowerCase();
   if (usersByEmail.has(email)) return err('Email already registered');
 
   const role = body.role.trim().toLowerCase();
-  if (!['youth', 'coach', 'employer', 'admin'].includes(role)) return err('Invalid role');
+  if (!VALID_ROLES.has(role)) return err('Invalid role');
+
+  // Admin accounts cannot be self-registered — they must be provisioned
+  if (role === 'admin') return err('Administrator accounts are provisioned by AACP. Contact your administrator.', 403);
+
+  // Role-specific required fields
+  if (role === 'employer' && !body.organizationName) return err('Organization name is required for Employer accounts');
+  if (role === 'postsecondary' && (!body.institutionName || !body.region)) return err('Institution name and region are required for Post-Secondary accounts');
 
   const id = randomHex(16);
   const passwordHash = await hashPassword(body.password);
@@ -187,15 +216,59 @@ async function handleRegister(request, env) {
   const user = {
     id, email, passwordHash,
     name: body.name.trim(), role,
-    organization: body.organization?.trim(),
+    phone: body.phone.trim(),
+    // Role-specific profile fields
+    organizationName: body.organizationName?.trim(),
+    jobTitle: body.jobTitle?.trim(),
+    institutionName: body.institutionName?.trim(),
+    region: body.region?.trim(),
+    province: body.province?.trim(),
+    programArea: body.programArea?.trim(),
     cohortId: body.cohortId,
+    // All non-admin accounts start pending until an admin approves
+    status: 'pending',
     mfaEnabled: false, mfaSecret: null,
     createdAt: now, updatedAt: now,
   };
   users.set(id, user);
   usersByEmail.set(email, id);
-  audit('register', id, 'user');
-  return json({ userId: id, role, message: 'User registered successfully' }, 201);
+  audit('register', id, 'user', { role, status: 'pending' });
+  return json({ userId: id, role, status: 'pending', message: 'Registration submitted. Your account is pending administrator approval.' }, 201);
+}
+
+// ── Admin: list pending registrations ─────────────────────────────────────────
+
+function handleAdminPendingUsers(request, user) {
+  const guard = requireRole(user, 'admin'); if (guard) return guard;
+  const pending = [...users.values()]
+    .filter(u => u.status === 'pending')
+    .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, organizationName: u.organizationName, institutionName: u.institutionName, region: u.region, createdAt: u.createdAt }));
+  return json({ users: pending, total: pending.length });
+}
+
+// ── Admin: approve or reject a registration ───────────────────────────────────
+
+async function handleAdminUserAction(request, user) {
+  const guard = requireRole(user, 'admin'); if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.userId || !body?.action) return err('userId and action (approve|reject) are required');
+  const target = users.get(body.userId);
+  if (!target) return err('User not found', 404);
+  if (body.action === 'approve') {
+    target.status = 'active';
+    target.updatedAt = new Date().toISOString();
+    users.set(target.id, target);
+    audit('user_approved', user.sub, 'user', { targetUserId: target.id });
+    return json({ success: true, message: `${target.name} approved.` });
+  }
+  if (body.action === 'reject') {
+    target.status = 'rejected';
+    target.updatedAt = new Date().toISOString();
+    users.set(target.id, target);
+    audit('user_rejected', user.sub, 'user', { targetUserId: target.id });
+    return json({ success: true, message: `${target.name} rejected.` });
+  }
+  return err('Invalid action. Use approve or reject.');
 }
 
 async function handleLogin(request, env) {
@@ -208,6 +281,9 @@ async function handleLogin(request, env) {
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
     return err('Invalid credentials', 401);
   }
+
+  if (user.status === 'pending') return err('Your account is pending administrator approval. You will be notified when access is granted.', 403);
+  if (user.status === 'rejected') return err('Your registration was not approved. Please contact AACP for more information.', 403);
 
   const testMode = (env.AACP_AUTH_TEST_MODE ?? 'false') === 'true';
   const mfaEnforced = MFA_ENFORCED_ROLES.has(user.role);
@@ -345,33 +421,35 @@ function handleDashboardYouth(request, user) {
   });
 }
 
-function handleDashboardEmployer(request) {
-  const url = new URL(request.url);
-  const timeframe = url.searchParams.get('timeframe') ?? '30d';
-  const cohortId  = url.searchParams.get('cohortId');
+function handleDashboardEmployer(request, user) {
+  const guard = requireRole(user, 'employer', 'admin'); if (guard) return guard;
+
+  // Only participants who completed the full 8-week AACP program
+  const completers = [...programEnrollments.values()].filter(e => e.completedAt !== null);
+
+  const profiles = completers.map(enrollment => {
+    const aciaResult = aciaResults.get(enrollment.userId);
+    return {
+      userId: enrollment.userId,
+      name: enrollment.userName,
+      email: enrollment.email,
+      cohort: enrollment.cohort,
+      programCompletedAt: enrollment.completedAt,
+      topPathway: aciaResult?.topPathway ?? null,
+      pathwayAlignments: aciaResult?.alignments ?? [],
+      validatedCompetencies: enrollment.validatedCompetencies,
+      aciaCompleted: !!aciaResult,
+    };
+  });
+
   return json({
-    summary: { cohortId, participantCount: 50, averageReadiness: 72, readinessBands: { high: 28, medium: 46, low: 26 } },
-    readinessTrends: [
-      { period: '0d', averageReadiness: 72 },
-      { period: '7d', averageReadiness: 70 },
-      { period: '14d', averageReadiness: 68 },
-    ],
-    gapMapByRoleFamily: [{
-      roleFamilyId: 'rf-aviation-ops', roleFamilyName: 'Aviation Operations',
-      gapScore: 18, averageReadiness: 74,
-      topCompetencyGaps: [{ competencyId: 'comp-001', title: 'Flight Procedure Accuracy', gapCount: 8 }],
-    }],
-    topMatches: [{
-      userId: 'user-123', roleId: 'role-jet-tech', roleName: 'Jet Technician Apprentice',
-      matchScore: 82, readinessScore: 71,
-      keyGaps: ['navigation', 'regulatory documentation'], status: 'recommended',
-    }],
-    regulatoryFlags: [{ flagType: 'training_gap', count: 3, description: 'Additional CARs-aligned training required.' }],
-    recentActivity: [{
-      type: 'assessment', title: 'Competency assessment submitted',
-      date: new Date().toISOString(), status: 'pending',
-    }],
-    metadata: { generatedAt: new Date().toISOString(), timeframe },
+    completers: profiles,
+    totalCompleters: profiles.length,
+    pathwayBreakdown: profiles.reduce((acc, p) => {
+      if (p.topPathway) acc[p.topPathway] = (acc[p.topPathway] ?? 0) + 1;
+      return acc;
+    }, {}),
+    metadata: { generatedAt: new Date().toISOString() },
   });
 }
 
@@ -404,6 +482,177 @@ function handleDashboardCoach(request) {
     }],
     metadata: { cohortId, generatedAt: new Date().toISOString() },
   });
+}
+
+function handleDashboardPostSecondary(request, user) {
+  const url = new URL(request.url);
+  const region = url.searchParams.get('region') ?? 'all';
+  return json({
+    summary: { region, participantCount: 50, averageReadiness: 72, pathwayBreakdown: { pilot: 12, ame: 14, atc: 8, engineering: 10, airport: 6 } },
+    regionalBreakdown: [
+      { region: 'British Columbia',    participantCount: 14, averageReadiness: 74 },
+      { region: 'Alberta',             participantCount: 11, averageReadiness: 70 },
+      { region: 'Ontario',             participantCount: 18, averageReadiness: 75 },
+      { region: 'Quebec',              participantCount: 7,  averageReadiness: 68 },
+    ],
+    competencyHighlights: [
+      { competencyId: 'crm',        title: 'Crew Resource Management',  averageScore: 3.8, participantCount: 50 },
+      { competencyId: 'safety',     title: 'Safety and Emergency Proc.', averageScore: 4.1, participantCount: 50 },
+      { competencyId: 'regulatory', title: 'Regulatory Knowledge',       averageScore: 3.2, participantCount: 50 },
+    ],
+    pathwayReadiness: [
+      { pathway: 'Pilot',                averageReadiness: 76 },
+      { pathway: 'AME',                  averageReadiness: 71 },
+      { pathway: 'Air Traffic Control',  averageReadiness: 68 },
+      { pathway: 'Aerospace Engineering',averageReadiness: 74 },
+      { pathway: 'Airport Specialty',    averageReadiness: 70 },
+    ],
+    metadata: { institutionName: user.institutionName ?? 'Post-Secondary Partner', generatedAt: new Date().toISOString(), region },
+  });
+}
+
+// ── ACIA results store ────────────────────────────────────────────────────────
+const aciaResults = new Map();        // userId → ACIAResult
+const programEnrollments = new Map(); // userId → ProgramRecord
+
+// ── Competency store ──────────────────────────────────────────────────────────
+const competencyScores = new Map(); // userId → { pathway, ratings, completedAt }
+
+async function handleCompetencyGet(request, user) {
+  const guard = requireAuth(user); if (guard) return guard;
+  const record = competencyScores.get(user.sub) ?? null;
+  return json({ assessment: record });
+}
+
+async function handleCompetencySave(request, user) {
+  const guard = requireAuth(user); if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.pathway || !body?.ratings) return err('pathway and ratings required');
+  const record = { pathway: body.pathway, ratings: body.ratings, completedAt: body.completedAt ?? new Date().toISOString() };
+  competencyScores.set(user.sub, record);
+  auditLog.push({ userId: user.sub, action: 'competency_saved', entityType: 'competency', at: new Date().toISOString() });
+  return json({ success: true });
+}
+
+// ── ACIA result persistence ───────────────────────────────────────────────────
+
+async function handleAciaSaveResult(request, user) {
+  const guard = requireAuth(user); if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.alignments || !body?.topPathway) return err('alignments and topPathway required');
+  const record = {
+    userId: user.sub,
+    userName: user.name ?? user.email,
+    email: user.email,
+    topPathway: body.topPathway,
+    alignments: body.alignments,
+    evidenceSummary: body.evidenceSummary ?? {},
+    completedAt: new Date().toISOString(),
+  };
+  aciaResults.set(user.sub, record);
+  audit('acia_completed', user.sub, 'acia', { topPathway: body.topPathway });
+  return json({ success: true });
+}
+
+async function handleAciaGetResult(request, user) {
+  const guard = requireAuth(user); if (guard) return guard;
+  const result = aciaResults.get(user.sub) ?? null;
+  return json({ result });
+}
+
+// ── Program enrollment & completion ───────────────────────────────────────────
+
+async function handleProgramEnroll(request, user) {
+  const guard = requireRole(user, 'admin'); if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.userId) return err('userId required');
+  const targetUser = users.get(body.userId);
+  if (!targetUser) return err('User not found', 404);
+  const record = {
+    userId: body.userId,
+    userName: targetUser.name ?? targetUser.email,
+    email: targetUser.email,
+    cohort: body.cohort ?? 'cohort-1',
+    enrolledAt: new Date().toISOString(),
+    completedAt: null,
+    weeklyProgress: body.weeklyProgress ?? 0,
+    validatedCompetencies: [],
+  };
+  programEnrollments.set(body.userId, record);
+  audit('program_enrolled', user.sub, 'program', { targetUserId: body.userId });
+  return json({ success: true });
+}
+
+async function handleProgramComplete(request, user) {
+  const guard = requireRole(user, 'admin'); if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.userId) return err('userId required');
+  const enrollment = programEnrollments.get(body.userId);
+  if (!enrollment) return err('User not enrolled', 404);
+  enrollment.completedAt = new Date().toISOString();
+  enrollment.weeklyProgress = 8;
+  enrollment.validatedCompetencies = body.validatedCompetencies ?? [
+    'Safety & Emergency Procedures',
+    'Aviation Regulatory Knowledge',
+    'Technical Systems Understanding',
+    'Professional Communication',
+  ];
+  programEnrollments.set(body.userId, enrollment);
+  audit('program_completed', user.sub, 'program', { targetUserId: body.userId });
+  return json({ success: true });
+}
+
+async function handleProgramStatus(request, user) {
+  const guard = requireAuth(user); if (guard) return guard;
+  const enrollment = programEnrollments.get(user.sub) ?? null;
+  return json({ enrollment });
+}
+
+// ── ACIA — Aviation Career Intelligence Assessment ────────────────────────────
+
+async function handleAciaChat(request, env) {
+  const user = await authenticate(request, env);
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  const body = await request.json().catch(() => null);
+  if (!body?.messages || !Array.isArray(body.messages)) {
+    return err('messages array required');
+  }
+
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) return err('AI service not configured', 503);
+
+  const systemPrompt = body.systemPrompt ?? 'You are a helpful aviation career mentor.';
+  const messages = body.messages.slice(-20).map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: String(m.content).slice(0, 4000),
+  }));
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-8',
+      max_tokens: 600,
+      system: systemPrompt,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error('Anthropic API error:', res.status, errBody);
+    return err('AI service error', 502);
+  }
+
+  const data = await res.json();
+  const reply = data.content?.[0]?.text ?? '';
+  return json({ reply });
 }
 
 // ── Audit handler ─────────────────────────────────────────────────────────────
@@ -453,20 +702,37 @@ export default {
     // Protected routes — validate JWT first
     const user = await authenticate(request, env);
 
-    if (path === '/dashboard/youth'    && request.method === 'GET') {
+    if (path === '/dashboard/youth'          && request.method === 'GET') {
       const g = requireRole(user, 'youth', 'admin'); if (g) return g;
       return handleDashboardYouth(request, user);
     }
-    if (path === '/dashboard/employer' && request.method === 'GET') {
-      const g = requireRole(user, 'employer', 'admin'); if (g) return g;
-      return handleDashboardEmployer(request);
-    }
-    if (path === '/dashboard/coach'    && request.method === 'GET') {
-      const g = requireRole(user, 'coach', 'admin'); if (g) return g;
+    if (path === '/dashboard/employer' && request.method === 'GET') return handleDashboardEmployer(request, user);
+    if (path === '/dashboard/coach'          && request.method === 'GET') {
+      const g = requireRole(user, 'admin'); if (g) return g;
       return handleDashboardCoach(request);
     }
+    if (path === '/dashboard/postsecondary'  && request.method === 'GET') {
+      const g = requireRole(user, 'postsecondary', 'admin'); if (g) return g;
+      return handleDashboardPostSecondary(request, user);
+    }
+
+    // Admin-only: user management
+    if (path === '/admin/users/pending'  && request.method === 'GET')  return handleAdminPendingUsers(request, user);
+    if (path === '/admin/users/action'   && request.method === 'POST') return handleAdminUserAction(request, user);
+
+    if (path === '/dashboard/competency' && request.method === 'GET')  return handleCompetencyGet(request, user);
+    if (path === '/dashboard/competency' && request.method === 'POST') return handleCompetencySave(request, user);
 
     if (path === '/audit/logs' && request.method === 'GET') return handleAuditLogs(request, user);
+
+    if (path === '/acia/chat'        && request.method === 'POST') return handleAciaChat(request, env);
+    if (path === '/acia/result'      && request.method === 'GET')  return handleAciaGetResult(request, user);
+    if (path === '/acia/result'      && request.method === 'POST') return handleAciaSaveResult(request, user);
+    if (path === '/program/status'   && request.method === 'GET')  return handleProgramStatus(request, user);
+    if (path === '/program/enroll'   && request.method === 'POST') return handleProgramEnroll(request, user);
+    if (path === '/program/complete' && request.method === 'POST') return handleProgramComplete(request, user);
+
+    if (path === '/dashboard/employer' && request.method === 'GET') return handleDashboardEmployer(request, user);
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {
@@ -474,6 +740,7 @@ export default {
       return json({ message: 'Coming soon', path });
     }
 
-    return json({ error: 'Not found' }, 404);
+    // Fall through to static assets (index.html, app.html, JS/CSS)
+    return env.ASSETS.fetch(request);
   },
 };

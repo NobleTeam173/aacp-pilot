@@ -45,15 +45,72 @@ function buildHeaders(extra: Record<string, string> = {}): Record<string, string
   };
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  // Deduplicate concurrent refresh attempts
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const res = await fetch(`${apiBaseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+        mode: 'cors',
+        cache: 'no-cache',
+      });
+      if (!res.ok) {
+        clearStoredTokens();
+        return false;
+      }
+      const data = await res.json() as { accessToken?: string };
+      if (data.accessToken) {
+        setStoredToken(data.accessToken);
+        return true;
+      }
+      clearStoredTokens();
+      return false;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const url = `${apiBaseUrl}${path}`;
-  const response = await fetch(url, {
-    method: options.method ?? 'GET',
-    headers: buildHeaders(options.headers),
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    mode: 'cors',
-    cache: 'no-cache',
-  });
+
+  const doFetch = (token?: string | null) =>
+    fetch(url, {
+      method: options.method ?? 'GET',
+      headers: buildHeaders({
+        ...options.headers,
+        ...(token !== undefined && token !== null ? { Authorization: `Bearer ${token}` } : {}),
+      }),
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      mode: 'cors',
+      cache: 'no-cache',
+    });
+
+  let response = await doFetch();
+
+  // On 401, attempt a single token refresh then retry
+  if (response.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      response = await doFetch(getStoredToken());
+    } else {
+      // Refresh failed — clear tokens and dispatch event so App can redirect to login
+      clearStoredTokens();
+      window.dispatchEvent(new CustomEvent('aacp:session-expired'));
+    }
+  }
 
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
