@@ -1,29 +1,6 @@
 // AACP Cloudflare Worker — full backend (Web Crypto only, no Node.js builtins)
-
-// ── In-memory stores (reset on cold start — MVP only) ──────────────────────
-const users = new Map();         // id → UserRecord
-const usersByEmail = new Map();  // email → id
-const refreshTokens = new Map(); // token → RefreshTokenRecord
-const auditLog = [];
-const consents = new Map();      // userId → ConsentRecord[]
-
-// ── Seed default admin (runs once on cold start) ─────────────────────────────
-// Default credentials: admin@aviationaerospacecompetency.com / AACP@Admin2024
-(async () => {
-  const adminEmail = 'admin@aviationaerospacecompetency.com';
-  if (!usersByEmail.has(adminEmail)) {
-    const enc = new TextEncoder();
-    const saltBytes = new Uint8Array([0xaa,0xc9,0x00,0x1f,0x2d,0x4e,0x7b,0x3c,0x91,0x08,0x55,0xd6,0xe2,0xf7,0x14,0xa0]);
-    const keyMat = await crypto.subtle.importKey('raw', enc.encode('AACP@Admin2024'), 'PBKDF2', false, ['deriveBits']);
-    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: 10000 }, keyMat, 256);
-    const toHex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-    const passwordHash = `10000:${toHex(saltBytes)}:${toHex(bits)}`;
-    const id = 'admin-seed-0001';
-    const now = new Date().toISOString();
-    users.set(id, { id, email: adminEmail, passwordHash, name: 'AACP Administrator', role: 'admin', phone: '', status: 'active', mfaEnabled: false, mfaSecret: null, createdAt: now, updatedAt: now });
-    usersByEmail.set(adminEmail, id);
-  }
-})();
+// Backed by D1 (see schema.sql) — accounts, ACIA results, program enrollment,
+// and audit history survive redeploys and cold starts.
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const ACCESS_EXPIRES_SEC  = 15 * 60;
@@ -34,6 +11,25 @@ const PBKDF2_ITERATIONS   = 10000;
 // New registrations for non-admin roles start with status 'pending' until admin approves
 const MFA_ENFORCED_ROLES  = new Set(['admin']);
 const VALID_ROLES = new Set(['youth', 'employer', 'postsecondary', 'admin']);
+
+// ── Seed default admin (idempotent — runs once per isolate) ──────────────────
+// Default credentials: admin@aviationaerospacecompetency.com / AACP@Admin2024
+let adminSeedDone = false;
+
+async function seedAdmin(db) {
+  const adminEmail = 'admin@aviationaerospacecompetency.com';
+  const enc = new TextEncoder();
+  const saltBytes = new Uint8Array([0xaa,0xc9,0x00,0x1f,0x2d,0x4e,0x7b,0x3c,0x91,0x08,0x55,0xd6,0xe2,0xf7,0x14,0xa0]);
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode('AACP@Admin2024'), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: 10000 }, keyMat, 256);
+  const toHex = (buf) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const passwordHash = `10000:${toHex(saltBytes)}:${toHex(bits)}`;
+  const now = new Date().toISOString();
+  await db.prepare(
+    `INSERT OR IGNORE INTO users (id, email, password_hash, name, role, phone, status, mfa_enabled, mfa_secret, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'admin', '', 'active', 0, NULL, ?, ?)`
+  ).bind('admin-seed-0001', adminEmail, passwordHash, 'AACP Administrator', now, now).run();
+}
 
 // ── Crypto helpers ───────────────────────────────────────────────────────────
 
@@ -183,10 +179,38 @@ function requireRole(user, ...roles) {
   return null;
 }
 
+// ── D1 row helpers ───────────────────────────────────────────────────────────
+
+function rowToUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.password_hash,
+    name: row.name,
+    role: row.role,
+    phone: row.phone,
+    organizationName: row.organization_name,
+    jobTitle: row.job_title,
+    institutionName: row.institution_name,
+    region: row.region,
+    province: row.province,
+    programArea: row.program_area,
+    cohortId: row.cohort_id,
+    status: row.status,
+    mfaEnabled: !!row.mfa_enabled,
+    mfaSecret: row.mfa_secret,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 // ── Audit helper ─────────────────────────────────────────────────────────────
 
-function audit(action, userId, entityType, details = {}) {
-  auditLog.push({ id: randomHex(8), action, userId, entityType, details, timestamp: new Date().toISOString() });
+async function audit(db, action, userId, entityType, details = {}) {
+  await db.prepare(
+    `INSERT INTO audit_log (id, action, user_id, entity_type, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(randomHex(8), action, userId ?? null, entityType ?? null, JSON.stringify(details), new Date().toISOString()).run();
 }
 
 // ── Auth handlers ─────────────────────────────────────────────────────────────
@@ -198,7 +222,8 @@ async function handleRegister(request, env) {
   }
 
   const email = body.email.trim().toLowerCase();
-  if (usersByEmail.has(email)) return err('Email already registered');
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) return err('Email already registered');
 
   const role = body.role.trim().toLowerCase();
   if (!VALID_ROLES.has(role)) return err('Invalid role');
@@ -213,59 +238,56 @@ async function handleRegister(request, env) {
   const id = randomHex(16);
   const passwordHash = await hashPassword(body.password);
   const now = new Date().toISOString();
-  const user = {
-    id, email, passwordHash,
-    name: body.name.trim(), role,
-    phone: body.phone.trim(),
-    // Role-specific profile fields
-    organizationName: body.organizationName?.trim(),
-    jobTitle: body.jobTitle?.trim(),
-    institutionName: body.institutionName?.trim(),
-    region: body.region?.trim(),
-    province: body.province?.trim(),
-    programArea: body.programArea?.trim(),
-    cohortId: body.cohortId,
-    // All non-admin accounts start pending until an admin approves
-    status: 'pending',
-    mfaEnabled: false, mfaSecret: null,
-    createdAt: now, updatedAt: now,
-  };
-  users.set(id, user);
-  usersByEmail.set(email, id);
-  audit('register', id, 'user', { role, status: 'pending' });
+
+  await env.DB.prepare(
+    `INSERT INTO users (id, email, password_hash, name, role, phone, organization_name, job_title, institution_name, region, province, program_area, cohort_id, status, mfa_enabled, mfa_secret, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NULL, ?, ?)`
+  ).bind(
+    id, email, passwordHash, body.name.trim(), role, body.phone.trim(),
+    body.organizationName?.trim() ?? null, body.jobTitle?.trim() ?? null,
+    body.institutionName?.trim() ?? null, body.region?.trim() ?? null,
+    body.province?.trim() ?? null, body.programArea?.trim() ?? null,
+    body.cohortId ?? null, now, now,
+  ).run();
+
+  await audit(env.DB, 'register', id, 'user', { role, status: 'pending' });
   return json({ userId: id, role, status: 'pending', message: 'Registration submitted. Your account is pending administrator approval.' }, 201);
 }
 
 // ── Admin: list pending registrations ─────────────────────────────────────────
 
-function handleAdminPendingUsers(request, user) {
+async function handleAdminPendingUsers(request, user, env) {
   const guard = requireRole(user, 'admin'); if (guard) return guard;
-  const pending = [...users.values()]
-    .filter(u => u.status === 'pending')
-    .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, organizationName: u.organizationName, institutionName: u.institutionName, region: u.region, createdAt: u.createdAt }));
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, email, role, phone, organization_name, institution_name, region, created_at
+     FROM users WHERE status = 'pending' ORDER BY created_at DESC`
+  ).all();
+  const pending = results.map((r) => ({
+    id: r.id, name: r.name, email: r.email, role: r.role, phone: r.phone,
+    organizationName: r.organization_name, institutionName: r.institution_name,
+    region: r.region, createdAt: r.created_at,
+  }));
   return json({ users: pending, total: pending.length });
 }
 
 // ── Admin: approve or reject a registration ───────────────────────────────────
 
-async function handleAdminUserAction(request, user) {
+async function handleAdminUserAction(request, user, env) {
   const guard = requireRole(user, 'admin'); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.userId || !body?.action) return err('userId and action (approve|reject) are required');
-  const target = users.get(body.userId);
+  const target = await env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(body.userId).first();
   if (!target) return err('User not found', 404);
+  const now = new Date().toISOString();
+
   if (body.action === 'approve') {
-    target.status = 'active';
-    target.updatedAt = new Date().toISOString();
-    users.set(target.id, target);
-    audit('user_approved', user.sub, 'user', { targetUserId: target.id });
+    await env.DB.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').bind('active', now, target.id).run();
+    await audit(env.DB, 'user_approved', user.sub, 'user', { targetUserId: target.id });
     return json({ success: true, message: `${target.name} approved.` });
   }
   if (body.action === 'reject') {
-    target.status = 'rejected';
-    target.updatedAt = new Date().toISOString();
-    users.set(target.id, target);
-    audit('user_rejected', user.sub, 'user', { targetUserId: target.id });
+    await env.DB.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').bind('rejected', now, target.id).run();
+    await audit(env.DB, 'user_rejected', user.sub, 'user', { targetUserId: target.id });
     return json({ success: true, message: `${target.name} rejected.` });
   }
   return err('Invalid action. Use approve or reject.');
@@ -276,8 +298,7 @@ async function handleLogin(request, env) {
   if (!body?.email || !body?.password) return err('email and password are required');
 
   const email = body.email.trim().toLowerCase();
-  const uid = usersByEmail.get(email);
-  const user = uid ? users.get(uid) : null;
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
     return err('Invalid credentials', 401);
   }
@@ -304,13 +325,12 @@ async function handleLogin(request, env) {
   const accessToken  = await createJwt({ ...basePayload, tokenType: 'access'  }, accessSecret,  ACCESS_EXPIRES_SEC);
   const refreshToken = await createJwt({ ...basePayload, tokenType: 'refresh' }, refreshSecret, REFRESH_EXPIRES_SEC);
 
-  refreshTokens.set(refreshToken, {
-    token: refreshToken, userId: user.id,
-    expiresAt: Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC,
-    revoked: false, createdAt: new Date().toISOString(),
-  });
+  const expiresAt = Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC;
+  await env.DB.prepare(
+    `INSERT INTO refresh_tokens (token, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
+  ).bind(refreshToken, user.id, expiresAt, new Date().toISOString()).run();
 
-  audit('login', user.id, 'session');
+  await audit(env.DB, 'login', user.id, 'session');
   return json({ userId: user.id, role: user.role, accessToken, refreshToken, tokenType: 'Bearer', message: 'Login successful' });
 }
 
@@ -319,8 +339,8 @@ async function handleRefresh(request, env) {
   const token = body?.refreshToken;
   if (!token) return err('refreshToken required');
 
-  const stored = refreshTokens.get(token);
-  if (!stored || stored.revoked || stored.expiresAt <= Math.floor(Date.now() / 1000)) {
+  const stored = await env.DB.prepare('SELECT * FROM refresh_tokens WHERE token = ?').bind(token).first();
+  if (!stored || stored.revoked || stored.expires_at <= Math.floor(Date.now() / 1000)) {
     return err('Invalid or expired refresh token', 401);
   }
 
@@ -328,7 +348,7 @@ async function handleRefresh(request, env) {
   const payload = await verifyJwt(token, refreshSecret);
   if (!payload || payload.tokenType !== 'refresh') return err('Invalid refresh token', 401);
 
-  const user = users.get(payload.sub);
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(payload.sub).first());
   if (!user) return err('User not found', 401);
 
   const accessSecret = env.AACP_ACCESS_TOKEN_SECRET ?? 'aacp-access-secret';
@@ -340,12 +360,11 @@ async function handleRefresh(request, env) {
   return json({ userId: user.id, role: user.role, accessToken, refreshToken: token, tokenType: 'Bearer' });
 }
 
-async function handleLogout(request) {
+async function handleLogout(request, env) {
   const body = await request.json().catch(() => null);
   const token = body?.refreshToken;
   if (token) {
-    const rec = refreshTokens.get(token);
-    if (rec) { rec.revoked = true; refreshTokens.set(token, rec); }
+    await env.DB.prepare('UPDATE refresh_tokens SET revoked = 1 WHERE token = ?').bind(token).run();
   }
   return json({ message: 'Logged out' });
 }
@@ -354,41 +373,33 @@ async function handleMfaSetup(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.password) return err('email and password required');
   const email = body.email.trim().toLowerCase();
-  const uid = usersByEmail.get(email);
-  const user = uid ? users.get(uid) : null;
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) return err('Invalid credentials', 401);
   const secret = randomHex(20);
-  user.mfaSecret = secret;
-  user.mfaEnabled = false;
-  users.set(user.id, user);
+  await env.DB.prepare('UPDATE users SET mfa_secret = ?, mfa_enabled = 0 WHERE id = ?').bind(secret, user.id).run();
   return json({ secret, message: 'MFA secret generated. Confirm with a TOTP token.' });
 }
 
-async function handleMfaConfirm(request) {
+async function handleMfaConfirm(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.password || !body?.token) return err('email, password, and token required');
   const email = body.email.trim().toLowerCase();
-  const uid = usersByEmail.get(email);
-  const user = uid ? users.get(uid) : null;
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash)) || !user.mfaSecret) {
     return err('Invalid credentials or MFA not initiated', 401);
   }
   if (!(await verifyTotp(user.mfaSecret, body.token))) return err('Invalid TOTP token');
-  user.mfaEnabled = true;
-  users.set(user.id, user);
+  await env.DB.prepare('UPDATE users SET mfa_enabled = 1 WHERE id = ?').bind(user.id).run();
   return json({ success: true, message: 'MFA enabled' });
 }
 
-async function handleMfaDisable(request) {
+async function handleMfaDisable(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.password) return err('email and password required');
   const email = body.email.trim().toLowerCase();
-  const uid = usersByEmail.get(email);
-  const user = uid ? users.get(uid) : null;
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) return err('Invalid credentials', 401);
-  user.mfaEnabled = false;
-  user.mfaSecret = null;
-  users.set(user.id, user);
+  await env.DB.prepare('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?').bind(user.id).run();
   return json({ success: true, message: 'MFA disabled' });
 }
 
@@ -421,26 +432,29 @@ function handleDashboardYouth(request, user) {
   });
 }
 
-function handleDashboardEmployer(request, user) {
+async function handleDashboardEmployer(request, user, env) {
   const guard = requireRole(user, 'employer', 'admin'); if (guard) return guard;
 
   // Only participants who completed the full 8-week AACP program
-  const completers = [...programEnrollments.values()].filter(e => e.completedAt !== null);
+  const { results: enrollments } = await env.DB.prepare(
+    `SELECT * FROM program_enrollments WHERE completed_at IS NOT NULL`
+  ).all();
 
-  const profiles = completers.map(enrollment => {
-    const aciaResult = aciaResults.get(enrollment.userId);
-    return {
-      userId: enrollment.userId,
-      name: enrollment.userName,
-      email: enrollment.email,
-      cohort: enrollment.cohort,
-      programCompletedAt: enrollment.completedAt,
-      topPathway: aciaResult?.topPathway ?? null,
-      pathwayAlignments: aciaResult?.alignments ?? [],
-      validatedCompetencies: enrollment.validatedCompetencies,
-      aciaCompleted: !!aciaResult,
-    };
-  });
+  const profiles = [];
+  for (const e of enrollments) {
+    const aciaRow = await env.DB.prepare('SELECT * FROM acia_results WHERE user_id = ?').bind(e.user_id).first();
+    profiles.push({
+      userId: e.user_id,
+      name: e.user_name,
+      email: e.email,
+      cohort: e.cohort,
+      programCompletedAt: e.completed_at,
+      topPathway: aciaRow?.top_pathway ?? null,
+      pathwayAlignments: aciaRow ? JSON.parse(aciaRow.alignments) : [],
+      validatedCompetencies: JSON.parse(e.validated_competencies ?? '[]'),
+      aciaCompleted: !!aciaRow,
+    });
+  }
 
   return json({
     completers: profiles,
@@ -511,100 +525,108 @@ function handleDashboardPostSecondary(request, user) {
   });
 }
 
-// ── ACIA results store ────────────────────────────────────────────────────────
-const aciaResults = new Map();        // userId → ACIAResult
-const programEnrollments = new Map(); // userId → ProgramRecord
-
 // ── Competency store ──────────────────────────────────────────────────────────
-const competencyScores = new Map(); // userId → { pathway, ratings, completedAt }
 
-async function handleCompetencyGet(request, user) {
+async function handleCompetencyGet(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
-  const record = competencyScores.get(user.sub) ?? null;
+  const row = await env.DB.prepare('SELECT * FROM competency_scores WHERE user_id = ?').bind(user.sub).first();
+  const record = row ? { pathway: row.pathway, ratings: JSON.parse(row.ratings), completedAt: row.completed_at } : null;
   return json({ assessment: record });
 }
 
-async function handleCompetencySave(request, user) {
+async function handleCompetencySave(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.pathway || !body?.ratings) return err('pathway and ratings required');
-  const record = { pathway: body.pathway, ratings: body.ratings, completedAt: body.completedAt ?? new Date().toISOString() };
-  competencyScores.set(user.sub, record);
-  auditLog.push({ userId: user.sub, action: 'competency_saved', entityType: 'competency', at: new Date().toISOString() });
+  const completedAt = body.completedAt ?? new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO competency_scores (user_id, pathway, ratings, completed_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET pathway = excluded.pathway, ratings = excluded.ratings, completed_at = excluded.completed_at`
+  ).bind(user.sub, body.pathway, JSON.stringify(body.ratings), completedAt).run();
+  await audit(env.DB, 'competency_saved', user.sub, 'competency');
   return json({ success: true });
 }
 
 // ── ACIA result persistence ───────────────────────────────────────────────────
 
-async function handleAciaSaveResult(request, user) {
+async function handleAciaSaveResult(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.alignments || !body?.topPathway) return err('alignments and topPathway required');
-  const record = {
-    userId: user.sub,
-    userName: user.name ?? user.email,
-    email: user.email,
-    topPathway: body.topPathway,
-    alignments: body.alignments,
-    evidenceSummary: body.evidenceSummary ?? {},
-    completedAt: new Date().toISOString(),
-  };
-  aciaResults.set(user.sub, record);
-  audit('acia_completed', user.sub, 'acia', { topPathway: body.topPathway });
+  const completedAt = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO acia_results (user_id, user_name, email, top_pathway, alignments, evidence_summary, completed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET user_name = excluded.user_name, top_pathway = excluded.top_pathway,
+       alignments = excluded.alignments, evidence_summary = excluded.evidence_summary, completed_at = excluded.completed_at`
+  ).bind(
+    user.sub, user.name ?? user.email, user.email, body.topPathway,
+    JSON.stringify(body.alignments), JSON.stringify(body.evidenceSummary ?? {}), completedAt,
+  ).run();
+  await audit(env.DB, 'acia_completed', user.sub, 'acia', { topPathway: body.topPathway });
   return json({ success: true });
 }
 
-async function handleAciaGetResult(request, user) {
+async function handleAciaGetResult(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
-  const result = aciaResults.get(user.sub) ?? null;
+  const row = await env.DB.prepare('SELECT * FROM acia_results WHERE user_id = ?').bind(user.sub).first();
+  const result = row ? {
+    userId: row.user_id, userName: row.user_name, email: row.email,
+    topPathway: row.top_pathway, alignments: JSON.parse(row.alignments),
+    evidenceSummary: JSON.parse(row.evidence_summary ?? '{}'), completedAt: row.completed_at,
+  } : null;
   return json({ result });
 }
 
 // ── Program enrollment & completion ───────────────────────────────────────────
 
-async function handleProgramEnroll(request, user) {
+async function handleProgramEnroll(request, user, env) {
   const guard = requireRole(user, 'admin'); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.userId) return err('userId required');
-  const targetUser = users.get(body.userId);
+  const targetUser = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(body.userId).first();
   if (!targetUser) return err('User not found', 404);
-  const record = {
-    userId: body.userId,
-    userName: targetUser.name ?? targetUser.email,
-    email: targetUser.email,
-    cohort: body.cohort ?? 'cohort-1',
-    enrolledAt: new Date().toISOString(),
-    completedAt: null,
-    weeklyProgress: body.weeklyProgress ?? 0,
-    validatedCompetencies: [],
-  };
-  programEnrollments.set(body.userId, record);
-  audit('program_enrolled', user.sub, 'program', { targetUserId: body.userId });
+  const enrolledAt = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO program_enrollments (user_id, user_name, email, cohort, enrolled_at, completed_at, weekly_progress, validated_competencies)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, '[]')
+     ON CONFLICT(user_id) DO UPDATE SET cohort = excluded.cohort, enrolled_at = excluded.enrolled_at, weekly_progress = excluded.weekly_progress`
+  ).bind(
+    body.userId, targetUser.name ?? targetUser.email, targetUser.email,
+    body.cohort ?? 'cohort-1', enrolledAt, body.weeklyProgress ?? 0,
+  ).run();
+  await audit(env.DB, 'program_enrolled', user.sub, 'program', { targetUserId: body.userId });
   return json({ success: true });
 }
 
-async function handleProgramComplete(request, user) {
+async function handleProgramComplete(request, user, env) {
   const guard = requireRole(user, 'admin'); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.userId) return err('userId required');
-  const enrollment = programEnrollments.get(body.userId);
+  const enrollment = await env.DB.prepare('SELECT * FROM program_enrollments WHERE user_id = ?').bind(body.userId).first();
   if (!enrollment) return err('User not enrolled', 404);
-  enrollment.completedAt = new Date().toISOString();
-  enrollment.weeklyProgress = 8;
-  enrollment.validatedCompetencies = body.validatedCompetencies ?? [
+  const completedAt = new Date().toISOString();
+  const validated = body.validatedCompetencies ?? [
     'Safety & Emergency Procedures',
     'Aviation Regulatory Knowledge',
     'Technical Systems Understanding',
     'Professional Communication',
   ];
-  programEnrollments.set(body.userId, enrollment);
-  audit('program_completed', user.sub, 'program', { targetUserId: body.userId });
+  await env.DB.prepare(
+    `UPDATE program_enrollments SET completed_at = ?, weekly_progress = 8, validated_competencies = ? WHERE user_id = ?`
+  ).bind(completedAt, JSON.stringify(validated), body.userId).run();
+  await audit(env.DB, 'program_completed', user.sub, 'program', { targetUserId: body.userId });
   return json({ success: true });
 }
 
-async function handleProgramStatus(request, user) {
+async function handleProgramStatus(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
-  const enrollment = programEnrollments.get(user.sub) ?? null;
+  const row = await env.DB.prepare('SELECT * FROM program_enrollments WHERE user_id = ?').bind(user.sub).first();
+  const enrollment = row ? {
+    userId: row.user_id, userName: row.user_name, email: row.email, cohort: row.cohort,
+    enrolledAt: row.enrolled_at, completedAt: row.completed_at,
+    weeklyProgress: row.weekly_progress, validatedCompetencies: JSON.parse(row.validated_competencies ?? '[]'),
+  } : null;
   return json({ enrollment });
 }
 
@@ -657,17 +679,26 @@ async function handleAciaChat(request, env) {
 
 // ── Audit handler ─────────────────────────────────────────────────────────────
 
-function handleAuditLogs(request, user) {
+async function handleAuditLogs(request, user, env) {
   const guard = requireRole(user, 'admin');
   if (guard) return guard;
   const url = new URL(request.url);
-  let logs = [...auditLog];
   const userId     = url.searchParams.get('userId');
   const action     = url.searchParams.get('action');
   const entityType = url.searchParams.get('entityType');
-  if (userId)     logs = logs.filter(l => l.userId === userId);
-  if (action)     logs = logs.filter(l => l.action === action);
-  if (entityType) logs = logs.filter(l => l.entityType === entityType);
+
+  let query = 'SELECT * FROM audit_log WHERE 1=1';
+  const params = [];
+  if (userId)     { query += ' AND user_id = ?';     params.push(userId); }
+  if (action)     { query += ' AND action = ?';      params.push(action); }
+  if (entityType) { query += ' AND entity_type = ?'; params.push(entityType); }
+  query += ' ORDER BY timestamp DESC';
+
+  const { results } = await env.DB.prepare(query).bind(...params).all();
+  const logs = results.map((r) => ({
+    id: r.id, action: r.action, userId: r.user_id, entityType: r.entity_type,
+    details: r.details ? JSON.parse(r.details) : {}, timestamp: r.timestamp,
+  }));
   return json({ logs, total: logs.length });
 }
 
@@ -682,6 +713,11 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
+    if (!adminSeedDone) {
+      adminSeedDone = true;
+      await seedAdmin(env.DB);
+    }
+
     if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
     if (path === '/ping')   return new Response('pong');
 
@@ -693,11 +729,11 @@ export default {
     // Auth routes (no token required)
     if (path === '/auth/register' && request.method === 'POST') return handleRegister(request, env);
     if (path === '/auth/login'    && request.method === 'POST') return handleLogin(request, env);
-    if (path === '/auth/logout'   && request.method === 'POST') return handleLogout(request);
+    if (path === '/auth/logout'   && request.method === 'POST') return handleLogout(request, env);
     if (path === '/auth/refresh'  && request.method === 'POST') return handleRefresh(request, env);
     if (path === '/auth/mfa/setup'   && request.method === 'POST') return handleMfaSetup(request, env);
-    if (path === '/auth/mfa/confirm' && request.method === 'POST') return handleMfaConfirm(request);
-    if (path === '/auth/mfa/disable' && request.method === 'POST') return handleMfaDisable(request);
+    if (path === '/auth/mfa/confirm' && request.method === 'POST') return handleMfaConfirm(request, env);
+    if (path === '/auth/mfa/disable' && request.method === 'POST') return handleMfaDisable(request, env);
 
     // Protected routes — validate JWT first
     const user = await authenticate(request, env);
@@ -706,7 +742,7 @@ export default {
       const g = requireRole(user, 'youth', 'admin'); if (g) return g;
       return handleDashboardYouth(request, user);
     }
-    if (path === '/dashboard/employer' && request.method === 'GET') return handleDashboardEmployer(request, user);
+    if (path === '/dashboard/employer' && request.method === 'GET') return handleDashboardEmployer(request, user, env);
     if (path === '/dashboard/coach'          && request.method === 'GET') {
       const g = requireRole(user, 'admin'); if (g) return g;
       return handleDashboardCoach(request);
@@ -717,22 +753,20 @@ export default {
     }
 
     // Admin-only: user management
-    if (path === '/admin/users/pending'  && request.method === 'GET')  return handleAdminPendingUsers(request, user);
-    if (path === '/admin/users/action'   && request.method === 'POST') return handleAdminUserAction(request, user);
+    if (path === '/admin/users/pending'  && request.method === 'GET')  return handleAdminPendingUsers(request, user, env);
+    if (path === '/admin/users/action'   && request.method === 'POST') return handleAdminUserAction(request, user, env);
 
-    if (path === '/dashboard/competency' && request.method === 'GET')  return handleCompetencyGet(request, user);
-    if (path === '/dashboard/competency' && request.method === 'POST') return handleCompetencySave(request, user);
+    if (path === '/dashboard/competency' && request.method === 'GET')  return handleCompetencyGet(request, user, env);
+    if (path === '/dashboard/competency' && request.method === 'POST') return handleCompetencySave(request, user, env);
 
-    if (path === '/audit/logs' && request.method === 'GET') return handleAuditLogs(request, user);
+    if (path === '/audit/logs' && request.method === 'GET') return handleAuditLogs(request, user, env);
 
     if (path === '/acia/chat'        && request.method === 'POST') return handleAciaChat(request, env);
-    if (path === '/acia/result'      && request.method === 'GET')  return handleAciaGetResult(request, user);
-    if (path === '/acia/result'      && request.method === 'POST') return handleAciaSaveResult(request, user);
-    if (path === '/program/status'   && request.method === 'GET')  return handleProgramStatus(request, user);
-    if (path === '/program/enroll'   && request.method === 'POST') return handleProgramEnroll(request, user);
-    if (path === '/program/complete' && request.method === 'POST') return handleProgramComplete(request, user);
-
-    if (path === '/dashboard/employer' && request.method === 'GET') return handleDashboardEmployer(request, user);
+    if (path === '/acia/result'      && request.method === 'GET')  return handleAciaGetResult(request, user, env);
+    if (path === '/acia/result'      && request.method === 'POST') return handleAciaSaveResult(request, user, env);
+    if (path === '/program/status'   && request.method === 'GET')  return handleProgramStatus(request, user, env);
+    if (path === '/program/enroll'   && request.method === 'POST') return handleProgramEnroll(request, user, env);
+    if (path === '/program/complete' && request.method === 'POST') return handleProgramComplete(request, user, env);
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {
