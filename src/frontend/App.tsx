@@ -105,7 +105,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
 
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
           Create Account
         </div>
         <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 20, lineHeight: 1.6 }}>
@@ -114,7 +114,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
 
         {duplicateType && (
           <div style={{
-            background: '#1a0d10', border: '1px solid #80011f', borderRadius: 10,
+            background: '#1a0d10', border: '1px solid #8F0909', borderRadius: 10,
             padding: '14px 16px', marginBottom: 16,
           }}>
             <p style={{ color: '#fca5a5', fontSize: 13, margin: '0 0 10px', lineHeight: 1.6 }}>
@@ -129,7 +129,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
                 type="button"
                 onClick={onBack}
                 style={{
-                  background: '#80011f', color: '#fff', border: 'none',
+                  background: '#8F0909', color: '#fff', border: 'none',
                   borderRadius: 8, padding: '8px 16px', fontSize: 13,
                   fontWeight: 700, cursor: 'pointer',
                 }}
@@ -301,7 +301,7 @@ function InviteAcceptForm({ token, onDone }: { token: string; onDone: () => void
           <p style={{ fontSize: 13, color: '#9ca3a8' }}>Verifying invitation…</p>
         ) : (
           <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
               Activate Administrator Account
             </div>
             <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
@@ -365,7 +365,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
           <span className="brand-mark">AACP</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
           Set Your Password
         </div>
         <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
@@ -432,7 +432,7 @@ function MfaSetupForm({ email, password, otp, onSetupComplete }: {
           <span className="brand-mark">AACP</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
           Set Up Two-Factor Authentication
         </div>
         <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
@@ -581,7 +581,7 @@ function ResetPasswordForm({ token, onDone }: { token: string; onDone: () => voi
           </>
         ) : (
           <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
               Choose a New Password
             </div>
             {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}

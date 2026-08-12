@@ -1,94 +1,83 @@
-import type { EvidenceKey, CareerAlignment, PathwayId, FitLevel } from './types';
-import { aggregateEvidence } from './behaviourEngine';
-import type { EvidenceItem } from './types';
+import type {
+  CompetencyKey, CareerAlignment, PathwayId, AlignmentLevel,
+  EvidenceConfidence, CompetencyObservation,
+} from './types';
+import { COMPETENCY_LABELS } from './types';
+import { computeCompetencyIndex, getTopCompetencies } from './evidenceEngine';
+import type { EvidenceItem, QuestionResponse } from './types';
 
-// Weighted importance of each evidence key per pathway (0–1)
-// Reflects the 15-strength taxonomy: each pathway prioritises the strengths most critical to that role
-const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<EvidenceKey, number>>> = {
+// ── Pathway competency weights ─────────────────────────────────────────────────
+// Each pathway lists which competencies matter most (0–1)
+const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>> = {
   pilot: {
-    situational_awareness: 1.0,
-    decision_quality: 1.0,
-    stress_response: 0.9,
-    safety_mindset: 0.9,
-    communication_quality: 0.8,
-    spatial_reasoning: 0.8,
-    multitasking_ability: 0.8,
-    procedural_compliance: 0.7,
-    attention_to_detail: 0.6,
-    systematic_reasoning: 0.5,
-    analytical_reasoning: 0.4,
-    learning_agility: 0.4,
-    curiosity: 0.3,
+    SA: 1.0, DM: 1.0, SO: 0.9, CM: 0.9, MT: 0.8, SR: 0.8,
+    WM: 0.7, PR: 0.7, AP: 0.6, PS: 0.5, AL: 0.4, MR: 0.3,
+  },
+  first_officer: {
+    SA: 1.0, DM: 0.9, CM: 1.0, SO: 0.9, MT: 0.8, SR: 0.7,
+    WM: 0.7, PR: 0.8, AP: 0.6, PS: 0.5, AL: 0.5,
   },
   ame: {
-    attention_to_detail: 1.0,
-    procedural_compliance: 1.0,
-    safety_mindset: 0.9,
-    systematic_reasoning: 0.9,
-    mechanical_reasoning: 0.9,
-    decision_quality: 0.8,
-    analytical_reasoning: 0.7,
-    learning_agility: 0.6,
-    curiosity: 0.6,
-    situational_awareness: 0.5,
-    communication_quality: 0.5,
-    stress_response: 0.4,
+    AP: 1.0, PR: 1.0, SO: 0.9, PS: 0.9, MR: 0.9,
+    DM: 0.8, AL: 0.7, SA: 0.6, CM: 0.5, SR: 0.4,
   },
   amt: {
-    mechanical_reasoning: 1.0,
-    attention_to_detail: 0.9,
-    procedural_compliance: 1.0,
-    systematic_reasoning: 0.9,
-    safety_mindset: 0.9,
-    decision_quality: 0.5,
-    spatial_reasoning: 0.5,
-    curiosity: 0.4,
-    analytical_reasoning: 0.4,
+    MR: 1.0, AP: 0.9, PR: 1.0, PS: 0.9, SO: 0.9,
+    DM: 0.5, SR: 0.5, AL: 0.4,
+  },
+  avionics: {
+    AP: 1.0, MR: 0.9, PS: 0.9, PR: 1.0, SO: 0.9,
+    AL: 0.7, SR: 0.5, CM: 0.4,
+  },
+  assembler: {
+    AP: 1.0, MR: 0.9, PR: 0.9, SO: 0.8, SR: 0.7,
+    PS: 0.6, AL: 0.5, CM: 0.4,
+  },
+  structural_repair: {
+    AP: 1.0, SR: 1.0, MR: 0.9, SO: 0.9, PR: 0.8,
+    PS: 0.7, AL: 0.5,
+  },
+  airport_ops: {
+    SA: 1.0, CM: 1.0, SO: 0.9, MT: 0.9, DM: 0.8,
+    PR: 0.7, AP: 0.6, WM: 0.5,
+  },
+  ground_ops: {
+    SA: 0.9, SO: 1.0, CM: 0.8, PR: 0.8, MT: 0.7,
+    AP: 0.7, DM: 0.6, WM: 0.5,
   },
   atc: {
-    communication_quality: 1.0,
-    multitasking_ability: 1.0,
-    stress_response: 1.0,
-    situational_awareness: 1.0,
-    decision_quality: 0.9,
-    procedural_compliance: 0.8,
-    spatial_reasoning: 0.8,
-    attention_to_detail: 0.7,
-    analytical_reasoning: 0.7,
-    systematic_reasoning: 0.5,
-    safety_mindset: 0.6,
+    CM: 1.0, MT: 1.0, SA: 1.0, DM: 0.9, WM: 0.9,
+    PR: 0.8, SR: 0.8, AP: 0.7, PS: 0.6, SO: 0.7,
+  },
+  fss: {
+    CM: 1.0, SA: 0.9, WM: 0.9, PR: 0.8, MT: 0.8,
+    DM: 0.8, AP: 0.7, SO: 0.7,
+  },
+  uav: {
+    SR: 0.9, SA: 0.9, AP: 0.9, SO: 0.8, DM: 0.8,
+    MR: 0.7, PR: 0.7, CM: 0.6, MT: 0.6,
   },
   aerospace: {
-    analytical_reasoning: 1.0,
-    curiosity: 1.0,
-    systematic_reasoning: 0.9,
-    learning_agility: 0.9,
-    spatial_reasoning: 0.8,
-    mechanical_reasoning: 0.7,
-    attention_to_detail: 0.7,
-    decision_quality: 0.6,
-    communication_quality: 0.5,
-    safety_mindset: 0.5,
+    PS: 1.0, AL: 1.0, MR: 0.9, SR: 0.8, AP: 0.7,
+    DM: 0.6, CM: 0.5, SO: 0.5,
   },
 };
 
 const PATHWAY_META: Record<PathwayId, {
   label: string;
-  icon: string;
   description: string;
-  highlights: Record<string, string>;
+  observedStrengthLabels: Partial<Record<CompetencyKey, string>>;
   nextSteps: string[];
 }> = {
   pilot: {
     label: 'Pilot',
-    icon: '✈️',
-    description: 'Your profile shows strong situational awareness, decisive thinking under pressure, and precise communication — the core qualities that define exceptional aviators. You demonstrate the kind of composed, structured decision-making that regulatory training will build on.',
-    highlights: {
-      situational_awareness: 'Strong situational awareness — holds a multi-element mental picture',
-      decision_quality: 'Decisive under uncertainty',
-      communication_quality: 'Clear, structured communication style',
-      stress_response: 'Composed and accurate under pressure',
-      safety_mindset: 'Internalized safety-first orientation',
+    description: 'Your profile shows strong situational awareness, decisive thinking under pressure, and precise communication — the core qualities that define exceptional aviators.',
+    observedStrengthLabels: {
+      SA: 'Strong situational awareness — holds a multi-element mental picture',
+      DM: 'Decisive under uncertainty',
+      CM: 'Clear, structured communication style',
+      SO: 'Internalized safety-first orientation',
+      MT: 'Manages competing demands effectively',
     },
     nextSteps: [
       "Explore Transport Canada's Private Pilot Licence (PPL) requirements and approved flight training units",
@@ -96,16 +85,31 @@ const PATHWAY_META: Record<PathwayId, {
       "Connect with an AACP Pilot pathway mentor for a one-on-one career conversation",
     ],
   },
+  first_officer: {
+    label: 'First Officer',
+    description: 'Your communication precision, crew coordination instincts, and structured decision-making align strongly with professional flight deck operations as a First Officer.',
+    observedStrengthLabels: {
+      CM: 'Precise, unambiguous communication',
+      SA: 'Strong dynamic situational awareness',
+      PR: 'Disciplined procedural approach',
+      DM: 'Sound decision-making under constraint',
+      SO: 'Safety-conscious orientation',
+    },
+    nextSteps: [
+      "Research CPL and ATPL licensing progression with Transport Canada",
+      "Explore multi-crew cooperation training at Canadian aviation colleges",
+      "Connect with an AACP Pilot pathway mentor",
+    ],
+  },
   ame: {
     label: 'Aircraft Maintenance Engineer (AME)',
-    icon: '🔧',
-    description: 'Your methodical approach, attention to detail, and strong safety instincts align closely with the precision demands of aircraft maintenance engineering. You show the diagnostic thinking and procedural rigour that Transport Canada licencing is built on.',
-    highlights: {
-      attention_to_detail: 'High attention to detail — notices what others miss',
-      procedural_compliance: 'Methodical, procedure-driven approach',
-      systematic_reasoning: 'Structured fault-diagnosis thinking',
-      safety_mindset: 'Safety-conscious in ambiguous situations',
-      mechanical_reasoning: 'Strong technical and mechanical aptitude',
+    description: 'Your methodical approach, attention to detail, and strong safety instincts align closely with the precision demands of aircraft maintenance engineering.',
+    observedStrengthLabels: {
+      AP: 'High attention to detail — notices what others miss',
+      PR: 'Methodical, procedure-driven approach',
+      PS: 'Structured fault-diagnosis thinking',
+      SO: 'Safety-conscious in ambiguous situations',
+      MR: 'Strong technical and mechanical aptitude',
     },
     nextSteps: [
       "Research Transport Canada AME licensing pathways (M1, M2, E, S categories)",
@@ -115,14 +119,13 @@ const PATHWAY_META: Record<PathwayId, {
   },
   amt: {
     label: 'Aircraft Maintenance Technician',
-    icon: '⚙️',
-    description: 'Your hands-on technical reasoning, systematic troubleshooting, and consistent attention to detail make you well-suited for aircraft maintenance technician work. You show the practical precision that sustains aircraft airworthiness every day.',
-    highlights: {
-      mechanical_reasoning: 'Strong practical mechanical aptitude',
-      systematic_reasoning: 'Structured troubleshooting approach',
-      attention_to_detail: 'Detail-oriented and thorough',
-      procedural_compliance: 'Reliable, consistent procedure adherence',
-      safety_mindset: 'Safety-aware across all tasks',
+    description: 'Your hands-on technical reasoning, systematic troubleshooting, and consistent attention to detail make you well-suited for aircraft maintenance technician work.',
+    observedStrengthLabels: {
+      MR: 'Strong practical mechanical aptitude',
+      AP: 'Detail-oriented and thorough',
+      PR: 'Reliable, consistent procedure adherence',
+      SO: 'Safety-aware across all tasks',
+      PS: 'Structured troubleshooting approach',
     },
     nextSteps: [
       "Explore aviation technician diploma programs at approved Canadian colleges",
@@ -130,33 +133,143 @@ const PATHWAY_META: Record<PathwayId, {
       "Connect with an AACP Maintenance pathway mentor",
     ],
   },
-  atc: {
-    label: 'Air Traffic Controller',
-    icon: '📡',
-    description: 'Your ability to manage multiple information streams simultaneously, communicate precisely under pressure, and maintain a clear mental picture of dynamic situations points strongly toward air traffic control. You show the composure and spatial reasoning that NAV CANADA selects for.',
-    highlights: {
-      multitasking_ability: 'Exceptional simultaneous-demand capacity',
-      communication_quality: 'Precise, complete, unambiguous communication',
-      stress_response: 'Calm and accurate under pressure',
-      situational_awareness: 'Excellent dynamic mental picture',
-      decision_quality: 'Fast, well-grounded decision-making',
+  avionics: {
+    label: 'Avionics Technician',
+    description: 'Your precision, systematic diagnostic thinking, and technical curiosity align strongly with the complex systems environment of avionics maintenance.',
+    observedStrengthLabels: {
+      AP: 'High precision — catches subtle system discrepancies',
+      MR: 'Strong system cause-and-effect reasoning',
+      PS: 'Analytical approach to fault isolation',
+      PR: 'Rigorous documentation and procedure adherence',
+      SO: 'Safety-conscious with electrical and electronic systems',
     },
     nextSteps: [
-      "Research NAV CANADA's ATC selection process and aptitude testing",
+      "Research avionics technician programs at Canadian aviation colleges (BCIT, SAIT, Canadore)",
+      "Explore Transport Canada Avionics licensing requirements",
+      "Connect with an AACP Avionics pathway mentor",
+    ],
+  },
+  assembler: {
+    label: 'Aircraft Assembler',
+    description: 'Your precise attention to detail, ability to work from technical drawings, and consistent procedure adherence align with the high standards of aircraft assembly.',
+    observedStrengthLabels: {
+      AP: 'Exceptional precision and accuracy',
+      MR: 'Mechanical spatial intelligence',
+      PR: 'Disciplined procedural work ethic',
+      SR: 'Strong component orientation and spatial reasoning',
+      SO: 'Quality and safety conscious',
+    },
+    nextSteps: [
+      "Explore aircraft assembly and manufacturing technician programs at Canadian colleges",
+      "Research opportunities with Canadian aerospace manufacturers",
+      "Connect with an AACP Manufacturing pathway mentor",
+    ],
+  },
+  structural_repair: {
+    label: 'Aircraft Structural Repair Technician',
+    description: 'Your spatial reasoning, precision, and strong safety judgment align with the demanding structural assessment and repair environment.',
+    observedStrengthLabels: {
+      SR: 'Strong spatial and component orientation',
+      AP: 'High precision — detects subtle structural discrepancies',
+      MR: 'Sound mechanical and material reasoning',
+      SO: 'Safety-first approach to structural decisions',
+      PR: 'Procedure-driven structural repair approach',
+    },
+    nextSteps: [
+      "Explore structural repair and composite repair programs at Canadian aviation colleges",
+      "Research MRO opportunities with Transport Canada-approved repair organizations",
+      "Connect with an AACP Structural Repair pathway mentor",
+    ],
+  },
+  airport_ops: {
+    label: 'Airport Operations',
+    description: 'Your situational awareness, communication precision, and ability to manage competing priorities align with the dynamic environment of airport operations.',
+    observedStrengthLabels: {
+      SA: 'Strong operational picture — aware of multiple moving parts',
+      CM: 'Clear, unambiguous operational communication',
+      SO: 'Safety-first orientation in a complex environment',
+      MT: 'Manages competing demands and disruptions effectively',
+      DM: 'Sound decisions under operational pressure',
+    },
+    nextSteps: [
+      "Research Airport Operations Officer programs and Canadian airport authority hiring requirements",
+      "Explore Transport Canada's airport security and operations standards",
+      "Connect with an AACP Airport Operations pathway mentor",
+    ],
+  },
+  ground_ops: {
+    label: 'Ground / FBO Operations',
+    description: 'Your safety awareness, procedural discipline, and communication skills align well with the ramp and ground operations environment.',
+    observedStrengthLabels: {
+      SO: 'Safety-conscious in all ground activities',
+      PR: 'Procedural discipline in high-consequence tasks',
+      CM: 'Clear communication with crew and operations',
+      SA: 'Situationally aware on the active apron',
+      AP: 'Detail-oriented during ground servicing',
+    },
+    nextSteps: [
+      "Explore ground handling and FBO operations training programs",
+      "Research ramp agent and ground crew certification requirements",
+      "Connect with an AACP Ground Operations pathway mentor",
+    ],
+  },
+  atc: {
+    label: 'Air Traffic Controller',
+    description: 'Your ability to manage multiple information streams simultaneously, communicate precisely under pressure, and maintain a clear mental picture of dynamic situations points strongly toward air traffic control.',
+    observedStrengthLabels: {
+      MT: 'Exceptional simultaneous-demand capacity',
+      CM: 'Precise, complete, unambiguous communication',
+      SA: 'Excellent dynamic mental picture',
+      DM: 'Fast, well-grounded decision-making',
+      WM: 'Strong working memory and updating ability',
+    },
+    nextSteps: [
+      "Research NAV CANADA's ATC selection process and aptitude testing requirements",
       "Explore Transport Canada ATC licensing requirements (ATCO licence)",
       "Connect with an AACP ATC pathway mentor for insight into the selection pipeline",
     ],
   },
+  fss: {
+    label: 'Flight Service Specialist',
+    description: 'Your communication precision, situational awareness, and working memory align with the demanding environment of flight service provision.',
+    observedStrengthLabels: {
+      CM: 'Precise, structured information transfer',
+      SA: 'Strong awareness of operational picture',
+      WM: 'Reliable retention and updating of briefing information',
+      PR: 'Procedural discipline in information delivery',
+      DM: 'Sound judgment under operational constraint',
+    },
+    nextSteps: [
+      "Research NAV CANADA Flight Service Specialist pathways",
+      "Explore Transport Canada FSS licensing requirements",
+      "Connect with an AACP ATC/FSS pathway mentor",
+    ],
+  },
+  uav: {
+    label: 'UAV / Drone Operations',
+    description: 'Your spatial reasoning, situational awareness, and precision align with the growing field of UAV and drone operations.',
+    observedStrengthLabels: {
+      SR: 'Strong spatial and positional reasoning',
+      SA: 'Operational situational awareness',
+      AP: 'High precision in technical tasks',
+      SO: 'Safety-conscious operational judgment',
+      DM: 'Sound decisions in dynamic environments',
+    },
+    nextSteps: [
+      "Research Transport Canada RPAS licensing requirements (Basic and Advanced)",
+      "Explore UAV operations training programs across Canada",
+      "Connect with an AACP UAV pathway mentor",
+    ],
+  },
   aerospace: {
-    label: 'Aerospace & STEM',
-    icon: '🚀',
-    description: 'Your analytical curiosity, drive to understand systems at depth, and structured problem-solving suggest a strong natural fit for aerospace engineering and STEM careers. You ask the kind of questions that advance the field.',
-    highlights: {
-      analytical_reasoning: 'Strong analytical and systems-level thinking',
-      curiosity: 'Intellectual curiosity and initiative',
-      systematic_reasoning: 'Rigorous, structured reasoning',
-      learning_agility: 'Fast learner who goes deeper than the surface',
-      spatial_reasoning: 'Spatial and technical reasoning ability',
+    label: 'Aerospace & STEM Careers',
+    description: 'Your analytical curiosity, drive to understand systems at depth, and structured problem-solving suggest a strong natural fit for aerospace engineering and STEM careers.',
+    observedStrengthLabels: {
+      PS: 'Strong analytical and systems-level thinking',
+      AL: 'Intellectual curiosity and initiative — fast learner',
+      MR: 'Rigorous technical and mechanical reasoning',
+      SR: 'Spatial and technical reasoning ability',
+      AP: 'Precision and detail orientation',
     },
     nextSteps: [
       "Explore accredited aerospace engineering programs (B.Eng/B.Sc) across Canadian universities",
@@ -166,44 +279,51 @@ const PATHWAY_META: Record<PathwayId, {
   },
 };
 
-// Maps evidence keys back to the 15-strength taxonomy for profile display
-export const STRENGTH_LABELS: Record<EvidenceKey, string> = {
-  safety_mindset: 'Safety Mindset',
-  systematic_reasoning: 'Problem-Solving',
-  communication_quality: 'Communication',
-  decision_quality: 'Decision-Making',
-  curiosity: 'Curiosity & Initiative',
-  learning_agility: 'Learning Agility',
-  attention_to_detail: 'Attention to Detail',
-  situational_awareness: 'Situational Awareness',
-  stress_response: 'Stress & Workload Management',
-  mechanical_reasoning: 'Technical Aptitude',
-  spatial_reasoning: 'Spatial Reasoning',
-  analytical_reasoning: 'Analytical Reasoning',
-  procedural_compliance: 'Consistency & Reliability',
-  multitasking_ability: 'Multitasking Under Pressure',
-};
-
-export function strengthsFromEvidence(evidence: EvidenceItem[]): Array<{ key: EvidenceKey; label: string; score: number }> {
-  const scores = aggregateEvidence(evidence);
-  return (Object.entries(scores) as [EvidenceKey, number][])
-    .filter(([, s]) => s > 0.05)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 6)
-    .map(([key, score]) => ({ key, label: STRENGTH_LABELS[key], score }));
+// ── Alignment level based on weighted score ───────────────────────────────────
+function scoreToAlignment(score: number, rank: number): AlignmentLevel {
+  if (score >= 0.72) return 'strong';
+  if (score >= 0.58) return rank <= 2 ? 'promising' : 'developing';
+  if (score >= 0.42) return 'developing';
+  if (score >= 0.28) return 'exploratory';
+  return 'insufficient';
 }
 
-export function computeAlignments(evidence: EvidenceItem[]): CareerAlignment[] {
-  const scores = aggregateEvidence(evidence);
+// ── Derive overall evidence confidence from competency coverage ───────────────
+function overallConfidence(
+  competencies: Partial<Record<CompetencyKey, CompetencyObservation>>,
+  pathway: PathwayId,
+): EvidenceConfidence {
+  const weights = PATHWAY_WEIGHTS[pathway];
+  let covered = 0;
+  let total = 0;
+  for (const [key, weight] of Object.entries(weights) as [CompetencyKey, number][]) {
+    if (weight >= 0.7) {
+      total++;
+      if (competencies[key] && competencies[key]!.observationCount >= 1) covered++;
+    }
+  }
+  const ratio = total > 0 ? covered / total : 0;
+  if (ratio >= 0.75) return 'high';
+  if (ratio >= 0.4) return 'moderate';
+  return 'low';
+}
 
-  const pathwayScores: Record<PathwayId, number> = { pilot: 0, ame: 0, amt: 0, atc: 0, aerospace: 0 };
+export function computeAlignments(
+  evidence: EvidenceItem[],
+  responses: QuestionResponse[],
+): CareerAlignment[] {
+  const competencies = computeCompetencyIndex(responses, evidence);
 
-  for (const [pathway, weights] of Object.entries(PATHWAY_WEIGHTS) as [PathwayId, Partial<Record<EvidenceKey, number>>][]) {
+  const pathwayScores: Record<PathwayId, number> = {} as Record<PathwayId, number>;
+
+  for (const [pathway, weights] of Object.entries(PATHWAY_WEIGHTS) as [PathwayId, Partial<Record<CompetencyKey, number>>][]) {
     let weightedSum = 0;
     let totalWeight = 0;
-    for (const [key, weight] of Object.entries(weights) as [EvidenceKey, number][]) {
-      const score = scores[key] ?? 0;
-      weightedSum += (score + 1) / 2 * weight; // normalize -1..1 → 0..1
+    for (const [key, weight] of Object.entries(weights) as [CompetencyKey, number][]) {
+      const obs = competencies[key];
+      const rawScore = obs ? obs.rawScore : 0;
+      const normalized = (rawScore + 1) / 2; // -1..1 → 0..1
+      weightedSum += normalized * weight;
       totalWeight += weight;
     }
     pathwayScores[pathway] = totalWeight > 0 ? weightedSum / totalWeight : 0.5;
@@ -211,23 +331,44 @@ export function computeAlignments(evidence: EvidenceItem[]): CareerAlignment[] {
 
   const sorted = (Object.entries(pathwayScores) as [PathwayId, number][]).sort((a, b) => b[1] - a[1]);
 
-  return sorted.map(([pathwayId, score], index) => {
+  return sorted.map(([pathwayId, score], rank) => {
     const meta = PATHWAY_META[pathwayId];
-    const fit: FitLevel = index === 0 ? 'strong' : score >= 0.6 ? 'good' : 'possible';
+    const alignment = scoreToAlignment(score, rank);
+    const weights = PATHWAY_WEIGHTS[pathwayId];
 
-    const highlights = Object.entries(meta.highlights)
-      .filter(([key]) => (scores[key as EvidenceKey] ?? 0) > 0.1)
+    const observedStrengths = (Object.entries(meta.observedStrengthLabels) as [CompetencyKey, string][])
+      .filter(([key]) => {
+        const obs = competencies[key];
+        return obs && obs.state !== 'insufficient' && obs.state !== 'emerging' &&
+          (weights[key] ?? 0) >= 0.7;
+      })
       .map(([, label]) => label)
       .slice(0, 3);
+
+    const topObs = getTopCompetencies(competencies, 3);
+
+    const developmentOpportunities = (Object.entries(weights) as [CompetencyKey, number][])
+      .filter(([key, weight]) => {
+        const obs = competencies[key];
+        return weight >= 0.7 && (!obs || obs.state === 'insufficient' || obs.state === 'emerging');
+      })
+      .map(([key]) => COMPETENCY_LABELS[key])
+      .slice(0, 2);
 
     return {
       pathwayId,
       label: meta.label,
-      icon: meta.icon,
+      alignment,
       description: meta.description,
-      fit,
-      highlights: highlights.length > 0 ? highlights : [Object.values(meta.highlights)[0]],
+      observedStrengths: observedStrengths.length > 0
+        ? observedStrengths
+        : topObs.map(o => `${COMPETENCY_LABELS[o.key]} — ${o.state}`),
+      developmentOpportunities,
+      evidenceConfidence: overallConfidence(competencies, pathwayId),
       nextSteps: meta.nextSteps,
     };
   });
 }
+
+// ── Legacy helper for backward compatibility with visual missions ──────────────
+export { COMPETENCY_LABELS };

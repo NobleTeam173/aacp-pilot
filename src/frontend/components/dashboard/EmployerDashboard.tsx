@@ -3,8 +3,8 @@ import { DashboardLayout } from './DashboardLayout';
 import { request } from '../../services/apiClient';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bgCard: '#1a0d10',
   bg: '#0f0a0b',
   border: '#3d1020',

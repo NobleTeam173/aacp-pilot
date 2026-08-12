@@ -4,8 +4,8 @@ import { evidenceFromChatMessages } from '../behaviourEngine';
 import type { EvidenceItem } from '../types';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bg: '#0f0a0b',
   bgCard: '#1a0d10',
   border: '#3d1020',
@@ -186,7 +186,7 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
           <button
             onClick={handleComplete}
             style={{
-              background: 'linear-gradient(135deg, #80011f, #5c0116)',
+              background: 'linear-gradient(135deg, #8F0909, #721010)',
               color: 'white',
               border: 'none',
               borderRadius: 12,

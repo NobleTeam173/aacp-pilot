@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { EvidenceItem } from '../types';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bgCard: '#1a0d10',
   border: '#3d1020',
   white: '#f1f5f9',
@@ -46,7 +46,7 @@ const CATEGORIES = ['Air Data Systems', 'Navigation Systems', 'Hydraulic Systems
 const CATEGORY_COLORS: Record<string, string> = {
   'Air Data Systems': '#2563ab',
   'Navigation Systems': '#0a7060',
-  'Hydraulic Systems': '#80011f',
+  'Hydraulic Systems': '#8F0909',
   'Electrical Systems': '#966000',
 };
 

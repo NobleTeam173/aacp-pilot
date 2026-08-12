@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bg: '#0f0a0b',
   bgCard: '#1a0d10',
   border: '#3d1020',
@@ -725,13 +725,13 @@ export function IndustryIntelligence() {
     <div style={{ background: C.bg, minHeight: '100%', fontFamily: 'DM Sans, sans-serif' }}>
     <div style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 1000, marginInline: 'auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
+        <div style={{ color: '#6b7074', fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
           Post-Secondary Intelligence
         </div>
         <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 8px', fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 700 }}>
           Workforce Intelligence Hub
         </h2>
-        <p style={{ color: C.greyD, fontSize: 13, margin: '0 0 6px' }}>
+        <p style={{ color: '#6b7074', fontSize: 13, margin: '0 0 6px' }}>
           Connect what you teach with what industry needs. Powered by the AACP Connector.
         </p>
         <p style={{ color: C.grey, fontSize: 11, margin: 0, fontStyle: 'italic' }}>

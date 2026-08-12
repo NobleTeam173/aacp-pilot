@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { EvidenceItem } from '../types';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bgCard: '#1a0d10',
   border: '#3d1020',
   white: '#f1f5f9',
@@ -156,7 +156,7 @@ export function WorkloadPriority({ onComplete }: Props) {
 
   const correctOrder = currentRound.correctOrder;
   const urgencyColor = (u: string) =>
-    u === 'immediate' ? C.red : u === 'soon' ? C.amber : '#6b7280';
+    u === 'immediate' ? C.red : u === 'soon' ? C.amber : '#8a9ab0';
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>

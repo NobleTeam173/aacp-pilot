@@ -11,8 +11,8 @@ import type { BadgeData } from '../acia/ACIABadge';
 import { openACIAReport } from '../acia/reportGenerator';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bgCard: '#1a0d10',
   bgDeep: '#12080d',
   border: '#3d1020',
@@ -408,7 +408,13 @@ function AACPJourney() {
 
   return (
     <section style={{ marginBottom: 28 }}>
-      <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', marginBottom: 24, fontWeight: 700, fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)' }}>Your AACP Journey</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+        <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, opacity: 0.85 }}>
+          <path d="M8 38l6-6 10 4 16-18 4 2-12 20 6 2 8-8 3 1-5 10-36-7z" fill="#8F0909"/>
+          <path d="M8 38l6-6 10 4" stroke="#8F0909" strokeWidth="1.5" fill="none" opacity="0.5"/>
+        </svg>
+        <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: 0, fontWeight: 700, fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)' }}>Your AACP Journey</h2>
+      </div>
 
       <div style={{ position: 'relative' }}>
         {/* Step 1: Baseline ACIA */}

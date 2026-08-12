@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { EvidenceItem } from '../types';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bg: '#0f0a0b',
   bgCard: '#1a0d10',
   border: '#3d1020',
@@ -255,8 +255,8 @@ export function SystemDiagnosis({ onComplete }: Props) {
         {[
           { label: 'FUEL QTY ANOM', active: true, color: '#f59e0b' },
           { label: 'ACARS: DC BUS -0.3V', active: true, color: '#f59e0b' },
-          { label: 'ENG 1 OIL', active: false, color: '#6b7280' },
-          { label: 'ALL OTHER SYS', active: false, color: '#6b7280' },
+          { label: 'ENG 1 OIL', active: false, color: '#8a9ab0' },
+          { label: 'ALL OTHER SYS', active: false, color: '#8a9ab0' },
           { label: 'C-GACP AOG', active: true, color: '#ef4444', flash: true },
         ].map(({ label, active, color, flash }) => (
           <div key={label} style={{

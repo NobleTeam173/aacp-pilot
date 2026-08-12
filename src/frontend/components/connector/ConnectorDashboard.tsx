@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const C = {
-  crimson: '#80011f',
-  crimsonD: '#5c0116',
+  crimson: '#8F0909',
+  crimsonD: '#721010',
   bg: '#0f0a0b',
   bgCard: '#1a0d10',
   border: '#3d1020',
@@ -747,16 +747,25 @@ export function ConnectorDashboard() {
   return (
     <div style={{ background: C.bg, minHeight: '100%', fontFamily: 'DM Sans, sans-serif' }}>
     <div style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 1000, marginInline: 'auto' }}>
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
-          AACP Connector
+      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginTop: 2, opacity: 0.9 }}>
+          <circle cx="32" cy="32" r="28" stroke="#8F0909" strokeWidth="3" fill="none"/>
+          <ellipse cx="32" cy="32" rx="13" ry="28" stroke="#8F0909" strokeWidth="2" fill="none" opacity="0.6"/>
+          <line x1="4" y1="32" x2="60" y2="32" stroke="#8F0909" strokeWidth="2" opacity="0.6"/>
+          <path d="M10 20 Q32 24 54 20M10 44 Q32 40 54 44" stroke="#8F0909" strokeWidth="1.5" fill="none" opacity="0.5"/>
+          <circle cx="32" cy="32" r="4" fill="#8F0909" opacity="0.8"/>
+        </svg>
+        <div>
+          <div style={{ color: '#6b7074', fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
+            AACP Connector
+          </div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 6px', fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 800 }}>
+            Workforce Intelligence Hub
+          </h2>
+          <p style={{ color: '#6b7074', fontSize: 13, margin: 0, lineHeight: 1.6 }}>
+            Employer signal ingestion, validation, and competency intelligence across the AACP ecosystem.
+          </p>
         </div>
-        <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 6px', fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 800 }}>
-          Workforce Intelligence Hub
-        </h2>
-        <p style={{ color: C.greyD, fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-          Employer signal ingestion, validation, and competency intelligence across the AACP ecosystem.
-        </p>
       </div>
 
       {/* Tabs */}

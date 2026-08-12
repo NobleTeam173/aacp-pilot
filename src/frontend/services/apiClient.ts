@@ -83,6 +83,13 @@ async function tryRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
+// Typed errors so callers can distinguish categories without parsing strings
+export class NetworkError extends Error { readonly type = 'network' as const; }
+export class ServerError  extends Error { readonly type = 'server'  as const; }
+export class ApiError     extends Error { readonly type = 'api'     as const; readonly status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
+}
+
 export async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const url = `${apiBaseUrl}${path}`;
 
@@ -98,25 +105,43 @@ export async function request<T>(path: string, options: ApiRequestOptions = {}):
       cache: 'no-cache',
     });
 
-  let response = await doFetch();
+  let response: Response;
+  try {
+    response = await doFetch();
+  } catch {
+    throw new NetworkError('Unable to reach the server. Please check your connection and try again.');
+  }
 
   // On 401, attempt a single token refresh then retry
   if (response.status === 401) {
     const refreshed = await tryRefresh();
     if (refreshed) {
-      response = await doFetch(getStoredToken());
+      try {
+        response = await doFetch(getStoredToken());
+      } catch {
+        throw new NetworkError('Unable to reach the server. Please check your connection and try again.');
+      }
     } else {
-      // Refresh failed — clear tokens and dispatch event so App can redirect to login
       clearStoredTokens();
       window.dispatchEvent(new CustomEvent('aacp:session-expired'));
+      // Fall through — original response body still readable
     }
   }
 
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  let payload: Record<string, unknown> | null = null;
+  try {
+    const text = await response.text();
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    // Non-JSON body — treat as server error
+  }
 
   if (!response.ok) {
-    throw new Error(payload?.error || response.statusText || 'API request failed');
+    const msg = (payload as { error?: string } | null)?.error;
+    if (response.status >= 500) {
+      throw new ServerError(msg ?? 'The server encountered an error. Please try again shortly.');
+    }
+    throw new ApiError(msg ?? 'Request failed.', response.status);
   }
 
   return payload as T;
