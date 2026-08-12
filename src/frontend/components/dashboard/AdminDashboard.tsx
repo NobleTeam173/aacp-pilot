@@ -1168,7 +1168,7 @@ function PilotAccessPanel() {
           notes: form.notes.trim() || undefined,
         }),
       });
-      const link = `${window.location.origin}/?pilot=${data.token}`;
+      const link = `${window.location.origin}/app?pilot=${data.token}`;
       setCreatedLink(link);
       setForm({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '' });
       loadInvitations();

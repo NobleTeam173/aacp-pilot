@@ -408,10 +408,7 @@ function AACPJourney() {
 
   return (
     <section style={{ marginBottom: 28 }}>
-      <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', marginBottom: 6 }}>Your AACP Journey</h2>
-      <p style={{ color: C.grey, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-        Baseline → 8-Week AACP → Completion Assessment → Employer Experience → 90-Day Follow-Up
-      </p>
+      <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', marginBottom: 24, fontWeight: 700, fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)' }}>Your AACP Journey</h2>
 
       <div style={{ position: 'relative' }}>
         {/* Step 1: Baseline ACIA */}
