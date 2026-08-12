@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
-import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken } from './services/apiClient';
+import { AdminDashboard } from './components/dashboard/AdminDashboard';
+import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
+import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
+import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
+import { PilotRegistrationForm } from './components/pilot/PilotRegistrationForm';
 
-type Role = 'youth' | 'employer' | 'postsecondary' | 'admin';
+type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin';
 
 interface AuthState {
   role: Role;
@@ -36,27 +40,38 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   const [institutionName, setInstitutionName] = useState('');
   const [region, setRegion] = useState('');
   const [programArea, setProgramArea] = useState('');
+  // Youth-only: career stage
+  const [careerStage, setCareerStage] = useState<string>('exploring');
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [duplicateType, setDuplicateType] = useState<'email' | 'phone' | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confirm) { setMsg('Passwords do not match.'); return; }
-    setMsg(''); setLoading(true);
+    setMsg(''); setDuplicateType(null); setLoading(true);
     try {
       await request('/auth/register', {
         method: 'POST',
         body: {
           email, password, name, phone, role,
+          ...(role === 'youth' ? { careerStage } : {}),
           ...(role === 'employer' ? { organizationName: orgName, jobTitle } : {}),
           ...(role === 'postsecondary' ? { institutionName, region, programArea } : {}),
         },
       });
       setSubmitted(true);
     } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : 'Registration failed. Please try again.');
+      const text = e instanceof Error ? e.message : 'Registration failed. Please try again.';
+      if (text.includes('email address is already registered')) {
+        setDuplicateType('email');
+      } else if (text.includes('phone number is already registered')) {
+        setDuplicateType('phone');
+      } else {
+        setMsg(text);
+      }
     } finally {
       setLoading(false);
     }
@@ -66,7 +81,6 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
     return (
       <div className="login-page">
         <div className="login-card" style={{ textAlign: 'center', gap: 16 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>&#x2705;</div>
           <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Registration Submitted</h2>
           <p style={{ fontSize: 13, color: '#9ca3a8', lineHeight: 1.7, maxWidth: 340 }}>
             Your account is pending administrator approval. You will be contacted at <strong>{email}</strong> once your access has been granted.
@@ -98,7 +112,45 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
           All accounts require administrator approval before access is granted. You will be notified by email.
         </p>
 
-        {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+        {duplicateType && (
+          <div style={{
+            background: '#1a0d10', border: '1px solid #80011f', borderRadius: 10,
+            padding: '14px 16px', marginBottom: 16,
+          }}>
+            <p style={{ color: '#fca5a5', fontSize: 13, margin: '0 0 10px', lineHeight: 1.6 }}>
+              {duplicateType === 'email'
+                ? <>An account is already registered with <strong>{email}</strong>.</>
+                : <>An account is already registered with the phone number <strong>{phone}</strong>.</>
+              }
+              {' '}Please sign in or recover your account.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  background: '#80011f', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '8px 16px', fontSize: 13,
+                  fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setDuplicateType(null)}
+                style={{
+                  background: 'none', color: '#9ca3a8', border: '1px solid #3d1020',
+                  borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                Try different details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {msg && !duplicateType && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
 
         <form onSubmit={handleSubmit} className="login-form">
           {/* Role selector */}
@@ -109,6 +161,18 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
               ))}
             </select>
           </label>
+
+          {/* Youth: career stage */}
+          {role === 'youth' && (
+            <label>Which best describes where you are in your career today?
+              <select value={careerStage} onChange={e => setCareerStage(e.target.value)}>
+                <option value="exploring">Exploring my first career</option>
+                <option value="student">Student or recent graduate</option>
+                <option value="transition">Professional considering aviation or aerospace</option>
+                <option value="advancing">Already in aviation — want to advance</option>
+              </select>
+            </label>
+          )}
 
           {/* Common fields */}
           <label>Full Name
@@ -174,35 +238,432 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ── Invite Accept form ────────────────────────────────────────────────────────
+
+interface InviteInfo {
+  invitedName: string;
+  invitedEmail: string;
+  invitedRole: string;
+}
+
+function InviteAcceptForm({ token, onDone }: { token: string; onDone: () => void }) {
+  const [info, setInfo] = useState<InviteInfo | null>(null);
+  const [loadErr, setLoadErr] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    request<{ invitedName: string; invitedEmail: string; invitedRole: string }>(`/auth/invite/${token}`)
+      .then(d => setInfo(d))
+      .catch(e => setLoadErr(e instanceof Error ? e.message : 'Invalid or expired invitation link.'));
+  }, [token]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
+    setLoading(true); setMsg('');
+    try {
+      await request(`/auth/invite/${token}`, { method: 'POST', body: { password } });
+      setDone(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Activation failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        {done ? (
+          <>
+            <p style={{ fontSize: 13, color: '#a3e6b5', lineHeight: 1.7, margin: '0 0 16px' }}>
+              Account activated. You will now be prompted to set up multi-factor authentication when you sign in.
+            </p>
+            <button className="login-submit" onClick={onDone}>Sign In</button>
+          </>
+        ) : loadErr ? (
+          <>
+            <p className="login-msg" style={{ color: '#f87171' }}>{loadErr}</p>
+            <button className="login-submit" onClick={onDone}>Back to Sign In</button>
+          </>
+        ) : !info ? (
+          <p style={{ fontSize: 13, color: '#9ca3a8' }}>Verifying invitation…</p>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              Activate Administrator Account
+            </div>
+            <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
+              <p style={{ margin: 0, color: '#9ca3a8' }}>Invited as</p>
+              <p style={{ margin: '4px 0 0', color: '#f1f5f9', fontWeight: 600 }}>{info.invitedName}</p>
+              <p style={{ margin: '2px 0 0', color: '#9ca3a8' }}>{info.invitedEmail} · {info.invitedRole}</p>
+            </div>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleSubmit} className="login-form">
+              <label>Set Password
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} />
+              </label>
+              <label>Confirm Password
+                <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Activating…' : 'Activate Account'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Forced password change (first login) ──────────────────────────────────────
+
+function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
+  userId: string;
+  email: string;
+  currentPassword: string;
+  onDone: () => void;
+}) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
+    setLoading(true); setMsg('');
+    try {
+      await request('/auth/first-password-change', {
+        method: 'POST',
+        body: { userId, email, currentPassword, newPassword: password },
+      });
+      onDone();
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Password change failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+          Set Your Password
+        </div>
+        <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
+          You must create a new password before continuing.
+        </p>
+        {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+        <form onSubmit={handleSubmit} className="login-form">
+          <label>New Password
+            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} />
+          </label>
+          <label>Confirm Password
+            <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" />
+          </label>
+          <button type="submit" className="login-submit" disabled={loading}>
+            {loading ? 'Saving…' : 'Set Password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── MFA setup (first time for admin/super_admin) ──────────────────────────────
+
+function MfaSetupForm({ email, password, otp, onSetupComplete }: {
+  email: string;
+  password: string;
+  otp: string;
+  onSetupComplete: () => void;
+}) {
+  const [secret, setSecret] = useState('');
+  const [otpauthUri, setOtpauthUri] = useState('');
+  const [setupMsg, setSetupMsg] = useState('');
+  const [confirmCode, setConfirmCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    request<{ secret: string; otpauthUri?: string; message?: string }>('/auth/mfa/setup', {
+      method: 'POST',
+      body: { email, password },
+    })
+      .then(d => { setSecret(d.secret); if (d.otpauthUri) setOtpauthUri(d.otpauthUri); })
+      .catch(e => setSetupMsg(e instanceof Error ? e.message : 'MFA setup failed.'));
+  }, [email, password]);
+
+  async function handleConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setMsg('');
+    try {
+      await request('/auth/mfa/confirm', { method: 'POST', body: { email, password, token: confirmCode } });
+      onSetupComplete();
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Verification failed. Check your code.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+          Set Up Two-Factor Authentication
+        </div>
+        <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
+          MFA is required for administrator accounts. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter the key below.
+        </p>
+        {setupMsg && <p className="login-msg" style={{ color: '#f87171' }}>{setupMsg}</p>}
+        {secret ? (
+          <>
+            <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3a8', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px' }}>Manual entry key</p>
+              <code style={{ fontSize: 13, color: '#f1f5f9', letterSpacing: 2, wordBreak: 'break-all' }}>{secret}</code>
+              {otpauthUri && (
+                <div style={{ marginTop: 10 }}>
+                  <a
+                    href={otpauthUri}
+                    style={{ fontSize: 12, color: '#60a5fa', textDecoration: 'underline' }}
+                  >
+                    Tap here to open in Google Authenticator (mobile)
+                  </a>
+                </div>
+              )}
+            </div>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleConfirm} className="login-form">
+              <label>Verification Code
+                <input required value={confirmCode} onChange={e => setConfirmCode(e.target.value)} placeholder="6-digit code from your app" maxLength={6} inputMode="numeric" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Verifying…' : 'Enable MFA'}
+              </button>
+            </form>
+          </>
+        ) : !setupMsg ? (
+          <p style={{ fontSize: 13, color: '#9ca3a8' }}>Loading setup key…</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // ── Login form ────────────────────────────────────────────────────────────────
+
+// ── Forgot password ───────────────────────────────────────────────────────────
+
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setMsg('');
+    try {
+      await request('/auth/forgot-password', { method: 'POST', body: { email } });
+      setSent(true);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        {sent ? (
+          <>
+            <p style={{ fontSize: 13, color: '#a3e6b5', lineHeight: 1.7, margin: '0 0 16px' }}>
+              If an account exists for <strong>{email}</strong>, a password reset link has been sent. Check your inbox.
+            </p>
+            <button className="login-submit" onClick={onBack}>Back to Sign In</button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 13, color: '#9ca3a8', lineHeight: 1.6, margin: '0 0 16px' }}>
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleSubmit} className="login-form">
+              <label>Email Address
+                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Sending…' : 'Send Reset Link'}
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{ background: 'none', border: 'none', color: '#9ca3a8', fontSize: 12, cursor: 'pointer', marginTop: 8 }}
+            >
+              Back to Sign In
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Reset password (token from email link) ────────────────────────────────────
+
+function ResetPasswordForm({ token, onDone }: { token: string; onDone: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
+    setLoading(true); setMsg('');
+    try {
+      await request('/auth/reset-password', { method: 'POST', body: { token, password } });
+      setDone(true);
+      // Remove the token from the URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reset');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Reset failed. Please request a new link.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        {done ? (
+          <>
+            <p style={{ fontSize: 13, color: '#a3e6b5', lineHeight: 1.7, margin: '0 0 16px' }}>
+              Password reset successfully. You can now sign in with your new password.
+            </p>
+            <button className="login-submit" onClick={onDone}>Sign In</button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#80011f', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+              Choose a New Password
+            </div>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleSubmit} className="login-form">
+              <label>New Password
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} />
+              </label>
+              <label>Confirm Password
+                <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Resetting…' : 'Set New Password'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
   const [showRegister, setShowRegister] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState('');
+  const [pendingRole, setPendingRole] = useState<Role>('youth');
+  const [showForceChange, setShowForceChange] = useState(false);
+  const [showMfaSetup, setShowMfaSetup] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (showRegister) return <RegisterForm onBack={() => setShowRegister(false)} />;
+  if (showForgot)   return <ForgotPasswordForm onBack={() => setShowForgot(false)} />;
+  if (showForceChange) {
+    return <ForcePasswordChangeForm
+      userId={pendingUserId}
+      email={email}
+      currentPassword={password}
+      onDone={() => { setShowForceChange(false); setErrorMsg('Password updated. Please sign in.'); }}
+    />;
+  }
+  if (showMfaSetup) {
+    return <MfaSetupForm
+      email={email}
+      password={password}
+      otp={otp}
+      onSetupComplete={() => { setShowMfaSetup(false); setMfaRequired(true); setErrorMsg('MFA enabled. Enter the code from your authenticator app.'); }}
+    />;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(''); setLoading(true);
     try {
       const res = await request<{
-        userId: string; role: Role;
+        userId: string; role: Role; name?: string; careerStage?: string;
+        emailVerified?: boolean;
         accessToken?: string; refreshToken?: string;
         mfaRequired?: boolean; mfaSetupRequired?: boolean;
+        passwordChangeRequired?: boolean;
         message?: string;
       }>('/auth/login', { method: 'POST', body: { email, password, otp: otp || undefined } });
 
+      if (res.passwordChangeRequired && res.userId) {
+        setPendingUserId(res.userId);
+        setPendingRole(res.role ?? 'admin');
+        setShowForceChange(true);
+        setLoading(false); return;
+      }
+
       if (res.mfaRequired) {
-        setMfaRequired(true);
-        setErrorMsg(res.mfaSetupRequired
-          ? 'MFA setup required. Contact your administrator.'
-          : 'Enter your 6-digit authenticator code.');
+        if (res.mfaSetupRequired) {
+          setPendingUserId(res.userId ?? '');
+          setShowMfaSetup(true);
+        } else {
+          setMfaRequired(true);
+          setErrorMsg('Enter your 6-digit authenticator code.');
+        }
         setLoading(false); return;
       }
 
@@ -210,10 +671,24 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         setStoredToken(res.accessToken);
         setStoredRefreshToken(res.refreshToken);
         localStorage.setItem('aacp_role', res.role);
+        if (res.careerStage) localStorage.setItem('aacp_career_stage', res.careerStage);
+        if (res.name) localStorage.setItem('aacp_name', res.name);
+        localStorage.setItem('aacp_email_verified', res.emailVerified ? '1' : '0');
         onLogin({ role: res.role, userId: res.userId });
       }
     } catch (e: unknown) {
-      setErrorMsg(e instanceof Error ? e.message : 'Sign in failed. Please try again.');
+      if (e instanceof NetworkError || e instanceof ServerError) {
+        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
+      } else if (e instanceof ApiError) {
+        const msg = e.message.toLowerCase();
+        if (msg.includes('mfa') || msg.includes('token') || msg.includes('authenticator') || msg.includes('invalid') || msg.includes('credentials')) {
+          setErrorMsg('Unable to sign in. Please verify your credentials and authentication code.');
+        } else {
+          setErrorMsg(e.message);
+        }
+      } else {
+        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
+      }
     } finally {
       setLoading(false);
     }
@@ -250,6 +725,13 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
+        <button
+          type="button"
+          onClick={() => setShowForgot(true)}
+          style={{ background: 'none', border: 'none', color: '#9ca3a8', fontSize: 12, cursor: 'pointer', marginTop: 4, textDecoration: 'underline' }}
+        >
+          Forgot password?
+        </button>
       </div>
     </div>
   );
@@ -257,16 +739,18 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
 
 // ── Role → dashboard views ────────────────────────────────────────────────────
 
-type DashboardView = 'youth' | 'coach' | 'employer' | 'postsecondary';
+type DashboardView = 'admin' | 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector';
 
 function viewsForRole(role: Role): DashboardView[] {
-  if (role === 'admin') return ['youth', 'coach', 'employer', 'postsecondary'];
+  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   return ['youth'];
 }
 
 const VIEW_LABELS: Record<DashboardView, string> = {
+  admin: 'Approvals',
+  connector: 'AACP Connector',
   youth: 'Youth',
   coach: 'Coach',
   employer: 'Employer',
@@ -289,6 +773,34 @@ function PostSecondaryDashboard() {
 export function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('youth');
+  const [adminPendingCount, setAdminPendingCount] = useState(0);
+
+  // Password reset — token arrives as ?reset=<token> in the URL
+  const resetToken = new URL(window.location.href).searchParams.get('reset');
+  if (resetToken) {
+    return <ResetPasswordForm token={resetToken} onDone={() => window.location.replace(window.location.pathname)} />;
+  }
+
+  // Pilot invitation — token arrives as ?pilot=<token>
+  const pilotToken = new URL(window.location.href).searchParams.get('pilot');
+  if (pilotToken) {
+    return (
+      <PilotRegistrationForm
+        token={pilotToken}
+        onComplete={(auth) => {
+          setStoredToken(auth.accessToken);
+          setStoredRefreshToken(auth.refreshToken);
+          window.location.replace(window.location.pathname);
+        }}
+      />
+    );
+  }
+
+  // Admin invitation — token arrives as ?invite=<token>
+  const inviteToken = new URL(window.location.href).searchParams.get('invite');
+  if (inviteToken) {
+    return <InviteAcceptForm token={inviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
+  }
 
   useEffect(() => {
     const token = getStoredToken();
@@ -299,6 +811,18 @@ export function App() {
       const hash = window.location.hash.replace('#', '') as DashboardView;
       const views = viewsForRole(role);
       setCurrentView(views.includes(hash) ? hash : views[0]);
+
+      // Poll pending count for admin sidebar badge
+      if (role === 'admin' || role === 'super_admin') {
+        const fetchCount = () =>
+          fetch('/admin/notifications', { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then((d: { pendingCount?: number }) => setAdminPendingCount(d.pendingCount ?? 0))
+            .catch(() => {});
+        fetchCount();
+        const iv = setInterval(fetchCount, 60_000);
+        return () => clearInterval(iv);
+      }
     }
 
     // Auto-logout when refresh token also expires
@@ -335,7 +859,7 @@ export function App() {
         <div className="brand">
           <span className="brand-mark">AACP</span>
           <div>
-            <strong>Pilot Dashboard</strong>
+            <strong>AACP Platform</strong>
             <p>Competency and readiness insights.</p>
           </div>
         </div>
@@ -349,24 +873,43 @@ export function App() {
                   aria-pressed={view === currentView}
                   aria-current={view === currentView ? 'page' : undefined}
                   onClick={() => { window.location.hash = view; setCurrentView(view); }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
                 >
-                  {VIEW_LABELS[view]}
+                  <span>{VIEW_LABELS[view]}</span>
+                  {view === 'admin' && adminPendingCount > 0 && (
+                    <span style={{
+                      background: '#f59e0b', color: '#000', borderRadius: '50%',
+                      minWidth: 18, height: 18, fontSize: 10, fontWeight: 800,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '0 4px',
+                    }}>
+                      {adminPendingCount}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
           </ul>
         </nav>
         <div className="sidebar-footer">
-          <span className="role-chip">{auth.role === 'postsecondary' ? 'Post-Secondary' : auth.role}</span>
+          <span className="role-chip">{
+            auth.role === 'postsecondary' ? 'Post-Secondary' :
+            auth.role === 'super_admin' ? 'Super Admin' :
+            auth.role === 'admin' ? 'Admin' :
+            auth.role === 'employer' ? 'Employer' :
+            auth.role === 'youth' ? 'Participant' : auth.role
+          }</span>
           <button className="logout-btn" onClick={handleLogout}>Sign out</button>
         </div>
       </aside>
 
       <main className="app-content" aria-label="Dashboard view">
+        {currentView === 'admin'          && <AdminDashboard />}
+        {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && <YouthDashboard />}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
-        {currentView === 'postsecondary'  && <PostSecondaryDashboard />}
+        {currentView === 'postsecondary'  && <IndustryIntelligence />}
       </main>
     </div>
   );
