@@ -69,7 +69,7 @@ function StatusChip({ status }: { status: string }) {
 }
 
 function roleFmt(role: string) {
-  const m: Record<string, string> = { youth: 'Youth Participant', employer: 'Employer', postsecondary: 'Post-Secondary' };
+  const m: Record<string, string> = { youth: 'Participant', employer: 'Employer', postsecondary: 'Post-Secondary' };
   return m[role] ?? role;
 }
 
@@ -1251,7 +1251,7 @@ function PilotAccessPanel() {
             <div>
               <label style={labelStyle}>Role</label>
               <select value={form.pilotRole} onChange={e => setForm(f => ({ ...f, pilotRole: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="youth">Participant (Youth)</option>
+                <option value="youth">Participant</option>
                 <option value="employer">Employer Partner</option>
                 <option value="postsecondary">Post-Secondary Partner</option>
               </select>

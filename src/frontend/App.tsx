@@ -92,7 +92,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   }
 
   const roleLabel: Record<RegisterRole, string> = {
-    youth: 'Youth Participant',
+    youth: 'Participant',
     employer: 'Employer',
     postsecondary: 'Post-Secondary Institution',
   };
@@ -751,7 +751,7 @@ function viewsForRole(role: Role): DashboardView[] {
 const VIEW_LABELS: Record<DashboardView, string> = {
   admin: 'Approvals',
   connector: 'AACP Connector',
-  youth: 'Youth',
+  youth: 'Participant',
   coach: 'Coach',
   employer: 'Employer',
   postsecondary: 'Post-Secondary',
