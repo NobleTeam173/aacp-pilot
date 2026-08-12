@@ -1481,13 +1481,13 @@ export function AdminDashboard() {
       {showUnlock && <AssessmentUnlockModal onClose={() => setShowUnlock(false)} />}
 
       {/* Admin top-level tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 28, borderBottom: `1px solid ${C.border}`, paddingBottom: 0, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 2, marginBottom: 28, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
         {([
-          { key: 'approvals', label: `Participant Approvals${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
+          { key: 'approvals', label: `Approvals${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
           { key: 'organizations', label: 'Organizations' },
           { key: 'pilot', label: 'Pilot Access' },
           { key: 'audit', label: 'Audit Log' },
-          { key: 'questions', label: 'ACIA Question Bank' },
+          { key: 'questions', label: 'Question Bank' },
           ...(isSuperAdmin ? [{ key: 'admins', label: 'Admin Management' }] : []),
         ] as { key: AdminTab; label: string }[]).map(t => (
           <button
@@ -1495,11 +1495,12 @@ export function AdminDashboard() {
             onClick={() => setAdminTab(t.key)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: '10px 16px', fontSize: 13, fontWeight: 700,
-              color: adminTab === t.key ? C.white : C.grey,
+              padding: '10px 18px', fontSize: 13, fontWeight: 600,
+              color: adminTab === t.key ? C.white : C.greyD,
               borderBottom: `2px solid ${adminTab === t.key ? C.crimson : 'transparent'}`,
               marginBottom: -1,
               transition: 'color 0.15s, border-color 0.15s',
+              letterSpacing: 0.2,
             }}
           >
             {t.label}
@@ -1518,11 +1519,14 @@ export function AdminDashboard() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 4px', fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 700 }}>
+          <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
+            Registration Management
+          </div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 4px', fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 800 }}>
             Participant Approvals
           </h2>
-          <div style={{ color: C.grey, fontSize: 13 }}>
-            Review and manage participant access requests
+          <div style={{ color: C.greyD, fontSize: 13 }}>
+            Review and action pending access requests
           </div>
         </div>
 
