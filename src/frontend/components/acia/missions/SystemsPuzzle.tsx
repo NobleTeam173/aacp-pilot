@@ -19,22 +19,18 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  // Air Data Systems
   { id: 'pitot', label: 'Pitot Tube', category: 'Air Data Systems', hint: 'Measures ram air pressure to determine airspeed' },
   { id: 'altimeter', label: 'Altimeter', category: 'Air Data Systems', hint: 'Indicates altitude via static pressure sensing' },
   { id: 'asi', label: 'Airspeed Indicator', category: 'Air Data Systems', hint: 'Displays differential between pitot and static pressure' },
   { id: 'vsi', label: 'Vertical Speed Indicator', category: 'Air Data Systems', hint: 'Shows rate of altitude change via static port' },
-  // Navigation Systems
   { id: 'ils', label: 'ILS Localizer', category: 'Navigation Systems', hint: 'Provides lateral guidance on precision approaches' },
   { id: 'vor', label: 'VOR Receiver', category: 'Navigation Systems', hint: 'VHF omnidirectional radio range — en route navigation' },
   { id: 'gps', label: 'GPS / FMS', category: 'Navigation Systems', hint: 'Satellite-based position and flight management' },
   { id: 'adf', label: 'ADF / NDB', category: 'Navigation Systems', hint: 'Automatic direction finder — older nav aid' },
-  // Hydraulic Systems
   { id: 'hyd_pump', label: 'Hydraulic Pump', category: 'Hydraulic Systems', hint: 'Generates hydraulic pressure from engine or electric drive' },
   { id: 'actuator', label: 'Flight Control Actuator', category: 'Hydraulic Systems', hint: 'Converts hydraulic pressure into control surface movement' },
   { id: 'acc', label: 'Hydraulic Accumulator', category: 'Hydraulic Systems', hint: 'Stores pressurized fluid for emergency backup' },
   { id: 'selector_valve', label: 'Selector Valve', category: 'Hydraulic Systems', hint: 'Directs hydraulic flow to specific systems' },
-  // Electrical Systems
   { id: 'battery', label: 'Aircraft Battery', category: 'Electrical Systems', hint: 'Provides emergency power and engine start power' },
   { id: 'alternator', label: 'Alternator / Generator', category: 'Electrical Systems', hint: 'Engine-driven primary source of electrical power' },
   { id: 'bus_bar', label: 'Main Bus Bar', category: 'Electrical Systems', hint: 'Distributes electrical power to connected circuits' },
@@ -60,6 +56,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
     Object.fromEntries(CATEGORIES.map(c => [c, []])),
   );
   const [dragging, setDragging] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null); // tap-to-place selection
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [startTime] = useState(Date.now());
@@ -67,28 +64,52 @@ export function SystemsPuzzle({ onComplete }: Props) {
   const placed = new Set(Object.values(placements).flat());
   const unplaced = shuffled.filter(i => !placed.has(i.id));
 
-  function handleDrop(category: string) {
-    if (!dragging) return;
+  // Move an item to a category (or back to unplaced if category is null)
+  function moveItem(itemId: string, toCategory: string | null) {
     setPlacements(prev => {
       const next = { ...prev };
       for (const cat of CATEGORIES) {
-        next[cat] = next[cat].filter(id => id !== dragging);
+        next[cat] = next[cat].filter(id => id !== itemId);
       }
-      next[category] = [...next[category], dragging];
+      if (toCategory) next[toCategory] = [...next[toCategory], itemId];
       return next;
     });
+  }
+
+  // Tap on an item in the unplaced pool or in a category
+  function handleItemTap(itemId: string) {
+    if (selected === itemId) {
+      setSelected(null); // deselect
+    } else {
+      setSelected(itemId);
+      setHoveredItem(itemId);
+    }
+  }
+
+  // Tap on a category zone
+  function handleCategoryTap(cat: string) {
+    if (!selected) return;
+    moveItem(selected, cat);
+    setSelected(null);
+  }
+
+  // Tap the unplaced pool (move selected back)
+  function handleUnplacedTap() {
+    if (!selected) return;
+    moveItem(selected, null);
+    setSelected(null);
+  }
+
+  // Drag handlers (desktop)
+  function handleDrop(category: string) {
+    if (!dragging) return;
+    moveItem(dragging, category);
     setDragging(null);
   }
 
   function handleDropUnplaced() {
     if (!dragging) return;
-    setPlacements(prev => {
-      const next = { ...prev };
-      for (const cat of CATEGORIES) {
-        next[cat] = next[cat].filter(id => id !== dragging);
-      }
-      return next;
-    });
+    moveItem(dragging, null);
     setDragging(null);
   }
 
@@ -115,7 +136,6 @@ export function SystemsPuzzle({ onComplete }: Props) {
       { key: 'systematic_reasoning', delta: accuracy > 0.8 ? 0.8 : accuracy > 0.55 ? 0.45 : 0.15 },
       { key: 'attention_to_detail', delta: accuracy },
       { key: 'analytical_reasoning', delta: accuracy * 0.75 },
-      // Full completion (all 16 items placed) is a curiosity/thoroughness signal
       { key: 'curiosity', delta: fullyComplete ? 0.6 : completion > 0.6 ? 0.35 : 0.15 },
     ];
     if (elapsed < 150) evidence.push({ key: 'multitasking_ability', delta: 0.45 });
@@ -146,28 +166,35 @@ export function SystemsPuzzle({ onComplete }: Props) {
   }
 
   const hintItem = hoveredItem ? ITEMS.find(i => i.id === hoveredItem) : null;
+  const selectedItem = selected ? ITEMS.find(i => i.id === selected) : null;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ color: C.grey, fontSize: 13, lineHeight: 1.55 }}>
-        Drag each aircraft component into its correct system category. Hover over any component to see a hint.
+        <strong style={{ color: C.white }}>Tap</strong> a component to select it, then tap a category to place it.
+        On desktop you can also drag and drop.
       </div>
 
-      {/* Hint box */}
+      {/* Selection / hint status bar */}
       <div style={{
         background: C.bgCard,
-        border: `1px solid ${hintItem ? C.crimson : C.border}`,
+        border: `1px solid ${selectedItem ? '#f59e0b' : hintItem ? C.crimson : C.border}`,
         borderRadius: 10,
         padding: '10px 14px',
         minHeight: 36,
         transition: 'border-color 0.15s',
       }}>
-        {hintItem ? (
+        {selectedItem ? (
+          <span style={{ color: '#f59e0b', fontSize: 12 }}>
+            <strong>{selectedItem.label}</strong> selected — tap a category below to place it, or tap it again to deselect.
+            {selectedItem.hint && <span style={{ color: C.grey }}>{' · '}{selectedItem.hint}</span>}
+          </span>
+        ) : hintItem ? (
           <span style={{ color: C.grey, fontSize: 12, fontStyle: 'italic' }}>
             <span style={{ color: C.white, fontWeight: 600 }}>{hintItem.label}</span>{' — '}{hintItem.hint}
           </span>
         ) : (
-          <span style={{ color: C.border, fontSize: 12 }}>Hover a component for a hint</span>
+          <span style={{ color: '#64748b', fontSize: 12 }}>Tap a component to select it</span>
         )}
       </div>
 
@@ -175,38 +202,45 @@ export function SystemsPuzzle({ onComplete }: Props) {
       <div
         onDragOver={e => e.preventDefault()}
         onDrop={handleDropUnplaced}
+        onClick={handleUnplacedTap}
         style={{
           background: C.bgCard,
-          border: `2px dashed ${C.border}`,
+          border: `2px dashed ${selected && !placed.has(selected) ? '#f59e0b' : C.border}`,
           borderRadius: 12,
           padding: 14,
           minHeight: 60,
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
+          cursor: selected && placed.has(selected) ? 'pointer' : 'default',
         }}
       >
         <div style={{ color: C.grey, fontSize: 11, width: '100%', marginBottom: 2, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Unclassified Components — {unplaced.length} remaining
+          {selected && placed.has(selected) && (
+            <span style={{ color: '#f59e0b', marginLeft: 8 }}>← tap here to return {selectedItem?.label}</span>
+          )}
         </div>
         {unplaced.map(item => (
           <div
             key={item.id}
             draggable
-            onDragStart={() => setDragging(item.id)}
+            onDragStart={e => { e.stopPropagation(); setDragging(item.id); }}
             onDragEnd={() => setDragging(null)}
-            onMouseEnter={() => setHoveredItem(item.id)}
+            onMouseEnter={() => !selected && setHoveredItem(item.id)}
             onMouseLeave={() => setHoveredItem(null)}
+            onClick={e => { e.stopPropagation(); handleItemTap(item.id); }}
             style={{
-              background: dragging === item.id ? C.crimsonD : '#1f2937',
-              border: '1px solid #374151',
+              background: selected === item.id ? '#92400e' : dragging === item.id ? C.crimsonD : '#1f2937',
+              border: `2px solid ${selected === item.id ? '#f59e0b' : '#374151'}`,
               borderRadius: 8,
-              padding: '6px 12px',
+              padding: '8px 14px',
               color: C.white,
-              fontSize: 12,
-              cursor: 'grab',
+              fontSize: 13,
+              cursor: 'pointer',
               userSelect: 'none',
-              transition: 'background 0.1s',
+              transition: 'background 0.1s, border-color 0.1s',
+              touchAction: 'manipulation',
             }}
           >
             {item.label}
@@ -215,24 +249,29 @@ export function SystemsPuzzle({ onComplete }: Props) {
         {unplaced.length === 0 && <div style={{ color: C.grey, fontSize: 12, fontStyle: 'italic' }}>All components placed</div>}
       </div>
 
-      {/* Category drop zones — 2×2 grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+      {/* Category drop zones */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
         {CATEGORIES.map(cat => {
           const catColor = CATEGORY_COLORS[cat];
+          const isTarget = !!selected; // highlight zones when something is selected
           return (
             <div
               key={cat}
               onDragOver={e => e.preventDefault()}
               onDrop={() => handleDrop(cat)}
+              onClick={() => handleCategoryTap(cat)}
               style={{
                 background: C.bgCard,
-                border: `2px dashed ${C.border}`,
+                border: `2px solid ${isTarget ? catColor : C.border}`,
                 borderRadius: 12,
                 padding: 14,
                 minHeight: 100,
                 borderTopColor: catColor,
-                borderTopWidth: 2,
+                borderTopWidth: 3,
                 borderTopStyle: 'solid',
+                cursor: isTarget ? 'pointer' : 'default',
+                transition: 'border-color 0.15s',
+                boxShadow: isTarget ? `0 0 0 1px ${catColor}33` : 'none',
               }}
             >
               <div style={{
@@ -240,6 +279,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
                 textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
               }}>
                 {cat}
+                {isTarget && <span style={{ opacity: 0.7, marginLeft: 6 }}>← tap</span>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {placements[cat].map(id => {
@@ -249,19 +289,21 @@ export function SystemsPuzzle({ onComplete }: Props) {
                     <div
                       key={id}
                       draggable
-                      onDragStart={() => setDragging(id)}
+                      onDragStart={e => { e.stopPropagation(); setDragging(id); }}
                       onDragEnd={() => setDragging(null)}
-                      onMouseEnter={() => setHoveredItem(id)}
+                      onMouseEnter={() => !selected && setHoveredItem(id)}
                       onMouseLeave={() => setHoveredItem(null)}
+                      onClick={e => { e.stopPropagation(); handleItemTap(id); }}
                       style={{
-                        background: '#1f2937',
-                        border: `1px solid ${done ? (correct ? C.green : '#ef4444') : '#374151'}`,
+                        background: selected === id ? '#92400e' : '#1f2937',
+                        border: `2px solid ${selected === id ? '#f59e0b' : done ? (correct ? C.green : '#ef4444') : '#374151'}`,
                         borderRadius: 8,
-                        padding: '6px 10px',
+                        padding: '8px 10px',
                         color: C.white,
-                        fontSize: 12,
-                        cursor: 'grab',
+                        fontSize: 13,
+                        cursor: 'pointer',
                         userSelect: 'none',
+                        touchAction: 'manipulation',
                       }}
                     >
                       {item.label}
@@ -269,8 +311,12 @@ export function SystemsPuzzle({ onComplete }: Props) {
                   );
                 })}
                 {placements[cat].length === 0 && (
-                  <div style={{ color: C.grey, fontSize: 11, fontStyle: 'italic', textAlign: 'center', paddingTop: 16 }}>
-                    Drop here
+                  <div style={{
+                    color: isTarget ? catColor : C.grey,
+                    fontSize: 11, fontStyle: 'italic', textAlign: 'center', paddingTop: 16,
+                    opacity: isTarget ? 0.8 : 0.5,
+                  }}>
+                    {isTarget ? 'Tap to place here' : 'Drop here'}
                   </div>
                 )}
               </div>
@@ -285,9 +331,10 @@ export function SystemsPuzzle({ onComplete }: Props) {
         style={{
           background: placed.size === 0 ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
           color: placed.size === 0 ? C.grey : 'white',
-          border: 'none', borderRadius: 12, padding: '13px',
+          border: 'none', borderRadius: 12, padding: '14px',
           cursor: placed.size === 0 ? 'not-allowed' : 'pointer',
           fontWeight: 700, fontSize: 14,
+          touchAction: 'manipulation',
         }}
       >
         Submit Classification → ({placed.size}/{ITEMS.length} placed)

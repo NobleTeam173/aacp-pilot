@@ -51,6 +51,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [careerStage, setCareerStage] = useState('student');
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
     try {
       const data = await request<{
         accessToken: string; refreshToken: string; userId: string; name: string; role: string;
-      }>(`/pilot/invite/${token}`, { method: 'POST', body: JSON.stringify({ password, email: inviteInfo!.email }) });
+      }>(`/pilot/invite/${token}`, { method: 'POST', body: { password, email: inviteInfo!.email, careerStage: inviteInfo!.pilotRole === 'youth' ? careerStage : undefined } });
       onComplete({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.userId, name: data.name, role: data.role });
     } catch (e: unknown) {
       setError((e as Error).message || 'Registration failed. Please try again.');
@@ -116,7 +117,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ display: 'inline-block', background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, borderRadius: 16, padding: '14px 20px', marginBottom: 20 }}>
-            <span style={{ color: C.white, fontWeight: 800, fontSize: 20, letterSpacing: 1 }}>AACP</span>
+            <span style={{ color: C.white, fontWeight: 800, fontSize: 20, letterSpacing: 1 }}>AACP™</span>
           </div>
           <div style={{ color: C.grey, fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Early Access Program</div>
           <h1 style={{ color: C.white, fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
@@ -155,6 +156,33 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
         {/* Registration form */}
         <form onSubmit={handleSubmit}>
           <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>
+            {inviteInfo.pilotRole === 'youth' && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+                  Your Background
+                </div>
+                <label style={{ display: 'block', color: C.grey, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                  What brings you to AACP?
+                </label>
+                <select
+                  value={careerStage}
+                  onChange={e => setCareerStage(e.target.value)}
+                  style={{
+                    width: '100%', background: C.bgInput, border: `1px solid ${C.border}`,
+                    borderRadius: 10, padding: '11px 14px', color: C.white, fontSize: 14,
+                    outline: 'none', boxSizing: 'border-box' as const, fontFamily: 'inherit',
+                  }}
+                >
+                  <option value="exploring">Exploring my first aviation career</option>
+                  <option value="student">Student / Recent Graduate</option>
+                  <option value="stem">STEM Graduate entering aviation/aerospace</option>
+                  <option value="transition">Transitioning from another industry</option>
+                  <option value="aviation_professional">Current Aviation Professional</option>
+                  <option value="intl_aviation_professional">Internationally Trained Aviation Professional</option>
+                </select>
+              </div>
+            )}
+
             <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>
               Set Your Password
             </div>

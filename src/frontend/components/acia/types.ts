@@ -112,7 +112,8 @@ export type InteractionType =
   | 'diagnosis'
   | 'puzzle'
   | 'instrument'
-  | 'workload';
+  | 'workload'
+  | 'mcq';
 
 export type QuestionDifficulty = 1 | 2 | 3 | 4;
 export type QuestionStatus = 'active' | 'draft' | 'retired';
@@ -138,6 +139,7 @@ export interface QuestionRecord {
   questionTemplate: string;
   variantVariables?: Record<string, string[]>;
   variantGenerator?: string;   // named coupled generator in variantEngine.ts
+  correctAnswer?: string;      // MCQ only — the correct option letter (e.g. 'B')
   evidenceRubric: EvidenceIndicator[];
   designNote?: string;
   adaptiveFollowUp?: string;
@@ -216,8 +218,20 @@ export interface Mission {
   type: 'ai_chat' | 'inspection' | 'diagnosis' | 'puzzle' | 'graph' | 'decision' | 'atc' | 'workload' | 'reflection';
   estimatedMinutes: number;
   completed: boolean;
+  oneSitting?: boolean;         // mission must be completed without interruption once started
   startedAt?: string;
   completedAt?: string;
+  durationMs?: number;          // recorded when mission completes
+  interrupted?: boolean;        // true if session ended while mission was in progress
+}
+
+// Internal session analytics — never used to adjust competency scoring
+export interface SessionRecord {
+  sessionId: string;           // unique per browser session
+  startedAt: string;
+  endedAt?: string;
+  isResumption: boolean;       // true if participant had prior saved progress
+  missionIndexAtStart: number; // which mission the participant was on when this session began
 }
 
 export interface ACIASession {
@@ -232,4 +246,7 @@ export interface ACIASession {
   currentMissionIndex: number;
   chatHistory: Record<string, ChatMessage[]>;
   discoveredInterests?: string[];          // career interests from discovery phase
+  // Internal session analytics
+  sessionRecords: SessionRecord[];
+  interruptionCount: number;
 }

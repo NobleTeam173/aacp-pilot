@@ -10,11 +10,16 @@ routes = [
 [assets]
 directory = "./dist"
 
+# [vars] intentionally empty.
+# AACP_AUTH_TEST_MODE must be set via: npx wrangler secret put AACP_AUTH_TEST_MODE
+# It is absent by default (env.AACP_AUTH_TEST_MODE === undefined → test mode OFF).
+# Never add it here — [vars] is version-controlled and production-reachable.
+# AACP_ADMIN_EMAIL / AACP_SUPER_ADMIN_EMAIL are secrets; set via wrangler secret put.
 [vars]
-AACP_AUTH_TEST_MODE = "true"
 
 
 [[d1_databases]]
 binding = "DB"
 database_name = "aacp-db"
 database_id = "5185a0ad-af7a-4438-af3b-b6530586f4ae"
+

@@ -8,7 +8,8 @@ interface AuthRequest extends express.Request {
 }
 
 const router = express.Router();
-const authSecret = process.env.AACP_ACCESS_TOKEN_SECRET ?? 'aacp-access-secret';
+const authSecret = process.env.AACP_ACCESS_TOKEN_SECRET;
+if (!authSecret) throw new Error('AACP_ACCESS_TOKEN_SECRET environment variable is required');
 
 router.use(authenticateToken(authSecret));
 

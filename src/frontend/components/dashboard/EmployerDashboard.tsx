@@ -1,29 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, Fragment } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { request } from '../../services/apiClient';
-
-const C = {
-  crimson: '#8F0909',
-  crimsonD: '#721010',
-  bgCard: '#1a0d10',
-  bg: '#0f0a0b',
-  border: '#3d1020',
-  white: '#f1f5f9',
-  grey: '#94a3b8',
-  greyD: '#8a9ab0',
-  green: '#22c55e',
-  greenBg: '#0f1a0f',
-  greenBorder: '#1a3a1a',
-  amber: '#f59e0b',
-  amberBg: '#1a1400',
-  amberBorder: '#3a2a00',
-  red: '#ef4444',
-  redBg: '#1a0505',
-  redBorder: '#3a0505',
-  blue: '#60a5fa',
-  blueBg: '#0a1020',
-  blueBorder: '#1a2a4a',
-};
+import { C } from '../../theme';
 
 const COMPETENCY_KEYS = ['SR','MR','AP','PS','SO','DM','WM','MT','CM','PR','SA','AL','AK'] as const;
 const COMPETENCY_LABELS: Record<string,string> = {
@@ -41,13 +19,13 @@ const PATHWAY_LABELS: Record<string, string> = {
 
 const FIT_STYLE: Record<string, { color: string; label: string }> = {
   strong:   { color: C.green, label: 'Strong Alignment' },
-  good:     { color: '#86efac', label: 'Good Alignment' },
+  good:     { color: C.green, label: 'Good Alignment' },
   possible: { color: C.grey,  label: 'Possible' },
 };
 
 type EmpTab = 'overview' | 'requirements' | 'submissions' | 'pipeline' | 'sector';
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const token = localStorage.getItem('aacp_access_token');
@@ -72,7 +50,7 @@ function Toast({ msg, ok }: { msg: string; ok: boolean }) {
       border: `1px solid ${ok ? C.greenBorder : C.redBorder}`,
       color: ok ? C.green : C.red,
       borderRadius: 12, padding: '12px 18px', fontSize: 13, fontWeight: 600,
-    }}>{ok ? 'Confirmed  ' : 'Error  '}{msg}</div>
+    }}>{msg}</div>
   );
 }
 
@@ -94,7 +72,7 @@ const statusBadgeStyle = (status: string): React.CSSProperties => {
     new:                  { color: C.blue,  bg: C.blueBg,  border: C.blueBorder  },
     under_review:         { color: C.amber, bg: C.amberBg, border: C.amberBorder },
     needs_clarification:  { color: C.amber, bg: C.amberBg, border: C.amberBorder },
-    archived:             { color: C.grey,  bg: '#111',    border: '#333'         },
+    archived:             { color: C.grey,  bg: C.bgDeep,    border: C.border         },
   };
   const s = map[status] ?? map.new;
   return { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
@@ -106,7 +84,7 @@ const statusLabel = (s: string) => ({
   needs_clarification: 'Clarification Required', archived: 'Archived',
 }[s] ?? s);
 
-// ── Interfaces ────────────────────────────────────────────────────────────────
+// â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Alignment {
   pathwayId: string; label: string; fit: 'strong' | 'good' | 'possible'; highlights: string[];
@@ -129,7 +107,7 @@ interface SectorSignal {
   evidenceLevel: string; signalCount: number; contributingEmployers: number;
 }
 
-// ── Operations Overview Tab ───────────────────────────────────────────────────
+// â”€â”€ Operations Overview Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function OverviewTab({ onNavigate }: { onNavigate: (tab: EmpTab) => void }) {
   const [pipeline, setPipeline] = useState<PipelineData | null>(null);
@@ -155,81 +133,103 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: EmpTab) => void }) {
   const pending   = signals.filter(s => s.validation_status === 'new').length;
   const emerging  = signals.filter(s => s.emerging_requirement === 1).length;
 
-  const demandColor = (d: string) => d === 'high' ? C.red : d === 'growing' ? C.amber : d === 'moderate' ? C.blue : C.grey;
+  const demandColor  = (d: string) => d === 'high' ? C.red : d === 'growing' ? C.amber : d === 'moderate' ? C.blue : C.grey;
+  const demandDotBg  = (d: string) => d === 'high' ? C.redBg : d === 'growing' ? C.amberBg : d === 'moderate' ? C.blueBg : C.bgDeep;
+  const trendArrow   = (t: string) => t === 'increasing' ? '↑' : t === 'decreasing' ? '↓' : '→';
+  const trendColor   = (t: string) => t === 'increasing' ? C.green : t === 'decreasing' ? C.red : C.grey;
+
+  const pipelineStages = [
+    { label: 'Submitted',   value: signals.length,      desc: 'Signals sent to AACP',         color: C.slate },
+    { label: 'Validated',   value: validated,           desc: 'Accepted by AACP analysts',    color: validated > 0 ? C.green : C.greyD },
+    { label: 'In Sector',   value: sector.length,       desc: 'Contributing to intelligence', color: sector.length > 0 ? C.blue : C.greyD },
+    { label: 'Talent Pool', value: pipeline?.totalCompleters ?? 0, desc: 'AACP programme completers', color: C.slate },
+  ];
 
   return (
-    <div>
-      {/* Primary KPIs */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 12 }}>
-          Your Signal Activity
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Intelligence pipeline */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}>
+        <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 18 }}>
+          Your Intelligence Pipeline
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
-          {[
-            { label: 'Signals Submitted', value: signals.length, accent: undefined },
-            { label: 'Validated',          value: validated,       accent: validated > 0 ? C.green : undefined },
-            { label: 'Awaiting Review',    value: pending,         accent: pending > 0 ? C.amber : undefined },
-            { label: 'Emerging Flagged',   value: emerging,        accent: emerging > 0 ? C.red : undefined },
-            { label: 'Talent Pipeline',     value: pipeline?.totalCompleters ?? 0, accent: undefined },
-          ].map(m => (
-            <div key={m.label} style={{
-              background: C.bgCard,
-              border: `1px solid ${C.border}`,
-              borderTop: m.accent ? `3px solid ${m.accent}` : `1px solid ${C.border}`,
-              borderRadius: 14,
-              padding: '18px 20px',
-            }}>
-              <div style={{ color: m.accent ?? C.white, fontSize: 30, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1 }}>{m.value}</div>
-              <div style={{ color: C.greyD, fontSize: 11, marginTop: 10, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{m.label}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
+          {pipelineStages.map((stage, i) => (
+            <div key={stage.label} style={{ display: 'flex', alignItems: 'stretch' }}>
+              <div style={{ flex: 1, textAlign: i === 0 ? 'left' : i === pipelineStages.length - 1 ? 'right' : 'center', padding: '0 8px' }}>
+                <div style={{ color: stage.color, fontSize: 34, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                  {stage.value}
+                </div>
+                <div style={{ color: C.white, fontSize: 12, fontWeight: 700, marginTop: 8, marginBottom: 3 }}>{stage.label}</div>
+                <div style={{ color: C.greyD, fontSize: 11, lineHeight: 1.4 }}>{stage.desc}</div>
+              </div>
+              {i < pipelineStages.length - 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', paddingBottom: 28, color: C.border, fontSize: 18, flexShrink: 0 }}>→</div>
+              )}
             </div>
           ))}
         </div>
+        {pending > 0 && (
+          <div style={{ marginTop: 16, padding: '10px 14px', background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 10 }}>
+            <span style={{ color: C.amber, fontSize: 12, fontWeight: 600 }}>{pending} signal{pending !== 1 ? 's' : ''} awaiting AACP validation</span>
+          </div>
+        )}
+        {emerging > 0 && (
+          <div style={{ marginTop: pending > 0 ? 8 : 16, padding: '10px 14px', background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10 }}>
+            <span style={{ color: C.red, fontSize: 12, fontWeight: 600 }}>{emerging} signal{emerging !== 1 ? 's' : ''} flagged as emerging requirement</span>
+          </div>
+        )}
       </div>
 
-      {/* Sector intelligence preview */}
+      {/* Sector intelligence */}
       {sector.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h3 style={{ color: C.white, fontSize: 14, fontWeight: 700, margin: 0, letterSpacing: 0.2 }}>
-              Sector Intelligence — Top Competency Demand
-            </h3>
-            <button onClick={() => onNavigate('sector')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              View sector overview
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: `1px solid ${C.border}` }}>
+            <div>
+              <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 4 }}>Sector Intelligence</div>
+              <div style={{ color: C.white, fontSize: 14, fontWeight: 700 }}>Top Competency Demand</div>
+            </div>
+            <button onClick={() => onNavigate('sector')} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.crimson, fontSize: 12, fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '6px 14px' }}>
+              View all →
             </button>
           </div>
-          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
+          <div>
             {sector.map((s, i) => (
               <div key={s.competency} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '12px 18px',
-                borderBottom: i < sector.length - 1 ? `1px solid ${C.border}` : 'none',
+                padding: '13px 22px',
+                borderBottom: i < sector.length - 1 ? `1px solid ${C.borderLight}` : 'none',
               }}>
-                <div>
-                  <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{s.competency}</span>
-                  <span style={{ color: C.grey, fontSize: 12, marginLeft: 10 }}>{s.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ background: demandDotBg(s.demandLevel), border: `1px solid ${demandColor(s.demandLevel)}33`, borderRadius: 8, padding: '3px 8px', minWidth: 32, textAlign: 'center' }}>
+                    <span style={{ color: demandColor(s.demandLevel), fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>{s.competency}</span>
+                  </div>
+                  <span style={{ color: C.grey, fontSize: 13 }}>{s.label}</span>
                 </div>
-                <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-                  <span style={{ color: demandColor(s.demandLevel), fontWeight: 700, fontSize: 13, textTransform: 'capitalize' }}>{s.demandLevel}</span>
-                  <span style={{ color: s.trend === 'increasing' ? C.green : s.trend === 'decreasing' ? C.red : C.grey, fontSize: 12 }}>
-                    {s.trend === 'increasing' ? '&#8593;' : s.trend === 'decreasing' ? '&#8595;' : '&#8594;'} {s.trend}
+                <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+                  <span style={{ color: demandColor(s.demandLevel), fontWeight: 700, fontSize: 12, textTransform: 'capitalize' }}>{s.demandLevel}</span>
+                  <span style={{ color: trendColor(s.trend), fontSize: 13, fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
+                    {trendArrow(s.trend)} {s.trend}
                   </span>
                 </div>
               </div>
             ))}
           </div>
-          <p style={{ color: C.grey, fontSize: 11, margin: '8px 0 0', fontStyle: 'italic' }}>
-            Aggregated from validated employer signals across AACP partner organisations. No individual employer is identified.
-          </p>
+          <div style={{ padding: '10px 22px', background: C.bgDeep, borderTop: `1px solid ${C.border}` }}>
+            <p style={{ color: C.greyD, fontSize: 11, margin: 0, fontStyle: 'italic' }}>
+              Aggregated from validated employer signals. No individual employer is identified.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Navigation links */}
+      {/* Quick actions */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
         {([
           { title: 'Submit Workforce Signal', desc: 'Contribute workforce intelligence signals', tab: 'requirements' },
           { title: 'My Signals', desc: `${signals.length} signal${signals.length !== 1 ? 's' : ''} submitted`, tab: 'submissions' },
           { title: 'Talent Pipeline', desc: `${pipeline?.totalCompleters ?? 0} AACP programme completers`, tab: 'pipeline' },
-          { title: 'Industry Intelligence', desc: 'Aggregated aviation and aerospace intelligence', tab: 'sector' },
+          { title: 'Industry Intelligence', desc: 'Aggregated aviation sector data', tab: 'sector' },
         ] as { title: string; desc: string; tab: EmpTab }[]).map(a => (
           <button
             key={a.tab}
@@ -237,12 +237,12 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: EmpTab) => void }) {
             style={{
               background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14,
               padding: '18px 20px', cursor: 'pointer', textAlign: 'left',
-              transition: 'border-color 0.15s', fontFamily: 'DM Sans, sans-serif',
+              transition: 'box-shadow 0.15s, border-color 0.15s', fontFamily: 'DM Sans, sans-serif',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = C.crimson; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.crimson; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.crimson}12`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}
           >
-            <div style={{ color: C.white, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{a.title}</div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 14, marginBottom: 5 }}>{a.title}</div>
             <div style={{ color: C.grey, fontSize: 12 }}>{a.desc}</div>
           </button>
         ))}
@@ -251,7 +251,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: EmpTab) => void }) {
   );
 }
 
-// ── Operational Requirements Tab ─────────────────────────────────────────────
+// â”€â”€ Operational Requirements Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BLANK_SIGNAL = {
   employer_name: '',
@@ -313,48 +313,85 @@ function OperationalRequirementsTab() {
 
   const inp: React.CSSProperties = {
     background: C.bg, border: `1px solid ${C.border}`, color: C.white,
-    borderRadius: 8, padding: '8px 12px', fontSize: 13, width: '100%', boxSizing: 'border-box',
+    borderRadius: 8, padding: '9px 13px', fontSize: 13, width: '100%', boxSizing: 'border-box',
+    outline: 'none', transition: 'border-color 0.15s',
   };
-  const lbl: React.CSSProperties = { fontSize: 12, color: C.grey, display: 'block', marginBottom: 4, fontWeight: 600, letterSpacing: 0.2 };
+  const lbl: React.CSSProperties = {
+    fontSize: 11, color: C.greyD, display: 'block', marginBottom: 6,
+    fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase',
+  };
+
+  const stepCard: React.CSSProperties = {
+    background: C.bgCard, border: `1px solid ${C.border}`,
+    borderRadius: 14, padding: '22px 24px',
+  };
+
+  const stepHeader = (n: string, title: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+        background: C.crimson, color: '#fff',
+        fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>{n}</div>
+      <div style={{ color: C.white, fontWeight: 700, fontSize: 14, letterSpacing: 0.1 }}>{title}</div>
+    </div>
+  );
+
+  const canSubmit = !!(form.employer_name && form.competency);
 
   return (
     <div>
       {toast && <Toast msg={toast.msg} ok={toast.ok} />}
+      <style>{`
+        .sig-inp:focus { border-color: ${C.crimson} !important; box-shadow: 0 0 0 2px ${C.crimson}22; }
+        .sig-inp::placeholder { color: #94a3b8; }
+      `}</style>
 
-      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 22px', marginBottom: 24 }}>
-        <div style={{ color: C.white, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+      {/* Header banner */}
+      <div style={{
+        background: `linear-gradient(135deg, #F6F7F9 0%, #FEF2F2 60%, #F6F7F9 100%)`,
+        border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.crimson}`, borderRadius: 16,
+        padding: '22px 26px', marginBottom: 28, position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.crimson}55, transparent)` }} />
+        <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 8 }}>
           Workforce Intelligence Contribution
         </div>
-        <p style={{ color: C.grey, fontSize: 13, margin: '0 0 6px', lineHeight: 1.55 }}>
-          Submit structured signals describing your organisation's competency requirements. AACP translates validated signals
-          into post-secondary curriculum and participant development intelligence.
+        <p style={{ color: C.white, fontSize: 14, fontWeight: 600, margin: '0 0 8px', lineHeight: 1.5 }}>
+          Share what you're seeing in your workforce.
         </p>
-        <p style={{ color: C.grey, fontSize: 12, margin: 0, fontStyle: 'italic' }}>
-          Submissions are reviewed by AACP before contributing to aggregated sector intelligence. Your organisation is not
-          individually identified in published intelligence.
+        <p style={{ color: C.grey, fontSize: 13, margin: '0 0 6px', lineHeight: 1.6, maxWidth: 620 }}>
+          AACP validates and translates employer signals into aggregated aviation workforce intelligence — used to align training, curriculum, and talent development with real industry needs.
+        </p>
+        <p style={{ color: C.grey, fontSize: 11, margin: 0, fontStyle: 'italic' }}>
+          Submissions are reviewed by AACP before contributing to sector intelligence. Your organisation is not individually identified in any published output.
         </p>
         {recentCount !== null && recentCount > 0 && (
-          <div style={{ marginTop: 12, color: C.blue, fontSize: 12, fontWeight: 600 }}>
-            {recentCount} signal{recentCount !== 1 ? 's' : ''} submitted from your organisation
+          <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 8, padding: '5px 12px' }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.blue, flexShrink: 0 }} />
+            <span style={{ color: C.blue, fontSize: 12, fontWeight: 600 }}>
+              {recentCount} signal{recentCount !== 1 ? 's' : ''} submitted from your organisation
+            </span>
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <fieldset style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px' }}>
-          <legend style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, padding: '0 8px' }}>
-            Organisation
-          </legend>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginTop: 10 }}>
+        {/* Step 1 — Organisation */}
+        <div style={stepCard}>
+          {stepHeader('01', 'Organisation')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
             <div>
               <label style={lbl}>Organisation Name *</label>
-              <input required value={form.employer_name} onChange={e => set('employer_name', e.target.value)}
+              <input required className="sig-inp" value={form.employer_name} onChange={e => set('employer_name', e.target.value)}
                 style={inp} placeholder="e.g. WestJet Airlines" />
             </div>
             <div>
               <label style={lbl}>Aviation Sector</label>
-              <select value={form.industry_subsector} onChange={e => set('industry_subsector', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.industry_subsector} onChange={e => set('industry_subsector', e.target.value)} style={inp}>
                 <option value="">Select sector…</option>
                 <option>Commercial Aviation</option>
                 <option>General Aviation</option>
@@ -370,7 +407,7 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Region</label>
-              <select value={form.region} onChange={e => set('region', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.region} onChange={e => set('region', e.target.value)} style={inp}>
                 <option value="">Select region…</option>
                 <option>British Columbia</option>
                 <option>Alberta</option>
@@ -384,16 +421,20 @@ function OperationalRequirementsTab() {
               </select>
             </div>
           </div>
-        </fieldset>
+        </div>
 
-        <fieldset style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px' }}>
-          <legend style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, padding: '0 8px' }}>
-            Occupation and Role
-          </legend>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginTop: 10 }}>
+        {/* Connector line */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 2, height: 16, background: C.border }} />
+        </div>
+
+        {/* Step 2 — Occupation and Role */}
+        <div style={stepCard}>
+          {stepHeader('02', 'Occupation and Role')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
             <div>
               <label style={lbl}>Occupation</label>
-              <select value={form.occupation} onChange={e => set('occupation', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.occupation} onChange={e => set('occupation', e.target.value)} style={inp}>
                 <option value="">Select occupation…</option>
                 <option>Commercial Pilot</option>
                 <option>Aircraft Maintenance Engineer (AME)</option>
@@ -411,12 +452,12 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Role Title</label>
-              <input value={form.role_title} onChange={e => set('role_title', e.target.value)}
+              <input className="sig-inp" value={form.role_title} onChange={e => set('role_title', e.target.value)}
                 style={inp} placeholder="e.g. Senior AME — Line Maintenance" />
             </div>
             <div>
               <label style={lbl}>Personnel Availability</label>
-              <select value={form.hiring_difficulty} onChange={e => set('hiring_difficulty', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.hiring_difficulty} onChange={e => set('hiring_difficulty', e.target.value)} style={inp}>
                 <option value="">Select…</option>
                 <option value="critical_shortage">Critical Shortage</option>
                 <option value="moderate_shortage">Moderate Shortage</option>
@@ -427,7 +468,7 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Readiness Expectation on Hire</label>
-              <select value={form.workforce_readiness_expectation} onChange={e => set('workforce_readiness_expectation', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.workforce_readiness_expectation} onChange={e => set('workforce_readiness_expectation', e.target.value)} style={inp}>
                 <option value="">Select…</option>
                 <option value="entry_ready">Entry Ready</option>
                 <option value="some_experience_required">Some Experience Required</option>
@@ -436,19 +477,23 @@ function OperationalRequirementsTab() {
               </select>
             </div>
           </div>
-        </fieldset>
+        </div>
 
-        <fieldset style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px' }}>
-          <legend style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, padding: '0 8px' }}>
-            Competency Signal
-          </legend>
-          <p style={{ color: C.grey, fontSize: 12, margin: '8px 0 16px', lineHeight: 1.5 }}>
+        {/* Connector line */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 2, height: 16, background: C.border }} />
+        </div>
+
+        {/* Step 3 — Competency Signal */}
+        <div style={stepCard}>
+          {stepHeader('03', 'Competency Signal')}
+          <p style={{ color: C.grey, fontSize: 12, margin: '-8px 0 18px', lineHeight: 1.6 }}>
             Submit one signal per competency. Submit multiple forms to cover all relevant competencies for this occupation.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
             <div>
               <label style={lbl}>AACP Competency *</label>
-              <select required value={form.competency} onChange={e => set('competency', e.target.value)} style={inp}>
+              <select required className="sig-inp" value={form.competency} onChange={e => set('competency', e.target.value)} style={inp}>
                 {COMPETENCY_KEYS.map(k => (
                   <option key={k} value={k}>{k} — {COMPETENCY_LABELS[k]}</option>
                 ))}
@@ -456,12 +501,12 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Specific Skill or Capability</label>
-              <input value={form.skill} onChange={e => set('skill', e.target.value)}
+              <input className="sig-inp" value={form.skill} onChange={e => set('skill', e.target.value)}
                 style={inp} placeholder="e.g. Digital Systems Troubleshooting" />
             </div>
             <div>
               <label style={lbl}>Operational Importance</label>
-              <select value={form.importance_level} onChange={e => set('importance_level', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.importance_level} onChange={e => set('importance_level', e.target.value)} style={inp}>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
@@ -470,7 +515,7 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Required Proficiency Level</label>
-              <select value={form.proficiency_expectation} onChange={e => set('proficiency_expectation', e.target.value)} style={inp}>
+              <select className="sig-inp" value={form.proficiency_expectation} onChange={e => set('proficiency_expectation', e.target.value)} style={inp}>
                 <option value="expert">Expert</option>
                 <option value="advanced">Advanced</option>
                 <option value="intermediate">Intermediate</option>
@@ -479,52 +524,84 @@ function OperationalRequirementsTab() {
             </div>
             <div>
               <label style={lbl}>Future Requirement Trend</label>
-              <select value={form.future_demand} onChange={e => set('future_demand', e.target.value)} style={inp}>
-                <option value="increasing">Increasing</option>
-                <option value="stable">Stable</option>
-                <option value="decreasing">Decreasing</option>
+              <select className="sig-inp" value={form.future_demand} onChange={e => set('future_demand', e.target.value)} style={inp}>
+                <option value="increasing">↑ Increasing</option>
+                <option value="stable">→ Stable</option>
+                <option value="decreasing">↓ Decreasing</option>
               </select>
             </div>
             <div>
               <label style={lbl}>Licensing or Certification Required</label>
-              <input value={form.certification_required} onChange={e => set('certification_required', e.target.value)}
+              <input className="sig-inp" value={form.certification_required} onChange={e => set('certification_required', e.target.value)}
                 style={inp} placeholder="e.g. Transport Canada AME Licence M1" />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Competency Gap Description</label>
-              <textarea value={form.skills_gap} onChange={e => set('skills_gap', e.target.value)}
+              <textarea className="sig-inp" value={form.skills_gap} onChange={e => set('skills_gap', e.target.value)}
                 rows={2} style={{ ...inp, resize: 'vertical' }}
                 placeholder="Describe the gap you observe in available personnel for this competency…" />
             </div>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <input type="checkbox" id="emerging_req" checked={form.emerging_requirement}
-                onChange={e => set('emerging_requirement', e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: C.crimson, cursor: 'pointer' }} />
-              <label htmlFor="emerging_req" style={{ ...lbl, marginBottom: 0, cursor: 'pointer', fontWeight: 400 }}>
-                Flag as emerging requirement — this competency is increasing in importance and may not yet be widely available in the candidate pool
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+                background: form.emerging_requirement ? C.blueBg : 'transparent',
+                border: `1px solid ${form.emerging_requirement ? C.blueBorder : C.border}`,
+                borderRadius: 10, padding: '12px 16px', transition: 'background 0.15s, border-color 0.15s',
+              }}>
+                <input type="checkbox" id="emerging_req" checked={form.emerging_requirement}
+                  onChange={e => set('emerging_requirement', e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: C.crimson, cursor: 'pointer', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ color: form.emerging_requirement ? C.blue : C.grey, fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
+                    Flag as Emerging Requirement
+                  </div>
+                  <div style={{ color: C.grey, fontSize: 12, lineHeight: 1.5 }}>
+                    This competency is increasing in importance and may not yet be widely available in the candidate pool
+                  </div>
+                </div>
               </label>
             </div>
           </div>
-        </fieldset>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button type="submit"
-            disabled={submitting || !form.employer_name || !form.competency}
-            style={{
-              background: (form.employer_name && form.competency) ? C.crimson : '#2a1218',
-              color: C.white, border: 'none', borderRadius: 10,
-              padding: '11px 30px', fontSize: 14, fontWeight: 700,
-              cursor: (form.employer_name && form.competency) ? 'pointer' : 'not-allowed',
-              letterSpacing: 0.3,
-            }}
-          >{submitting ? 'Submitting…' : 'Submit Signal'}</button>
         </div>
+
+        {/* Connector line */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 2, height: 16, background: canSubmit ? C.crimson : C.border, transition: 'background 0.3s' }} />
+        </div>
+
+        {/* Submit step */}
+        <div style={{
+          ...stepCard,
+          borderColor: canSubmit ? `${C.crimson}55` : C.border,
+          transition: 'border-color 0.3s',
+        }}>
+          {stepHeader('04', 'Submit Signal')}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+            <p style={{ color: C.grey, fontSize: 12, margin: 0, lineHeight: 1.6, maxWidth: 480 }}>
+              Your submission is confidential. AACP will review and validate this signal before it contributes to aggregated sector workforce intelligence.
+            </p>
+            <button type="submit"
+              disabled={submitting || !canSubmit}
+              style={{
+                background: canSubmit ? C.crimson : C.bgCard,
+                color: canSubmit ? '#fff' : C.greyD,
+                border: `1px solid ${canSubmit ? C.crimson : C.border}`,
+                borderRadius: 10, padding: '12px 32px', fontSize: 14, fontWeight: 700,
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                letterSpacing: 0.3, transition: 'background 0.2s, color 0.2s',
+                boxShadow: canSubmit ? `0 4px 20px ${C.crimson}44` : 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >{submitting ? 'Submitting…' : 'Submit Signal →'}</button>
+          </div>
+        </div>
+
       </form>
     </div>
   );
 }
 
-// ── Signal Submissions Tab ────────────────────────────────────────────────────
+// â”€â”€ Signal Submissions Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SignalSubmissionsTab() {
   const [signals, setSignals] = useState<EmpSignal[]>([]);
@@ -547,67 +624,179 @@ function SignalSubmissionsTab() {
     review:    signals.filter(s => ['under_review','needs_clarification'].includes(s.validation_status)).length,
   };
 
+  const STAGES = [
+    { key: 'new',        label: 'Submitted',     desc: 'Signal received by AACP' },
+    { key: 'review',     label: 'Under Review',  desc: 'AACP is validating your signal' },
+    { key: 'validated',  label: 'Validated',     desc: 'Signal accepted and verified' },
+    { key: 'intel',      label: 'Contributing',  desc: 'Signal feeds sector intelligence' },
+  ];
+
+  const getStage = (status: string) => {
+    if (status === 'validated') return 3;
+    if (status === 'under_review' || status === 'needs_clarification') return 1;
+    return 0;
+  };
+
+  const trendIcon = (t: string) => t === 'increasing' ? '↑' : t === 'decreasing' ? '↓' : '→';
+  const trendColor = (t: string) => t === 'increasing' ? C.green : t === 'decreasing' ? C.red : C.grey;
+  const importanceColor = (i: string) => i === 'critical' ? C.red : i === 'high' ? C.amber : C.grey;
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 28 }}>
         {[
-          { label: 'Total Submitted', value: signals.length,  color: C.white },
-          { label: 'Validated',       value: counts.validated, color: C.green },
-          { label: 'Awaiting Review', value: counts.pending,   color: C.blue  },
-          { label: 'Under Review',    value: counts.review,    color: C.amber },
+          { label: 'Signals Submitted', value: signals.length,   color: C.white,  accent: C.border     },
+          { label: 'Validated',         value: counts.validated,  color: C.green,  accent: C.greenBorder },
+          { label: 'Awaiting Review',   value: counts.pending,    color: C.blue,   accent: C.blueBorder  },
+          { label: 'Under Review',      value: counts.review,     color: C.amber,  accent: C.amberBorder },
         ].map(c => (
-          <div key={c.label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 20px', textAlign: 'center' }}>
-            <div style={{ color: c.color, fontSize: 24, fontWeight: 800, fontFamily: 'Fraunces, serif' }}>{c.value}</div>
-            <div style={{ color: C.grey, fontSize: 11, marginTop: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>{c.label}</div>
+          <div key={c.label} style={{
+            background: C.bgCard, border: `1px solid ${C.border}`,
+            borderTop: `3px solid ${c.accent}`, borderRadius: 12, padding: '16px 18px',
+          }}>
+            <div style={{ color: c.color, fontSize: 28, fontWeight: 800, fontFamily: 'Fraunces, serif', fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
+            <div style={{ color: C.greyD, fontSize: 10, marginTop: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>{c.label}</div>
           </div>
         ))}
       </div>
 
       {signals.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '56px 20px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16 }}>
-          <h3 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 10px' }}>No Signals Submitted</h3>
-          <p style={{ color: C.grey, fontSize: 13, margin: 0 }}>
-            Use the Submit Workforce Signal tab to submit your first workforce intelligence signal.
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16 }}>
+          <h3 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 10px', fontSize: 18 }}>No Signals Submitted Yet</h3>
+          <p style={{ color: C.grey, fontSize: 13, margin: 0, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+            Use the Submit Workforce Signal tab to begin contributing to AACP aviation workforce intelligence.
           </p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {['Competency','Occupation','Role Title','Importance','Trend','Emerging','Status','Submitted'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '9px 14px', color: C.grey, fontWeight: 700, whiteSpace: 'nowrap', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {signals.map(s => (
-                <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: '11px 14px' }}>
-                    <span style={{ fontWeight: 700, color: C.white }}>{s.competency}</span>
-                    <span style={{ color: C.grey, fontSize: 11, display: 'block' }}>{COMPETENCY_LABELS[s.competency] ?? s.competency}</span>
-                    {s.skill && <span style={{ color: C.grey, fontSize: 11, display: 'block' }}>{s.skill}</span>}
-                  </td>
-                  <td style={{ padding: '11px 14px', color: C.grey }}>{s.occupation ?? '—'}</td>
-                  <td style={{ padding: '11px 14px', color: C.grey }}>{s.role_title ?? '—'}</td>
-                  <td style={{ padding: '11px 14px', color: C.white, textTransform: 'capitalize' }}>{s.importance_level}</td>
-                  <td style={{ padding: '11px 14px', color: C.grey, textTransform: 'capitalize' }}>{s.future_demand}</td>
-                  <td style={{ padding: '11px 14px' }}>
-                    {s.emerging_requirement === 1
-                      ? <span style={{ color: C.red, fontWeight: 700, fontSize: 12 }}>Yes</span>
-                      : <span style={{ color: C.grey, fontSize: 12 }}>No</span>}
-                  </td>
-                  <td style={{ padding: '11px 14px' }}>
-                    <span style={statusBadgeStyle(s.validation_status)}>{statusLabel(s.validation_status)}</span>
-                  </td>
-                  <td style={{ padding: '11px 14px', color: C.grey, fontSize: 12, whiteSpace: 'nowrap' }}>
-                    {s.created_at ? new Date(s.created_at).toLocaleDateString('en-CA') : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Signal cards with progression tracker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+            {signals.map(s => {
+              const stage = getStage(s.validation_status);
+              return (
+                <div key={s.id} style={{
+                  background: C.bgCard, border: `1px solid ${C.border}`,
+                  borderLeft: stage === 3 ? `3px solid ${C.green}` : stage === 1 ? `3px solid ${C.amber}` : `3px solid ${C.border}`,
+                  borderRadius: 12, padding: '18px 22px',
+                }}>
+                  {/* Signal header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{s.competency}</span>
+                        <span style={{ color: C.grey, fontSize: 12 }}>—</span>
+                        <span style={{ color: C.grey, fontSize: 12 }}>{COMPETENCY_LABELS[s.competency] ?? s.competency}</span>
+                        {s.emerging_requirement === 1 && (
+                          <span style={{ background: C.redBg, border: `1px solid ${C.red}55`, color: C.red, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4 }}>
+                            Emerging
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ color: C.grey, fontSize: 12, marginTop: 4 }}>
+                        {[s.occupation, s.role_title].filter(Boolean).join(' · ') || 'No occupation specified'}
+                        {s.skill && <span style={{ color: C.greyD }}> · {s.skill}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                      <span style={{
+                        background: importanceColor(s.importance_level) + '22',
+                        border: `1px solid ${importanceColor(s.importance_level)}55`,
+                        color: importanceColor(s.importance_level), fontSize: 10, fontWeight: 700,
+                        letterSpacing: 1, textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4,
+                      }}>{s.importance_level}</span>
+                      <span style={{ color: trendColor(s.future_demand), fontSize: 13, fontWeight: 700 }}>
+                        {trendIcon(s.future_demand)} {s.future_demand}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progression tracker */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                    {STAGES.map((st, i) => {
+                      const active = i === stage;
+                      const done = i < stage || (stage === 3 && i <= 3);
+                      return (
+                        <React.Fragment key={st.key}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
+                            <div style={{
+                              width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
+                              background: done ? C.green : active ? C.crimson : C.bgDeep,
+                              border: `2px solid ${done ? C.green : active ? C.crimson : C.border}`,
+                              color: (done || active) ? '#fff' : C.grey,
+                              transition: 'all 0.2s',
+                            }}>
+                              {done && !active ? '✓' : i + 1}
+                            </div>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: done ? C.green : active ? C.crimson : C.grey, whiteSpace: 'nowrap' }}>{st.label}</div>
+                          </div>
+                          {i < STAGES.length - 1 && (
+                            <div style={{ flex: 1, height: 2, margin: '0 4px', marginBottom: 14, background: i < stage ? C.green : C.border, transition: 'background 0.3s' }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+
+                  {/* Validated callout */}
+                  {stage >= 2 && (
+                    <div style={{ marginTop: 12, background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 8, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: C.green, fontSize: 14 }}>✓</span>
+                      <span style={{ color: C.green, fontSize: 12, fontWeight: 600 }}>
+                        This signal is contributing to AACP aviation workforce intelligence.
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ color: C.grey, fontSize: 11, marginTop: 10, textAlign: 'right' }}>
+                    Submitted {s.created_at ? new Date(s.created_at).toLocaleDateString('en-CA') : '—'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Compact table for quick reference */}
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 18px', borderBottom: `1px solid ${C.border}`, color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>
+              All Signals — Quick Reference
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {['Competency', 'Occupation', 'Importance', 'Trend', 'Status', 'Submitted'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '9px 14px', color: C.greyD, fontWeight: 700, whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {signals.map(s => (
+                    <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ fontWeight: 700, color: C.white }}>{s.competency}</span>
+                        {s.skill && <span style={{ color: C.grey, fontSize: 11, display: 'block' }}>{s.skill}</span>}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: C.grey }}>{s.occupation ?? '—'}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ color: importanceColor(s.importance_level), fontWeight: 600, textTransform: 'capitalize' }}>{s.importance_level}</span>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ color: trendColor(s.future_demand) }}>{trendIcon(s.future_demand)} {s.future_demand}</span>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={statusBadgeStyle(s.validation_status)}>{statusLabel(s.validation_status)}</span>
+                      </td>
+                      <td style={{ padding: '10px 14px', color: C.grey, whiteSpace: 'nowrap' }}>
+                        {s.created_at ? new Date(s.created_at).toLocaleDateString('en-CA') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       <p style={{ color: C.grey, fontSize: 11, fontStyle: 'italic', marginTop: 16 }}>
@@ -617,7 +806,7 @@ function SignalSubmissionsTab() {
   );
 }
 
-// ── Sector Overview Tab (employer-facing, aggregated only) ────────────────────
+// â”€â”€ Sector Overview Tab (employer-facing, aggregated only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectorOverviewTab() {
   const [signals, setSignals] = useState<SectorSignal[]>([]);
@@ -658,11 +847,14 @@ function SectorOverviewTab() {
       ) : error ? (
         <div style={{ color: C.red, padding: 24 }}>{error}</div>
       ) : signals.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '56px 20px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16 }}>
-          <h3 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 10px' }}>Insufficient Evidence</h3>
-          <p style={{ color: C.grey, fontSize: 13, margin: 0 }}>
-            Aggregated sector intelligence becomes available once sufficient validated signals have been contributed by multiple organisations.
-            Use Submit Workforce Signal to submit your workforce intelligence.
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '32px 28px' }}>
+          <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 10 }}>No validated signals yet</div>
+          <p style={{ color: C.grey, fontSize: 13, margin: '0 0 14px', lineHeight: 1.6 }}>
+            Sector intelligence is built from employer signals that have been reviewed and validated by AACP staff.
+            If you have submitted signals, they will appear here once an AACP analyst approves them — typically within 2–5 business days.
+          </p>
+          <p style={{ color: C.grey, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+            Check <strong style={{ color: C.greyD }}>My Signals</strong> to see the current review status of your submissions.
           </p>
         </div>
       ) : (
@@ -721,7 +913,7 @@ function SectorOverviewTab() {
   );
 }
 
-// ── Crew Pipeline Tab (existing functionality preserved) ──────────────────────
+// â”€â”€ Crew Pipeline Tab (existing functionality preserved) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function pipelineChipStyle(active: boolean): React.CSSProperties {
   return {
@@ -749,7 +941,7 @@ function ParticipantCard({ completer, onSelect }: { completer: Completer; onSele
           width: 42, height: 42, borderRadius: '50%',
           background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: C.white, fontSize: 16, fontWeight: 700, flexShrink: 0,
+          color: '#fff', fontSize: 16, fontWeight: 700, flexShrink: 0,
         }}>{completer.name.charAt(0).toUpperCase()}</div>
         <div>
           <div style={{ color: C.white, fontSize: 15, fontWeight: 600 }}>{completer.name}</div>
@@ -759,16 +951,16 @@ function ParticipantCard({ completer, onSelect }: { completer: Completer; onSele
         </div>
       </div>
       {completer.topPathway && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: '#2d0f1a', borderRadius: 10, padding: '8px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, padding: '8px 12px' }}>
           <div>
-            <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{PATHWAY_LABELS[completer.topPathway] ?? completer.topPathway}</div>
+            <div style={{ color: C.crimson, fontSize: 13, fontWeight: 600 }}>{PATHWAY_LABELS[completer.topPathway] ?? completer.topPathway}</div>
             {fitStyle && <div style={{ color: fitStyle.color, fontSize: 11 }}>{fitStyle.label}</div>}
           </div>
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
         {completer.validatedCompetencies.slice(0, 3).map((comp, i) => (
-          <span key={i} style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, color: '#86efac', fontSize: 10, padding: '2px 8px', borderRadius: 4 }}>
+          <span key={i} style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, color: C.green, fontSize: 10, padding: '2px 8px', borderRadius: 4 }}>
             {comp}
           </span>
         ))}
@@ -784,10 +976,10 @@ function ParticipantCard({ completer, onSelect }: { completer: Completer; onSele
 function ParticipantDetail({ completer, onClose }: { completer: Completer; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ background: '#12080d', border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', fontFamily: 'DM Sans, sans-serif' }}>
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', fontFamily: 'DM Sans, sans-serif' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.white, fontSize: 20, fontWeight: 700 }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20, fontWeight: 700 }}>
               {completer.name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -848,6 +1040,265 @@ function ParticipantDetail({ completer, onClose }: { completer: Completer; onClo
   );
 }
 
+// ── Talent Pipeline Intelligence Tab ─────────────────────────────────────────
+
+const TP_OPP_LABELS: Record<string, string> = {
+  not_looking: 'Not Looking', open: 'Open to Opportunities',
+  actively_exploring: 'Actively Exploring', advancement: 'Seeking Advancement',
+};
+const TP_MOBILITY_LABELS: Record<string, string> = {
+  local: 'Local', regional: 'Regional', national: 'National', international: 'International',
+};
+
+interface TalentProfile {
+  userId: string; name: string; occupation: string | null; yearsExperience: string | null;
+  aviationSubsector: string | null; location: string | null; licencesCertifications: string | null;
+  careerGoals: string | null; opportunityStatus: string; geographicMobility: string;
+  pathwayType: string | null; competencyStrengths: string[]; careerAlignment: string | null;
+  developmentAreas: string | null; recommendedPathways: string | null;
+  connectionId: string | null; connectionStatus: string | null;
+}
+
+interface TalentPipelineData {
+  talent: TalentProfile[];
+  summary: { total: number; openToOpportunities: number; aciaCompleted: number; bySubsector: Record<string, number> };
+}
+
+function TalentPipelineTab() {
+  const [data, setData] = useState<TalentPipelineData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState<TalentProfile | null>(null);
+  const [interestNote, setInterestNote] = useState('');
+  const [sendingInterest, setSendingInterest] = useState(false);
+  const [interestSent, setInterestSent] = useState<Record<string, boolean>>({});
+  const [filters, setFilters] = useState({ occupation: '', subsector: '', opportunityStatus: '', pathway: '' });
+
+  function loadData() {
+    const params = new URLSearchParams();
+    if (filters.occupation) params.set('occupation', filters.occupation);
+    if (filters.subsector) params.set('subsector', filters.subsector);
+    if (filters.opportunityStatus) params.set('opportunityStatus', filters.opportunityStatus);
+    if (filters.pathway) params.set('pathway', filters.pathway);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    setLoading(true);
+    apiFetch<{ participants: TalentProfile[]; total: number; summary: { discoverable: number; openToOpportunities: number; aciaCompleted: number; bySubsector: Record<string, number> } }>(`/employer/talent-pipeline${qs}`)
+      .then(d => setData({ talent: d.participants ?? [], summary: { total: d.summary?.discoverable ?? 0, openToOpportunities: d.summary?.openToOpportunities ?? 0, aciaCompleted: d.summary?.aciaCompleted ?? 0, bySubsector: d.summary?.bySubsector ?? {} } }))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { loadData(); }, []);
+
+  async function handleExpressInterest(profile: TalentProfile) {
+    setSendingInterest(true);
+    try {
+      await request('/employer/talent-connections', { method: 'POST', body: { participantUserId: profile.userId, note: interestNote || undefined } });
+      setInterestSent(prev => ({ ...prev, [profile.userId]: true }));
+      setInterestNote('');
+      setSelected(null);
+    } catch (e: any) {
+      setError(e.message);
+    } finally { setSendingInterest(false); }
+  }
+
+  const inp: React.CSSProperties = { background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, borderRadius: 8, padding: '8px 12px', fontSize: 12, width: '100%', boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { display: 'block', color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 };
+
+  const summaryStats = data?.summary ?? { total: 0, openToOpportunities: 0, aciaCompleted: 0, bySubsector: {} };
+  const talent = data?.talent ?? [];
+
+  return (
+    <div>
+      {/* Intelligence Summary */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.crimson}`, borderRadius: 16, padding: '22px 28px', marginBottom: 22 }}>
+        <div style={{ marginBottom: 18 }}>
+          <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 4px', fontSize: '1.2rem' }}>AACP Talent Pipeline Intelligence</h2>
+          <p style={{ color: C.grey, margin: 0, fontSize: 12, lineHeight: 1.6, maxWidth: 600 }}>
+            Verified aviation professionals who have opted in to be discoverable. Profiles reflect ACIA competency evidence and self-reported professional backgrounds.
+            All credentials are self-reported until independently verified. This is not a job board — connecting requires the participant's acceptance.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Discoverable Talent', value: summaryStats.total, accent: C.crimson },
+            { label: 'Open to Opportunities', value: summaryStats.openToOpportunities, accent: C.green },
+            { label: 'ACIA Completed', value: summaryStats.aciaCompleted, accent: C.blue },
+          ].map(({ label, value, accent }) => (
+            <div key={label} style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 20px', minWidth: 140, flex: '0 0 auto' }}>
+              <div style={{ color: accent, fontSize: 28, fontWeight: 800, fontFamily: 'Fraunces, serif', fontVariantNumeric: 'tabular-nums' }}>{loading ? '—' : value}</div>
+              <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+          {Object.entries(summaryStats.bySubsector).slice(0, 3).map(([sub, count]) => (
+            <div key={sub} style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 20px', minWidth: 140, flex: '0 0 auto' }}>
+              <div style={{ color: C.white, fontSize: 22, fontWeight: 800, fontFamily: 'Fraunces, serif', fontVariantNumeric: 'tabular-nums' }}>{count}</div>
+              <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 }}>{sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          <div><label style={lbl}>Occupation</label><input style={inp} value={filters.occupation} onChange={e => setFilters(f => ({ ...f, occupation: e.target.value }))} placeholder="e.g. Pilot, AME" /></div>
+          <div><label style={lbl}>Subsector</label>
+            <select style={inp} value={filters.subsector} onChange={e => setFilters(f => ({ ...f, subsector: e.target.value }))}>
+              <option value="">All Subsectors</option>
+              {['Commercial Aviation', 'General Aviation', 'AME / Aircraft Maintenance', 'Air Traffic Control', 'Aerospace Engineering', 'Airport Operations', 'Aviation Safety', 'Flight Training', 'Unmanned Aviation / Drones'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Opportunity Status</label>
+            <select style={inp} value={filters.opportunityStatus} onChange={e => setFilters(f => ({ ...f, opportunityStatus: e.target.value }))}>
+              <option value="">Any Status</option>
+              {Object.entries(TP_OPP_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Pathway</label>
+            <select style={inp} value={filters.pathway} onChange={e => setFilters(f => ({ ...f, pathway: e.target.value }))}>
+              <option value="">Any Pathway</option>
+              <option value="professional">Current Aviation Professional</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button onClick={loadData} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Apply Filters</button>
+          </div>
+        </div>
+      </div>
+
+      {error && <div style={{ color: C.red, padding: '12px 16px', background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, marginBottom: 16, fontSize: 13 }}>{error}</div>}
+
+      {loading ? (
+        <div style={{ color: C.grey, padding: 40, textAlign: 'center' }}>Loading talent pipeline…</div>
+      ) : talent.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16 }}>
+          <h3 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 10px' }}>No Talent Profiles Found</h3>
+          <p style={{ color: C.grey, fontSize: 13, lineHeight: 1.6, maxWidth: 420, marginInline: 'auto', margin: 0 }}>
+            No participants currently match your filters and have opted into the AACP Talent Network. Profiles appear only when professionals explicitly choose to be discoverable.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+          {talent.map(t => {
+            const alreadySent = interestSent[t.userId] || t.connectionStatus === 'interest_sent' || t.connectionStatus === 'connection_accepted';
+            const oppColor = t.opportunityStatus === 'actively_exploring' ? C.green : t.opportunityStatus === 'open' ? C.blue : C.greyD;
+            return (
+              <div key={t.userId} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div>
+                    <div style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{t.occupation ?? 'Aviation Professional'}</div>
+                    <div style={{ color: C.grey, fontSize: 12, marginTop: 2 }}>{[t.yearsExperience ? `${t.yearsExperience} exp` : null, t.aviationSubsector, t.location].filter(Boolean).join(' · ')}</div>
+                  </div>
+                  <span style={{ color: oppColor, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.8 }}>{TP_OPP_LABELS[t.opportunityStatus] ?? t.opportunityStatus}</span>
+                </div>
+                {t.licencesCertifications && <div style={{ color: C.grey, fontSize: 11 }}><span style={{ color: C.greyD, fontWeight: 700 }}>Licences: </span>{t.licencesCertifications}</div>}
+                {t.competencyStrengths.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {t.competencyStrengths.slice(0, 4).map(s => (
+                      <span key={s} style={{ background: C.bgDeep, border: `1px solid ${C.border}`, color: C.grey, borderRadius: 6, padding: '3px 9px', fontSize: 10, fontWeight: 600 }}>{s}</span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button onClick={() => { setSelected(t); setInterestNote(''); }} style={{ flex: 1, background: C.bgDeep, border: `1px solid ${C.border}`, color: C.grey, borderRadius: 8, padding: '7px', fontSize: 12, cursor: 'pointer' }}>View Profile</button>
+                  {!alreadySent && (
+                    <button onClick={() => { setSelected(t); setInterestNote(''); }} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Express Interest</button>
+                  )}
+                  {alreadySent && (
+                    <span style={{ display: 'flex', alignItems: 'center', color: C.green, fontSize: 11, fontWeight: 700, gap: 4 }}>
+                      {t.connectionStatus === 'connection_accepted' ? 'Connected' : 'Interest Sent'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Profile modal */}
+      {selected && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setSelected(null)}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 18, width: '100%', maxWidth: 580, maxHeight: '85vh', overflowY: 'auto', padding: '28px 32px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Talent Profile</div>
+                <h3 style={{ color: C.white, margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 700 }}>{selected.occupation ?? 'Aviation Professional'}</h3>
+                <div style={{ color: C.grey, fontSize: 12 }}>{[selected.yearsExperience, selected.aviationSubsector, selected.location].filter(Boolean).join(' · ')}</div>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.greyD, fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+
+            {/* QUALIFICATIONS */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>Qualifications</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {selected.licencesCertifications && <div><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Licences / Certifications</div><div style={{ color: C.grey, fontSize: 12 }}>{selected.licencesCertifications}</div></div>}
+                {selected.geographicMobility && <div><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Geographic Mobility</div><div style={{ color: C.grey, fontSize: 12 }}>{TP_MOBILITY_LABELS[selected.geographicMobility] ?? selected.geographicMobility}</div></div>}
+              </div>
+              <p style={{ color: C.greyD, fontSize: 10, marginTop: 8, fontStyle: 'italic' }}>All credentials are self-reported and have not been independently verified by AACP.</p>
+            </div>
+
+            {/* COMPETENCY EVIDENCE */}
+            {selected.competencyStrengths.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>Competency Evidence</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                  {selected.competencyStrengths.map(s => <span key={s} style={{ background: C.bgDeep, border: `1px solid ${C.border}`, color: C.grey, borderRadius: 8, padding: '5px 12px', fontSize: 11, fontWeight: 600 }}>{s}</span>)}
+                </div>
+                <p style={{ color: C.greyD, fontSize: 10, fontStyle: 'italic', margin: 0 }}>Competency evidence is derived from ACIA assessment. Raw assessment responses are not shared.</p>
+              </div>
+            )}
+
+            {/* CAREER ALIGNMENT */}
+            {(selected.careerAlignment || selected.developmentAreas || selected.recommendedPathways) && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>Career Alignment</div>
+                {selected.careerAlignment && <div style={{ marginBottom: 8 }}><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Career Alignment Summary</div><div style={{ color: C.grey, fontSize: 12, lineHeight: 1.6 }}>{selected.careerAlignment}</div></div>}
+                {selected.developmentAreas && <div style={{ marginBottom: 8 }}><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Development Areas</div><div style={{ color: C.grey, fontSize: 12, lineHeight: 1.6 }}>{selected.developmentAreas}</div></div>}
+                {selected.recommendedPathways && <div><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Recommended Pathways</div><div style={{ color: C.grey, fontSize: 12, lineHeight: 1.6 }}>{selected.recommendedPathways}</div></div>}
+              </div>
+            )}
+
+            {/* OPPORTUNITY PREFERENCES */}
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>Opportunity Preferences</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Status</div><div style={{ color: C.grey, fontSize: 12 }}>{TP_OPP_LABELS[selected.opportunityStatus] ?? selected.opportunityStatus}</div></div>
+                <div><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Mobility</div><div style={{ color: C.grey, fontSize: 12 }}>{TP_MOBILITY_LABELS[selected.geographicMobility] ?? selected.geographicMobility}</div></div>
+                {selected.careerGoals && <div style={{ gridColumn: '1 / -1' }}><div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Career Goals</div><div style={{ color: C.grey, fontSize: 12, lineHeight: 1.6 }}>{selected.careerGoals}</div></div>}
+              </div>
+            </div>
+
+            {/* Express Interest */}
+            {!(interestSent[selected.userId] || selected.connectionStatus === 'interest_sent' || selected.connectionStatus === 'connection_accepted') && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Express Interest</div>
+                <p style={{ color: C.grey, fontSize: 12, margin: '0 0 12px', lineHeight: 1.6 }}>Your interest will be sent to the participant. They choose whether to accept or decline — contact details are only shared upon acceptance.</p>
+                <textarea style={{ ...inp, minHeight: 72, resize: 'vertical', marginBottom: 12 }} value={interestNote} onChange={e => setInterestNote(e.target.value)} placeholder="Optional: introduce your organisation and why you'd like to connect…" />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => handleExpressInterest(selected)} disabled={sendingInterest} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: sendingInterest ? 0.7 : 1 }}>
+                    {sendingInterest ? 'Sending…' : 'Send Expression of Interest'}
+                  </button>
+                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.grey, borderRadius: 8, padding: '10px 16px', fontSize: 13, cursor: 'pointer' }}>Close</button>
+                </div>
+              </div>
+            )}
+            {(interestSent[selected.userId] || selected.connectionStatus === 'interest_sent') && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 18, color: C.green, fontSize: 13, fontWeight: 700 }}>Interest sent. The participant will be notified.</div>
+            )}
+            {selected.connectionStatus === 'connection_accepted' && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 18, color: C.green, fontSize: 13, fontWeight: 700 }}>Connected — this participant accepted your expression of interest.</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CrewPipelineTab() {
   const [data, setData] = useState<PipelineData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -871,7 +1322,7 @@ function CrewPipelineTab() {
 
   return (
     <div>
-      <div style={{ background: 'linear-gradient(135deg, #1a0d10, #2d0f1a)', border: `1px solid ${C.border}`, borderRadius: 16, padding: '22px 28px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.crimson}`, borderRadius: 16, padding: '22px 28px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
         <div>
           <h2 style={{ color: C.white, fontFamily: 'Fraunces, serif', margin: '0 0 6px', fontSize: '1.3rem' }}>
             AACP Programme Graduates
@@ -928,7 +1379,7 @@ function CrewPipelineTab() {
   );
 }
 
-// ── Root ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TABS: { key: EmpTab; label: string }[] = [
   { key: 'overview',      label: 'Overview'                  },
@@ -958,8 +1409,10 @@ export function EmployerDashboard() {
       {tab === 'overview'     && <OverviewTab onNavigate={setTab} />}
       {tab === 'requirements' && <OperationalRequirementsTab />}
       {tab === 'submissions'  && <SignalSubmissionsTab />}
-      {tab === 'pipeline'     && <CrewPipelineTab />}
+      {tab === 'pipeline'     && <TalentPipelineTab />}
       {tab === 'sector'       && <SectorOverviewTab />}
     </DashboardLayout>
   );
 }
+
+

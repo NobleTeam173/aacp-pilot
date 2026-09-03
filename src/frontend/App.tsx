@@ -8,7 +8,7 @@ import { IndustryIntelligence } from './components/postsecondary/IndustryIntelli
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
 import { PilotRegistrationForm } from './components/pilot/PilotRegistrationForm';
 
-type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin';
+type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach';
 
 interface AuthState {
   role: Role;
@@ -101,7 +101,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
     <div className="login-page">
       <div className="login-card" style={{ maxWidth: 480 }}>
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
 
@@ -164,12 +164,14 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
 
           {/* Youth: career stage */}
           {role === 'youth' && (
-            <label>Which best describes where you are in your career today?
+            <label>What brings you to AACP?
               <select value={careerStage} onChange={e => setCareerStage(e.target.value)}>
-                <option value="exploring">Exploring my first career</option>
-                <option value="student">Student or recent graduate</option>
-                <option value="transition">Professional considering aviation or aerospace</option>
-                <option value="advancing">Already in aviation — want to advance</option>
+                <option value="exploring">Exploring my first aviation career</option>
+                <option value="student">Student / Recent Graduate</option>
+                <option value="stem">STEM Graduate entering aviation/aerospace</option>
+                <option value="transition">Transitioning from another industry</option>
+                <option value="aviation_professional">Current Aviation Professional</option>
+                <option value="intl_aviation_professional">Internationally Trained Aviation Professional</option>
               </select>
             </label>
           )}
@@ -238,6 +240,102 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ── Coach Invite Accept form ──────────────────────────────────────────────────
+
+function CoachInviteAcceptForm({ token, onDone }: { token: string; onDone: () => void }) {
+  const [info, setInfo] = useState<{ name: string; email: string; organizationType: string; organizationName: string | null } | null>(null);
+  const [loadErr, setLoadErr] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    request<{ name: string; email: string; organizationType: string; organizationName: string | null }>(`/auth/coach-invite/${token}`)
+      .then(d => setInfo(d))
+      .catch(e => setLoadErr(e instanceof Error ? e.message : 'Invalid or expired invitation link.'));
+  }, [token]);
+
+  const ORG_TYPE_LABELS: Record<string, string> = {
+    employer: 'Employer Partner',
+    educational_institution: 'Educational Institution',
+    industry_association: 'Industry Association',
+    aacp_direct: 'AACP',
+  };
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
+    setLoading(true); setMsg('');
+    try {
+      await request(`/auth/coach-invite/${token}`, { method: 'POST', body: { password } });
+      setDone(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('coach_invite');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : 'Activation failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP™</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+        {done ? (
+          <>
+            <p style={{ fontSize: 13, color: '#a3e6b5', lineHeight: 1.7, margin: '0 0 16px' }}>
+              Career coach account activated. You will be prompted to set up multi-factor authentication when you sign in.
+            </p>
+            <button className="login-submit" onClick={onDone}>Sign In</button>
+          </>
+        ) : loadErr ? (
+          <>
+            <p className="login-msg" style={{ color: '#f87171' }}>{loadErr}</p>
+            <button className="login-submit" onClick={onDone}>Back to Sign In</button>
+          </>
+        ) : !info ? (
+          <p style={{ fontSize: 13, color: '#9ca3a8' }}>Verifying invitation…</p>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              Activate Career Coach Account
+            </div>
+            <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
+              <p style={{ margin: 0, color: '#9ca3a8' }}>Invited as</p>
+              <p style={{ margin: '4px 0 0', color: '#f1f5f9', fontWeight: 600 }}>{info.name}</p>
+              <p style={{ margin: '2px 0 0', color: '#9ca3a8' }}>{info.email}</p>
+              {info.organizationName && (
+                <p style={{ margin: '4px 0 0', color: '#9ca3a8' }}>
+                  {ORG_TYPE_LABELS[info.organizationType] ?? info.organizationType} · {info.organizationName}
+                </p>
+              )}
+            </div>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleSubmit} className="login-form">
+              <label>Set Password
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} />
+              </label>
+              <label>Confirm Password
+                <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Activating…' : 'Activate Account'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Invite Accept form ────────────────────────────────────────────────────────
 
 interface InviteInfo {
@@ -282,7 +380,7 @@ function InviteAcceptForm({ token, onDone }: { token: string; onDone: () => void
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
         {done ? (
@@ -362,7 +460,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
@@ -429,7 +527,7 @@ function MfaSetupForm({ email, password, otp, onSetupComplete }: {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
@@ -500,7 +598,7 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
         {sent ? (
@@ -569,7 +667,7 @@ function ResetPasswordForm({ token, onDone }: { token: string; onDone: () => voi
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
         {done ? (
@@ -698,7 +796,7 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <p>Aviation &amp; Aerospace Competence Program</p>
         </div>
 
@@ -745,6 +843,7 @@ function viewsForRole(role: Role): DashboardView[] {
   if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
+  if (role === 'coach') return ['coach'];
   return ['youth'];
 }
 
@@ -752,7 +851,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
   admin: 'Approvals',
   connector: 'AACP Connector',
   youth: 'Participant',
-  coach: 'Coach',
+  coach: 'Career Advisor',
   employer: 'Employer',
   postsecondary: 'Post-Secondary',
 };
@@ -790,6 +889,9 @@ export function App() {
         onComplete={(auth) => {
           setStoredToken(auth.accessToken);
           setStoredRefreshToken(auth.refreshToken);
+          localStorage.setItem('aacp_role', auth.role);
+          localStorage.setItem('aacp_user_id', auth.userId);
+          if (auth.name) localStorage.setItem('aacp_name', auth.name);
           window.location.replace(window.location.pathname);
         }}
       />
@@ -802,15 +904,23 @@ export function App() {
     return <InviteAcceptForm token={inviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
   }
 
+  // Coach invitation — token arrives as ?coach_invite=<token>
+  const coachInviteToken = new URL(window.location.href).searchParams.get('coach_invite');
+  if (coachInviteToken) {
+    return <CoachInviteAcceptForm token={coachInviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
+  }
+
   useEffect(() => {
     const token = getStoredToken();
     const role = localStorage.getItem('aacp_role') as Role | null;
     const userId = localStorage.getItem('aacp_user_id') ?? 'restored';
     if (token && role) {
       setAuth({ role, userId });
-      const hash = window.location.hash.replace('#', '') as DashboardView;
       const views = viewsForRole(role);
-      setCurrentView(views.includes(hash) ? hash : views[0]);
+      const hash = window.location.hash.replace('#', '') as DashboardView;
+      // Admins always land on their own dashboard — never inherit a participant hash
+      const defaultView = (role === 'admin' || role === 'super_admin') ? views[0] : (views.includes(hash) ? hash : views[0]);
+      setCurrentView(defaultView);
 
       // Poll pending count for admin sidebar badge
       if (role === 'admin' || role === 'super_admin') {
@@ -857,7 +967,7 @@ export function App() {
     <div className="app-shell">
       <aside className="app-sidebar" aria-label="Primary navigation">
         <div className="brand">
-          <span className="brand-mark">AACP</span>
+          <span className="brand-mark">AACP™</span>
           <div>
             <strong>AACP Platform</strong>
             <p>Competency and readiness insights.</p>

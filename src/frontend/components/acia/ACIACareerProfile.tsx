@@ -42,11 +42,13 @@ interface Props {
   evidence: EvidenceItem[];
   responses: QuestionResponse[];
   onReset: () => void;
+  onDone?: () => void;
   savedData?: { assessmentId: string; badgeId: string; completedAt: string };
   participantName?: string;
+  stage?: string;
 }
 
-export function ACIACareerProfile({ alignments, evidence, responses, onReset, savedData, participantName }: Props) {
+export function ACIACareerProfile({ alignments, evidence, responses, onReset, onDone, savedData, participantName, stage }: Props) {
   const [showBadge, setShowBadge] = useState(false);
   const top = alignments[0];
   const competencies = computeCompetencyIndex(responses, evidence);
@@ -55,15 +57,19 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, sa
 
   function handleDownloadReport() {
     const name = participantName ?? localStorage.getItem('aacp_name') ?? 'Participant';
+    // Only surface a top pathway when it has actual evidence behind it
+    const reliableTop = top && top.alignment !== 'insufficient' && top.evidenceConfidence !== 'low' ? top : null;
     const report: ReportData = {
       participantName: name,
       assessmentDate: savedData?.completedAt ?? new Date().toISOString(),
       pathwayType: 'standard',
       aciaVersion: '1.0',
-      topPathway: top?.pathwayId,
+      assessmentStage: (stage as 'baseline' | 'completion' | 'followup') ?? 'baseline',
+      topPathway: reliableTop?.label,
       careerAlignments: alignments.map(a => ({
         label: a.label,
         alignment: a.alignment,
+        evidenceConfidence: a.evidenceConfidence,
         description: a.description,
         observedStrengths: a.observedStrengths,
         developmentOpportunities: a.developmentOpportunities,
@@ -76,9 +82,9 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, sa
         confidence: String(obs.observationCount),
       })),
       developmentAreas: devOps.map(o => COMPETENCY_LABELS[o.key as CompetencyKey] ?? o.key),
-      observedStrengths: top?.observedStrengths ?? [],
+      observedStrengths: reliableTop?.observedStrengths ?? [],
       emergingCapabilities: devOps.map(o => COMPETENCY_LABELS[o.key as CompetencyKey] ?? o.key),
-      recommendedNextSteps: top?.nextSteps ?? [],
+      recommendedNextSteps: reliableTop?.nextSteps ?? [],
       badgeId: savedData?.badgeId,
     };
     openACIAReport(report);
@@ -90,6 +96,7 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, sa
     issueDate: savedData.completedAt,
     aciaVersion: '1.0',
     pathwayType: 'standard',
+    assessmentStage: stage ?? 'baseline',
   } : null;
 
   const topAlignmentMeta = ALIGNMENT_COLORS[top?.alignment ?? 'insufficient'];
@@ -360,17 +367,22 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, sa
         </div>
       )}
 
-      <button
-        onClick={onReset}
-        style={{
-          width: '100%', background: C.bgCard,
-          border: `1px solid ${C.border}`, color: C.grey,
-          borderRadius: 12, padding: 12,
-          cursor: 'pointer', fontSize: 13, fontWeight: 600,
-        }}
-      >
-        Retake Assessment
-      </button>
+      {onDone && (
+        <button
+          onClick={onDone}
+          style={{
+            width: '100%',
+            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+            border: 'none', color: 'white',
+            borderRadius: 12, padding: '14px',
+            cursor: 'pointer', fontSize: 15, fontWeight: 700,
+            marginBottom: 10,
+          }}
+        >
+          Return to My Journey →
+        </button>
+      )}
+
     </div>
   );
 }

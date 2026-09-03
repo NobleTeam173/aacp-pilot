@@ -1,52 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { QUESTION_BANK, QUESTION_FAMILIES, applyVariants } from '../acia/questionBank';
 import { COMPETENCY_LABELS } from '../acia/types';
 import type { CompetencyKey, QuestionRecord } from '../acia/types';
 import { generateVariant, auditStaticVariant, getValidationLog } from '../acia/variantEngine';
 import type { ValidationIssueRecord } from '../acia/variantEngine';
-
-const C = {
-  crimson: '#8F0909',
-  crimsonD: '#721010',
-  bg: '#0f0a0b',
-  bgCard: '#1a0d10',
-  border: '#3d1020',
-  white: '#f1f5f9',
-  grey: '#94a3b8',
-  greyD: '#8a9ab0',
-  green: '#22c55e',
-  greenBg: '#0f1a0f',
-  greenBorder: '#1a3a1a',
-  amber: '#f59e0b',
-  amberBg: '#1a1400',
-  amberBorder: '#3a2a00',
-  red: '#ef4444',
-  redBg: '#1a0505',
-  redBorder: '#3a0505',
-};
-
-type StatusFilter = 'all' | 'pending' | 'active' | 'rejected';
-
-interface Participant {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  phone: string | null;
-  organizationName: string | null;
-  institutionName: string | null;
-  region: string | null;
-  status: 'pending' | 'active' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-}
+import { C } from '../../theme';
+import { getStoredToken, getStoredRefreshToken, setStoredToken } from '../../services/apiClient';
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('aacp_access_token');
-  const res = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...((opts?.headers as Record<string, string>) ?? {}) },
-  });
+  const doFetch = (token: string | null) =>
+    fetch(path, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...((opts?.headers as Record<string, string>) ?? {}) },
+    });
+
+  let res = await doFetch(getStoredToken());
+
+  if (res.status === 401) {
+    const refreshToken = getStoredRefreshToken();
+    if (refreshToken) {
+      try {
+        const rr = await fetch('/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken }) });
+        if (rr.ok) {
+          const rd = await rr.json();
+          if (rd.accessToken) { setStoredToken(rd.accessToken); res = await doFetch(rd.accessToken); }
+        }
+      } catch { /* fall through */ }
+    }
+  }
+
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error ?? 'Request failed');
   return data as T;
@@ -77,7 +59,7 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-// ── Decline Modal ─────────────────────────────────────────────────────────────
+// â”€â”€ Decline Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DeclineModal({ participant, onConfirm, onCancel, loading }: {
   participant: Participant;
@@ -142,7 +124,7 @@ function DeclineModal({ participant, onConfirm, onCancel, loading }: {
   );
 }
 
-// ── Participant Row ────────────────────────────────────────────────────────────
+// â”€â”€ Participant Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
   p: Participant;
@@ -240,7 +222,7 @@ function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
                   cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.6 : 1,
                 }}
               >
-                ✕ Decline
+                âœ• Decline
               </button>
             </div>
           )}
@@ -250,9 +232,9 @@ function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── Question Validation Panel ─────────────────────────────────────────────────
+// â”€â”€ Question Validation Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function QuestionValidationPanel() {
   const [sampleIssues, setSampleIssues] = useState<{ q: QuestionRecord; issues: string[]; sample: string }[]>([]);
@@ -289,7 +271,7 @@ function QuestionValidationPanel() {
     setChecked(true);
   }
 
-  const statusColor = (issues: string[]) => issues.length === 0 ? '#86efac' : '#f87171';
+  const statusColor = (issues: string[]) => issues.length === 0 ? C.green : C.red;
 
   return (
     <div style={{ marginBottom: 40 }}>
@@ -311,24 +293,24 @@ function QuestionValidationPanel() {
       {checked && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {sampleIssues.length === 0 ? (
-            <div style={{ background: '#0d2010', border: '1px solid #1a4a20', borderRadius: 8, padding: '12px 16px', color: '#86efac', fontSize: 13 }}>
+            <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 8, padding: '12px 16px', color: C.green, fontSize: 13 }}>
               All {QUESTION_BANK.length} questions passed validation across sampled variants.
             </div>
           ) : (
             sampleIssues.map(({ q, issues, sample }, i) => (
               <div key={`${q.questionId}-${i}`} style={{ background: C.bgCard, border: '1px solid #5c1a1a', borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontWeight: 700, color: '#f87171', fontSize: 12 }}>{q.questionId}</span>
+                  <span style={{ fontWeight: 700, color: C.red, fontSize: 12 }}>{q.questionId}</span>
                   <span style={{ color: C.grey, fontSize: 12 }}>{q.family}</span>
                   <span style={{ marginLeft: 'auto', color: C.greyD, fontSize: 11 }}>
                     {q.variantGenerator ? `generator: ${q.variantGenerator}` : 'static variant'}
                   </span>
                 </div>
-                <div style={{ background: '#1a0a0a', borderRadius: 4, padding: '8px 10px', marginBottom: 8, fontSize: 12, color: C.grey, fontFamily: 'monospace' }}>
+                <div style={{ background: C.redBg, borderRadius: 4, padding: '8px 10px', marginBottom: 8, fontSize: 12, color: C.grey, fontFamily: 'monospace' }}>
                   {sample.slice(0, 200)}{sample.length > 200 ? '…' : ''}
                 </div>
                 {issues.map((issue, j) => (
-                  <div key={j} style={{ color: '#f87171', fontSize: 12, display: 'flex', gap: 6 }}>
+                  <div key={j} style={{ color: C.red, fontSize: 12, display: 'flex', gap: 6 }}>
                     <span>▶</span>{issue}
                   </div>
                 ))}
@@ -342,9 +324,9 @@ function QuestionValidationPanel() {
               {liveLog.slice(-10).map((entry, i) => (
                 <div key={i} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 14px', marginBottom: 6 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ color: '#f87171', fontSize: 12, fontWeight: 700 }}>{entry.questionId}</span>
+                    <span style={{ color: C.red, fontSize: 12, fontWeight: 700 }}>{entry.questionId}</span>
                     <span style={{ color: C.greyD, fontSize: 11 }}>{entry.family}</span>
-                    {entry.participantReported && <span style={{ background: '#3a1a00', color: '#fbbf24', fontSize: 10, padding: '1px 6px', borderRadius: 3 }}>PARTICIPANT REPORTED</span>}
+                    {entry.participantReported && <span style={{ background: C.amberBorder, color: C.amber, fontSize: 10, padding: '1px 6px', borderRadius: 3 }}>PARTICIPANT REPORTED</span>}
                     <span style={{ marginLeft: 'auto', color: C.greyD, fontSize: 10 }}>{new Date(entry.timestamp).toLocaleTimeString()}</span>
                   </div>
                   {entry.issues.map((iss, j) => (
@@ -360,7 +342,7 @@ function QuestionValidationPanel() {
   );
 }
 
-// ── Admin Question Bank ───────────────────────────────────────────────────────
+// â”€â”€ Admin Question Bank â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AdminQuestionBank() {
   const [familyFilter, setFamilyFilter] = useState<string>('all');
@@ -384,9 +366,9 @@ function AdminQuestionBank() {
   });
 
   const statusColors: Record<string, { bg: string; color: string }> = {
-    active: { bg: '#0f1a0f', color: '#86efac' },
-    draft: { bg: '#1a1400', color: '#fde68a' },
-    retired: { bg: '#1a0505', color: '#f87171' },
+    active: { bg: C.greenBg, color: C.green },
+    draft: { bg: C.amberBg, color: C.amber },
+    retired: { bg: C.redBg, color: C.red },
   };
   const diffLabel = ['', 'Introductory', 'Intermediate', 'Advanced', 'Expert'];
 
@@ -492,7 +474,7 @@ function AdminQuestionBank() {
                   {q.family}
                 </span>
                 <span style={{
-                  background: '#2d0f1a', color: C.crimson,
+                  background: C.redBg, color: C.crimson,
                   fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, flexShrink: 0,
                 }}>
                   {q.primaryCompetency}
@@ -517,7 +499,7 @@ function AdminQuestionBank() {
                       Question Template
                     </div>
                     <div style={{
-                      background: '#12080d', border: `1px solid ${C.border}`,
+                      background: C.bgCard, border: `1px solid ${C.border}`,
                       borderRadius: 8, padding: '12px 14px',
                       color: C.white, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap',
                     }}>
@@ -574,7 +556,7 @@ function AdminQuestionBank() {
                       {q.evidenceRubric.map(r => (
                         <div key={r.indicator} style={{
                           display: 'flex', gap: 10, alignItems: 'flex-start',
-                          background: '#12080d', borderRadius: 8, padding: '8px 12px',
+                          background: C.bgCard, borderRadius: 8, padding: '8px 12px',
                         }}>
                           <div style={{
                             width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 5,
@@ -606,8 +588,8 @@ function AdminQuestionBank() {
   );
 }
 
-// ── Main Admin Dashboard ──────────────────────────────────────────────────────
-// ── Organizations panel ───────────────────────────────────────────────────────
+// â”€â”€ Main Admin Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Organizations panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Organization {
   id: string;
@@ -619,6 +601,7 @@ interface Organization {
   status: string;
   notes: string | null;
   createdAt: string;
+  handoff_authorized?: number;
 }
 
 function OrganizationsPanel() {
@@ -697,7 +680,7 @@ function OrganizationsPanel() {
     <div>
       {toast && (
         <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: toast.ok ? C.greenBg : C.redBg, border: `1px solid ${toast.ok ? C.greenBorder : C.redBorder}`, color: toast.ok ? C.green : C.red, borderRadius: 12, padding: '12px 18px', fontSize: 13, fontWeight: 600 }}>
-          {toast.ok ? '✓ ' : '✕ '}{toast.msg}
+          {toast.ok ? '✓ ' : 'âœ• '}{toast.msg}
         </div>
       )}
 
@@ -717,33 +700,33 @@ function OrganizationsPanel() {
           <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1/-1' }}>
               Organization Name *
-              <input required value={name} onChange={e => setName(e.target.value)} style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
+              <input required value={name} onChange={e => setName(e.target.value)} style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Type *
-              <select value={orgType} onChange={e => setOrgType(e.target.value as 'employer' | 'postsecondary')} style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }}>
+              <select value={orgType} onChange={e => setOrgType(e.target.value as 'employer' | 'postsecondary')} style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }}>
                 <option value="employer">Employer</option>
                 <option value="postsecondary">Post-Secondary</option>
               </select>
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Partner Status
-              <select value={partnerStatus} onChange={e => setPartnerStatus(e.target.value)} style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }}>
+              <select value={partnerStatus} onChange={e => setPartnerStatus(e.target.value)} style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }}>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
               </select>
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1/-1' }}>
               Approved Email Domains (comma-separated)
-              <input value={domains} onChange={e => setDomains(e.target.value)} placeholder="e.g. company.com, partner.org" style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
+              <input value={domains} onChange={e => setDomains(e.target.value)} placeholder="e.g. company.com, partner.org" style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Primary Contact Email
-              <input type="email" value={contact} onChange={e => setContact(e.target.value)} style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
+              <input type="email" value={contact} onChange={e => setContact(e.target.value)} style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Notes
-              <input value={notes} onChange={e => setNotes(e.target.value)} style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
+              <input value={notes} onChange={e => setNotes(e.target.value)} style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
             </label>
             <div style={{ display: 'flex', gap: 8, gridColumn: '1/-1' }}>
               <button type="submit" disabled={saving} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -771,6 +754,7 @@ function OrganizationsPanel() {
                 <th style={TH}>Domains</th>
                 <th style={TH}>Status</th>
                 <th style={TH}>Partner</th>
+                <th style={TH}>Handoff Auth</th>
                 <th style={TH}></th>
               </tr>
             </thead>
@@ -782,6 +766,25 @@ function OrganizationsPanel() {
                   <td style={TD}><span style={{ color: C.greyD, fontSize: 11 }}>{o.approvedDomains.join(', ') || '—'}</span></td>
                   <td style={TD}><span style={{ color: o.status === 'active' ? C.green : C.amber }}>{o.status}</span></td>
                   <td style={TD}><span style={{ color: o.partnerStatus === 'approved' ? C.green : C.amber }}>{o.partnerStatus}</span></td>
+                  <td style={TD}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiFetch(`/admin/organizations/${o.id}`, { method: 'PUT', body: JSON.stringify({ handoff_authorized: o.handoff_authorized ? 0 : 1 }) });
+                          showOrgToast(`Handoff authorization ${o.handoff_authorized ? 'removed' : 'enabled'} for ${o.name}`);
+                          load();
+                        } catch (e) { showOrgToast(e instanceof Error ? e.message : 'Failed', false); }
+                      }}
+                      style={{
+                        background: o.handoff_authorized ? C.green + '22' : C.bgDeep,
+                        border: `1px solid ${o.handoff_authorized ? C.green + '55' : C.border}`,
+                        color: o.handoff_authorized ? C.green : C.greyD,
+                        borderRadius: 5, padding: '3px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      {o.handoff_authorized ? 'Authorized' : 'Not Authorized'}
+                    </button>
+                  </td>
                   <td style={TD}>
                     <button onClick={() => openEdit(o)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
                       Edit
@@ -797,7 +800,7 @@ function OrganizationsPanel() {
   );
 }
 
-// ── Audit log panel ───────────────────────────────────────────────────────────
+// â”€â”€ Audit log panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AuditEntry {
   id: string;
@@ -806,6 +809,187 @@ interface AuditEntry {
   entityType: string | null;
   details: string;
   timestamp: string;
+}
+
+// ── ACIA Integrity Audit Panel ────────────────────────────────────────────────
+
+interface AciaParticipantRow {
+  participantId: string;
+  name: string;
+  email: string;
+  assessmentId: string | null;
+  uiStatus: string;
+  dbStatus: string;
+  evidenceCount: number;
+  alignmentCount: number;
+  badgeCount: number;
+  lastCompletionAttempt: string | null;
+  failedSaveAttempts: number;
+  issues: string[];
+  recommendedRecovery: string[];
+}
+
+interface AciaIntegrityReport {
+  generatedAt: string;
+  totalParticipants: number;
+  participantsWithIssues: number;
+  participants: AciaParticipantRow[];
+}
+
+interface AciaSaveFailure {
+  id: string;
+  participant_id: string;
+  name: string | null;
+  email: string | null;
+  submission_id: string;
+  attempt_number: number;
+  save_started_at: string;
+  save_failed_at: string;
+  failure_reason: string | null;
+  assessment_id: string | null;
+}
+
+
+function ACIAIntegrityPanel() {
+  const [report, setReport] = useState<AciaIntegrityReport | null>(null);
+  const [failures, setFailures] = useState<AciaSaveFailure[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<'audit' | 'failures'>('audit');
+  const [filterIssues, setFilterIssues] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const token = localStorage.getItem('aacp_access_token');
+    const h = { Authorization: `Bearer ${token}` };
+    const [auditRes, failRes] = await Promise.all([
+      fetch('/admin/acia/integrity', { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('/admin/acia/save-failures', { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    if (auditRes) setReport(auditRes);
+    if (failRes?.failures) setFailures(failRes.failures);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rows = report?.participants ?? [];
+  const displayed = filterIssues ? rows.filter(r => r.issues.length > 0) : rows;
+
+  const statusColor = (s: string) => s === 'completed' ? '#4caf50' : s === 'legacy_completed' ? '#ff9800' : '#ef5350';
+  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-CA') : '—';
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.white, marginBottom: 4 }}>ACIA Integrity Audit</div>
+          {report && (
+            <div style={{ fontSize: 12, color: C.greyD }}>
+              {report.totalParticipants} participants · {report.participantsWithIssues} with issues · Generated {fmtDate(report.generatedAt)}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setFilterIssues(f => !f)} style={{ background: filterIssues ? C.crimson : C.bgCard, border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, color: C.white, cursor: 'pointer' }}>
+            {filterIssues ? 'Show All' : 'Issues Only'}
+          </button>
+          <button onClick={load} disabled={loading} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, color: C.white, cursor: 'pointer' }}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 2, marginBottom: 16 }}>
+        {(['audit', 'failures'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 14px', fontSize: 12, fontWeight: 600, color: tab === t ? C.white : C.greyD, borderBottom: `2px solid ${tab === t ? C.crimson : 'transparent'}`, marginBottom: -1 }}>
+            {t === 'audit' ? 'Participant Audit' : `Save Failures (${failures.length})`}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'audit' && (
+        <div style={{ overflowX: 'auto' }}>
+          {loading && !report ? (
+            <div style={{ color: C.greyD, fontSize: 13, padding: '24px 0' }}>Loading audit…</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                  {['Participant', 'UI Status', 'DB Record', 'Evidence', 'Alignment', 'Badge', 'Failed Saves', 'Last Attempt', 'Issues'].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: C.greyD, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayed.map(p => (
+                  <tr key={p.participantId} style={{ borderBottom: `1px solid ${C.border}`, background: p.issues.length > 0 ? 'rgba(143,9,9,0.07)' : 'transparent' }}>
+                    <td style={{ padding: '8px 10px', color: C.white }}>
+                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div style={{ color: C.greyD, fontSize: 11 }}>{p.email}</div>
+                    </td>
+                    <td style={{ padding: '8px 10px' }}>
+                      <span style={{ color: statusColor(p.dbStatus), fontWeight: 600 }}>{p.uiStatus}</span>
+                    </td>
+                    <td style={{ padding: '8px 10px', color: p.assessmentId ? '#4caf50' : '#ef5350' }}>
+                      {p.assessmentId ? '✓ ' + p.assessmentId.slice(0, 8) + '…' : '✗ None'}
+                    </td>
+                    <td style={{ padding: '8px 10px', color: p.evidenceCount > 0 ? C.white : '#ef5350', textAlign: 'center' }}>{p.evidenceCount}</td>
+                    <td style={{ padding: '8px 10px', color: p.alignmentCount > 0 ? C.white : (p.assessmentId ? '#ef5350' : C.greyD), textAlign: 'center' }}>{p.alignmentCount}</td>
+                    <td style={{ padding: '8px 10px', color: p.badgeCount > 0 ? '#4caf50' : (p.assessmentId ? '#ef5350' : C.greyD), textAlign: 'center' }}>{p.badgeCount}</td>
+                    <td style={{ padding: '8px 10px', color: p.failedSaveAttempts > 0 ? '#ef5350' : C.greyD, textAlign: 'center' }}>{p.failedSaveAttempts || '—'}</td>
+                    <td style={{ padding: '8px 10px', color: C.greyD, whiteSpace: 'nowrap' }}>{fmtDate(p.lastCompletionAttempt)}</td>
+                    <td style={{ padding: '8px 10px', color: C.greyD, maxWidth: 280 }}>
+                      {p.issues.length === 0 ? <span style={{ color: '#4caf50' }}>✓ OK</span> : (
+                        <ul style={{ margin: 0, paddingLeft: 14, listStyle: 'disc' }}>
+                          {p.issues.map((iss, i) => <li key={i} style={{ color: '#ef9a9a', marginBottom: 2 }}>{iss}</li>)}
+                          {p.recommendedRecovery.map((rec, i) => <li key={'r' + i} style={{ color: '#90caf9', marginBottom: 2 }}>→ {rec}</li>)}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {displayed.length === 0 && (
+                  <tr><td colSpan={9} style={{ padding: '24px 10px', color: C.greyD, textAlign: 'center' }}>No participants found</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {tab === 'failures' && (
+        <div style={{ overflowX: 'auto' }}>
+          {failures.length === 0 ? (
+            <div style={{ color: '#4caf50', fontSize: 13, padding: '24px 0' }}>No unresolved save failures.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                  {['Participant', 'Submission ID', 'Attempt #', 'Failed At', 'Reason'].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: C.greyD, fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {failures.map(f => (
+                  <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '8px 10px', color: C.white }}>
+                      <div>{f.name ?? f.participant_id.slice(0, 12)}</div>
+                      <div style={{ color: C.greyD, fontSize: 11 }}>{f.email}</div>
+                    </td>
+                    <td style={{ padding: '8px 10px', color: C.greyD, fontFamily: 'monospace', fontSize: 11 }}>{f.submission_id.slice(0, 16)}…</td>
+                    <td style={{ padding: '8px 10px', color: C.white, textAlign: 'center' }}>{f.attempt_number}</td>
+                    <td style={{ padding: '8px 10px', color: C.greyD, whiteSpace: 'nowrap' }}>{fmtDate(f.save_failed_at)}</td>
+                    <td style={{ padding: '8px 10px', color: '#ef9a9a', maxWidth: 320 }}>{f.failure_reason ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AuditLogPanel() {
@@ -841,7 +1025,7 @@ function AuditLogPanel() {
           <div style={{ color: C.grey, fontSize: 13 }}>All security and admin events</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input value={actionFilter} onChange={e => setActionFilter(e.target.value)} placeholder="Filter by action…" style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '7px 12px', fontSize: 12 }} />
+          <input value={actionFilter} onChange={e => setActionFilter(e.target.value)} placeholder="Filter by action…" style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '7px 12px', fontSize: 12 }} />
           <button onClick={load} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Search</button>
         </div>
       </div>
@@ -881,7 +1065,7 @@ function AuditLogPanel() {
   );
 }
 
-// ── Assessment unlock panel (inline in Approvals tab) ─────────────────────────
+// â”€â”€ Assessment unlock panel (inline in Approvals tab) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AssessmentUnlockModal({ onClose }: { onClose: () => void }) {
   const [assessmentId, setAssessmentId] = useState('');
@@ -905,7 +1089,7 @@ function AssessmentUnlockModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#1a0d10', border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, minWidth: 380, maxWidth: 460 }}>
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, minWidth: 380, maxWidth: 460 }}>
         <h3 style={{ color: C.white, margin: '0 0 8px', fontSize: 16 }}>Unlock Assessment Stage</h3>
         <p style={{ color: C.greyD, fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
           This marks a completed assessment as superseded so the participant can retake that stage. This action is audited and cannot be silently reversed.
@@ -917,14 +1101,14 @@ function AssessmentUnlockModal({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {msg && <p style={{ color: '#f87171', fontSize: 12, margin: 0 }}>{msg}</p>}
+            {msg && <p style={{ color: C.red, fontSize: 12, margin: 0 }}>{msg}</p>}
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Assessment ID
-              <input required value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder="Assessment UUID" style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
+              <input required value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder="Assessment UUID" style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13 }} />
             </label>
             <label style={{ color: C.greyD, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               Reason (required for audit record)
-              <textarea required rows={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for unlocking this assessment…" style={{ background: '#0f0a0b', color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13, resize: 'vertical' }} />
+              <textarea required rows={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for unlocking this assessment…" style={{ background: C.bg, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 12px', fontSize: 13, resize: 'vertical' }} />
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={loading} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -941,7 +1125,7 @@ function AssessmentUnlockModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Admin Management Panel (super_admin only) ─────────────────────────────────
+// â”€â”€ Admin Management Panel (super_admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AdminInvitation {
   id: string;
@@ -1097,9 +1281,693 @@ function AdminManagementPanel() {
   );
 }
 
-type AdminTab = 'approvals' | 'questions' | 'organizations' | 'audit' | 'admins' | 'pilot';
+type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'handoffs';
 
-// ── Pilot Access Panel ────────────────────────────────────────────────────────
+// ── AACP Waitlist Panel (Admin view) ──────────────────────────────────────────
+
+type WaitlistStatus = 'new' | 'assigned' | 'contacted' | 'guidance_scheduled' | 'program_candidate' | 'enrolled' | 'deferred' | 'not_proceeding';
+
+const WAITLIST_STATUS_LABELS: Record<WaitlistStatus, string> = {
+  new:                'New',
+  assigned:           'Assigned',
+  contacted:          'Contacted',
+  guidance_scheduled: 'Guidance Scheduled',
+  program_candidate:  'Program Candidate',
+  enrolled:           'Enrolled',
+  deferred:           'Deferred',
+  not_proceeding:     'Not Proceeding',
+};
+
+const WAITLIST_STATUS_STYLE: Record<WaitlistStatus, { color: string; bg: string; bdr: string }> = {
+  new:                { color: C.amber,   bg: C.amberBg,  bdr: C.amberBorder  },
+  assigned:           { color: '#2563eb', bg: '#eff6ff',  bdr: '#bfdbfe'      },
+  contacted:          { color: '#7c3aed', bg: '#f5f3ff',  bdr: '#ddd6fe'      },
+  guidance_scheduled: { color: '#0369a1', bg: '#f0f9ff',  bdr: '#bae6fd'      },
+  program_candidate:  { color: C.crimson, bg: C.redBg,    bdr: C.redBorder    },
+  enrolled:           { color: C.green,   bg: C.greenBg,  bdr: C.greenBorder  },
+  deferred:           { color: C.greyD,   bg: C.bgDeep,   bdr: C.border       },
+  not_proceeding:     { color: C.greyD,   bg: C.bgDeep,   bdr: C.border       },
+};
+
+interface WaitlistEntry {
+  id: string;
+  userId: string;
+  participantName: string;
+  participantEmail: string;
+  aciaCompletedAt: string | null;
+  aciaStage: string | null;
+  careerAlignments: Array<{ pathwayId: string; label: string; alignment: string }>;
+  competencyHighlights: Array<{ key: string; label: string; state: string }>;
+  status: WaitlistStatus;
+  advisorId: string | null;
+  advisorNotes: string | null;
+  waitlistedAt: string;
+  contactedAt: string | null;
+}
+
+function AdminWaitlistPanel() {
+  const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+  const [loadState, setLoadState] = useState<'loading' | 'done' | 'error'>('loading');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [edits, setEdits] = useState<Record<string, { status?: WaitlistStatus; advisorNotes?: string }>>({});
+  const [enrollState, setEnrollState] = useState<Record<string, { loading: boolean; result: string | null }>>({});
+
+  const load = useCallback(async () => {
+    setLoadState('loading');
+    try {
+      const data = await apiFetch<{ waitlist: WaitlistEntry[] }>('/program/waitlist');
+      setEntries(data.waitlist ?? []);
+      setLoadState('done');
+    } catch {
+      setLoadState('error');
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function save(entry: WaitlistEntry) {
+    setSaving(entry.id);
+    try {
+      const patch = edits[entry.id] ?? {};
+      await apiFetch(`/program/waitlist/${entry.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: patch.status ?? entry.status, advisorNotes: patch.advisorNotes ?? entry.advisorNotes }),
+      });
+      await load();
+      setEdits(e => { const n = { ...e }; delete n[entry.id]; return n; });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function enrollAndReleaseWeek1(entry: WaitlistEntry) {
+    setEnrollState(s => ({ ...s, [entry.userId]: { loading: true, result: null } }));
+    const token = localStorage.getItem('aacp_access_token') ?? '';
+    try {
+      const enrollRes = await fetch('/program/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId: entry.userId, cohort: 'pilot-cohort-1' }),
+      });
+      if (!enrollRes.ok) { const d = await enrollRes.json() as { error?: string }; throw new Error(d.error ?? 'Enrollment failed'); }
+
+      const releaseRes = await fetch('/program/release-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId: entry.userId, week: 1 }),
+      });
+      if (!releaseRes.ok && releaseRes.status !== 409) {
+        const d = await releaseRes.json() as { error?: string };
+        throw new Error(d.error ?? 'Week release failed');
+      }
+
+      setEnrollState(s => ({ ...s, [entry.userId]: { loading: false, result: '✓ Enrolled — Week 1 released' } }));
+      setEdits(prev => ({ ...prev, [entry.id]: { ...prev[entry.id], status: 'enrolled' } }));
+    } catch (e) {
+      setEnrollState(s => ({ ...s, [entry.userId]: { loading: false, result: `Error: ${(e as Error).message}` } }));
+    }
+  }
+
+  if (loadState === 'loading') return <div style={{ color: C.greyD, fontSize: 14 }}>Loading waitlist…</div>;
+  if (loadState === 'error') return <div style={{ color: C.red, fontSize: 14 }}>Failed to load waitlist.</div>;
+  if (entries.length === 0) return (
+    <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '40px 32px', textAlign: 'center', color: C.greyD, fontSize: 14 }}>
+      No participants on the AACP waitlist yet.
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 4px', fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)', fontWeight: 800 }}>AACP Waitlist</h2>
+          <div style={{ color: C.greyD, fontSize: 13 }}>{entries.length} participant{entries.length !== 1 ? 's' : ''} waiting for placement</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {entries.map(entry => {
+          const isOpen = expanded === entry.id;
+          const myEdit = edits[entry.id] ?? {};
+          const currentStatus = (myEdit.status ?? entry.status) as WaitlistStatus;
+          const style = WAITLIST_STATUS_STYLE[currentStatus] ?? WAITLIST_STATUS_STYLE.new;
+          return (
+            <div key={entry.id} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <button
+                onClick={() => setExpanded(isOpen ? null : entry.id)}
+                style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left' }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: C.white }}>{entry.participantName}</span>
+                    <span style={{ background: style.bg, color: style.color, border: `1px solid ${style.bdr}`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
+                      {WAITLIST_STATUS_LABELS[currentStatus]}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: C.greyD, marginTop: 3 }}>
+                    {entry.participantEmail} · Waitlisted {new Date(entry.waitlistedAt).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {entry.aciaCompletedAt && ` · ACIA baseline ${new Date(entry.aciaCompletedAt).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}`}
+                  </div>
+                </div>
+                <span style={{ color: C.greyD, fontSize: 12 }}>{isOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {isOpen && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px 20px', background: C.bgDeep }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
+                    {entry.careerAlignments.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.greyD, marginBottom: 8 }}>Career Pathway Alignments</div>
+                        {entry.careerAlignments.map((ca, i) => <div key={i} style={{ fontSize: 13, color: C.grey }}>{ca.label}</div>)}
+                      </div>
+                    )}
+                    {entry.competencyHighlights.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.greyD, marginBottom: 8 }}>Observed Competencies</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {entry.competencyHighlights.map((c, i) => (
+                            <span key={i} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: C.bgCard, color: C.grey, border: `1px solid ${C.border}` }}>{c.label}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {entry.contactedAt && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.greyD, marginBottom: 4 }}>Last Contacted</div>
+                        <div style={{ fontSize: 13, color: C.grey }}>{new Date(entry.contactedAt).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.greyD, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</label>
+                      <select
+                        value={currentStatus}
+                        onChange={e => setEdits(prev => ({ ...prev, [entry.id]: { ...prev[entry.id], status: e.target.value as WaitlistStatus } }))}
+                        style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 10px', fontSize: 13, color: C.white, background: C.bgCard, fontFamily: 'inherit' }}
+                      >
+                        {(Object.keys(WAITLIST_STATUS_LABELS) as WaitlistStatus[]).map(s => (
+                          <option key={s} value={s}>{WAITLIST_STATUS_LABELS[s]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.greyD, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Notes</label>
+                      <textarea
+                        rows={3}
+                        value={myEdit.advisorNotes ?? entry.advisorNotes ?? ''}
+                        onChange={e => setEdits(prev => ({ ...prev, [entry.id]: { ...prev[entry.id], advisorNotes: e.target.value } }))}
+                        placeholder="Internal notes — not visible to participant"
+                        style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, color: C.white, background: C.bgCard, fontFamily: 'inherit', resize: 'vertical' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                      <button
+                        onClick={() => save(entry)}
+                        disabled={saving === entry.id}
+                        style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: saving === entry.id ? 'not-allowed' : 'pointer', opacity: saving === entry.id ? 0.7 : 1, fontFamily: 'inherit' }}
+                      >
+                        {saving === entry.id ? 'Saving…' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => enrollAndReleaseWeek1(entry)}
+                        disabled={enrollState[entry.userId]?.loading}
+                        style={{ background: '#1a5c2a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: enrollState[entry.userId]?.loading ? 'not-allowed' : 'pointer', opacity: enrollState[entry.userId]?.loading ? 0.7 : 1, fontFamily: 'inherit' }}
+                      >
+                        {enrollState[entry.userId]?.loading ? 'Enrolling…' : 'Enroll & Release Week 1'}
+                      </button>
+                      {enrollState[entry.userId]?.result && (
+                        <span style={{ fontSize: 12, color: enrollState[entry.userId].result!.startsWith('Error') ? C.red : '#4caf50' }}>
+                          {enrollState[entry.userId].result}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Participant Override Panel ────────────────────────────────────────────────
+
+const PATHWAY_OPTIONS = [
+  { value: 'pilot',          label: 'Commercial Pilot' },
+  { value: 'ame',            label: 'Aircraft Maintenance Engineer' },
+  { value: 'avionics',       label: 'Avionics Technician' },
+  { value: 'structures',     label: 'Structures Technician' },
+  { value: 'atc',            label: 'Air Traffic Controller' },
+  { value: 'fss',            label: 'Flight Service Specialist' },
+  { value: 'airport_ops',    label: 'Airport Operations' },
+  { value: 'ground_ops',     label: 'Ground Operations' },
+  { value: 'uav',            label: 'UAV / Drone Operations' },
+  { value: 'aerospace_mfg',  label: 'Aerospace Manufacturing' },
+  { value: 'aerospace_eng',  label: 'Aerospace Engineering' },
+  { value: 'cargo',          label: 'Cargo & Logistics' },
+  { value: 'customer_ops',   label: 'Customer & Passenger Operations' },
+  { value: 'aviation_tech',  label: 'Aviation Technology' },
+];
+
+interface ParticipantRecord {
+  id: string;
+  name: string;
+  email: string;
+  aciaStatus: 'completed' | 'not_started';
+  aciaStage?: string;
+  aciaCompletedAt?: string;
+  topPathway?: string;
+}
+
+function ParticipantOverridePanel() {
+  const [participants, setParticipants] = useState<ParticipantRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState('');
+  const [stage, setStage] = useState('baseline');
+  const [topPathway, setTopPathway] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('aacp_access_token') ?? '';
+    fetch('/admin/participants', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then((d: { participants?: ParticipantRecord[] }) => setParticipants(d.participants ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedId) return;
+    setSaving(true);
+    setResult(null);
+    try {
+      const token = localStorage.getItem('aacp_access_token') ?? '';
+      const r = await fetch(`/admin/participants/${selectedId}/acia-override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ assessmentStage: stage, topPathway: topPathway || null, adminNotes: notes.trim() || null }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setResult({ ok: true, msg: 'ACIA marked as complete. The participant will now appear as ACIA Completed in the Career Advisor dashboard.' });
+        setParticipants(prev => prev.map(p =>
+          p.id === selectedId ? { ...p, aciaStatus: 'completed', aciaStage: stage, topPathway: topPathway || undefined, aciaCompletedAt: new Date().toISOString() } : p
+        ));
+        setSelectedId(''); setStage('baseline'); setTopPathway(''); setNotes('');
+      } else {
+        setResult({ ok: false, msg: d.message ?? d.error ?? 'Failed to update.' });
+      }
+    } catch {
+      setResult({ ok: false, msg: 'Network error — please try again.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selected = participants.find(p => p.id === selectedId);
+
+  const sel: React.CSSProperties = {
+    padding: '9px 12px', fontSize: 13, color: C.white, background: C.bgDeep,
+    border: `1px solid ${C.border}`, borderRadius: 8, outline: 'none', width: '100%', fontFamily: 'inherit',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Header */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `4px solid #d97706`, borderRadius: 12, padding: '20px 24px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
+          Administrative Override
+        </div>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: C.white, margin: '0 0 8px' }}>
+          Mark Participant ACIA as Complete
+        </h2>
+        <p style={{ fontSize: 13, color: C.greyD, margin: 0, lineHeight: 1.65, maxWidth: 600 }}>
+          Use this only when a participant completed the ACIA but the completion was not recorded due to a technical issue. This creates an administrative completion record and is logged in the audit trail. It does not backfill competency evidence.
+        </p>
+      </div>
+
+      {/* Participant status table */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.greyD, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            All Participants — ACIA Status
+          </span>
+        </div>
+        {loading ? (
+          <div style={{ padding: '24px 20px', color: C.greyD, fontSize: 13 }}>Loading…</div>
+        ) : (
+          <div>
+            {participants.map((p, i) => (
+              <div key={p.id} style={{
+                padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 14,
+                borderBottom: i < participants.length - 1 ? `1px solid ${C.border}` : 'none',
+                background: selectedId === p.id ? 'rgba(143,9,9,0.06)' : 'transparent',
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', background: C.crimson,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+                }}>
+                  {p.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: C.greyD }}>{p.email}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  {p.aciaStatus === 'completed' ? (
+                    <span style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}`, borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
+                      ACIA Complete
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedId(p.id)}
+                      style={{
+                        background: selectedId === p.id ? C.crimson : 'none',
+                        border: `1px solid ${selectedId === p.id ? C.crimson : C.border}`,
+                        color: selectedId === p.id ? '#fff' : C.greyD,
+                        borderRadius: 6, padding: '4px 12px', fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      {selectedId === p.id ? 'Selected' : 'Override'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {participants.length === 0 && (
+              <div style={{ padding: '24px 20px', color: C.greyD, fontSize: 13 }}>No participants found.</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Override form */}
+      {selectedId && selected && (
+        <div style={{ background: C.bgCard, border: `1px solid #d97706`, borderRadius: 12, padding: '22px 26px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>
+            Override — {selected.name}
+          </div>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.greyD, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Assessment Stage</span>
+                <select value={stage} onChange={e => setStage(e.target.value)} style={sel} required>
+                  <option value="baseline">Baseline ACIA</option>
+                  <option value="completion">AACP Completion ACIA</option>
+                  <option value="followup">90-Day Follow-Up ACIA</option>
+                </select>
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.greyD, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Pathway <span style={{ color: C.greyD, fontWeight: 400 }}>(optional)</span></span>
+                <select value={topPathway} onChange={e => setTopPathway(e.target.value)} style={sel}>
+                  <option value="">Unknown / Not recorded</option>
+                  {PATHWAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.greyD, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin Notes <span style={{ color: C.greyD, fontWeight: 400 }}>(logged in audit trail)</span></span>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="e.g. Participant completed ACIA on 2026-08-14 during pilot testing. Save failed due to payload bug (fixed 2026-08-18)."
+                rows={3}
+                style={{ ...sel, resize: 'vertical', lineHeight: 1.6 }}
+              />
+            </label>
+            {result && (
+              <div style={{
+                background: result.ok ? C.greenBg : '#fef2f2',
+                border: `1px solid ${result.ok ? C.greenBorder : '#fecaca'}`,
+                borderRadius: 8, padding: '10px 14px',
+                fontSize: 13, color: result.ok ? C.green : '#b91c1c', lineHeight: 1.6,
+              }}>
+                {result.msg}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  background: '#d97706', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700,
+                  cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {saving ? 'Saving…' : 'Mark ACIA Complete'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedId(''); setResult(null); }}
+                style={{
+                  background: 'none', border: `1px solid ${C.border}`, color: C.greyD,
+                  borderRadius: 8, padding: '10px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Coach Invitations Panel ──────────────────────────────────────────────────
+
+const COACH_ORG_TYPE_LABELS: Record<string, string> = {
+  employer: 'Employer Partner',
+  educational_institution: 'Educational Institution',
+  industry_association: 'Industry Association',
+  aacp_direct: 'AACP Direct',
+};
+
+interface CoachInvitation {
+  id: string;
+  email: string;
+  name: string;
+  organizationType: string;
+  organizationName: string | null;
+  notes: string | null;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+  invitedBy: string;
+  status: 'pending' | 'accepted' | 'expired';
+}
+
+function CoachInvitationsPanel() {
+  const [invitations, setInvitations] = useState<CoachInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', organizationType: 'aacp_direct', organizationName: '', notes: '' });
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [msgOk, setMsgOk] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ invitations: CoachInvitation[] }>('/admin/coach-invitations');
+      setInvitations(res.invitations);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Failed to load invitations'); setMsgOk(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true); setMsg('');
+    try {
+      await apiFetch('/admin/coach-invitations/send', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          organizationType: form.organizationType,
+          organizationName: form.organizationType !== 'aacp_direct' ? form.organizationName : undefined,
+          notes: form.notes || undefined,
+        }),
+      });
+      setMsg('Invitation sent to ' + form.email); setMsgOk(true);
+      setForm({ name: '', email: '', organizationType: 'aacp_direct', organizationName: '', notes: '' });
+      setShowForm(false);
+      await load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Failed to send invitation'); setMsgOk(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function statusStyle(inv: CoachInvitation) {
+    if (inv.acceptedAt) return { label: 'Accepted', color: C.green, bg: C.greenBg, border: C.greenBorder };
+    if (new Date(inv.expiresAt) < new Date()) return { label: 'Expired', color: C.greyD, bg: '#1e293b', border: '#334155' };
+    return { label: 'Pending', color: C.amber, bg: C.amberBg, border: C.amberBorder };
+  }
+
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 4px', fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 700 }}>
+            Coach Invitations
+          </h2>
+          <div style={{ color: C.grey, fontSize: 13 }}>
+            Invite career coaches sponsored by employer partners, schools, or industry associations
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          {showForm ? 'Cancel' : '+ Invite Coach'}
+        </button>
+      </div>
+
+      {msg && (
+        <div style={{
+          background: msgOk ? C.greenBg : C.redBg,
+          border: `1px solid ${msgOk ? C.greenBorder : C.redBorder}`,
+          color: msgOk ? C.green : C.red,
+          borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16,
+        }}>
+          {msg}
+        </div>
+      )}
+
+      {showForm && (
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 20px', marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.crimson, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>
+            New Coach Invitation
+          </div>
+          <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <label style={{ fontSize: 12, color: C.grey, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                Full Name
+                <input
+                  required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Coach's full name"
+                  style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, fontSize: 13, padding: '9px 12px', outline: 'none' }}
+                />
+              </label>
+              <label style={{ fontSize: 12, color: C.grey, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                Email Address
+                <input
+                  required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="coach@organization.com"
+                  style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, fontSize: 13, padding: '9px 12px', outline: 'none' }}
+                />
+              </label>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <label style={{ fontSize: 12, color: C.grey, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                Sponsoring Organisation Type
+                <select
+                  value={form.organizationType} onChange={e => setForm(f => ({ ...f, organizationType: e.target.value, organizationName: '' }))}
+                  style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, fontSize: 13, padding: '9px 12px', outline: 'none' }}
+                >
+                  {Object.entries(COACH_ORG_TYPE_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </label>
+              {form.organizationType !== 'aacp_direct' && (
+                <label style={{ fontSize: 12, color: C.grey, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Organisation Name
+                  <input
+                    required value={form.organizationName} onChange={e => setForm(f => ({ ...f, organizationName: e.target.value }))}
+                    placeholder={form.organizationType === 'employer' ? 'e.g. Air Canada' : form.organizationType === 'educational_institution' ? 'e.g. NAIT' : 'e.g. ATAC'}
+                    style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, fontSize: 13, padding: '9px 12px', outline: 'none' }}
+                  />
+                </label>
+              )}
+            </div>
+            <label style={{ fontSize: 12, color: C.grey, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              Personal Message (optional)
+              <textarea
+                rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="A short note to include in the invitation email…"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, fontSize: 13, padding: '9px 12px', outline: 'none', resize: 'vertical' }}
+              />
+            </label>
+            <div style={{ fontSize: 12, color: C.greyD, padding: '8px 12px', background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 8 }}>
+              The invitation link expires in 7 days. The coach must complete MFA setup before accessing the coaching dashboard.
+            </div>
+            <button type="submit" disabled={sending} style={{
+              background: C.crimson, color: '#fff', border: 'none', borderRadius: 8,
+              padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
+            }}>
+              {sending ? 'Sending…' : 'Send Invitation'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 20 }}>Loading invitations…</div>
+      ) : invitations.length === 0 ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 20 }}>No coach invitations yet. Use the button above to invite a career coach.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {invitations.map(inv => {
+            const s = statusStyle(inv);
+            return (
+              <div key={inv.id} style={{
+                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12,
+                padding: '14px 18px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ color: C.white, fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{inv.name}</div>
+                  <div style={{ color: C.grey, fontSize: 12, marginBottom: 4 }}>{inv.email}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{
+                      background: '#1e2a3a', border: `1px solid ${C.border}`, color: C.grey,
+                      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>{COACH_ORG_TYPE_LABELS[inv.organizationType] ?? inv.organizationType}</span>
+                    {inv.organizationName && (
+                      <span style={{ color: C.greyD, fontSize: 12 }}>{inv.organizationName}</span>
+                    )}
+                  </div>
+                  <div style={{ color: C.greyD, fontSize: 11, marginTop: 6 }}>
+                    Sent {fmtDate(inv.createdAt)} · Expires {fmtDate(inv.expiresAt)} · Invited by {inv.invitedBy}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{
+                    background: s.bg, border: `1px solid ${s.border}`, color: s.color,
+                    fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>{s.label}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// â”€â”€ Pilot Access Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface PilotInvitation {
   id: string;
@@ -1252,6 +2120,7 @@ function PilotAccessPanel() {
               <label style={labelStyle}>Role</label>
               <select value={form.pilotRole} onChange={e => setForm(f => ({ ...f, pilotRole: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="youth">Participant</option>
+                <option value="coach">Coach</option>
                 <option value="employer">Employer Partner</option>
                 <option value="postsecondary">Post-Secondary Partner</option>
               </select>
@@ -1318,7 +2187,7 @@ function PilotAccessPanel() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {invitations.map(inv => {
               const st = PILOT_STATUS_STYLES[inv.status] ?? PILOT_STATUS_STYLES.expired;
-              const roleMap: Record<string, string> = { youth: 'Participant', employer: 'Employer', postsecondary: 'Post-Sec' };
+              const roleMap: Record<string, string> = { youth: 'Participant', coach: 'Coach', employer: 'Employer', postsecondary: 'Post-Sec' };
               return (
                 <div key={inv.id} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
@@ -1366,6 +2235,442 @@ function PilotAccessPanel() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Handoff Management Panel (admin) ─────────────────────────────────────────
+
+type HandoffStatus = 'draft' | 'awaiting_consent' | 'authorized' | 'ready' | 'sent' | 'acknowledged' | 'closed' | 'cancelled';
+
+interface HandoffRecord {
+  id: string;
+  participant_id: string;
+  participant_name: string;
+  participant_email: string;
+  direction_id: string | null;
+  destination_org_id: string;
+  org_name: string;
+  destination_type: string;
+  handoff_type: string;
+  handoff_status: HandoffStatus;
+  consent_id: string | null;
+  initiated_at: string;
+  sent_at: string | null;
+  acknowledged_at: string | null;
+  closed_at: string | null;
+}
+
+interface HandoffDetail extends HandoffRecord {
+  consent: { id: string; consent_status: string; information_categories: string; consent_purpose: string; consent_text_version: string; granted_at: string | null } | null;
+  direction: { id: string; direction_label: string; direction_type: string; target_occupation: string | null; status: string } | null;
+  admin_notes: string | null;
+}
+
+interface OrgOption { id: string; name: string; handoff_authorized: number; org_type: string | null; }
+interface ParticipantOption { id: string; name: string; email: string; }
+interface DirectionOption { id: string; direction_label: string; direction_type: string; target_occupation: string | null; }
+
+const STATUS_COLOR: Record<string, string> = {
+  draft: C.greyD, awaiting_consent: C.amber, authorized: C.blue ?? '#3b82f6',
+  ready: '#8b5cf6', sent: C.green, acknowledged: C.green, closed: C.greyD, cancelled: C.red,
+};
+
+function HandoffStatusChip({ status }: { status: string }) {
+  const color = STATUS_COLOR[status] ?? C.greyD;
+  return (
+    <span style={{
+      background: `${color}22`, border: `1px solid ${color}55`, color,
+      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 3,
+      textTransform: 'uppercase', letterSpacing: '0.07em',
+    }}>{status.replace('_', ' ')}</span>
+  );
+}
+
+function HandoffManagementPanel() {
+  const [handoffs, setHandoffs] = useState<HandoffRecord[]>([]);
+  const [selected, setSelected] = useState<HandoffDetail | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [orgs, setOrgs] = useState<OrgOption[]>([]);
+  const [participants, setParticipants] = useState<ParticipantOption[]>([]);
+  const [createForm, setCreateForm] = useState({ participant_id: '', direction_id: '', destination_org_id: '', destination_type: 'employment', handoff_type: 'partner_introduction' });
+  const [directions, setDirections] = useState<DirectionOption[]>([]);
+  const [consentForm, setConsentForm] = useState({ categories: [] as string[], purpose: '', show: false });
+  const [outcomeForm, setOutcomeForm] = useState({ outcome_type: '', provenance: 'admin_recorded', show: false });
+  const [outcomes, setOutcomes] = useState<{ id: string; outcome_type: string; provenance: string; reported_at: string }[]>([]);
+  const [followups, setFollowups] = useState<{ id: string; followup_type: string; followup_status: string; due_at: string; anchor_date: string }[]>([]);
+
+  const ALL_CATEGORIES = ['name', 'contact_email', 'career_direction', 'program_completion', 'resume', 'selected_credentials', 'competency_summary'];
+
+  function showToast(msg: string, ok = true) { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); }
+
+  async function loadHandoffs() {
+    setLoading(true);
+    try {
+      const q = statusFilter ? `?status=${statusFilter}` : '';
+      const res = await apiFetch<{ handoffs: HandoffRecord[] }>(`/admin/handoffs${q}`);
+      setHandoffs(res.handoffs);
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Failed to load handoffs', false); }
+    finally { setLoading(false); }
+  }
+
+  async function loadDetail(id: string) {
+    try {
+      const [detail, outcomesRes, followupsRes] = await Promise.all([
+        apiFetch<{ handoff: HandoffDetail; consent: HandoffDetail['consent']; direction: HandoffDetail['direction'] }>(`/admin/handoffs/${id}`),
+        apiFetch<{ outcomes: typeof outcomes }>(`/admin/handoffs/${id}/outcomes`),
+        apiFetch<{ followups: typeof followups }>(`/admin/handoffs/${id}/followups`),
+      ]);
+      setSelected({ ...detail.handoff, consent: detail.consent, direction: detail.direction });
+      setOutcomes(outcomesRes.outcomes);
+      setFollowups(followupsRes.followups);
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Failed to load detail', false); }
+  }
+
+  async function loadOrgsAndParticipants() {
+    try {
+      const [orgRes, pRes] = await Promise.all([
+        apiFetch<{ organizations: OrgOption[] }>('/admin/organizations'),
+        apiFetch<{ users: ParticipantOption[] }>('/admin/users/all'),
+      ]);
+      setOrgs(orgRes.organizations.filter(o => o.handoff_authorized === 1));
+      setParticipants(pRes.users.filter(u => (u as any).role === 'youth' || !(u as any).role));
+    } catch { /* non-fatal */ }
+  }
+
+  async function loadParticipantDirections(pid: string) {
+    if (!pid) { setDirections([]); return; }
+    try {
+      const res = await apiFetch<{ directions: DirectionOption[] }>(`/admin/participants/${pid}/directions`);
+      setDirections(res.directions.filter(d => d.status === 'active'));
+    } catch { setDirections([]); }
+  }
+
+  useEffect(() => { loadHandoffs(); }, [statusFilter]);
+
+  async function handleCreate() {
+    try {
+      const res = await apiFetch<{ id: string; message: string }>('/admin/handoffs', {
+        method: 'POST', body: JSON.stringify(createForm),
+      });
+      showToast(res.message);
+      setShowCreate(false);
+      setCreateForm({ participant_id: '', direction_id: '', destination_org_id: '', destination_type: 'employment', handoff_type: 'partner_introduction' });
+      await loadHandoffs();
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Create failed', false); }
+  }
+
+  async function handleStatusChange(id: string, newStatus: string) {
+    try {
+      const res = await apiFetch<{ message: string }>(`/admin/handoffs/${id}`, {
+        method: 'PUT', body: JSON.stringify({ handoff_status: newStatus }),
+      });
+      showToast(res.message);
+      await loadHandoffs();
+      if (selected?.id === id) await loadDetail(id);
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Update failed', false); }
+  }
+
+  async function handleConsentRequest() {
+    if (!selected) return;
+    try {
+      const res = await apiFetch<{ consentId: string; message: string }>(`/admin/handoffs/${selected.id}/consent-request`, {
+        method: 'POST', body: JSON.stringify({ information_categories: consentForm.categories, consent_purpose: consentForm.purpose, consent_text_version: 'v1.0-DRAFT-REQUIRES-LEGAL-REVIEW' }),
+      });
+      showToast(res.message);
+      setConsentForm(f => ({ ...f, show: false }));
+      await loadDetail(selected.id);
+      await loadHandoffs();
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Consent request failed', false); }
+  }
+
+  async function handleOutcomeRecord() {
+    if (!selected) return;
+    try {
+      const res = await apiFetch<{ id: string; message: string }>(`/admin/handoffs/${selected.id}/outcomes`, {
+        method: 'POST', body: JSON.stringify({ outcome_type: outcomeForm.outcome_type, provenance: outcomeForm.provenance }),
+      });
+      showToast(res.message);
+      setOutcomeForm(f => ({ ...f, show: false, outcome_type: '' }));
+      await loadDetail(selected.id);
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Outcome failed', false); }
+  }
+
+  async function handleFollowupComplete(fid: string, status: 'completed' | 'skipped') {
+    if (!selected) return;
+    try {
+      await apiFetch(`/admin/handoffs/${selected.id}/followups/${fid}`, {
+        method: 'PUT', body: JSON.stringify({ followup_status: status, provenance: 'admin_recorded' }),
+      });
+      showToast(`Follow-up ${status}`);
+      await loadDetail(selected.id);
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Failed', false); }
+  }
+
+  const NEXT_STATUSES: Record<string, string[]> = {
+    draft: ['awaiting_consent', 'cancelled'],
+    awaiting_consent: ['cancelled'],
+    authorized: ['ready', 'cancelled'],
+    ready: ['sent', 'cancelled'],
+    sent: ['acknowledged', 'cancelled'],
+    acknowledged: ['closed', 'cancelled'],
+  };
+
+  const sectionStyle = { background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', marginBottom: 14 };
+  const labelStyle = { color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1.5, marginBottom: 4 };
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      {toast && (
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: toast.ok ? C.green : C.red, color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+          {toast.msg}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div style={labelStyle}>Partner-to-Participant Handoff Framework</div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '4px 0 0', fontSize: 20, fontWeight: 700 }}>Handoff Management</h2>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '6px 10px', borderRadius: 6, fontSize: 12 }}>
+            <option value="">All Statuses</option>
+            {['draft','awaiting_consent','authorized','ready','sent','acknowledged','closed','cancelled'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+          </select>
+          <button onClick={() => { setShowCreate(true); loadOrgsAndParticipants(); }} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            + New Handoff
+          </button>
+        </div>
+      </div>
+
+      {/* Create Form */}
+      {showCreate && (
+        <div style={{ ...sectionStyle, borderColor: C.crimson, marginBottom: 20 }}>
+          <div style={{ color: C.white, fontWeight: 700, fontSize: 14, marginBottom: 14 }}>New Draft Handoff</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <div style={labelStyle}>Participant</div>
+              <select value={createForm.participant_id} onChange={e => { setCreateForm(f => ({ ...f, participant_id: e.target.value, direction_id: '' })); loadParticipantDirections(e.target.value); }}
+                style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '7px 10px', borderRadius: 6, fontSize: 12 }}>
+                <option value="">Select participant…</option>
+                {participants.map(p => <option key={p.id} value={p.id}>{p.name} — {p.email}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Active Direction</div>
+              <select value={createForm.direction_id} onChange={e => setCreateForm(f => ({ ...f, direction_id: e.target.value }))}
+                style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '7px 10px', borderRadius: 6, fontSize: 12 }}>
+                <option value="">No direction (edge case)</option>
+                {directions.map(d => <option key={d.id} value={d.id}>{d.direction_label} ({d.direction_type})</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Authorized Destination Organization</div>
+              <select value={createForm.destination_org_id} onChange={e => setCreateForm(f => ({ ...f, destination_org_id: e.target.value }))}
+                style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '7px 10px', borderRadius: 6, fontSize: 12 }}>
+                <option value="">Select organization…</option>
+                {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+              {orgs.length === 0 && <div style={{ color: C.amber, fontSize: 11, marginTop: 4 }}>No handoff-authorized organizations. Enable handoff_authorized in the Organizations tab first.</div>}
+            </div>
+            <div>
+              <div style={labelStyle}>Destination Type</div>
+              <select value={createForm.destination_type} onChange={e => setCreateForm(f => ({ ...f, destination_type: e.target.value }))}
+                style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '7px 10px', borderRadius: 6, fontSize: 12 }}>
+                <option value="employment">Employment</option>
+                <option value="education_training">Education / Regulated Training</option>
+                <option value="industry_experience">Industry Experience</option>
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Handoff Type</div>
+              <select value={createForm.handoff_type} onChange={e => setCreateForm(f => ({ ...f, handoff_type: e.target.value }))}
+                style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, color: C.white, padding: '7px 10px', borderRadius: 6, fontSize: 12 }}>
+                <option value="pathway_guidance">Pathway Guidance</option>
+                <option value="partner_introduction">Partner Introduction</option>
+                <option value="application_handoff">Application Handoff</option>
+                <option value="opportunity_referral">Opportunity Referral</option>
+                <option value="warm_handoff">Warm Handoff</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button onClick={handleCreate} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Create Draft</button>
+            <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Handoff List */}
+      {loading ? <div style={{ color: C.grey, fontSize: 13, padding: 20 }}>Loading…</div> : (
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.4fr' : '1fr', gap: 16, alignItems: 'start' }}>
+          <div>
+            {handoffs.length === 0 && <div style={{ color: C.grey, fontSize: 13, padding: '20px 0' }}>No handoffs found.</div>}
+            {handoffs.map(h => (
+              <div key={h.id} onClick={() => loadDetail(h.id)} style={{
+                ...sectionStyle, cursor: 'pointer', marginBottom: 8,
+                borderColor: selected?.id === h.id ? C.crimson : C.border,
+                transition: 'border-color 0.15s',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div>
+                    <div style={{ color: C.white, fontWeight: 700, fontSize: 13 }}>{h.participant_name || h.participant_email}</div>
+                    <div style={{ color: C.grey, fontSize: 11, marginTop: 2 }}>→ {h.org_name} <span style={{ color: C.greyD }}>({h.destination_type.replace('_', ' ')})</span></div>
+                  </div>
+                  <HandoffStatusChip status={h.handoff_status} />
+                </div>
+                <div style={{ color: C.greyD, fontSize: 11, marginTop: 6 }}>{h.handoff_type.replace(/_/g, ' ')} · {new Date(h.initiated_at).toLocaleDateString('en-CA')}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Detail Panel */}
+          {selected && (
+            <div>
+              <div style={{ ...sectionStyle, position: 'sticky', top: 70 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>Handoff Detail</div>
+                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.greyD, cursor: 'pointer', fontSize: 16 }}>✕</button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div><div style={labelStyle}>Participant</div><div style={{ color: C.white, fontSize: 12 }}>{selected.participant_name}</div><div style={{ color: C.grey, fontSize: 11 }}>{selected.participant_email}</div></div>
+                  <div><div style={labelStyle}>Status</div><HandoffStatusChip status={selected.handoff_status} /></div>
+                  <div><div style={labelStyle}>Destination</div><div style={{ color: C.white, fontSize: 12 }}>{selected.org_name}</div><div style={{ color: C.grey, fontSize: 11 }}>{selected.destination_type.replace('_', ' ')} · {selected.handoff_type.replace(/_/g, ' ')}</div></div>
+                  {selected.direction && <div><div style={labelStyle}>Direction</div><div style={{ color: C.white, fontSize: 12 }}>{selected.direction.direction_label}</div><div style={{ color: C.grey, fontSize: 11 }}>{selected.direction.direction_type.replace('_',' ')} {selected.direction.target_occupation ? `· ${selected.direction.target_occupation}` : ''}</div></div>}
+                </div>
+
+                {/* Consent Summary */}
+                <div style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                  <div style={labelStyle}>Consent</div>
+                  {selected.consent ? (
+                    <div style={{ fontSize: 12 }}>
+                      <span style={{ color: C.white }}>{selected.consent.consent_status.toUpperCase()}</span>
+                      <span style={{ color: C.greyD, marginLeft: 8 }}>{selected.consent.consent_text_version}</span>
+                      <div style={{ color: C.grey, marginTop: 4 }}>Categories: {(() => { try { return JSON.parse(selected.consent.information_categories).join(', '); } catch { return selected.consent.information_categories; } })()}</div>
+                      {selected.consent.granted_at && <div style={{ color: C.green, fontSize: 11, marginTop: 2 }}>Granted {new Date(selected.consent.granted_at).toLocaleDateString('en-CA')}</div>}
+                    </div>
+                  ) : (
+                    <div style={{ color: C.greyD, fontSize: 12 }}>No consent request yet.</div>
+                  )}
+                </div>
+
+                {/* Lifecycle Actions */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={labelStyle}>Actions</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {selected.handoff_status === 'draft' && !consentForm.show && (
+                      <button onClick={() => setConsentForm(f => ({ ...f, show: true }))} style={{ background: C.amber + '22', border: `1px solid ${C.amber}55`, color: C.amber, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Request Consent
+                      </button>
+                    )}
+                    {(NEXT_STATUSES[selected.handoff_status] ?? []).map(ns => (
+                      <button key={ns} onClick={() => handleStatusChange(selected.id, ns)} style={{
+                        background: ns === 'cancelled' ? C.red + '22' : C.crimson + '22',
+                        border: `1px solid ${ns === 'cancelled' ? C.red : C.crimson}55`,
+                        color: ns === 'cancelled' ? C.red : C.crimson,
+                        borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      }}>
+                        → {ns.replace('_',' ')}
+                      </button>
+                    ))}
+                    {!outcomeForm.show && ['sent','acknowledged','closed'].includes(selected.handoff_status) && (
+                      <button onClick={() => setOutcomeForm(f => ({ ...f, show: true }))} style={{ background: C.green + '22', border: `1px solid ${C.green}55`, color: C.green, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Record Outcome
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Consent Request Form */}
+                {consentForm.show && (
+                  <div style={{ background: C.bgDeep, border: `1px solid ${C.amber}55`, borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+                    <div style={{ ...labelStyle, marginBottom: 8 }}>Request Participant Consent</div>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ ...labelStyle, marginBottom: 4 }}>Information Categories (select what will be shared)</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {['name','contact_email','career_direction','program_completion','resume','selected_credentials','competency_summary'].map(cat => (
+                          <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.white, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={consentForm.categories.includes(cat)} onChange={e => setConsentForm(f => ({ ...f, categories: e.target.checked ? [...f.categories, cat] : f.categories.filter(c => c !== cat) }))} />
+                            {cat.replace(/_/g, ' ')}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={labelStyle}>Consent Purpose</div>
+                      <input value={consentForm.purpose} onChange={e => setConsentForm(f => ({ ...f, purpose: e.target.value }))} placeholder="e.g. Introduction to ABC Airlines for employment opportunity" style={{ width: '100%', background: C.bgCard, border: `1px solid ${C.border}`, color: C.white, padding: '6px 10px', borderRadius: 6, fontSize: 12 }} />
+                    </div>
+                    <div style={{ color: C.amber, fontSize: 10, marginBottom: 8 }}>⚠ Consent text version v1.0-DRAFT — REQUIRES LEGAL/PRIVACY REVIEW BEFORE PRODUCTION</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleConsentRequest} style={{ background: C.amber + '33', border: `1px solid ${C.amber}`, color: C.amber, borderRadius: 6, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Send Request</button>
+                      <button onClick={() => setConsentForm(f => ({ ...f, show: false }))} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Outcome Record Form */}
+                {outcomeForm.show && (
+                  <div style={{ background: C.bgDeep, border: `1px solid ${C.green}55`, borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+                    <div style={{ ...labelStyle, marginBottom: 8 }}>Record Outcome Event</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <select value={outcomeForm.outcome_type} onChange={e => setOutcomeForm(f => ({ ...f, outcome_type: e.target.value }))} style={{ background: C.bgCard, border: `1px solid ${C.border}`, color: C.white, padding: '6px 10px', borderRadius: 6, fontSize: 12 }}>
+                        <option value="">Select outcome…</option>
+                        {['referred','applied','interviewed','offered','selected','entered_training','entered_industry_experience','employed','still_progressing','declined','not_selected','participant_withdrew'].map(o => <option key={o} value={o}>{o.replace(/_/g,' ')}</option>)}
+                      </select>
+                      <select value={outcomeForm.provenance} onChange={e => setOutcomeForm(f => ({ ...f, provenance: e.target.value }))} style={{ background: C.bgCard, border: `1px solid ${C.border}`, color: C.white, padding: '6px 10px', borderRadius: 6, fontSize: 12 }}>
+                        <option value="admin_recorded">Admin Recorded</option>
+                        <option value="partner_confirmed">Partner Confirmed</option>
+                        <option value="participant_reported">Participant Reported</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleOutcomeRecord} style={{ background: C.green + '33', border: `1px solid ${C.green}`, color: C.green, borderRadius: 6, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Record</button>
+                      <button onClick={() => setOutcomeForm(f => ({ ...f, show: false }))} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Outcomes */}
+                {outcomes.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={labelStyle}>Outcome History (Append-Only)</div>
+                    {outcomes.map(o => (
+                      <div key={o.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${C.border}` }}>
+                        <span style={{ color: C.white, fontSize: 12 }}>{o.outcome_type.replace(/_/g,' ')}</span>
+                        <span style={{ color: C.greyD, fontSize: 10 }}>{o.provenance}</span>
+                        <span style={{ color: C.grey, fontSize: 10, marginLeft: 'auto' }}>{new Date(o.reported_at).toLocaleDateString('en-CA')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Follow-ups */}
+                {followups.length > 0 && (
+                  <div>
+                    <div style={labelStyle}>30/60/90 Follow-ups (anchored to acknowledged_at)</div>
+                    {followups.map(f => (
+                      <div key={f.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${C.border}` }}>
+                        <span style={{ color: C.white, fontSize: 12 }}>{f.followup_type.replace('_',' ')}</span>
+                        <HandoffStatusChip status={f.followup_status} />
+                        <span style={{ color: C.grey, fontSize: 10, marginLeft: 4 }}>Due {new Date(f.due_at).toLocaleDateString('en-CA')}</span>
+                        {f.followup_status === 'pending' && (
+                          <>
+                            <button onClick={() => handleFollowupComplete(f.id, 'completed')} style={{ background: C.green + '22', border: `1px solid ${C.green}55`, color: C.green, borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 'auto' }}>Complete</button>
+                            <button onClick={() => handleFollowupComplete(f.id, 'skipped')} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer' }}>Skip</button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1464,7 +2769,7 @@ export function AdminDashboard() {
           animation: 'toastIn 0.2s ease',
           boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
         }}>
-          {toast.ok ? '✓ ' : '✕ '}{toast.msg}
+          {toast.ok ? '✓ ' : 'âœ• '}{toast.msg}
         </div>
       )}
 
@@ -1484,7 +2789,12 @@ export function AdminDashboard() {
       <div style={{ display: 'flex', gap: 2, marginBottom: 28, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
         {([
           { key: 'approvals', label: `Approvals${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
+          { key: 'waitlist', label: 'AACP Waitlist' },
           { key: 'organizations', label: 'Organizations' },
+          { key: 'coaches', label: 'Coach Invitations' },
+          { key: 'participants', label: 'Participant Overrides' },
+          { key: 'handoffs', label: 'Handoffs' },
+          { key: 'acia_integrity', label: 'ACIA Integrity' },
           { key: 'pilot', label: 'Pilot Access' },
           { key: 'audit', label: 'Audit Log' },
           { key: 'questions', label: 'Question Bank' },
@@ -1508,11 +2818,16 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      {adminTab === 'questions'     && <AdminQuestionBank />}
-      {adminTab === 'organizations' && <OrganizationsPanel />}
-      {adminTab === 'pilot'         && <PilotAccessPanel />}
-      {adminTab === 'audit'         && <AuditLogPanel />}
-      {adminTab === 'admins'        && isSuperAdmin && <AdminManagementPanel />}
+      {adminTab === 'questions'      && <AdminQuestionBank />}
+      {adminTab === 'handoffs'       && <HandoffManagementPanel />}
+      {adminTab === 'organizations'  && <OrganizationsPanel />}
+      {adminTab === 'coaches'        && <CoachInvitationsPanel />}
+      {adminTab === 'participants'   && <ParticipantOverridePanel />}
+      {adminTab === 'acia_integrity' && <ACIAIntegrityPanel />}
+      {adminTab === 'pilot'          && <PilotAccessPanel />}
+      {adminTab === 'audit'          && <AuditLogPanel />}
+      {adminTab === 'admins'         && isSuperAdmin && <AdminManagementPanel />}
+      {adminTab === 'waitlist'       && <AdminWaitlistPanel />}
 
       {adminTab === 'approvals' && <>
 
@@ -1615,7 +2930,54 @@ export function AdminDashboard() {
         </div>
       )}
       </>}
+
+      {/* ── Internal Platform Roadmap ─────────────────────────────────────────
+          Visible to AACP internal administrators only. Not shown to employers,
+          participants, career advisors, validators, or any external user.       */}
+      <div style={{ marginTop: 48, paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 16 }}>
+          Internal Platform Roadmap
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          {/* Regional Workforce Intelligence — future capability placeholder.
+              Non-functional. No mapping, geospatial, API, or data collection. */}
+          <div style={{
+            background: C.bgCard,
+            border: `1px dashed ${C.border}`,
+            borderRadius: 12,
+            padding: '18px 22px',
+            maxWidth: 360,
+            opacity: 0.7,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 18 }}>🗺</span>
+              <div>
+                <div style={{ color: C.white, fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Regional Workforce Intelligence</div>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>Future Commercial Capability</div>
+              </div>
+            </div>
+            <div style={{ color: C.grey, fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>
+              Regional workforce intelligence for future talent planning, workforce-gap analysis, and employer expansion and location planning.
+            </div>
+            <div style={{
+              display: 'inline-block',
+              background: C.bgDeep,
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              padding: '3px 10px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: C.greyD,
+              letterSpacing: 0.5,
+            }}>
+              Parked — Post-Commercialization
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
     </div>
   );
 }
+

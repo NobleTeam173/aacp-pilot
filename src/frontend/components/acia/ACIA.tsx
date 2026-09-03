@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { savePendingCompletion, deletePendingCompletion, getAllPendingCompletions, type PendingCompletion } from '../../utils/aciaStorage';
 import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord, QuestionResponse } from './types';
 import { recordEvidence } from './behaviourEngine';
 import { computeAlignments } from './careerEngine';
@@ -26,15 +27,24 @@ const C = {
 };
 
 function makeInitialSession(): ACIASession {
+  const now = new Date().toISOString();
+  const newSessionId = Math.random().toString(36).slice(2);
   return {
-    sessionId: Math.random().toString(36).slice(2),
-    startedAt: new Date().toISOString(),
+    sessionId: newSessionId,
+    startedAt: now,
     evidence: [],
     responses: [],
     askedQuestionIds: [],
     competencies: {},
     currentMissionIndex: 0,
     chatHistory: {},
+    sessionRecords: [{
+      sessionId: newSessionId,
+      startedAt: now,
+      isResumption: false,
+      missionIndexAtStart: 0,
+    }],
+    interruptionCount: 0,
     missions: [
       { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
       { id: 'm2', title: 'Aircraft Inspection', subtitle: 'Pre-flight walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
@@ -43,7 +53,7 @@ function makeInitialSession(): ACIASession {
       { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
       { id: 'm6', title: 'Operational Decision', subtitle: 'High-stakes scenario choices', type: 'decision', estimatedMinutes: 4, completed: false },
       { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
-      { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false },
+      { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
       { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
     ],
   };
@@ -132,62 +142,259 @@ Be thoughtful, draw out genuine reflection, and acknowledge the real growth repr
 
 export type AssessmentStage = 'baseline' | 'completion' | 'followup';
 
-type ViewState = 'welcome' | 'mission' | 'adaptive' | 'transition' | 'profile';
+type ViewState = 'welcome' | 'preamble' | 'mission' | 'adaptive' | 'transition' | 'saving' | 'profile';
+
+const SAVE_KEY = 'aacp_acia_session';
+
+function saveSessionToStorage(session: ACIASession, stage: AssessmentStage) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ session, stage, savedAt: new Date().toISOString() }));
+  } catch { /* storage full — ignore */ }
+}
+
+function loadSessionFromStorage(): { session: ACIASession; stage: AssessmentStage } | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as { session: ACIASession; stage: AssessmentStage };
+  } catch { return null; }
+}
+
+function clearSessionStorage() {
+  try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+}
+
+// Neutral mission preamble text — describes what the participant will do without naming competencies
+const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
+  'm1': {
+    what: 'You will have a conversation with Captain ACIA — an aviation career mentor. Share your background and what draws you to aviation.',
+    interactions: '3 or more exchanges',
+    time: '~ 5 minutes',
+    note: 'There are no right or wrong answers. Respond naturally.',
+  },
+  'm2': {
+    what: 'You will conduct a visual walkaround inspection of a parked aircraft by tapping zones on a diagram. Document any findings you observe.',
+    interactions: 'Up to 15 zones to inspect',
+    time: '~ 4 minutes',
+    note: 'Once submitted, your inspection report cannot be changed.',
+  },
+  'm3': {
+    what: 'You will work through a diagnostic scenario involving an aircraft discrepancy. You will review information and answer a series of questions.',
+    interactions: '4 – 6 decision points',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed.',
+  },
+  'm4': {
+    what: 'You will classify a set of aircraft components by dragging them into the correct system categories.',
+    interactions: '16 components to classify',
+    time: '~ 3 minutes',
+    note: 'Hover over any component to see a description.',
+  },
+  'm5': {
+    what: 'You will interpret readings from four aircraft instrument gauges and answer questions about each reading.',
+    interactions: '4 instruments',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed. All information needed is provided with each question.',
+  },
+  'm6': {
+    what: 'You will work through a series of aviation-related situations and make decisions using the information provided.',
+    interactions: '3 scenarios',
+    time: '~ 4 minutes',
+    note: 'Each decision is locked once confirmed.',
+  },
+  'm7': {
+    what: 'You will compose radio transmissions and handover messages using scenario information provided to you.',
+    interactions: '4 exercises',
+    time: '~ 4 minutes',
+    note: 'Each exercise is locked once submitted. All information needed is provided in the scenario briefing.',
+  },
+  'm8': {
+    what: 'You will rank a set of operational tasks in order of priority based on the situation described.',
+    interactions: '2 rounds',
+    time: '~ 3 minutes',
+    note: 'Rankings are locked once submitted.',
+  },
+  'm9': {
+    what: 'You will have a closing conversation with Captain ACIA to reflect on your assessment experience.',
+    interactions: '3 or more exchanges',
+    time: '~ 4 minutes',
+    note: 'This is a reflective conversation — there are no correct or incorrect answers.',
+  },
+};
+
+// Stable UUID-like submission ID — generated once per assessment, survives retries
+function generateSubmissionId(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  arr[6] = (arr[6] & 0x0f) | 0x40;
+  arr[8] = (arr[8] & 0x3f) | 0x80;
+  return [...arr].map((b, i) => ([4, 6, 8, 10].includes(i) ? '-' : '') + b.toString(16).padStart(2, '0')).join('');
+}
 
 export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentStage; onComplete?: () => void }) {
   const [view, setView] = useState<ViewState>('welcome');
   const [session, setSession] = useState<ACIASession | null>(null);
   const [transitionMsg, setTransitionMsg] = useState('');
   const [savedData, setSavedData] = useState<{ assessmentId: string; badgeId: string; completedAt: string } | null>(null);
+  const [saveError, setSaveError] = useState(false);
+  const [saveRetryCount, setSaveRetryCount] = useState(0);
   const saveAttempted = useRef(false);
+  // Stable submission ID for this assessment run — used for idempotency + durable recovery
+  const submissionId = useRef<string>(generateSubmissionId());
+  const [savedSessionData] = useState<{ session: ACIASession; stage: AssessmentStage } | null>(() => {
+    const saved = loadSessionFromStorage();
+    return saved && saved.stage === stage ? saved : null;
+  });
 
-  // Save assessment + issue badge when the profile view first appears
+  // Record session end time + mark interruptions when page unloads mid-assessment
   useEffect(() => {
-    if (view !== 'profile' || !session || saveAttempted.current) return;
-    saveAttempted.current = true;
+    function handleUnload() {
+      if (!session || view === 'profile' || view === 'welcome') return;
+      const now = new Date().toISOString();
+      // Close the most recent open session record
+      const updatedRecords = session.sessionRecords.map((r, i) =>
+        i === session.sessionRecords.length - 1 && !r.endedAt ? { ...r, endedAt: now } : r,
+      );
+      // Mark any in-progress mission as interrupted
+      const currentMission = session.missions[session.currentMissionIndex];
+      const inMission = view === 'mission' && currentMission && !currentMission.completed;
+      const updatedMissions = inMission
+        ? session.missions.map((m, i) =>
+            i === session.currentMissionIndex ? { ...m, interrupted: true } : m,
+          )
+        : session.missions;
 
-    const alignments = computeAlignments(session.evidence, session.responses);
-    if (alignments.length === 0) return;
+      const snapshot: ACIASession = {
+        ...session,
+        sessionRecords: updatedRecords,
+        missions: updatedMissions,
+        interruptionCount: inMission ? session.interruptionCount + 1 : session.interruptionCount,
+      };
+      saveSessionToStorage(snapshot, stage);
+    }
 
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [session, view, stage]);
+
+  // Build completion payload from current session (memoized to avoid stale closure issues)
+  const buildPayload = useCallback((sess: ACIASession) => {
+    const alignments = computeAlignments(sess.evidence, sess.responses);
+    const competencyProfile: Record<string, { state: string; evidenceLevel: string; confidence: string }> = {};
+    for (const [compId, obs] of Object.entries(sess.competencies)) {
+      if (obs) competencyProfile[compId] = { state: obs.state, evidenceLevel: obs.state, confidence: obs.confidence };
+    }
+    return {
+      submissionId: submissionId.current,
+      assessmentStage: stage,
+      pathwayType: 'standard',
+      topPathway: alignments[0]?.pathwayId ?? null,
+      competencyProfile,
+      careerAlignment: alignments.map(a => ({ pathway: a.pathwayId, alignment: a.alignment, label: a.label ?? a.pathwayId })),
+      recommendedPathways: alignments.slice(0, 3).map(a => a.pathwayId),
+      startedAt: sess.startedAt,
+      participantName: sess.participantName ?? localStorage.getItem('aacp_name') ?? undefined,
+    };
+  }, [stage]);
+
+  // Core save function — returns true on success, false on failure
+  const performSave = useCallback(async (payload: Record<string, unknown>, attemptNum: number): Promise<boolean> => {
     const token = localStorage.getItem('aacp_access_token');
-    if (!token) { console.error('[ACIA] No auth token — cannot save assessment'); return; }
+    if (!token) { console.error('[ACIA] No auth token'); return false; }
+    try {
+      const r = await fetch('/acia/assessment/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok && r.status !== 200 && r.status !== 201) throw new Error(`HTTP ${r.status}`);
+      const d: { assessmentId?: string; badgeId?: string; completedAt?: string } = await r.json();
+      if (d.assessmentId) {
+        setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId ?? '', completedAt: d.completedAt ?? new Date().toISOString() });
+        setSaveError(false);
+        // Confirmed — clear durable recovery payload
+        await deletePendingCompletion(submissionId.current);
+        return true;
+      }
+      throw new Error('Unexpected response shape');
+    } catch (e) {
+      console.error(`[ACIA] save attempt ${attemptNum} failed:`, e);
+      return false;
+    }
+  }, []);
 
-    // Legacy result endpoint
-    fetch('/acia/result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ topPathway: alignments[0]?.pathwayId, alignments }),
-    }).catch(e => console.error('[ACIA] /acia/result error', e));
+  // Trigger save when entering 'saving' view — with up to 5 attempts + durable recovery
+  useEffect(() => {
+    if (view !== 'saving' || !session || saveAttempted.current) return;
+    saveAttempted.current = true;
+    clearSessionStorage();
 
-    // Full assessment record + badge
-    fetch('/acia/assessment/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        assessmentStage: stage,
-        pathwayType: 'standard',
-        topPathway: alignments[0]?.pathwayId,
-        competencyProfile: JSON.stringify(alignments.map(a => ({ id: a.pathwayId, alignment: a.alignment }))),
-        careerAlignment: alignments[0]?.alignment,
-        recommendedPathways: JSON.stringify(alignments.slice(0, 3).map(a => a.pathwayId)),
-      }),
-    })
-      .then(r => {
-        if (r.status === 409) { console.warn('[ACIA] Stage already locked — ignoring duplicate save'); return null; }
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((d: { assessmentId?: string; badgeId?: string; completedAt?: string } | null) => {
-        if (!d) return;
-        if (d.assessmentId && d.badgeId && d.completedAt) {
-          setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId, completedAt: d.completedAt });
-          onComplete?.();
-        } else {
-          console.error('[ACIA] /acia/assessment/complete: unexpected response shape', d);
+    const payload = buildPayload(session);
+
+    // Persist payload to IndexedDB so it survives a refresh
+    savePendingCompletion({
+      submissionId: submissionId.current,
+      stage,
+      payload,
+      savedAt: new Date().toISOString(),
+      attemptCount: 0,
+    });
+
+    const run = async () => {
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        setSaveRetryCount(attempt - 1);
+        const ok = await performSave(payload, attempt);
+        if (ok) {
+          setView('profile');
+          return;
         }
-      })
-      .catch(e => console.error('[ACIA] /acia/assessment/complete error', e));
-  }, [view, session]);
+        if (attempt < 5) {
+          await new Promise(r => setTimeout(r, Math.min(3000 * attempt, 15000)));
+        }
+      }
+      // All attempts exhausted — stay on saving view, show error with manual retry
+      setSaveError(true);
+    };
+    run();
+  }, [view, session, buildPayload, performSave, stage]);
+
+  // On mount: check IndexedDB for unsubmitted payloads from a prior page load
+  // (handles browser close/reopen during save window)
+  useEffect(() => {
+    if (view !== 'welcome') return;
+    getAllPendingCompletions().then(async (pending) => {
+      const token = localStorage.getItem('aacp_access_token');
+      if (!pending.length || !token) return;
+      for (const entry of pending) {
+        // First verify the server doesn't already have this (idempotent check)
+        try {
+          const r = await fetch('/acia/assessment/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(entry.payload),
+          });
+          if (r.ok || r.status === 200 || r.status === 201) {
+            const d = await r.json();
+            if (d.assessmentId) {
+              await deletePendingCompletion(entry.submissionId);
+              console.log('[ACIA] Recovered pending completion from prior session:', entry.submissionId);
+            }
+          }
+        } catch {}
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manual retry handler (shown in saving view when all auto-retries fail)
+  const handleManualRetry = useCallback(async () => {
+    if (!session) return;
+    setSaveError(false);
+    setSaveRetryCount(0);
+    saveAttempted.current = false;
+    // Re-trigger the saving effect
+    setView('welcome');
+    setTimeout(() => setView('saving'), 50);
+  }, [session]);
 
   // Current adaptive question selected for this slot
   const adaptiveQuestionRef = useRef<{ question: QuestionRecord; variant: string; expectedCorrect?: string } | null>(null);
@@ -195,15 +402,47 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
   // Track whether an adaptive question is pending after a visual mission
   const [pendingAdaptive, setPendingAdaptive] = useState(false);
 
-  function startAssessment() {
-    setSession(makeInitialSession());
+  function startAssessment(resume = false) {
+    if (resume) {
+      const saved = loadSessionFromStorage();
+      if (saved && saved.stage === stage) {
+        const now = new Date().toISOString();
+        const newBrowserSessionId = Math.random().toString(36).slice(2);
+        const resumedSession: ACIASession = {
+          ...saved.session,
+          sessionRecords: [
+            ...(saved.session.sessionRecords ?? []),
+            {
+              sessionId: newBrowserSessionId,
+              startedAt: now,
+              isResumption: true,
+              missionIndexAtStart: saved.session.currentMissionIndex,
+            },
+          ],
+        };
+        setSession(resumedSession);
+        saveSessionToStorage(resumedSession, stage);
+        setView('preamble');
+        return;
+      }
+    }
+    clearSessionStorage();
+    const newSession = makeInitialSession();
+    setSession(newSession);
+    saveSessionToStorage(newSession, stage);
+    // Mission 1 starts immediately — the welcome screen already briefed the participant.
+    // Subsequent missions show the preamble so participants can prepare.
     setView('mission');
   }
 
   function resetAssessment() {
+    clearSessionStorage();
     setSession(null);
     setSavedData(null);
+    setSaveError(false);
+    setSaveRetryCount(0);
     saveAttempted.current = false;
+    submissionId.current = generateSubmissionId();
     adaptiveQuestionRef.current = null;
     setPendingAdaptive(false);
     setView('welcome');
@@ -220,8 +459,11 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
       const mission = prev.missions[idx];
       let updated = recordEvidence(prev, evidence, mission.id as MissionId);
 
+      const completedAt = new Date().toISOString();
+      const startedAt = updated.missions[idx].startedAt;
+      const durationMs = startedAt ? Date.now() - new Date(startedAt).getTime() : undefined;
       const updatedMissions = updated.missions.map((m, i) =>
-        i === idx ? { ...m, completed: true, completedAt: new Date().toISOString() } : m,
+        i === idx ? { ...m, completed: true, completedAt, durationMs, interrupted: false } : m,
       );
 
       const updatedHistory = chatHistory
@@ -231,13 +473,40 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
       const nextIdx = idx + 1;
       const isLast = nextIdx >= updated.missions.length;
 
-      return {
+      const nextSession = {
         ...updated,
         missions: updatedMissions,
         chatHistory: updatedHistory,
         currentMissionIndex: isLast ? idx : nextIdx,
         completedAt: isLast ? new Date().toISOString() : undefined,
       };
+
+      // Auto-save progress after each mission
+      if (!isLast) saveSessionToStorage(nextSession, stage);
+
+      // Checkpoint to server after each completed mission
+      const token = localStorage.getItem('aacp_access_token');
+      if (token) {
+        const cpProfile: Record<string, string> = {};
+        for (const [k, v] of Object.entries(nextSession.competencies)) {
+          if (v) cpProfile[k] = v.state;
+        }
+        fetch('/acia/checkpoint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            submissionId: submissionId.current,
+            assessmentStage: stage,
+            missionId: mission.id,
+            missionIndex: idx,
+            competencySnapshot: cpProfile,
+            evidenceCount: nextSession.evidence.length,
+            responseCount: nextSession.responses.length,
+          }),
+        }).catch(() => {});
+      }
+
+      return nextSession;
     });
 
     setSession(prev => {
@@ -246,7 +515,8 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
       const isLast = nextIdx >= prev.missions.length;
 
       if (isLast) {
-        setTimeout(() => setView('profile'), 100);
+        // Route to 'saving' view — profile only appears after server confirms persistence
+        setTimeout(() => setView('saving'), 100);
         return prev;
       }
 
@@ -272,19 +542,21 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
       const nextMission = prev.missions[nextIdx];
       setTransitionMsg(`Next: ${nextMission?.title}`);
       setView('transition');
-      setTimeout(() => setView('mission'), 2200);
+      setTimeout(() => setView('preamble'), 2200);
       return prev;
     });
-  }, []);
+  }, [stage]);
 
   // Handle completion of an adaptive question bank interaction
   const completeAdaptiveQuestion = useCallback((qResponse: QuestionResponse) => {
     setSession(prev => {
       if (!prev) return prev;
-      return {
+      const next = {
         ...prev,
         responses: [...prev.responses, qResponse],
       };
+      saveSessionToStorage(next, stage);
+      return next;
     });
 
     setSession(prev => {
@@ -294,13 +566,80 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
       adaptiveQuestionRef.current = null;
       setTransitionMsg(nextMission ? `Next: ${nextMission.title}` : '');
       setView('transition');
-      setTimeout(() => setView('mission'), 1800);
+      setTimeout(() => setView('preamble'), 1800);
       return prev;
     });
-  }, []);
+  }, [stage]);
 
   if (view === 'welcome') {
-    return <WelcomeScreen stage={stage} onStart={startAssessment} />;
+    return <WelcomeScreen stage={stage} onStart={startAssessment} savedSessionData={savedSessionData} />;
+  }
+
+  if (view === 'preamble' && session) {
+    return (
+      <MissionPreamble
+        session={session}
+        stage={stage}
+        onBegin={() => {
+          setSession(prev => {
+            if (!prev) return prev;
+            const idx = prev.currentMissionIndex;
+            const now = new Date().toISOString();
+            const updated = {
+              ...prev,
+              missions: prev.missions.map((m, i) =>
+                i === idx && !m.startedAt ? { ...m, startedAt: now } : m,
+              ),
+            };
+            saveSessionToStorage(updated, stage);
+            return updated;
+          });
+          setView('mission');
+        }}
+      />
+    );
+  }
+
+  if (view === 'saving') {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: '48px 24px', textAlign: 'center' }}>
+        <style>{`
+          @keyframes acia-pulse { 0%,100%{opacity:0.4;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }
+          @keyframes acia-spin { to{transform:rotate(360deg)} }
+        `}</style>
+        {!saveError ? (
+          <>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', border: `3px solid ${C.crimson}`, borderTopColor: 'transparent', animation: 'acia-spin 1s linear infinite' }} />
+            <div>
+              <div style={{ color: C.white, fontSize: 18, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Saving Your Career Intelligence
+              </div>
+              <div style={{ color: C.grey, fontSize: 13 }}>
+                {saveRetryCount === 0 ? 'Securing your assessment results…' : `Retrying… (attempt ${saveRetryCount + 1} of 5)`}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#2d1010', border: `2px solid ${C.crimson}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>⚠</div>
+            <div>
+              <div style={{ color: C.white, fontSize: 18, fontWeight: 700, marginBottom: 12 }}>
+                We're Having Trouble Saving
+              </div>
+              <div style={{ color: C.grey, fontSize: 14, maxWidth: 420, lineHeight: 1.6, marginBottom: 24 }}>
+                We couldn't save your Career Intelligence right now. Your responses have been preserved. Please keep this page open while we retry, or tap below to try again.
+              </div>
+              <button
+                onClick={handleManualRetry}
+                style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+              >
+                Retry Save
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
   }
 
   if (view === 'profile' && session) {
@@ -313,8 +652,10 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
           evidence={session.evidence}
           responses={session.responses}
           onReset={resetAssessment}
+          onDone={onComplete}
           savedData={savedData ?? undefined}
           participantName={participantName}
+          stage={stage}
         />
       </div>
     );
@@ -323,7 +664,7 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
   if (view === 'adaptive' && session && adaptiveQuestionRef.current) {
     const { question, variant, expectedCorrect } = adaptiveQuestionRef.current;
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, minHeight: 600 }}>
+      <div className="acia-layout">
         <ACIAJourneyPanel
           missions={session.missions}
           currentIndex={session.currentMissionIndex}
@@ -339,7 +680,7 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
               Intelligence Challenge
             </div>
             <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
-              {question.family}
+              Intelligence Challenge
             </h3>
             <div style={{ color: C.grey, fontSize: 13 }}>Respond with your honest thinking</div>
           </div>
@@ -401,7 +742,7 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
   const currentMission = session.missions[session.currentMissionIndex];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, minHeight: 600 }}>
+    <div className="acia-layout">
       <ACIAJourneyPanel
         missions={session.missions}
         currentIndex={session.currentMissionIndex}
@@ -489,6 +830,117 @@ function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
   }
 }
 
+// ── Mission Preamble Screen ───────────────────────────────────────────────────
+function MissionPreamble({
+  session,
+  stage,
+  onBegin,
+}: {
+  session: ACIASession;
+  stage: AssessmentStage;
+  onBegin: () => void;
+}) {
+  const [oneSittingConfirmed, setOneSittingConfirmed] = useState(false);
+  const currentMission = session.missions[session.currentMissionIndex];
+  const preamble = MISSION_PREAMBLES[currentMission.id];
+  const needsConfirmation = currentMission.oneSitting && !oneSittingConfirmed;
+
+  return (
+    <div className="acia-layout">
+      <ACIAJourneyPanel
+        missions={session.missions}
+        currentIndex={session.currentMissionIndex}
+        startedAt={session.startedAt}
+        adaptiveCount={session.responses.length}
+      />
+      <div style={{
+        background: C.bgCard, border: `1px solid ${C.border}`,
+        borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, background: '#12080d' }}>
+          <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Mission {session.currentMissionIndex + 1} of {session.missions.length}
+          </div>
+          <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
+            {currentMission.title}
+          </h3>
+          <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 28, gap: 20 }}>
+          {/* Standard briefing card */}
+          <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 14, padding: '18px 22px' }}>
+            <div style={{ color: '#60a5fa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+              Mission Briefing
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ color: C.white, fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+                {preamble?.what ?? 'You will work through a series of aviation-related situations and make decisions using the information provided.'}
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {preamble?.interactions && (
+                  <div style={{ background: '#0a0f1e', borderRadius: 8, padding: '7px 13px', fontSize: 12, color: '#93c5fd' }}>
+                    <span style={{ color: '#64748b' }}>Interactions: </span>{preamble.interactions}
+                  </div>
+                )}
+                {preamble?.time && (
+                  <div style={{ background: '#0a0f1e', borderRadius: 8, padding: '7px 13px', fontSize: 12, color: '#93c5fd' }}>
+                    <span style={{ color: '#64748b' }}>Estimated time: </span>{preamble.time}
+                  </div>
+                )}
+              </div>
+              {preamble?.note && !currentMission.oneSitting && (
+                <p style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>{preamble.note}</p>
+              )}
+            </div>
+          </div>
+
+          {/* One-sitting notice — only for designated missions */}
+          {currentMission.oneSitting && (
+            <div style={{ background: '#1a1200', border: '1px solid #3a2800', borderRadius: 14, padding: '18px 22px' }}>
+              <div style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                Complete this mission in one sitting once started
+              </div>
+              <p style={{ color: '#fde68a', fontSize: 13, lineHeight: 1.7, margin: '0 0 12px' }}>
+                This mission is designed to be completed without interruption. Once you begin, please stay with it until the end — it takes approximately {currentMission.estimatedMinutes} minutes.
+              </p>
+              <p style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6, margin: '0 0 14px' }}>
+                If your session is interrupted unexpectedly, any responses you have already submitted will be preserved and the interruption will be recorded.
+              </p>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={oneSittingConfirmed}
+                  onChange={e => setOneSittingConfirmed(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: C.crimson, width: 16, height: 16, flexShrink: 0 }}
+                />
+                <span style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>
+                  I have approximately {currentMission.estimatedMinutes} minutes available and I am ready to begin this mission now.
+                </span>
+              </label>
+            </div>
+          )}
+
+          <button
+            onClick={onBegin}
+            disabled={needsConfirmation}
+            style={{
+              background: needsConfirmation ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+              color: needsConfirmation ? C.grey : 'white',
+              border: 'none', borderRadius: 12,
+              padding: '14px 32px', fontSize: 15, fontWeight: 700,
+              cursor: needsConfirmation ? 'not-allowed' : 'pointer',
+              alignSelf: 'flex-start',
+              transition: 'background 0.2s',
+            }}
+          >
+            {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Welcome Screen ────────────────────────────────────────────────────────────
 const STAGE_LABELS: Record<AssessmentStage, string> = {
   baseline: 'Baseline ACIA',
@@ -496,169 +948,247 @@ const STAGE_LABELS: Record<AssessmentStage, string> = {
   followup: '90-Day Employment Follow-Up ACIA',
 };
 
-const STAGE_DESCRIPTIONS: Record<AssessmentStage, string> = {
-  baseline: 'Establish your initial aviation career competency profile and workforce readiness baseline before beginning the AACP.',
-  completion: 'Measure your competency development after completing the 8-week AACP — see how you\'ve grown since your baseline.',
-  followup: 'Assess how your competencies are transferring into the workplace after 90 days of real-world employer exposure.',
-};
+function WelcomeScreen({
+  stage,
+  onStart,
+  savedSessionData,
+}: {
+  stage: AssessmentStage;
+  onStart: (resume?: boolean) => void;
+  savedSessionData: { session: ACIASession; stage: AssessmentStage } | null;
+}) {
+  const isFirstCareer = (() => {
+    const cs = localStorage.getItem('aacp_career_stage') ?? '';
+    return cs !== 'student' && cs !== 'transition' &&
+      cs !== 'aviation_professional' && cs !== 'intl_aviation_professional';
+  })();
 
-function WelcomeScreen({ stage, onStart }: { stage: AssessmentStage; onStart: () => void }) {
+  const hasProgress = savedSessionData !== null;
+  const savedMissions = savedSessionData?.session.missions ?? [];
+  const completedMissions = savedMissions.filter(m => m.completed);
+  const nextMission = savedMissions.find(m => !m.completed);
+  const lastCompleted = completedMissions.at(-1);
+  const totalMissions = savedMissions.length || 9;
+  const completedCount = completedMissions.length;
+  const progressPct = hasProgress ? Math.round((completedCount / totalMissions) * 100) : 0;
+
+  const isFollowup = stage === 'followup';
+  const isCompletion = stage === 'completion';
+
   return (
-    <div style={{ fontFamily: 'DM Sans, sans-serif', maxWidth: 680, marginInline: 'auto' }}>
+    <div style={{ fontFamily: 'DM Sans, sans-serif', maxWidth: 720, marginInline: 'auto' }}>
       <style>{`
-        @keyframes welcomeFadeUp {
-          from { opacity: 0; transform: translateY(16px); }
+        @keyframes aciaFadeUp {
+          from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .w-section { animation: welcomeFadeUp 0.5s ease both; }
-        .w-s1 { animation-delay: 0.05s; }
-        .w-s2 { animation-delay: 0.18s; }
-        .w-s3 { animation-delay: 0.30s; }
-        .w-s4 { animation-delay: 0.42s; }
-        .w-s5 { animation-delay: 0.54s; }
-        .takeoff-btn:hover { opacity: 0.92; transform: translateY(-1px); }
-        .takeoff-btn { transition: opacity 0.15s, transform 0.15s; }
+        .acia-card { animation: aciaFadeUp 0.4s ease both; }
+        .acia-cta { transition: background 0.15s, box-shadow 0.15s; }
+        .acia-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; min-height: 600px; }
+        @media (max-width: 700px) {
+          .acia-layout { grid-template-columns: 1fr; }
+          .acia-journey-panel { display: none; }
+        }
+        .acia-cta:hover { background: #721010 !important; box-shadow: 0 4px 16px rgba(143,9,9,0.25) !important; }
       `}</style>
 
-      {/* Hero */}
-      <div className="w-section w-s1" style={{
-        background: 'linear-gradient(150deg, #12080d 0%, #1f0d14 60%, #0f0a0b 100%)',
-        border: '1px solid #3d1020', borderRadius: 20,
-        padding: 'clamp(28px, 5vw, 48px) clamp(20px, 5vw, 40px)',
-        marginBottom: 16, position: 'relative', overflow: 'hidden',
+      {/* Single Mission Control card */}
+      <div className="acia-card" style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
       }}>
+        {/* Card header */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-          background: `linear-gradient(90deg, transparent, ${C.crimson}66, transparent)`,
-        }} />
-        {/* Drone icon — top right decorative */}
-        <svg width="64" height="64" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'absolute', top: 20, right: 24, opacity: 0.18 }}>
-          <rect x="48" y="30" width="24" height="16" rx="5" fill="#8F0909"/>
-          <rect x="56" y="34" width="8" height="8" rx="2" fill="#721010"/>
-          <line x1="48" y1="38" x2="20" y2="38" stroke="#8F0909" strokeWidth="3"/>
-          <line x1="72" y1="38" x2="100" y2="38" stroke="#8F0909" strokeWidth="3"/>
-          <line x1="60" y1="30" x2="60" y2="18" stroke="#8F0909" strokeWidth="2.5"/>
-          <circle cx="14" cy="38" r="7" stroke="#8F0909" strokeWidth="2.5" fill="none"/>
-          <circle cx="106" cy="38" r="7" stroke="#8F0909" strokeWidth="2.5" fill="none"/>
-          <circle cx="14" cy="14" r="5" stroke="#8F0909" strokeWidth="2" fill="none"/>
-          <circle cx="106" cy="14" r="5" stroke="#8F0909" strokeWidth="2" fill="none"/>
-          <line x1="14" y1="19" x2="14" y2="31" stroke="#8F0909" strokeWidth="2"/>
-          <line x1="106" y1="19" x2="106" y2="31" stroke="#8F0909" strokeWidth="2"/>
-        </svg>
-
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          background: '#2d0f1a', border: `1px solid ${C.crimsonD}`,
-          borderRadius: 20, padding: '5px 14px', marginBottom: 24,
+          padding: '20px 28px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
         }}>
-          <span style={{ color: C.crimson, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            AACP · {STAGE_LABELS[stage]}
-          </span>
-        </div>
-        <h1 style={{
-          fontFamily: 'Fraunces, serif', fontSize: 'clamp(1.6rem, 4vw, 2.5rem)',
-          color: '#f1f5f9', margin: '0 0 14px', fontWeight: 700, lineHeight: 1.2,
-        }}>
-          {stage === 'followup' ? 'Welcome Back.' : stage === 'completion' ? 'Time to Measure Your Growth.' : 'Welcome Aboard.'}
-        </h1>
-        <p style={{ color: '#94a3b8', fontSize: 'clamp(14px, 2vw, 15px)', lineHeight: 1.75, margin: '0 0 16px', maxWidth: 520 }}>
-          {STAGE_DESCRIPTIONS[stage]}
-        </p>
-        {stage === 'followup' && (
-          <p style={{ color: '#cbd5e1', fontSize: 'clamp(14px, 2vw, 15px)', lineHeight: 1.75, margin: 0, maxWidth: 520 }}>
-            This assessment uses the same competency framework as your Baseline ACIA, so your results can be compared directly. Take your time — respond honestly based on who you are now, not who you were before.
-          </p>
-        )}
-      </div>
-
-      {/* What you'll receive */}
-      <div className="w-section w-s2" style={{
-        background: '#0f0a0b', border: '1px solid #2a1218',
-        borderRadius: 16, padding: '20px 24px', marginBottom: 16,
-      }}>
-        <div style={{ color: '#8a9ab0', fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 16 }}>
-          Your Career Intelligence Report will include
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[
-            { label: 'Aviation Career Alignment', sub: 'Your alignment across 13 aviation and aerospace pathways' },
-            { label: 'Competency Profile', sub: 'Evidence-based observations across 13 aviation competency dimensions' },
-            { label: 'Observed Strengths & Emerging Capabilities', sub: 'What ACIA observed across multiple interactions' },
-            { label: 'Recommended Next Steps', sub: 'Personalized guidance for your strongest pathway' },
-          ].map(({ label, sub }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: '#8F0909', marginBottom: 6,
+            }}>
+              AACP™ · {STAGE_LABELS[stage]}
+            </div>
+            <h2 style={{
+              fontFamily: 'Fraunces, serif', fontSize: '1.2rem',
+              fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3,
+            }}>
+              ACIA™ — Career Discovery Flight
+            </h2>
+          </div>
+          {hasProgress && (
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{
-                width: 3, flexShrink: 0, alignSelf: 'stretch',
-                background: C.crimsonD, borderRadius: 2, marginTop: 2,
-              }} />
-              <div>
-                <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 600 }}>{label}</div>
-                <div style={{ color: '#8a9ab0', fontSize: 12, marginTop: 2 }}>{sub}</div>
+                fontSize: 26, fontWeight: 800, color: '#1e293b',
+                fontFamily: 'Fraunces, serif', lineHeight: 1,
+              }}>
+                {completedCount}/{totalMissions}
+              </div>
+              <div style={{
+                fontSize: 10, textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: '#94a3b8', marginTop: 3,
+              }}>
+                Missions Complete
               </div>
             </div>
-          ))}
+          )}
         </div>
-      </div>
 
-      {/* Pre-Flight Briefing */}
-      <div className="w-section w-s3" style={{
-        background: '#0f1520', border: '1px solid #1e3a5f',
-        borderRadius: 16, padding: '20px 24px', marginBottom: 16,
-      }}>
-        <div style={{ color: '#60a5fa', fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 12 }}>
-          Pre-Flight Briefing
-        </div>
-        <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.7, margin: '0 0 12px' }}>
-          Your Career Discovery Flight includes <strong style={{ color: '#cbd5e1' }}>structured missions</strong> and <strong style={{ color: '#cbd5e1' }}>intelligence challenges</strong> drawn from a live question bank. No two assessments are identical.
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {['AI Mentor Conversation', 'Aircraft Inspection', 'Fault Diagnosis', 'Spatial Intelligence', 'Safety Scenarios', 'Communication Challenges', 'Working Memory', 'Adaptive Learning'].map(item => (
-            <span key={item} style={{
-              background: '#0f1a2e', border: '1px solid #1e3a5f',
-              color: '#93c5fd', fontSize: 11, padding: '4px 10px', borderRadius: 6,
-            }}>
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
+        {/* Card body */}
+        <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
 
-      {/* Stats */}
-      <div className="w-section w-s4" style={{
-        display: 'flex', justifyContent: 'center', gap: 'clamp(20px, 5vw, 48px)',
-        padding: '16px 0', flexWrap: 'wrap',
-      }}>
-        {[['13', 'Competencies'], ['~30', 'Challenges'], ['13', 'Career Pathways'], ['No', 'Right Answers']].map(([value, label]) => (
-          <div key={label} style={{ textAlign: 'center' }}>
-            <div style={{ color: '#f1f5f9', fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 800, fontFamily: 'Fraunces, serif' }}>
-              {value}
-            </div>
-            <div style={{ color: '#4b5563', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
-              {label}
-            </div>
+          {/* Purpose statement */}
+          <div>
+            <p style={{ fontSize: 15, color: '#1e293b', fontWeight: 500, lineHeight: 1.65, margin: '0 0 10px' }}>
+              Explore how you naturally approach aviation and aerospace situations.
+            </p>
+            {isFirstCareer ? (
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.
+              </p>
+            ) : isFollowup ? (
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                This assessment uses the same competency framework as your Baseline ACIA. Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving competency and career intelligence profile.
+              </p>
+            ) : (
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                Your responses contribute to your evolving competency and career intelligence profile.
+              </p>
+            )}
           </div>
-        ))}
-      </div>
 
-      {/* CTA */}
-      <div className="w-section w-s5" style={{ textAlign: 'center', paddingBottom: 8 }}>
-        <p style={{ color: '#4b5563', fontSize: 12, fontStyle: 'italic', marginBottom: 16 }}>
-          Your responses are observed behaviourally — ACIA learns from how you engage, not from self-reported answers.
-        </p>
-        <button
-          onClick={onStart}
-          className="takeoff-btn"
-          style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: 'white', border: 'none', borderRadius: 14,
-            padding: '16px 44px', fontSize: 15, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-            letterSpacing: '0.03em', boxShadow: `0 4px 24px ${C.crimson}44`,
-          }}
-        >
-          Cleared for Takeoff →
-        </button>
+          {/* Policy chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              'Progress Automatically Saved',
+              'Submitted Responses Locked',
+              'No Pass or Fail',
+            ].map(label => (
+              <div key={label} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#f8fafc', border: '1px solid #e2e8f0',
+                borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#475569',
+              }}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="6" r="5.5" stroke="#16a34a" strokeWidth="1"/>
+                  <path d="M3.5 6l1.8 1.8L8.5 4" stroke="#16a34a" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* Progress panel — in-progress only */}
+          {hasProgress && (
+            <div style={{
+              background: '#f8fafc', border: '1px solid #e2e8f0',
+              borderRadius: 12, padding: '18px 20px',
+            }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.09em', color: '#8F0909', marginBottom: 14,
+              }}>
+                Assessment in Progress
+              </div>
+              {/* Progress bar */}
+              <div style={{ height: 4, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{
+                  height: '100%', width: `${progressPct}%`,
+                  background: '#8F0909', borderRadius: 4, transition: 'width 0.5s ease',
+                }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {lastCompleted && (
+                  <div>
+                    <div style={{
+                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
+                      color: '#94a3b8', marginBottom: 5,
+                    }}>
+                      Last Completed
+                    </div>
+                    <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
+                      {lastCompleted.title}
+                    </div>
+                  </div>
+                )}
+                {nextMission && (
+                  <div>
+                    <div style={{
+                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
+                      color: '#94a3b8', marginBottom: 5,
+                    }}>
+                      Up Next
+                    </div>
+                    <div style={{ fontSize: 13, color: '#8F0909', fontWeight: 600 }}>
+                      {nextMission.title}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* What you'll receive — fresh start only */}
+          {!hasProgress && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.09em', color: '#94a3b8',
+              }}>
+                Your Career Intelligence Report will include
+              </div>
+              {[
+                { label: 'Aviation Career Alignment', sub: 'Your alignment across 13 aviation and aerospace pathways' },
+                { label: 'Competency Evidence Profile', sub: 'Evidence-based observations across 13 competency dimensions' },
+                { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from multiple interactions across the assessment' },
+                { label: 'Recommended Next Steps', sub: 'Personalised guidance for your strongest career pathways' },
+              ].map(({ label, sub }) => (
+                <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 3, flexShrink: 0, alignSelf: 'stretch',
+                    background: '#8F0909', borderRadius: 2, marginTop: 3,
+                  }} />
+                  <div>
+                    <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{label}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Save notice + CTA */}
+          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.65, margin: 0 }}>
+              Your progress is saved automatically. You may leave and return later. Once you submit a response, it cannot be changed. Some short missions may need to be completed in one sitting — we will let you know before they begin.
+            </p>
+            <button
+              onClick={() => onStart(hasProgress)}
+              className="acia-cta"
+              style={{
+                display: 'inline-block',
+                background: '#8F0909',
+                color: 'white',
+                border: 'none',
+                borderRadius: 10,
+                padding: '14px 32px',
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                alignSelf: 'flex-start',
+                fontFamily: 'DM Sans, sans-serif',
+                boxShadow: '0 2px 8px rgba(143,9,9,0.18)',
+              }}
+            >
+              {hasProgress ? 'Resume Assessment' : 'Begin Career Discovery Flight'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

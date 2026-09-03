@@ -262,17 +262,30 @@ function PremiumCTA({ label, sub, onClick, loading = false }: { label: string; s
 
 // ── ACIA Post-Assessment Hub ───────────────────────────────────────────────────
 
+function generateSubmissionId(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  arr[6] = (arr[6] & 0x0f) | 0x40;
+  arr[8] = (arr[8] & 0x3f) | 0x80;
+  return [...arr].map((b, i) => ([4, 6, 8, 10].includes(i) ? '-' : '') + b.toString(16).padStart(2, '0')).join('');
+}
+
 function ACIABridgeScreen({ session, onView }: { session: TransitionSession; onView: () => void }) {
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(true);
   const [savedData, setSavedData] = useState<{ assessmentId: string; badgeId: string; completedAt: string } | null>(null);
+  const [saveError, setSaveError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [showBadge, setShowBadge] = useState(false);
   const [enrollDone, setEnrollDone] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
+  const saveAttempted = useRef(false);
+  const submissionId = useRef<string>(generateSubmissionId());
 
-  // Save to backend once on mount
+  // Save to backend once on mount, with up to 5 attempts + idempotency
   useEffect(() => {
-    if (saving || savedData) return;
-    setSaving(true);
+    if (saveAttempted.current || savedData) return;
+    saveAttempted.current = true;
+
     const token = localStorage.getItem('aacp_access_token');
     const participantName = localStorage.getItem('aacp_name') ?? localStorage.getItem('aacp_email') ?? 'Participant';
     const topAlignment = session.alignments[0];
@@ -284,32 +297,60 @@ function ACIABridgeScreen({ session, onView }: { session: TransitionSession; onV
       .filter(([, v]) => v && (v.state === 'emerging' || v.state === 'developing'))
       .map(([k]) => COMPETENCY_LABELS[k as CompetencyKey] ?? k);
 
-    fetch('/acia/assessment/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({
-        pathwayType: 'transition',
-        participantName,
-        startedAt: session.startedAt,
-        topPathway: topAlignment?.label ?? null,
-        competencyProfile,
-        careerAlignment: session.alignments.slice(0, 8),
-        evidenceConfidence: topAlignment?.evidenceConfidence ?? null,
-        developmentAreas,
-        recommendedPathways: session.alignments.slice(0, 5).map(a => a.label),
-        sessionSummary: {
-          profile: session.profile,
-          aciaResponseCount: session.aciaResponses.length,
-        },
-      }),
-    })
-      .then(r => r.json())
-      .then((d: { assessmentId?: string; badgeId?: string; completedAt?: string }) => {
-        if (d.assessmentId) setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId ?? '', completedAt: d.completedAt ?? new Date().toISOString() });
-      })
-      .catch(() => {})
-      .finally(() => setSaving(false));
+    const payload = {
+      submissionId: submissionId.current,
+      pathwayType: 'transition',
+      participantName,
+      startedAt: session.startedAt,
+      topPathway: topAlignment?.label ?? null,
+      competencyProfile,
+      careerAlignment: session.alignments.slice(0, 8),
+      evidenceConfidence: topAlignment?.evidenceConfidence ?? null,
+      developmentAreas,
+      recommendedPathways: session.alignments.slice(0, 5).map(a => a.label),
+      sessionSummary: {
+        profile: session.profile,
+        aciaResponseCount: session.aciaResponses.length,
+      },
+    };
+
+    const attempt = async (n: number) => {
+      setRetryCount(n);
+      try {
+        const r = await fetch('/acia/assessment/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok && r.status !== 200 && r.status !== 201) throw new Error(`HTTP ${r.status}`);
+        const d: { assessmentId?: string; badgeId?: string; completedAt?: string } = await r.json();
+        if (d.assessmentId) {
+          setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId ?? '', completedAt: d.completedAt ?? new Date().toISOString() });
+          setSaveError(false);
+          setSaving(false);
+          return;
+        }
+        throw new Error('Unexpected response shape');
+      } catch (e) {
+        console.error(`[ACIATransition] save attempt ${n + 1} failed:`, e);
+        if (n < 4) {
+          await new Promise(r => setTimeout(r, Math.min(3000 * (n + 1), 15000)));
+          await attempt(n + 1);
+        } else {
+          setSaveError(true);
+          setSaving(false);
+        }
+      }
+    };
+
+    attempt(0);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleManualRetry = () => {
+    setSaveError(false);
+    setSaving(true);
+    saveAttempted.current = false;
+  };
 
   function handleDownloadReport() {
     const participantName = localStorage.getItem('aacp_name') ?? localStorage.getItem('aacp_email') ?? 'Participant';
@@ -386,17 +427,40 @@ function ACIABridgeScreen({ session, onView }: { session: TransitionSession; onV
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 24px' }}>
-      <style>{`@keyframes bridge-glow { 0%,100%{opacity:0.5} 50%{opacity:1} } @keyframes check-in { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }`}</style>
+      <style>{`@keyframes bridge-glow { 0%,100%{opacity:0.5} 50%{opacity:1} } @keyframes check-in { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} } @keyframes tr-spin { to{transform:rotate(360deg)} }`}</style>
 
-      {/* Completion indicator */}
+      {/* Server-confirmed completion indicator */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'radial-gradient(#0d2010,#06120a)', border: '2px solid rgba(76,175,80,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', animation: 'check-in 0.5s ease', boxShadow: '0 0 32px rgba(76,175,80,0.2)' }}>
-          <span style={{ fontSize: 28, color: '#4caf50' }}>✓</span>
-        </div>
-        <h2 style={{ color: C.heading, fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 8 }}>ACIA Assessment Complete</h2>
-        <p style={{ color: C.sub, fontSize: 14, lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
-          Your ACIA evidence has been collected and your Career Intelligence Profile is ready. Your digital badge has been issued.
-        </p>
+        {saving ? (
+          <>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', border: '3px solid #8F0909', borderTopColor: 'transparent', animation: 'tr-spin 1s linear infinite', margin: '0 auto 20px' }} />
+            <h2 style={{ color: C.heading, fontSize: 20, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 8 }}>Saving Your Career Intelligence</h2>
+            <p style={{ color: C.sub, fontSize: 13 }}>
+              {retryCount === 0 ? 'Securing your assessment results…' : `Retrying… (attempt ${retryCount + 1} of 5)`}
+            </p>
+          </>
+        ) : saveError ? (
+          <>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#1a0a0a', border: '2px solid #8F0909', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>⚠</div>
+            <h2 style={{ color: C.heading, fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Trouble Saving Results</h2>
+            <p style={{ color: C.sub, fontSize: 13, lineHeight: 1.6, maxWidth: 400, margin: '0 auto 20px' }}>
+              We couldn't save your Career Intelligence right now. Your responses have been preserved. Please keep this page open while we retry, or tap below.
+            </p>
+            <button onClick={handleManualRetry} style={{ background: '#8F0909', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              Retry Save
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'radial-gradient(#0d2010,#06120a)', border: '2px solid rgba(76,175,80,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', animation: 'check-in 0.5s ease', boxShadow: '0 0 32px rgba(76,175,80,0.2)' }}>
+              <span style={{ fontSize: 28, color: '#4caf50' }}>✓</span>
+            </div>
+            <h2 style={{ color: C.heading, fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 8 }}>Baseline ACIA Completed</h2>
+            <p style={{ color: C.sub, fontSize: 14, lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
+              Your ACIA evidence has been collected and your Career Intelligence Profile is ready. Your digital badge has been issued.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Action cards */}
@@ -898,7 +962,7 @@ function ResultsPhase({ session }: { session: TransitionSession }) {
             .sort((a, b) => b[1].rawScore - a[1].rawScore)
             .map(([key, obs]) => (
               <div key={key} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 12px' }}>
-                <div style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>{key}</div>
+                <div style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>{COMPETENCY_LABELS[key as CompetencyKey] ?? key}</div>
                 <div style={{ color: C.body, fontSize: 13, fontWeight: 500 }}>
                   {EVIDENCE_STATE_LABELS[obs.state as keyof typeof EVIDENCE_STATE_LABELS] ?? obs.state}
                 </div>

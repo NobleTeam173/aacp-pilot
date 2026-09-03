@@ -457,3 +457,42 @@ CREATE TABLE ConsentRecord (
 - Relationships focus on the core workflow: participants, assessments, evidence review, readiness calculation, and matching.
 - Consent and audit records are included to support privacy and governance.
 - No migration files were created yet; waiting for confirmation.
+
+---
+
+## Future Capabilities — Parked for Post-Commercialization
+
+The following capabilities are recorded here to preserve the concept for future consideration. They are **not part of the current development scope** and must not be implemented, designed in detail, or referenced in current APIs, schemas, or infrastructure until explicitly approved.
+
+### AACP™ Regional Workforce Intelligence
+
+**Status:** FUTURE COMMERCIAL CAPABILITY — PARKED FOR POST-COMMERCIALIZATION
+
+**Purpose:**
+A future AACP capability that could enable employers and ecosystem partners to understand the geographic distribution of aviation and aerospace workforce capability across regions.
+
+**Potential future use cases:**
+- Identifying regions with relevant aviation and aerospace talent and capability
+- Regional workforce planning and workforce-gap analysis
+- Comparing talent availability between regions
+- Supporting employers considering expansion or new operations in another region
+- Understanding regional education and training capacity relative to workforce needs
+- Supporting broader regional aviation and aerospace workforce and economic-development planning
+
+**Privacy principle:**
+This concept is based on regional and aggregated workforce intelligence. Individual residential or street addresses are not required. Future geographic analysis should use appropriate regional geography such as cities, metropolitan areas, economic regions, provinces, or other suitable geographic boundaries. Employer-facing regional intelligence should default to aggregated and de-identified information.
+
+**Architectural principle:**
+AACP™ remains the authoritative system of record for its workforce intelligence. Any future mapping, geospatial technology, external datasets, or spatial-intelligence partner would operate only as an optional analytical or visualization layer. No technology provider or integration should be selected at this stage.
+
+**Future data concept:**
+The capability may eventually combine appropriate AACP first-party workforce intelligence with authorized public, open, licensed, or partner datasets. Detailed data architecture is not defined at this stage.
+
+**Commercial positioning:**
+Reserved for possible future Employer, Enterprise, Government, Economic Development, Airport, or Ecosystem offerings. Not packaged into current AACP commercial tiers. Pricing is not established.
+
+**Conditions for revisiting:**
+1. Core AACP validation is completed.
+2. The platform is stable and commercially ready.
+3. Commercialization has begun.
+4. Sufficient workforce data and employer demand exist to properly validate the use case.

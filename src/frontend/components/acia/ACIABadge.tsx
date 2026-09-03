@@ -6,6 +6,7 @@ export interface BadgeData {
   issueDate: string;
   aciaVersion: string;
   pathwayType: 'standard' | 'transition' | string;
+  assessmentStage?: string;
 }
 
 const C = {
@@ -20,10 +21,22 @@ const C = {
   muted:    '#444a54',
 };
 
+const STAGE_BADGE_LABEL: Record<string, string> = {
+  baseline: 'BASELINE COMPLETED',
+  completion: 'AACP COMPLETED',
+  followup: 'FOLLOW-UP COMPLETED',
+};
+
+const STAGE_CREDENTIAL_LABEL: Record<string, string> = {
+  baseline: 'ACIA Baseline Completion',
+  completion: 'ACIA AACP Completion',
+  followup: 'ACIA 90-Day Follow-Up',
+};
+
 function BadgeSVG({ data, size = 340 }: { data: BadgeData; size?: number }) {
   const shortId = data.badgeId.slice(0, 12).toUpperCase();
   const date = new Date(data.issueDate).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-  const pathway = data.pathwayType === 'transition' ? 'Career Transition' : 'Standard';
+  const badgeLabel = data.assessmentStage ? (STAGE_BADGE_LABEL[data.assessmentStage] ?? 'COMPLETED') : 'COMPLETED';
 
   return (
     <svg
@@ -91,55 +104,49 @@ function BadgeSVG({ data, size = 340 }: { data: BadgeData; size?: number }) {
       {/* ACIA text — centre */}
       <text x="170" y="153" textAnchor="middle" fontSize="13" fontWeight="800"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#f0e8ea" letterSpacing="2">
-        ACIA
+        ACIA™
       </text>
 
       {/* Top label */}
       <text x="170" y="50" textAnchor="middle" fontSize="9" fontWeight="600"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#7a8390" letterSpacing="3" textTransform="uppercase">
-        AACP · AVIATION CAREER INTELLIGENCE
+        AACP™ · AVIATION CAREER INTELLIGENCE
       </text>
 
       {/* Divider top */}
       <line x1="60" y1="58" x2="280" y2="58" stroke="#2a1020" strokeWidth="0.5" />
 
-      {/* COMPLETED badge */}
-      <rect x="120" y="194" width="100" height="22" rx="4" fill="#1a0a10" stroke="#dc143c" strokeWidth="0.75" />
-      <text x="170" y="209" textAnchor="middle" fontSize="9" fontWeight="800"
-        fontFamily="system-ui, -apple-system, sans-serif" fill="#dc143c" letterSpacing="3">
-        COMPLETED
-      </text>
-
-      {/* Pathway label */}
-      <text x="170" y="232" textAnchor="middle" fontSize="8.5" fontWeight="400"
-        fontFamily="system-ui, -apple-system, sans-serif" fill="#7a8390" letterSpacing="1">
-        {pathway} Pathway
+      {/* Stage completion badge */}
+      <rect x="95" y="192" width="150" height="24" rx="4" fill="#1a0a10" stroke="#dc143c" strokeWidth="0.75" />
+      <text x="170" y="208" textAnchor="middle" fontSize="8.5" fontWeight="800"
+        fontFamily="system-ui, -apple-system, sans-serif" fill="#dc143c" letterSpacing="2">
+        {badgeLabel}
       </text>
 
       {/* Divider */}
-      <line x1="40" y1="246" x2="300" y2="246" stroke="#1e2229" strokeWidth="0.5" />
+      <line x1="40" y1="228" x2="300" y2="228" stroke="#1e2229" strokeWidth="0.5" />
 
       {/* Participant name */}
-      <text x="170" y="264" textAnchor="middle" fontSize="12" fontWeight="600"
+      <text x="170" y="248" textAnchor="middle" fontSize="12" fontWeight="600"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#f0f2f5">
         {data.participantName.length > 28 ? data.participantName.slice(0, 26) + '…' : data.participantName}
       </text>
 
       {/* Issue date */}
-      <text x="170" y="280" textAnchor="middle" fontSize="8" fontWeight="400"
+      <text x="170" y="265" textAnchor="middle" fontSize="8" fontWeight="400"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#7a8390">
         {date}
       </text>
 
-      {/* Badge ID */}
-      <text x="170" y="297" textAnchor="middle" fontSize="7" fontWeight="400"
+      {/* Credential ID */}
+      <text x="170" y="282" textAnchor="middle" fontSize="7" fontWeight="400"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#444a54" letterSpacing="1.5">
-        ID: {shortId}
+        Credential ID: {shortId}
       </text>
 
       {/* Bottom issuer */}
-      <line x1="40" y1="305" x2="300" y2="305" stroke="#1e2229" strokeWidth="0.5" />
-      <text x="170" y="320" textAnchor="middle" fontSize="7.5" fontWeight="500"
+      <line x1="40" y1="295" x2="300" y2="295" stroke="#1e2229" strokeWidth="0.5" />
+      <text x="170" y="312" textAnchor="middle" fontSize="7.5" fontWeight="500"
         fontFamily="system-ui, -apple-system, sans-serif" fill="#7a8390" letterSpacing="1">
         aviationaerospacecompetency.com
       </text>
@@ -218,22 +225,37 @@ export function ACIABadge({ data, onClose }: Props) {
         </div>
       </div>
 
-      {/* Metadata */}
+      {/* Verification record */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
         {[
-          ['Badge', 'Aviation Career Intelligence — Completed'],
-          ['Issuer', 'Aviation and Aerospace Career Pathways (AACP)'],
-          ['ACIA Version', data.aciaVersion],
+          ['Credential', data.assessmentStage ? (STAGE_CREDENTIAL_LABEL[data.assessmentStage] ?? 'Aviation Career Intelligence') : 'Aviation Career Intelligence'],
+          ['Issuer', 'Aviation and Aerospace Competency Program (AACP™)'],
+          ['Issued', new Date(data.issueDate).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })],
           ['Status', 'Active'],
+          ['Assessment Framework', `ACIA ${data.aciaVersion}`],
+          ['Credential ID', data.badgeId.slice(0, 12).toUpperCase()],
         ].map(([label, val]) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ color: C.muted, fontSize: 11 }}>{label}</span>
+          <div key={label} style={{ display: 'flex', flexDirection: 'column', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+            <span style={{ color: C.muted, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</span>
             <span style={{ color: C.body, fontSize: 12, fontWeight: 500 }}>{val}</span>
           </div>
         ))}
-        <div style={{ padding: '4px 0' }}>
-          <span style={{ color: C.muted, fontSize: 11 }}>Verification URL</span>
-          <div style={{ color: C.crimson, fontSize: 11, marginTop: 2, wordBreak: 'break-all' }}>{verifyUrl}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '6px 0' }}>
+          <span style={{ color: C.muted, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Credential Verification</span>
+          <a
+            href={verifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              background: C.crimson, color: '#fff',
+              padding: '7px 16px', borderRadius: 5,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+              textDecoration: 'none', alignSelf: 'flex-start',
+            }}
+          >
+            VERIFY CREDENTIAL →
+          </a>
         </div>
       </div>
 

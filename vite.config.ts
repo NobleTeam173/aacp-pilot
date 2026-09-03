@@ -24,6 +24,13 @@ export default defineConfig({
       '/privacy': 'http://localhost:8787',
       '/ai': 'http://localhost:8787',
       '/telemetry': 'http://localhost:8787',
+      '/program': 'http://localhost:8787',
+      '/acia': 'http://localhost:8787',
+      '/users': 'http://localhost:8787',
+      '/organizations': 'http://localhost:8787',
+      '/handoff': 'http://localhost:8787',
+      '/connector': 'http://localhost:8787',
+      '/participant': 'http://localhost:8787',
     },
   },
 });

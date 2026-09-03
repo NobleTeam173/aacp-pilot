@@ -5,7 +5,8 @@ import { AuditService } from '../audit/auditService';
 import type { JwtPayload } from '../auth/jwt';
 
 const router = express.Router();
-const authSecret = process.env.AACP_ACCESS_TOKEN_SECRET ?? 'aacp-access-secret';
+const authSecret = process.env.AACP_ACCESS_TOKEN_SECRET;
+if (!authSecret) throw new Error('AACP_ACCESS_TOKEN_SECRET environment variable is required');
 
 interface AuthRequest extends express.Request {
   user?: JwtPayload;

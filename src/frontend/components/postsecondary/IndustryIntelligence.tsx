@@ -1,24 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-
-const C = {
-  crimson: '#8F0909',
-  crimsonD: '#721010',
-  bg: '#0f0a0b',
-  bgCard: '#1a0d10',
-  border: '#3d1020',
-  white: '#f1f5f9',
-  grey: '#94a3b8',
-  greyD: '#8a9ab0',
-  green: '#22c55e',
-  greenBg: '#0f1a0f',
-  greenBorder: '#1a3a1a',
-  amber: '#f59e0b',
-  amberBg: '#1a1400',
-  amberBorder: '#3a2a00',
-  red: '#ef4444',
-  redBg: '#1a0505',
-  redBorder: '#3a0505',
-};
+﻿import { useState, useEffect, useCallback } from 'react';
+import { C } from '../../theme';
 
 const COMPETENCY_KEYS = ['SR','MR','AP','PS','SO','DM','WM','MT','CM','PR','SA','AL','AK'] as const;
 const COMPETENCY_LABELS: Record<string,string> = {
@@ -91,7 +72,7 @@ interface GapRow {
   participantCount: number;
 }
 
-// ── Overview Tab ─────────────────────────────────────────────────────────────
+// â”€â”€ Overview Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
   const [intel, setIntel] = useState<{ signals: IntelSignal[] } | null>(null);
@@ -102,69 +83,77 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<{ signals: IntelSignal[] }>('/connector/intelligence').catch(() => ({ signals: [] })),
+      apiFetch<{ employerIntelligence: { signals: IntelSignal[] } }>('/connector/intelligence').catch(() => ({ employerIntelligence: { signals: [] } })),
       apiFetch<{ emergingSkills: EmergingSkill[] }>('/connector/emerging-skills').catch(() => ({ emergingSkills: [] })),
       apiFetch<{ mappings: CurriculumMapping[] }>('/postsecondary/curriculum-mappings').catch(() => ({ mappings: [] })),
       apiFetch<{ gaps: GapRow[] }>('/connector/gap').catch(() => ({ gaps: [] })),
     ]).then(([i, e, m, g]) => {
-      setIntel(i); setEmerging(e); setMappings(m); setGaps(g);
+      setIntel(i as any); setEmerging(e); setMappings(m); setGaps(g);
     }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div style={{ color: C.grey, padding: 40, textAlign: 'center' }}>Loading overview…</div>;
 
-  const signals = intel?.signals ?? [];
-  const skills = emerging?.emergingSkills ?? [];
-  const maps = mappings?.mappings ?? [];
-  const gapRows = gaps?.gaps ?? [];
+  const signals    = (intel as any)?.employerIntelligence?.signals ?? [];
+  const skills     = emerging?.emergingSkills ?? [];
+  const maps       = mappings?.mappings ?? [];
+  const gapRows    = gaps?.gaps ?? [];
 
-  const highDemand = signals.filter(s => s.demandLevel === 'high' || s.demandLevel === 'growing');
+  const highDemand     = signals.filter(s => s.demandLevel === 'high' || s.demandLevel === 'growing');
   const emergingActive = skills.filter(s => s.status === 'emerging' || s.status === 'growing');
-  const strongAlign = maps.filter(m => m.alignment_level === 'strong' || m.alignment_level === 'moderate');
-  const gapWarnings = gapRows.filter(g =>
+  const strongAlign    = maps.filter(m => m.alignment_level === 'strong' || m.alignment_level === 'moderate');
+  const gapWarnings    = gapRows.filter(g =>
     (g.employerDemand === 'High' || g.employerDemand === 'Growing') &&
     (g.curriculumCoverage === 'Limited' || g.curriculumCoverage === 'No Data') &&
     g.employerDemandCount > 0
   );
 
-  const demandColor = (d: string) => d === 'high' ? C.red : d === 'growing' ? C.amber : d === 'moderate' ? '#60a5fa' : C.grey;
+  const demandColor = (d: string) => d === 'high' ? C.red : d === 'growing' ? C.amber : d === 'moderate' ? C.blue : C.grey;
+  const demandBg    = (d: string) => d === 'high' ? C.redBg : d === 'growing' ? C.amberBg : d === 'moderate' ? C.blueBg : C.bgDeep;
 
   return (
-    <div>
-      {/* Summary stat row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* KPI strip — numbers only, semantic color only when status is meaningful */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
         {[
-          { label: 'Validated Signals', value: signals.length, color: '#60a5fa', accent: '#60a5fa', sub: 'Employer-validated competency data' },
-          { label: 'High/Growing Demand', value: highDemand.length, color: C.amber, accent: C.amber, sub: 'Competencies in demand' },
-          { label: 'Emerging Competencies', value: emergingActive.length, color: C.crimson, accent: C.crimson, sub: 'Flagged as increasing' },
-          { label: 'Programme Mappings', value: maps.length, color: C.green, accent: C.green, sub: 'Your programme mappings' },
-          { label: 'Potential Gaps', value: gapWarnings.length, color: C.amber, accent: gapWarnings.length > 0 ? C.amber : undefined, sub: 'High demand, limited coverage' },
+          { label: 'Validated Signals',    value: signals.length,        sub: 'Employer-sourced data',       valueColor: signals.length > 0 ? C.blue : C.greyD },
+          { label: 'High/Growing Demand',  value: highDemand.length,     sub: 'Competencies in demand',      valueColor: highDemand.length > 0 ? C.amber : C.greyD },
+          { label: 'Emerging Competencies',value: emergingActive.length, sub: 'Flagged as increasing',       valueColor: emergingActive.length > 0 ? C.red : C.greyD },
+          { label: 'Programme Mappings',   value: maps.length,           sub: 'Your curriculum links',       valueColor: maps.length > 0 ? C.green : C.greyD },
+          { label: 'Potential Gaps',       value: gapWarnings.length,    sub: 'High demand, low coverage',   valueColor: gapWarnings.length > 0 ? C.red : C.greyD },
         ].map(s => (
-          <div key={s.label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderTop: s.accent ? `3px solid ${s.accent}` : `1px solid ${C.border}`, borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ color: s.value > 0 ? s.color : C.grey, fontSize: 26, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1 }}>{s.value}</div>
-            <div style={{ color: C.greyD, fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>{s.label}</div>
-            <div style={{ color: C.grey, fontSize: 10, marginTop: 3 }}>{s.sub}</div>
+          <div key={s.label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+            <div style={{ color: s.valueColor, fontSize: 30, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+            <div style={{ color: C.white, fontSize: 12, fontWeight: 700, marginTop: 10, marginBottom: 3 }}>{s.label}</div>
+            <div style={{ color: C.greyD, fontSize: 11 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+      {/* Main intel grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
 
-        {/* Top demand competencies */}
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Top Industry Demand</div>
+        {/* Top demand */}
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Top Industry Demand</div>
             <button onClick={() => onNavigate('signals')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
           </div>
           {signals.length === 0 ? (
-            <div style={{ color: C.greyD, fontSize: 13, padding: '12px 0', textAlign: 'center' }}>Insufficient evidence</div>
+            <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>Insufficient evidence</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {signals.slice(0, 5).map(s => (
-                <div key={s.competency} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, color: C.white, fontSize: 13 }}>{s.competency}</span>
-                    <span style={{ color: C.grey, fontSize: 11, marginLeft: 6 }}>{s.label}</span>
+            <div>
+              {signals.slice(0, 5).map((s, i) => (
+                <div key={s.competency} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '11px 20px', borderBottom: i < Math.min(signals.length, 5) - 1 ? `1px solid ${C.borderLight}` : 'none',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ background: demandBg(s.demandLevel), border: `1px solid ${demandColor(s.demandLevel)}33`, borderRadius: 6, padding: '2px 7px' }}>
+                      <span style={{ color: demandColor(s.demandLevel), fontSize: 10, fontWeight: 800 }}>{s.competency}</span>
+                    </div>
+                    <span style={{ color: C.grey, fontSize: 12 }}>{s.label}</span>
                   </div>
                   <span style={{ color: demandColor(s.demandLevel), fontWeight: 700, fontSize: 12, textTransform: 'capitalize' }}>{s.demandLevel}</span>
                 </div>
@@ -174,22 +163,28 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         </div>
 
         {/* Emerging competencies */}
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Emerging Competencies</div>
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Emerging Competencies</div>
             <button onClick={() => onNavigate('emerging')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
           </div>
           {emergingActive.length === 0 ? (
-            <div style={{ color: C.greyD, fontSize: 13, padding: '12px 0', textAlign: 'center' }}>Insufficient evidence</div>
+            <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>Insufficient evidence</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {emergingActive.slice(0, 5).map(s => (
-                <div key={s.competency} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {emergingActive.slice(0, 5).map((s, i) => (
+                <div key={s.competency} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '11px 20px', borderBottom: i < Math.min(emergingActive.length, 5) - 1 ? `1px solid ${C.borderLight}` : 'none',
+                }}>
                   <div>
                     <span style={{ fontWeight: 700, color: C.white, fontSize: 13 }}>{s.competency}</span>
-                    <span style={{ color: C.grey, fontSize: 11, marginLeft: 6 }}>{s.label}</span>
+                    <span style={{ color: C.grey, fontSize: 11, marginLeft: 8 }}>{s.label}</span>
                   </div>
-                  <span style={{ color: s.status === 'emerging' ? C.red : C.amber, fontWeight: 700, fontSize: 12, textTransform: 'capitalize' }}>{s.status}</span>
+                  <span style={{ color: s.status === 'emerging' ? C.red : C.amber, fontWeight: 700, fontSize: 11, textTransform: 'capitalize',
+                    background: s.status === 'emerging' ? C.redBg : C.amberBg,
+                    border: `1px solid ${s.status === 'emerging' ? C.redBorder : C.amberBorder}`,
+                    borderRadius: 20, padding: '2px 8px' }}>{s.status}</span>
                 </div>
               ))}
             </div>
@@ -197,22 +192,25 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         </div>
 
         {/* Potential gaps */}
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Potential Programme Gaps</div>
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Potential Programme Gaps</div>
             <button onClick={() => onNavigate('gap')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
           </div>
           {gapWarnings.length === 0 ? (
-            <div style={{ color: C.greyD, fontSize: 13, padding: '12px 0', textAlign: 'center' }}>
+            <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>
               {gapRows.length === 0 ? 'Insufficient evidence' : 'No critical gaps identified'}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {gapWarnings.slice(0, 5).map(g => (
-                <div key={g.competency} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {gapWarnings.slice(0, 5).map((g, i) => (
+                <div key={g.competency} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '11px 20px', borderBottom: i < Math.min(gapWarnings.length, 5) - 1 ? `1px solid ${C.borderLight}` : 'none',
+                }}>
                   <div>
                     <span style={{ fontWeight: 700, color: C.white, fontSize: 13 }}>{g.competency}</span>
-                    <span style={{ color: C.grey, fontSize: 11, marginLeft: 6 }}>{g.label}</span>
+                    <span style={{ color: C.grey, fontSize: 11, marginLeft: 8 }}>{g.label}</span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ color: C.amber, fontSize: 11, fontWeight: 700 }}>Demand: {g.employerDemand}</div>
@@ -224,34 +222,35 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
           )}
         </div>
 
-        {/* Curriculum alignment summary */}
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Programme Alignment</div>
+        {/* Programme alignment */}
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Programme Alignment</div>
             <button onClick={() => onNavigate('curriculum')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Manage →</button>
           </div>
           {maps.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '12px 0' }}>
-              <div style={{ color: C.grey, fontSize: 13, marginBottom: 8 }}>No mappings yet</div>
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ color: C.grey, fontSize: 13, marginBottom: 12 }}>No mappings yet</div>
               <button
                 onClick={() => onNavigate('curriculum')}
-                style={{ background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >Map your first programme</button>
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 28, marginBottom: 14 }}>
                 <div>
-                  <div style={{ color: C.white, fontSize: 22, fontWeight: 800 }}>{maps.length}</div>
-                  <div style={{ color: C.grey, fontSize: 11 }}>Total Mappings</div>
+                  <div style={{ color: C.white, fontSize: 28, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1 }}>{maps.length}</div>
+                  <div style={{ color: C.greyD, fontSize: 11, marginTop: 4 }}>Total Mappings</div>
                 </div>
                 <div>
-                  <div style={{ color: C.green, fontSize: 22, fontWeight: 800 }}>{strongAlign.length}</div>
-                  <div style={{ color: C.grey, fontSize: 11 }}>Strong / Moderate</div>
+                  <div style={{ color: C.green, fontSize: 28, fontWeight: 800, fontFamily: 'Fraunces, serif', lineHeight: 1 }}>{strongAlign.length}</div>
+                  <div style={{ color: C.greyD, fontSize: 11, marginTop: 4 }}>Strong / Moderate</div>
                 </div>
               </div>
-              <div style={{ color: C.grey, fontSize: 11, fontStyle: 'italic' }}>
-                {[...new Set(maps.map(m => m.program_name))].length} programme{[...new Set(maps.map(m => m.program_name))].length !== 1 ? 's' : ''} mapped across {[...new Set(maps.map(m => m.aacp_competency))].length} competenc{[...new Set(maps.map(m => m.aacp_competency))].length !== 1 ? 'ies' : 'y'}
+              <div style={{ color: C.grey, fontSize: 12, fontStyle: 'italic', lineHeight: 1.5 }}>
+                {[...new Set(maps.map(m => m.program_name))].length} programme{[...new Set(maps.map(m => m.program_name))].length !== 1 ? 's' : ''} mapped
+                across {[...new Set(maps.map(m => m.aacp_competency))].length} competenc{[...new Set(maps.map(m => m.aacp_competency))].length !== 1 ? 'ies' : 'y'}
               </div>
             </div>
           )}
@@ -259,18 +258,17 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
       </div>
 
       {/* Disclaimer */}
-      <div style={{ background: '#0f0a12', border: `1px solid #2a1a3a`, borderRadius: 12, padding: '14px 18px' }}>
-        <p style={{ color: C.greyD, fontSize: 12, margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
-          AACP provides employer-derived workforce intelligence to inform curriculum and programme decisions.
-          Academic, regulatory, and accreditation decisions remain the responsibility of the institution and applicable authorities.
-          Intelligence reflects validated employer submissions and is updated as new signals are received and validated.
+      <div style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 20px' }}>
+        <p style={{ color: C.greyD, fontSize: 12, margin: 0, fontStyle: 'italic', lineHeight: 1.6 }}>
+          Intelligence to inform curriculum decisions. Academic, regulatory, and accreditation decisions remain the responsibility of the institution.
+          Reflects validated employer submissions, updated as new signals are received.
         </p>
       </div>
     </div>
   );
 }
 
-// ── Competency Signals Tab ────────────────────────────────────────────────────
+// â”€â”€ Competency Signals Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CompetencySignalsTab() {
   const [signals, setSignals] = useState<IntelSignal[]>([]);
@@ -287,8 +285,8 @@ function CompetencySignalsTab() {
       if (occupation) params.set('occupation', occupation);
       if (region) params.set('region', region);
       if (subsector) params.set('subsector', subsector);
-      const res = await apiFetch<{ signals: IntelSignal[] }>(`/connector/intelligence?${params}`);
-      setSignals(res.signals);
+      const res = await apiFetch<{ employerIntelligence?: { signals: IntelSignal[] } }>(`/connector/intelligence?${params}`);
+      setSignals(res.employerIntelligence?.signals ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
@@ -366,7 +364,7 @@ function CompetencySignalsTab() {
   );
 }
 
-// ── Emerging Skills Tab ───────────────────────────────────────────────────────
+// â”€â”€ Emerging Skills Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function EmergingSkillsTab() {
   const [skills, setSkills] = useState<EmergingSkill[]>([]);
@@ -435,7 +433,7 @@ function EmergingSkillsTab() {
   );
 }
 
-// ── Curriculum Alignment Tab ──────────────────────────────────────────────────
+// â”€â”€ Curriculum Alignment Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BLANK_MAPPING = {
   institution_name: '',
@@ -638,7 +636,7 @@ function CurriculumAlignmentTab() {
   );
 }
 
-// ── Competency Gap Tab ────────────────────────────────────────────────────────
+// â”€â”€ Competency Gap Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CompetencyGapTab() {
   const [gaps, setGaps] = useState<GapRow[]>([]);
@@ -708,7 +706,7 @@ function CompetencyGapTab() {
   );
 }
 
-// ── IndustryIntelligence ──────────────────────────────────────────────────────
+// â”€â”€ IndustryIntelligence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function IndustryIntelligence() {
   const [tab, setTab] = useState<PSTab>('overview');
@@ -725,13 +723,13 @@ export function IndustryIntelligence() {
     <div style={{ background: C.bg, minHeight: '100%', fontFamily: 'DM Sans, sans-serif' }}>
     <div style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 1000, marginInline: 'auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ color: '#6b7074', fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
+        <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>
           Post-Secondary Intelligence
         </div>
         <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 8px', fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 700 }}>
           Workforce Intelligence Hub
         </h2>
-        <p style={{ color: '#6b7074', fontSize: 13, margin: '0 0 6px' }}>
+        <p style={{ color: C.grey, fontSize: 13, margin: '0 0 6px' }}>
           Connect what you teach with what industry needs. Powered by the AACP Connector.
         </p>
         <p style={{ color: C.grey, fontSize: 11, margin: 0, fontStyle: 'italic' }}>
@@ -767,3 +765,4 @@ export function IndustryIntelligence() {
     </div>
   );
 }
+

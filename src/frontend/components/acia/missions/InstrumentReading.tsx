@@ -36,7 +36,7 @@ const QUESTIONS: Question[] = [
     unit: 'ft',
     normalMin: 0,
     normalMax: 45000,
-    question: 'You are cleared to FL110. Your altimeter reads 10,500 ft. What is your status?',
+    question: 'Context: FL (Flight Level) is expressed in hundreds of feet of pressure altitude — FL110 means 11,000 ft. You are cleared to FL110. Your altimeter reads 10,500 ft. What is your status?',
     options: [
       '500 ft below assigned altitude — continue climbing',
       'At assigned altitude — level off',

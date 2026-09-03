@@ -28,7 +28,7 @@ export function ACIAJourneyPanel({ missions, currentIndex, startedAt, adaptiveCo
   const currentMission = missions[currentIndex];
 
   return (
-    <div style={{
+    <div className="acia-journey-panel" style={{
       background: C.bgCard, border: `1px solid ${C.border}`,
       borderRadius: 16, padding: 20,
       display: 'flex', flexDirection: 'column', gap: 20,

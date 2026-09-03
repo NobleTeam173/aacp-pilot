@@ -145,7 +145,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
           boxShadow: `0 0 8px ${C.crimson}`,
         }} />
         <span style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-          {question.family}
+          Intelligence Challenge
         </span>
         <span style={{
           marginLeft: 'auto', color: C.greyD, fontSize: 11,

@@ -5,8 +5,12 @@ import { generateTotpSecret, verifyTotpToken } from './mfa';
 
 const ACCESS_TOKEN_EXPIRES_SECONDS = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRES_SECONDS = 7 * 24 * 60 * 60; // 7 days
-const ACCESS_TOKEN_SECRET = process.env.AACP_ACCESS_TOKEN_SECRET ?? 'aacp-access-secret';
-const REFRESH_TOKEN_SECRET = process.env.AACP_REFRESH_TOKEN_SECRET ?? 'aacp-refresh-secret';
+const _accessSecret = process.env.AACP_ACCESS_TOKEN_SECRET;
+if (!_accessSecret) throw new Error('AACP_ACCESS_TOKEN_SECRET environment variable is required');
+const ACCESS_TOKEN_SECRET: string = _accessSecret;
+const _refreshSecret = process.env.AACP_REFRESH_TOKEN_SECRET;
+if (!_refreshSecret) throw new Error('AACP_REFRESH_TOKEN_SECRET environment variable is required');
+const REFRESH_TOKEN_SECRET: string = _refreshSecret;
 const AUTH_TEST_MODE = process.env.AACP_AUTH_TEST_MODE === 'true';
 const MFA_ENFORCED_ROLES: Role[] = ['admin', 'coach'];
 

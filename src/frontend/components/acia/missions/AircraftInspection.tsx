@@ -100,7 +100,7 @@ export function AircraftInspection({ onComplete }: Props) {
         color: '#86efac',
         fontSize: 13,
       }}>
-        Tap each zone on the aircraft to inspect it. Report all findings before departure.
+        Tap each zone on the aircraft to inspect it. Report all findings before departure. A thorough walkaround covers every zone — you may submit once 8 or more zones are checked, but inspecting all zones produces a complete report.
       </div>
 
       <style>{`
@@ -282,7 +282,7 @@ export function AircraftInspection({ onComplete }: Props) {
           fontSize: 14,
         }}
       >
-        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Inspect at least 8 zones (${inspected.length}/8)` : 'Submit Inspection Report →'}
+        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Inspection Report → (${inspected.length}/${zones.length} zones checked)`}
       </button>
     </div>
   );
