@@ -7,6 +7,7 @@ import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
 import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
 import { PilotRegistrationForm } from './components/pilot/PilotRegistrationForm';
+import { ValidatorExperience } from './components/validator/ValidatorExperience';
 
 type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach';
 
@@ -873,6 +874,12 @@ export function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('youth');
   const [adminPendingCount, setAdminPendingCount] = useState(0);
+
+  // Validator experience — path-based routing /validate/:token
+  const validateMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
+  if (validateMatch) {
+    return <ValidatorExperience token={validateMatch[1]} />;
+  }
 
   // Password reset — token arrives as ?reset=<token> in the URL
   const resetToken = new URL(window.location.href).searchParams.get('reset');

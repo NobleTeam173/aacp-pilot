@@ -11851,7 +11851,13 @@ async function _routeRequest(request, env, ctx) {
     }
 
     // ── AACP External Validation — Public token-gated (no JWT) ───────────────
-    if (path.match(/^\/validate\/[^/]+$/) && request.method === 'GET')   return handleValidationWelcome(request, env);
+    if (path.match(/^\/validate\/[^/]+$/) && request.method === 'GET') {
+      const accept = request.headers.get('Accept') || '';
+      if (accept.includes('text/html')) {
+        return env.ASSETS.fetch(new Request(new URL('/app.html', request.url)));
+      }
+      return handleValidationWelcome(request, env);
+    }
     if (path.match(/^\/validate\/[^/]+\/start$/) && request.method === 'POST') return handleValidationStart(request, env);
     if (path.match(/^\/validate\/[^/]+\/submit$/) && request.method === 'POST') return handleValidationSubmit(request, env);
     // Phase 2B — Validator Experience Mode
