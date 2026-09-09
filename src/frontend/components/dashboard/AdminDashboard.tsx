@@ -1994,6 +1994,39 @@ const PILOT_STATUS_STYLES: Record<string, { label: string; color: string; bg: st
 };
 
 function PilotAccessPanel() {
+  const [pilotSubTab, setPilotSubTab] = useState<'pilot_testing' | 'external_validation'>('pilot_testing');
+
+  return (
+    <div>
+      {/* Sub-tab selector */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
+        {([
+          { key: 'pilot_testing', label: 'Pilot Testing' },
+          { key: 'external_validation', label: 'External Validation' },
+        ] as { key: 'pilot_testing' | 'external_validation'; label: string }[]).map(t => (
+          <button
+            key={t.key}
+            onClick={() => setPilotSubTab(t.key)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '9px 20px', fontSize: 13, fontWeight: 700,
+              color: pilotSubTab === t.key ? C.white : C.greyD,
+              borderBottom: `2px solid ${pilotSubTab === t.key ? C.crimson : 'transparent'}`,
+              marginBottom: -1, letterSpacing: 0.2,
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {pilotSubTab === 'pilot_testing' && <PilotTestingInner />}
+      {pilotSubTab === 'external_validation' && <ExternalValidationPanel />}
+    </div>
+  );
+}
+
+function PilotTestingInner() {
   const [invitations, setInvitations] = useState<PilotInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -2235,6 +2268,438 @@ function PilotAccessPanel() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── External Validation Panel ─────────────────────────────────────────────────
+
+interface ValidationSession {
+  id: string;
+  validator_name: string;
+  validator_org: string;
+  validator_email: string;
+  instrument: string;
+  aacp_version: string;
+  status: string;
+  experience_mode: string;
+  allow_real_ips: number;
+  allow_real_es: number;
+  invited_at: string;
+  started_at: string | null;
+  submitted_at: string | null;
+  expires_at: string;
+}
+
+const INSTRUMENTS: Record<string, {
+  perspective: string;
+  experienceMode: 'GUIDED' | 'STATIC';
+  provenance: string;
+  profile: string;
+  disclosureLevel: string;
+  estimatedTime: string;
+  captainAcia: boolean;
+  showIps: boolean;
+  showEs: boolean;
+}> = {
+  A: { perspective: 'AME Industry Professional', experienceMode: 'GUIDED', provenance: 'AME_AMT', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '25–35 min', captainAcia: true, showIps: true, showEs: false },
+  B: { perspective: 'Workforce Development Consultant', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Full cohort — 4 pathways, 13 participants', disclosureLevel: 'Level 2', estimatedTime: '20–30 min', captainAcia: true, showIps: false, showEs: false },
+  C: { perspective: 'Technical Recruiter / Talent Acquisition', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '20–28 min', captainAcia: true, showIps: false, showEs: false },
+  D: { perspective: 'Airport / Aviation Employer', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Full cohort — 4 pathways, 13 participants', disclosureLevel: 'Level 2', estimatedTime: '20–30 min', captainAcia: true, showIps: false, showEs: true },
+  E: { perspective: 'Technical Aviation Organisation', experienceMode: 'GUIDED', provenance: 'AME_AMT', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '25–35 min', captainAcia: true, showIps: true, showEs: false },
+  F: { perspective: 'Regulatory / Public Authority', experienceMode: 'STATIC', provenance: 'AME_AMT', profile: 'N/A — static regulatory review', disclosureLevel: 'Level 1', estimatedTime: '15–20 min', captainAcia: false, showIps: false, showEs: false },
+};
+
+const VSES_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  INVITED:    { label: 'Invited',    color: C.amber, bg: C.amberBg,  border: C.amberBorder },
+  IN_PROGRESS:{ label: 'In Progress',color: '#3b82f6', bg: '#1e3a5f', border: '#3b82f6' },
+  SUBMITTED:  { label: 'Submitted',  color: C.green, bg: C.greenBg,  border: C.greenBorder },
+  REVIEWED:   { label: 'Reviewed',   color: '#a78bfa', bg: '#2e1a5c', border: '#a78bfa' },
+  REVOKED:    { label: 'Revoked',    color: C.red,   bg: C.redBg,    border: C.redBorder },
+};
+
+function ExternalValidationPanel() {
+  const [sessions, setSessions] = useState<ValidationSession[]>([]);
+  const [sessLoading, setSessLoading] = useState(true);
+  const [sessError, setSessError] = useState<string | null>(null);
+
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', org: '', notes: '', instrument: '', allowIps: false, allowEs: false });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const [revokeId, setRevokeId] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const [detailSession, setDetailSession] = useState<null | { session: ValidationSession & { internal_notes?: string }; responses: { question_key: string; response_value: string }[]; disposition: null | { disposition: string; rationale: string; follow_up_notes: string | null } }>(null);
+  const [dispForm, setDispForm] = useState({ disposition: '', rationale: '', follow_up_notes: '', show: false });
+  const [savingDisp, setSavingDisp] = useState(false);
+
+  const loadSessions = useCallback(async () => {
+    setSessLoading(true); setSessError(null);
+    try {
+      const data = await apiFetch<{ sessions: ValidationSession[] }>('/admin/validation/sessions');
+      setSessions(data.sessions);
+    } catch (e) { setSessError((e as Error).message || 'Failed'); }
+    finally { setSessLoading(false); }
+  }, []);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  const cfg = form.instrument ? INSTRUMENTS[form.instrument] : null;
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.instrument) { setCreateError('Select a validation instrument.'); return; }
+    setCreating(true); setCreateError(null); setCreatedLink(null);
+    try {
+      const res = await apiFetch<{ id: string; token: string; expires_at: string }>('/admin/validation/sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          validator_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+          validator_org: form.org.trim() || undefined,
+          validator_email: form.email.trim().toLowerCase(),
+          instrument: form.instrument,
+          allow_real_ips: form.allowIps,
+          allow_real_es: form.allowEs,
+        }),
+      });
+      const origin = window.location.origin;
+      setCreatedLink(`${origin}/validate/${res.token}`);
+      setForm({ firstName: '', lastName: '', email: '', org: '', notes: '', instrument: '', allowIps: false, allowEs: false });
+      loadSessions();
+    } catch (e) { setCreateError((e as Error).message || 'Failed to create session'); }
+    finally { setCreating(false); }
+  }
+
+  async function handleRevoke(id: string) {
+    if (!confirm('Revoke this validation invitation?')) return;
+    setRevoking(true);
+    try {
+      await apiFetch(`/admin/validation/sessions/${id}/revoke`, { method: 'PUT', body: JSON.stringify({ reason: 'Revoked by administrator' }) });
+      setActionMsg('Session revoked.');
+      setRevokeId(null);
+      loadSessions();
+    } catch (e) { setActionMsg((e as Error).message || 'Failed'); }
+    finally { setRevoking(false); }
+  }
+
+  async function handleLoadDetail(id: string) {
+    try {
+      const d = await apiFetch<{ session: ValidationSession; responses: { question_key: string; response_value: string }[]; disposition: null | { disposition: string; rationale: string; follow_up_notes: string | null } }>(`/admin/validation/sessions/${id}`);
+      setDetailSession(d);
+      setDispForm({ disposition: d.disposition?.disposition ?? '', rationale: d.disposition?.rationale ?? '', follow_up_notes: d.disposition?.follow_up_notes ?? '', show: false });
+    } catch { setActionMsg('Failed to load session detail'); }
+  }
+
+  async function handleSaveDisposition() {
+    if (!detailSession) return;
+    setSavingDisp(true);
+    try {
+      await apiFetch(`/admin/validation/sessions/${detailSession.session.id}/disposition`, {
+        method: 'POST',
+        body: JSON.stringify({ disposition: dispForm.disposition, rationale: dispForm.rationale, follow_up_notes: dispForm.follow_up_notes || null }),
+      });
+      setActionMsg('Disposition recorded.');
+      setDispForm(f => ({ ...f, show: false }));
+      handleLoadDetail(detailSession.session.id);
+      loadSessions();
+    } catch (e) { setActionMsg((e as Error).message || 'Failed'); }
+    finally { setSavingDisp(false); }
+  }
+
+  function copyLink(link: string) {
+    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2200); });
+  }
+
+  const inputStyle: React.CSSProperties = { width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 13px', color: C.white, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+  const labelStyle: React.CSSProperties = { display: 'block', color: C.greyD, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 };
+  const DISPOSITIONS = ['UNDER_REVIEW', 'ACCEPTED', 'ACCEPTED_WITH_MODIFICATION', 'DEFERRED', 'REJECTED_WITH_RATIONALE'];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* Action feedback */}
+      {actionMsg && (
+        <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 10, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: C.green, fontSize: 13, fontWeight: 600 }}>{actionMsg}</span>
+          <button onClick={() => setActionMsg(null)} style={{ background: 'none', border: 'none', color: C.greyD, cursor: 'pointer', fontSize: 14 }}>×</button>
+        </div>
+      )}
+
+      {/* ── Create form ── */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
+        <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Generate Validation Invitation</div>
+        <div style={{ color: C.greyD, fontSize: 13, marginBottom: 20 }}>
+          Create a token-gated validation session. Noble pre-populates validator identity. No AACP account is created.
+        </div>
+
+        {createdLink && (
+          <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Invitation created — share this link with the validator:</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <code style={{ color: '#a7f3d0', fontSize: 12, wordBreak: 'break-all', flex: 1 }}>{createdLink}</code>
+              <button onClick={() => copyLink(createdLink)} style={{ background: copied ? C.green : C.border, color: C.white, border: 'none', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+            </div>
+            <div style={{ color: C.greyD, fontSize: 12, marginTop: 8 }}>This link will not be shown again. Copy it now.</div>
+          </div>
+        )}
+
+        <form onSubmit={handleCreate}>
+          {/* Validator identity */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div><label style={labelStyle}>First Name</label><input required value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Given name" style={inputStyle} /></div>
+            <div><label style={labelStyle}>Last Name</label><input required value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Family name" style={inputStyle} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div><label style={labelStyle}>Email Address</label><input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="validator@organization.com" style={inputStyle} /></div>
+            <div><label style={labelStyle}>Organization (optional)</label><input value={form.org} onChange={e => setForm(f => ({ ...f, org: e.target.value }))} placeholder="Company / authority" style={inputStyle} /></div>
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Internal Notes (optional)</label>
+            <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Context for this invitation — not visible to validator" style={inputStyle} />
+          </div>
+
+          {/* Instrument selection */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Validation Instrument</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {Object.entries(INSTRUMENTS).map(([key, ic]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: form.instrument === key ? '#1a0a0d' : C.bg, border: `1px solid ${form.instrument === key ? C.crimson : C.border}`, borderRadius: 10, cursor: 'pointer' }}>
+                  <input type="radio" name="instrument" value={key} checked={form.instrument === key} onChange={() => setForm(f => ({ ...f, instrument: key, allowIps: false, allowEs: false }))} style={{ marginTop: 2, accentColor: C.crimson }} />
+                  <div>
+                    <div style={{ color: C.white, fontWeight: 700, fontSize: 13 }}>Instrument {key} — {ic.perspective}</div>
+                    <div style={{ color: C.greyD, fontSize: 12, marginTop: 2 }}>
+                      {ic.experienceMode} · {ic.provenance} · {ic.disclosureLevel} · {ic.estimatedTime}
+                      {ic.captainAcia ? ' · Captain ACIA included' : ' · No Captain ACIA'}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Derived configuration display */}
+          {cfg && (
+            <div style={{ background: '#0a0d14', border: `1px solid #1e3a5f`, borderRadius: 12, padding: '16px 18px', marginBottom: 18 }}>
+              <div style={{ color: '#3b82f6', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Derived Configuration — Instrument {form.instrument}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {([
+                  ['Validation Perspective', cfg.perspective],
+                  ['Experience Mode', cfg.experienceMode],
+                  ['Pathway Provenance', cfg.provenance],
+                  ['Disclosure Level', cfg.disclosureLevel],
+                  ['Representative Profile', cfg.profile],
+                  ['Estimated Time', cfg.estimatedTime],
+                  ['Captain ACIA', cfg.captainAcia ? 'Included' : 'Not included'],
+                ] as [string, string][]).map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</div>
+                    <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Real signal authorization controls */}
+              {(cfg.showIps || cfg.showEs) && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid #1e3a5f` }}>
+                  <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Real Contribution Authorization</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {cfg.showIps && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={form.allowIps} onChange={e => setForm(f => ({ ...f, allowIps: e.target.checked }))} style={{ accentColor: C.crimson }} />
+                        <div>
+                          <span style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Allow Real Industry Professional Signal</span>
+                          <span style={{ color: C.red, fontSize: 11, fontWeight: 700, marginLeft: 8 }}>DEFAULT: OFF</span>
+                        </div>
+                      </label>
+                    )}
+                    {cfg.showEs && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={form.allowEs} onChange={e => setForm(f => ({ ...f, allowEs: e.target.checked }))} style={{ accentColor: C.crimson }} />
+                        <div>
+                          <span style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Allow Real Employer Signal</span>
+                          <span style={{ color: C.red, fontSize: 11, fontWeight: 700, marginLeft: 8 }}>DEFAULT: OFF</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {createError && (
+            <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+              <div style={{ color: '#fca5a5', fontSize: 13 }}>{createError}</div>
+            </div>
+          )}
+
+          <button type="submit" disabled={creating || !form.instrument} style={{
+            background: creating || !form.instrument ? '#4a1a20' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+            color: C.white, border: 'none', borderRadius: 10, padding: '11px 24px',
+            fontWeight: 700, fontSize: 13, cursor: creating || !form.instrument ? 'not-allowed' : 'pointer',
+            opacity: !form.instrument ? 0.6 : 1,
+          }}>
+            {creating ? 'Generating…' : 'Generate Validation Invitation →'}
+          </button>
+        </form>
+      </div>
+
+      {/* ── Sessions list ── */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>
+            Validation Sessions ({sessions.length})
+          </div>
+          <button onClick={loadSessions} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+        </div>
+
+        {sessLoading ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 32 }}>Loading…</div>
+        ) : sessError ? (
+          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, padding: '14px 16px', color: '#fca5a5', fontSize: 13 }}>{sessError}</div>
+        ) : sessions.length === 0 ? (
+          <div style={{ color: C.greyD, fontSize: 13, textAlign: 'center', padding: 32 }}>No validation sessions yet. Create the first one above.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sessions.map(s => {
+              const st = VSES_STATUS_STYLES[s.status] ?? VSES_STATUS_STYLES.INVITED;
+              const ic = INSTRUMENTS[s.instrument];
+              return (
+                <div key={s.id} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                        <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{s.validator_name}</span>
+                        <span style={{ background: st.bg, border: `1px solid ${st.border}`, color: st.color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase' }}>{st.label}</span>
+                        <span style={{ background: '#1a0a0d', border: `1px solid ${C.crimson}44`, color: C.crimson, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 3 }}>Instrument {s.instrument}</span>
+                        {s.experience_mode === 'STATIC' && <span style={{ background: '#1e293b', border: '1px solid #334155', color: C.greyD, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 3 }}>STATIC</span>}
+                        {s.allow_real_ips === 1 && <span style={{ background: '#1a2a10', border: '1px solid #4ade80', color: '#4ade80', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 3 }}>Real IPS Auth</span>}
+                        {s.allow_real_es === 1 && <span style={{ background: '#1a2a10', border: '1px solid #4ade80', color: '#4ade80', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 3 }}>Real ES Auth</span>}
+                      </div>
+                      <div style={{ color: C.greyD, fontSize: 12 }}>{s.validator_email}{s.validator_org ? ` · ${s.validator_org}` : ''}</div>
+                      {ic && <div style={{ color: C.grey, fontSize: 11, marginTop: 3 }}>{ic.perspective} · {ic.provenance} · {ic.disclosureLevel}</div>}
+                      <div style={{ color: C.greyD, fontSize: 11, marginTop: 4 }}>
+                        Invited: {new Date(s.invited_at).toLocaleDateString('en-CA')}
+                        {s.started_at ? ` · Started: ${new Date(s.started_at).toLocaleDateString('en-CA')}` : ''}
+                        {s.submitted_at ? ` · Submitted: ${new Date(s.submitted_at).toLocaleDateString('en-CA')}` : ''}
+                        {' · Expires: '}{new Date(s.expires_at).toLocaleDateString('en-CA')}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+                      <button onClick={() => handleLoadDetail(s.id)} style={{ background: C.border, color: C.white, border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View</button>
+                      {s.status !== 'SUBMITTED' && s.status !== 'REVOKED' && s.status !== 'REVIEWED' && (
+                        <button onClick={() => handleRevoke(s.id)} disabled={revoking && revokeId === s.id} style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, color: '#fca5a5', borderRadius: 7, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Revoke</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Session detail drawer ── */}
+      {detailSession && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, padding: '40px 20px', overflowY: 'auto' }}>
+          <div style={{ background: '#0d0509', border: `1px solid ${C.border}`, borderRadius: 16, padding: '28px', width: '100%', maxWidth: 680 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Validation Session</div>
+                <div style={{ color: C.white, fontSize: 17, fontWeight: 700, marginTop: 4 }}>{detailSession.session.validator_name}</div>
+                <div style={{ color: C.greyD, fontSize: 13 }}>Instrument {detailSession.session.instrument} · {INSTRUMENTS[detailSession.session.instrument]?.perspective}</div>
+              </div>
+              <button onClick={() => setDetailSession(null)} style={{ background: 'none', border: 'none', color: C.greyD, fontSize: 20, cursor: 'pointer' }}>×</button>
+            </div>
+
+            {/* Session meta */}
+            <div style={{ background: C.bg, borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {([
+                ['Status', VSES_STATUS_STYLES[detailSession.session.status]?.label ?? detailSession.session.status],
+                ['Experience Mode', detailSession.session.experience_mode],
+                ['Provenance', INSTRUMENTS[detailSession.session.instrument]?.provenance ?? '—'],
+                ['Disclosure', INSTRUMENTS[detailSession.session.instrument]?.disclosureLevel ?? '—'],
+                ['Real IPS Authorized', detailSession.session.allow_real_ips ? 'YES' : 'NO'],
+                ['Real ES Authorized', detailSession.session.allow_real_es ? 'YES' : 'NO'],
+                ['Email', detailSession.session.validator_email],
+                ['Organization', detailSession.session.validator_org || '—'],
+                ['Expires', new Date(detailSession.session.expires_at).toLocaleString('en-CA')],
+              ] as [string, string][]).map(([k, v]) => (
+                <div key={k}>
+                  <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{k}</div>
+                  <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Responses */}
+            {detailSession.responses.length > 0 && (
+              <div style={{ background: C.bg, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ color: C.greyD, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Validation Responses ({detailSession.responses.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflowY: 'auto' }}>
+                  {detailSession.responses.map(r => (
+                    <div key={r.question_key} style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
+                      <div style={{ color: C.greyD, fontSize: 11, fontWeight: 700, marginBottom: 3 }}>{r.question_key}</div>
+                      <div style={{ color: C.white, fontSize: 13 }}>{r.response_value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Disposition */}
+            {detailSession.disposition && !dispForm.show && (
+              <div style={{ background: '#0e1a0e', border: '1px solid #1e3a1e', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+                <div style={{ color: '#4ade80', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Disposition Recorded</div>
+                <div style={{ color: C.white, fontSize: 14, fontWeight: 700 }}>{detailSession.disposition.disposition}</div>
+                <div style={{ color: C.greyD, fontSize: 13, marginTop: 4 }}>{detailSession.disposition.rationale}</div>
+                {detailSession.disposition.follow_up_notes && <div style={{ color: C.grey, fontSize: 12, marginTop: 4 }}>Follow-up: {detailSession.disposition.follow_up_notes}</div>}
+              </div>
+            )}
+
+            {/* Record disposition form */}
+            {detailSession.session.status === 'SUBMITTED' && !dispForm.show && (
+              <button onClick={() => setDispForm(f => ({ ...f, show: true }))} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginBottom: 12 }}>
+                Record Disposition
+              </button>
+            )}
+            {dispForm.show && (
+              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px', marginBottom: 14 }}>
+                <div style={{ color: C.greyD, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Record Disposition</div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ color: C.greyD, fontSize: 11, display: 'block', marginBottom: 5 }}>Disposition</label>
+                  <select value={dispForm.disposition} onChange={e => setDispForm(f => ({ ...f, disposition: e.target.value }))} style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, color: C.white, padding: '8px 10px', borderRadius: 7, fontSize: 13 }}>
+                    <option value="">Select…</option>
+                    {DISPOSITIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ color: C.greyD, fontSize: 11, display: 'block', marginBottom: 5 }}>Rationale (required)</label>
+                  <textarea value={dispForm.rationale} onChange={e => setDispForm(f => ({ ...f, rationale: e.target.value }))} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: C.bg, border: `1px solid ${C.border}`, color: C.white, padding: '8px 10px', borderRadius: 7, fontSize: 13, resize: 'vertical' }} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ color: C.greyD, fontSize: 11, display: 'block', marginBottom: 5 }}>Follow-up Notes (optional)</label>
+                  <textarea value={dispForm.follow_up_notes} onChange={e => setDispForm(f => ({ ...f, follow_up_notes: e.target.value }))} rows={2} style={{ width: '100%', boxSizing: 'border-box', background: C.bg, border: `1px solid ${C.border}`, color: C.white, padding: '8px 10px', borderRadius: 7, fontSize: 13, resize: 'vertical' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={handleSaveDisposition} disabled={savingDisp || !dispForm.disposition || !dispForm.rationale} style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    {savingDisp ? 'Saving…' : 'Save Disposition'}
+                  </button>
+                  <button onClick={() => setDispForm(f => ({ ...f, show: false }))} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 7, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setDetailSession(null)} style={{ background: C.border, color: C.greyD, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, cursor: 'pointer' }}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

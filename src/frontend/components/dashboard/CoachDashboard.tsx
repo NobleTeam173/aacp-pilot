@@ -749,7 +749,9 @@ function ParticipantProfile({
               {p.aciaStatus === 'not_started'
                 ? 'ACIA has not been started. Competency evidence will appear here once the participant completes the Career Discovery Flight.'
                 : p.aciaStatus === 'completed'
-                ? 'Assessment completed. Competency evidence was not captured during this session and is unavailable.'
+                ? (p.careerAlignments && p.careerAlignments.length > 0
+                  ? 'Structured competency evidence was not recorded for this assessment. Career pathway alignment is available in the section below.'
+                  : 'Structured competency evidence was not recorded for this assessment.')
                 : 'Assessment is in progress. Competency evidence will appear here once complete.'}
             </p>
           ) : (
@@ -792,7 +794,10 @@ function ParticipantProfile({
             background: T.bg, borderRadius: 8, border: `1px solid ${T.border}`,
             padding: '10px 14px', lineHeight: 1.6,
           }}>
-            These represent potential career alignment based on competency evidence observed through ACIA. Use this as a starting point for career conversation — not as a definitive recommendation. The participant's interests, values, and circumstances are essential to any career exploration.
+            {(!p.competencies || p.competencies.length === 0)
+              ? 'These represent potential career alignment recorded through ACIA. Use this as a starting point for career exploration — not as a definitive recommendation. The participant\'s interests, values, and circumstances remain essential to any career discussion.'
+              : 'These represent potential career alignment based on competency evidence observed through ACIA. Use this as a starting point for career conversation — not as a definitive recommendation. The participant\'s interests, values, and circumstances are essential to any career exploration.'
+            }
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
             {p.careerAlignments.map(ca => {
