@@ -5,9 +5,15 @@
 // ── Config ──────────────────────────────────────────────────────────────────
 const ACCESS_EXPIRES_SEC  = 15 * 60;
 const REFRESH_EXPIRES_SEC = 7 * 24 * 60 * 60;
-const PBKDF2_ITERATIONS        = 600000;
+// Cloudflare Workers executes PBKDF2 via crypto.subtle (native BoringSSL) but
+// the derivation still counts against the Worker's CPU budget. 600,000 iterations
+// reliably exceeds the budget and causes a DOMException (caught as 500).
+// 100,000 iterations complete within the budget and remain well above the
+// pre-hardening baseline (10,000). The legacy threshold is lowered to 10,000 so
+// only pre-hardening accounts trigger a transparent re-hash on next login.
+const PBKDF2_ITERATIONS        = 100000;
 // Legacy hashes encoded an iteration count below this threshold; they are rehashed on successful login.
-const PBKDF2_LEGACY_THRESHOLD  = 100000;
+const PBKDF2_LEGACY_THRESHOLD  = 10000;
 
 // Captain ACIA — server-controlled system prompt; client-supplied systemPrompt is NEVER accepted.
 const CAPTAIN_ACIA_SYSTEM_PROMPT = `You are Captain ACIA, AACP's aviation and aerospace career mentor. You guide participants through aviation career exploration, helping them understand pathways, competencies, and opportunities in Canada's aviation and aerospace industry. You draw on knowledge of pilot licensing, ATC, aircraft maintenance, aerospace engineering, airport operations, and adjacent careers. You are encouraging, knowledgeable, and focused on helping participants discover their best-fit career path within aviation and aerospace. You do not provide legal, financial, or medical advice. Keep all responses focused on aviation and aerospace career guidance.`;
