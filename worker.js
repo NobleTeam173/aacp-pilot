@@ -2794,6 +2794,7 @@ async function handleLogin(request, env) {
 
   if (user.status === 'pending') return err('Your account is pending administrator approval. You will be notified when access is granted.', 403);
   if (user.status === 'rejected') return err('Your registration was not approved. Please contact AACP for more information.', 403);
+  if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Your pilot access has been revoked. Please contact AACP if you have questions.', 403);
 
   // Password change required before proceeding — return a signal (no tokens yet)
   if (user.passwordChangeRequired) {
@@ -2858,6 +2859,7 @@ async function handleRefresh(request, env) {
 
   const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(payload.sub).first());
   if (!user) return err('User not found', 401);
+  if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Pilot access revoked', 403);
 
   const accessSecret   = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
   const refreshSecret2 = requireSecret(env, 'AACP_REFRESH_TOKEN_SECRET');
@@ -5677,6 +5679,9 @@ async function handleProgramEnroll(request, user, env) {
   ).run();
   await audit(env.DB, 'program_enrolled', user.sub, 'program', { targetUserId: body.userId, programVersion: '1.0', startDate });
 
+  // Sync waitlist record so participant dashboard does not stay stuck showing "waitlist" state.
+  await env.DB.prepare(`UPDATE program_waitlist SET status = 'enrolled' WHERE user_id = ?`).bind(body.userId).run().catch(() => {});
+
   // ── ACIA-before-enrollment reconciliation ─────────────────────────────────
   // If the participant completed their Baseline ACIA before enrollment existed,
   // the ACIA→Program bridge returned 'no_active_enrollment' at commit time.
@@ -6161,7 +6166,9 @@ async function handleProgramStatus(request, user, env) {
 
   // program_waitlist schema is now canonical in runMigrations() — no inline CREATE needed.
   const wl = await env.DB.prepare('SELECT id, status FROM program_waitlist WHERE user_id = ?').bind(user.sub).first().catch(() => null);
-  const onWaitlist = !!wl;
+  // If the participant has an active enrollment, they are no longer "on waitlist" from their perspective —
+  // even if the waitlist row still exists (e.g. was not updated by an older enroll path).
+  const onWaitlist = !!wl && !enrollment && wl.status !== 'enrolled';
   const waitlistStatus = wl?.status ?? null;
 
   return json({ enrollment, onWaitlist, waitlistStatus });
@@ -6211,6 +6218,8 @@ async function handleProgramWaitlistGet(request, user, env) {
     FROM program_waitlist pw
     JOIN users u ON pw.user_id = u.id
     LEFT JOIN acia_assessments a ON pw.assessment_id = a.id
+    LEFT JOIN program_enrollments pe ON pe.user_id = pw.user_id AND pe.status = 'active'
+    WHERE pw.status != 'enrolled' AND pe.user_id IS NULL
     ORDER BY pw.waitlisted_at ASC
   `).all();
 
@@ -10505,6 +10514,86 @@ async function handleDeactivatePilotAccount(request, user, env) {
   return json({ success: true, message: `Pilot account for ${target.name} deactivated.` });
 }
 
+// GET /pilot/accounts — list accepted pilot tester accounts with access/feedback status
+async function handleListPilotAccounts(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+
+  // All accepted pilot invitations joined to user accounts
+  const { results } = await env.DB.prepare(`
+    SELECT
+      u.id, u.name, u.email, u.role, u.status AS user_status,
+      u.organization_name, u.pilot_account, u.pilot_cohort, u.pilot_status,
+      u.last_activity_at, u.created_at AS user_created_at,
+      pi.id AS invitation_id, pi.invited_first_name, pi.invited_last_name,
+      pi.invited_organization, pi.pilot_role, pi.cohort_name, pi.accepted_at,
+      pi.created_at AS invitation_created_at,
+      pf.submitted_at AS feedback_submitted_at,
+      aa.completed_at AS acia_completed_at
+    FROM pilot_invitations pi
+    JOIN users u ON u.invitation_id = pi.id
+    LEFT JOIN pilot_feedback pf ON pf.user_id = u.id
+    LEFT JOIN acia_assessments aa ON aa.user_id = u.id AND aa.status = 'complete'
+    WHERE pi.accepted_at IS NOT NULL
+    GROUP BY u.id
+    ORDER BY pi.accepted_at DESC
+  `).all();
+
+  const accounts = results.map(r => ({
+    userId: r.id,
+    name: r.name,
+    email: r.email,
+    role: r.role,
+    organization: r.organization_name ?? r.invited_organization ?? null,
+    pilotRole: r.pilot_role,
+    cohortName: r.cohort_name ?? r.pilot_cohort ?? null,
+    invitationId: r.invitation_id,
+    invitationStatus: 'accepted',
+    acceptedAt: r.accepted_at,
+    accessStatus: r.pilot_status ?? 'active',   // 'active' | 'revoked' | 'deactivated'
+    feedbackSubmitted: !!r.feedback_submitted_at,
+    feedbackSubmittedAt: r.feedback_submitted_at ?? null,
+    aciaCompleted: !!r.acia_completed_at,
+    lastActivityAt: r.last_activity_at ?? null,
+  }));
+
+  return json({ accounts, total: accounts.length });
+}
+
+// PUT /pilot/accounts/:id/revoke — revoke platform access for an accepted pilot tester
+async function handleRevokePilotAccess(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const id = new URL(request.url).pathname.split('/')[3];
+  if (!id) return err('User ID required', 400);
+  const target = await env.DB.prepare('SELECT id, name, email, pilot_account, pilot_status FROM users WHERE id = ?').bind(id).first();
+  if (!target) return err('User not found', 404);
+  if (!target.pilot_account) return err('This is not a pilot account', 400);
+  if (target.pilot_status === 'revoked') return err('Access already revoked', 409);
+  const body = await request.json().catch(() => ({}));
+  const reason = body?.reason?.trim() ?? null;
+  const now = new Date().toISOString();
+  // Set pilot_status = 'revoked'. Do NOT change users.status — preserve the account record accurately.
+  await env.DB.prepare('UPDATE users SET pilot_status = ?, updated_at = ? WHERE id = ?').bind('revoked', now, id).run();
+  // Invalidate all active refresh tokens so existing sessions die immediately.
+  await env.DB.prepare('UPDATE refresh_tokens SET revoked = 1 WHERE user_id = ?').bind(id).run();
+  await audit(env.DB, 'pilot_access_revoked', user.sub, 'user', { targetUserId: id, email: target.email, reason });
+  return json({ success: true, message: `Pilot access revoked for ${target.name}.` });
+}
+
+// PUT /pilot/accounts/:id/restore — restore access for a revoked pilot tester
+async function handleRestorePilotAccess(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const id = new URL(request.url).pathname.split('/')[3];
+  if (!id) return err('User ID required', 400);
+  const target = await env.DB.prepare('SELECT id, name, email, pilot_account, pilot_status FROM users WHERE id = ?').bind(id).first();
+  if (!target) return err('User not found', 404);
+  if (!target.pilot_account) return err('This is not a pilot account', 400);
+  if (target.pilot_status !== 'revoked') return err('Access is not revoked', 409);
+  const now = new Date().toISOString();
+  await env.DB.prepare('UPDATE users SET pilot_status = ?, updated_at = ? WHERE id = ?').bind('active', now, id).run();
+  await audit(env.DB, 'pilot_access_restored', user.sub, 'user', { targetUserId: id, email: target.email });
+  return json({ success: true, message: `Pilot access restored for ${target.name}.` });
+}
+
 async function handlePilotFeedback(request, user, env) {
   const guard = requireAuth(user); if (guard) return guard;
   // Verify user is a pilot account
@@ -10773,7 +10862,7 @@ const VALIDATOR_SANDBOX_PROFILES = {
     education: 'B.Sc. Physics, University of Manitoba, 2020',
     work_history: 'Data Analyst, telecommunications sector, 3 years. No prior aviation experience.',
     background_type: 'STEM graduate / cross-industry career explorer',
-    aacp_status: 'Career direction established — ATC pathway. Aptitude profile review underway.',
+    aacp_status: 'Career direction established — Air Traffic Control. Baseline ACIA completed. Accepted into the AACP 8-Week Workforce Readiness Program.',
     career_direction: 'Air Traffic Control',
     career_direction_narrative: "Marcus's analytical approach to complex systems and his comfort with structured, rule-bound environments are consistent with the demands of ATC work. His interest in ATC is driven by values — specifically the combination of precision, consequence, and collaborative safety — rather than prior aviation familiarity. No direct aviation experience at point of assessment.",
     capability_indicators: [
@@ -10791,7 +10880,7 @@ const VALIDATOR_SANDBOX_PROFILES = {
     ],
     handoff_status: null,
     transition_status: null,
-    realistic_note: 'Career direction established — aptitude review underway. Marcus has had no exposure to aviation and is still in early exploration of what the ATC pathway practically requires.'
+    realistic_note: 'Career direction established — Air Traffic Control. Marcus is currently in the AACP 8-Week Workforce Readiness Program. He has had no prior aviation exposure; AACP prepares him for the transition to the ATC selection pathway, which is managed externally.'
   },
   PILOT: {
     id: 'sandbox-pilot-amara-osei',
@@ -10913,38 +11002,127 @@ const VALIDATOR_PROVENANCE = {
   C: 'CROSS_PATHWAY',  // Technical recruiter assessing recruitment-stage usefulness (all questions)
   D: 'CROSS_PATHWAY',  // Employer assessing workforce-intelligence usefulness (all questions)
   E: 'AME_AMT',        // Technical org assessing AME & AMT technical relevance
-  F: 'AME_AMT'         // Regulatory reviewer assessing AME pathway accuracy
+  F: 'CROSS_PATHWAY'   // Regulatory/public-authority reviewer assessing AACP at platform level across pathways
 };
 
 // Captain ACIA sandbox — suggested prompts by instrument type
+// Participant-facing discovery prompts — demonstrated from the fictional participant's perspective
 const CAPTAIN_ACIA_SANDBOX_PROMPTS = {
   A: [
-    "Help me understand what AACP explores when someone is investigating the AME & AMT pathway.",
-    "What does AACP identify about someone like Jordan — a technician from outside aviation looking at AME work?",
-    "What does AACP say about how someone from a related technical background might approach AME training?"
+    "I've been working in industrial maintenance for several years. I'm interested in aircraft maintenance — where do I start?",
+    "What does my reliability engineering background tell you about the AME pathway?",
+    "I know AME licensing is a multi-year process. Can you help me understand what preparation makes sense now?"
   ],
   B: [
-    "How does AACP help a participant understand which aviation and aerospace pathways they should investigate?",
-    "What does AACP help a participant understand about themselves before they commit to a specific aviation pathway?",
-    "What does AACP produce at the end of someone's career-exploration process?"
+    "I'm interested in aviation but I'm not sure which area makes sense for me. Can you help me think through it?",
+    "What should I be asking myself at this stage of exploring aviation careers?",
+    "I have a technical background — can you help me understand which aviation pathways might be worth investigating?"
   ],
   C: [
-    "What does AACP tell a recruiter about a participant at the point of handoff?",
-    "Help me understand what AACP intelligence adds about Jordan beyond what's in a CV or résumé.",
-    "What does AACP explicitly not claim about a participant's technical readiness or training suitability?"
+    "I'm a technical professional thinking about a move into aviation. What can AACP help me understand about myself?",
+    "Can you help me understand what my industrial maintenance background might offer in an aviation context?",
+    "What questions should I still be investigating before I'm ready for any kind of next step?"
   ],
   D: [
-    "What does AACP tell an employer about a participant at the point of handoff?",
-    "How might AACP help an aviation employer understand what someone is looking for in a career — before any formal application?",
-    "What workforce-intelligence outputs does AACP produce, and what does it explicitly not establish?"
+    "I'm exploring aviation and aerospace career areas but I'm not sure where to focus. Can you help?",
+    "What can AACP tell me about myself that would help me understand where I might fit in aviation?",
+    "I'm not sure whether I'm better suited to technical or operational roles. How does exploring this work?"
   ],
   E: [
-    "What distinction does AACP draw between pre-entry career indicators and the capability developed through technical training?",
-    "What does AACP identify about someone approaching a technical aviation career — and what does it leave to training and workplace performance?",
-    "Help me understand how AACP describes the AME & AMT pathway to someone who is still exploring it."
+    "I have a background in industrial reliability engineering. What does that tell you about my readiness to explore the AME pathway?",
+    "Can you help me understand what I already bring versus what AME training and licensing would develop?",
+    "What are the most important things I should investigate before committing to the AME pathway?"
   ],
   F: [] // No Captain ACIA for Instrument F
 };
+
+// Pre-authored contextual Captain ACIA responses — grounded in the fictional participant profiles.
+// These are Noble-authored representative responses demonstrating career intelligence.
+// Each instrument maps to 2–3 response variants; the handler selects by keyword match then falls back to default.
+const CAPTAIN_ACIA_SANDBOX_RESPONSES = {
+  // Instruments A, C, E — Jordan Morrow context (AME/AMT pathway)
+  AME_AMT_DISCOVERY: `Good — and before I say anything about the AME pathway, I want to understand your situation more specifically.
+
+You mentioned industrial maintenance experience. The discipline, environment, and regulatory culture of your current work will shape what transfers and what doesn't — and I want to give you an honest picture rather than a generic one.
+
+A few things help me calibrate what's actually worth discussing: What kind of maintenance work have you been doing — mechanical, electrical, instrumentation, or mixed? And what draws you toward aviation maintenance in particular rather than staying in industrial settings?
+
+I ask because AME is a regulated, licensed trade. The pathway involves an approved training programme, category-specific examinations, and supervised workplace hours — requirements that don't get shortcut by prior experience, even strong prior experience. What you bring already matters for understanding the development picture. But it matters to understand it clearly, not optimistically.`,
+
+  AME_AMT_BACKGROUND: `Based on what you've described — a background in reliability engineering and industrial maintenance — let me be direct about what I can offer and what I can't.
+
+What your background likely contributes: a systematic, procedurally grounded approach to technical problem-solving is consistent with what AME work demands. Comfort with regulated, safety-critical environments and documentation discipline — these are real, observable foundations.
+
+What I can't tell you: whether your background translates into AME competence in the category-specific technical domains — structures, avionics, propulsion. Those require approved training and licensing processes that are outside AACP's scope to assess or guarantee.
+
+The honest position is: your background suggests this pathway is worth seriously investigating. That's meaningful — not everyone arrives at this kind of exploration with a compatible starting point. But investigating seriously means understanding the real requirements: the programme options, the timelines, the financial reality, and the category of AME work that actually interests you.
+
+What's still unclear for you at this stage?`,
+
+  AME_AMT_PATHWAY: `The AME pathway is worth understanding clearly — both what it involves and what stage you're actually at.
+
+Licensing is category-specific. M1 covers structures and mechanical systems, M2 covers avionics and electrical systems — different training profiles, different workplaces, different entry points. The path to a licence involves an approved training programme, supervised workplace hours in the relevant category, and Transport Canada licensing examinations. It's a multi-year commitment regardless of prior technical experience.
+
+What preparation makes sense now: getting clarity on which category interests you and why; understanding the approved training programme options and what they require; getting realistic about the financial and geographic dimensions; and, where possible, gaining some direct exposure to aviation maintenance environments before you commit to anything.
+
+AACP's role here is to help you understand your starting point — what you bring, what gaps exist, and what questions are still worth investigating. It doesn't determine whether you're ready for training or whether a programme will accept you. Those decisions belong to the training institutions and the regulatory process.
+
+What aspect of the pathway do you want to understand better?`,
+
+  // Instruments B, D — cross-pathway discovery
+  CROSS_DISCOVERY: `Before we look at which aviation and aerospace areas might be worth investigating, I want to understand your context more specifically — because the right answer is different for everyone.
+
+Aviation and aerospace covers genuinely different worlds: Air Traffic Control involves a structured regulatory pathway and specific selection requirements; pilot pathways involve training, medical requirements, and licensing tiers; aircraft maintenance involves licensed trades and technical qualifications; STEM and engineering roles vary enormously in entry profile and setting.
+
+The relevant question isn't which looks most interesting in the abstract. It's which are worth seriously investigating given your specific background, interests, and circumstances.
+
+So: what does your professional background look like? Not just credentials — the kind of work you've actually been doing and the environments you've found yourself effective in. And what brings you to aviation specifically?`,
+
+  CROSS_PATHWAY: `Based on what you've shared, let me offer some direction — and be clear that these are directions worth investigating, not conclusions about where you belong.
+
+For someone with an analytical or technical background and interest in how aviation systems operate, a few areas are worth taking seriously: Air Traffic Control, if you're drawn to precision-oriented, consequence-laden operational work and willing to investigate the regulated selection pathway; STEM and engineering roles in aviation operations, airspace management, or aerospace — which draw on technical foundations and vary considerably in their entry requirements.
+
+What I'd want you to hold clearly: identifying an area worth investigating is different from knowing it's the right direction. That takes more — direct industry exposure, realistic information about the actual pathway requirements, and honest reflection on what you're prepared to commit to.
+
+What's your current level of knowledge about any of these areas? And is there anything you already know — either drawn to or ruled out?`,
+
+  // General / fallback
+  GENERAL: `Good question — and I want to give you a useful answer rather than a generic one, which means understanding your context a bit better first.
+
+A few things would help me: what does your professional background look like, broadly — the kind of work you've been doing and the environments you've operated in? And what draws you to aviation or aerospace — is this a longstanding interest, something that's emerged from your work, or are you genuinely open and exploring at this stage?
+
+The reason I'm asking before offering any direction: aviation and aerospace covers a wide range of very different careers, and the relevant starting point depends heavily on who you are and where you're coming from. What can you tell me?`
+};
+
+// Select the most appropriate pre-authored response for a given instrument and message
+function _captainSandboxReply(instrument, message) {
+  const msg = (message || '').toLowerCase();
+
+  if (instrument === 'A' || instrument === 'C' || instrument === 'E') {
+    if (msg.includes('start') || msg.includes('where') || msg.includes('industrial') || msg.includes('maintenance') || msg.includes('working in')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.AME_AMT_DISCOVERY;
+    }
+    if (msg.includes('background') || msg.includes('reliability') || msg.includes('brings') || msg.includes('offer') || msg.includes('tell you')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.AME_AMT_BACKGROUND;
+    }
+    if (msg.includes('pathway') || msg.includes('preparation') || msg.includes('multi-year') || msg.includes('process') || msg.includes('licensing') || msg.includes('readiness') || msg.includes('distinguish') || msg.includes('training')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.AME_AMT_PATHWAY;
+    }
+    return CAPTAIN_ACIA_SANDBOX_RESPONSES.AME_AMT_BACKGROUND;
+  }
+
+  if (instrument === 'B' || instrument === 'D') {
+    if (msg.includes('not sure') || msg.includes('which area') || msg.includes('where') || msg.includes('focus') || msg.includes('explore') || msg.includes('technical or') || msg.includes('fit')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.CROSS_DISCOVERY;
+    }
+    if (msg.includes('pathway') || msg.includes('technical background') || msg.includes('operational') || msg.includes('tell me') || msg.includes('asking')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.CROSS_PATHWAY;
+    }
+    return CAPTAIN_ACIA_SANDBOX_RESPONSES.CROSS_DISCOVERY;
+  }
+
+  return CAPTAIN_ACIA_SANDBOX_RESPONSES.GENERAL;
+}
 
 // ── Captain ACIA Validator Sandbox System Instruction ─────────────────────────
 // SERVER-CONTROLLED. Never exposed to or overridable by validator input.
@@ -11347,7 +11525,7 @@ async function handleValidationExperience(request, env) {
     // Captain ACIA sandbox context — prompts for this instrument type
     captain_acia: instrument === 'F' ? null : {
       sandbox_mode: true,
-      fictional_participant: primaryProfile ? primaryProfile.name : 'Jordan Morrow',
+      fictional_participant: primaryProfile ? primaryProfile.name : (instrument === 'B' || instrument === 'D') ? 'Priya Nair' : 'Jordan Morrow',
       suggested_prompts: captainPrompts,
       sandbox_notice: 'You are interacting with Captain ACIA in Validator Experience Mode. This conversation uses a fictional participant profile. No production records, competency evidence, or career direction will be created.'
     }
@@ -11402,31 +11580,26 @@ async function handleValidationCaptainSandbox(request, env) {
     aacp_does_not_establish: profile.aacp_does_not_establish || []
   };
 
-  // The server-controlled system instruction is combined with the fictional context
-  // before being sent to the Captain ACIA AI layer. The instruction text is NEVER
-  // returned to the validator and NEVER modifiable by validator input.
-  //
-  // If env.AI is bound, this endpoint would proxy the message through Captain ACIA
-  // using CAPTAIN_ACIA_VALIDATOR_SANDBOX_SYSTEM_INSTRUCTION + fictionalContext as
-  // the system turn. For the local dev environment, return the structured sandbox context.
-  const sandboxSystemInstruction = CAPTAIN_ACIA_VALIDATOR_SANDBOX_SYSTEM_INSTRUCTION;
+  // Select the appropriate pre-authored contextual response for this instrument and message.
+  // Responses are Noble-authored representative career-intelligence demonstrations grounded
+  // in the approved fictional participant context. The reply field is always populated.
+  const reply = _captainSandboxReply(session.instrument, body.message);
 
   return json({
     sandbox_mode: true,
-    system_instruction_source: 'SERVER_CONTROLLED',  // instruction is server-side — never returned raw
-    system_instruction_override_accepted: false,       // validator input cannot override instruction
+    reply,  // substantive career-intelligence response — always present
+    system_instruction_source: 'SERVER_CONTROLLED',
+    system_instruction_override_accepted: false,
     fictional_participant_context: fictionalContext,
     real_participant_lookup_performed: false,
     sandbox_notice: 'You are interacting with Captain ACIA in Validator Experience Mode. This conversation uses a fictional participant profile. No production records, competency evidence, or career direction will be created.',
-    // All write paths explicitly blocked — enforced at handler level (no DB writes to production tables)
     evidence_writes_blocked: true,
     career_direction_writes_blocked: true,
     signal_writes_blocked: true,
     coaching_records_blocked: true,
     handoff_outcome_writes_blocked: true,
     production_analytics_writes_blocked: true,
-    // Instruction word count returned for audit only — raw instruction never returned
-    system_instruction_word_count: sandboxSystemInstruction.split(/\s+/).length,
+    system_instruction_word_count: CAPTAIN_ACIA_VALIDATOR_SANDBOX_SYSTEM_INSTRUCTION.split(/\s+/).length,
     implementation_status: 'IMPLEMENTED'
   });
 }
@@ -11724,6 +11897,9 @@ async function _routeRequest(request, env, ctx) {
     if (path.startsWith('/pilot/invitations/') && path.endsWith('/revoke')      && request.method === 'PUT')  return handleRevokePilotInvitation(request, user, env);
     if (path.startsWith('/pilot/invitations/') && path.endsWith('/extend')      && request.method === 'PUT')  return handleExtendPilotInvitation(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/deactivate')  && request.method === 'PUT')  return handleDeactivatePilotAccount(request, user, env);
+    if (path === '/pilot/accounts'                                              && request.method === 'GET')  return handleListPilotAccounts(request, user, env);
+    if (path.startsWith('/pilot/accounts/')    && path.endsWith('/revoke')     && request.method === 'PUT')  return handleRevokePilotAccess(request, user, env);
+    if (path.startsWith('/pilot/accounts/')    && path.endsWith('/restore')    && request.method === 'PUT')  return handleRestorePilotAccess(request, user, env);
     if (path === '/advisor/feedback'                                            && request.method === 'POST') return handleAdvisorFeedback(request, user, env);
     if (path === '/pilot/feedback'                                              && request.method === 'POST') return handlePilotFeedback(request, user, env);
     if (path === '/pilot/feedback'                                              && request.method === 'GET')  return handleListPilotFeedback(request, user, env);
@@ -11854,7 +12030,9 @@ async function _routeRequest(request, env, ctx) {
     if (path.match(/^\/validate\/[^/]+$/) && request.method === 'GET') {
       const accept = request.headers.get('Accept') || '';
       if (accept.includes('text/html')) {
-        return env.ASSETS.fetch(new Request(new URL('/app.html', request.url)));
+        // Browser request — redirect to SPA with token as query param (same pattern as ?reset=, ?pilot=, ?invite=)
+        const validatorToken = path.split('/')[2];
+        return Response.redirect(new URL(`/app.html?validate=${validatorToken}`, request.url).toString(), 302);
       }
       return handleValidationWelcome(request, env);
     }

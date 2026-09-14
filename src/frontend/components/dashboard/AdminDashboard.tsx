@@ -1969,6 +1969,24 @@ function CoachInvitationsPanel() {
 
 // â”€â”€ Pilot Access Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+interface PilotAccount {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  organization: string | null;
+  pilotRole: string;
+  cohortName: string | null;
+  invitationId: string;
+  invitationStatus: 'accepted';
+  acceptedAt: string | null;
+  accessStatus: 'active' | 'revoked' | 'deactivated';
+  feedbackSubmitted: boolean;
+  feedbackSubmittedAt: string | null;
+  aciaCompleted: boolean;
+  lastActivityAt: string | null;
+}
+
 interface PilotInvitation {
   id: string;
   email: string;
@@ -2026,9 +2044,13 @@ function PilotAccessPanel() {
   );
 }
 
+type PilotAccountFilter = 'all' | 'active' | 'not_completed' | 'completed' | 'revoked';
+
 function PilotTestingInner() {
   const [invitations, setInvitations] = useState<PilotInvitation[]>([]);
+  const [accounts, setAccounts] = useState<PilotAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Create form state
@@ -2038,6 +2060,13 @@ function PilotTestingInner() {
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [accountFilter, setAccountFilter] = useState<PilotAccountFilter>('all');
+
+  // Revoke confirmation modal state
+  const [revokeTarget, setRevokeTarget] = useState<PilotAccount | null>(null);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   const loadInvitations = useCallback(async () => {
     setLoading(true); setError(null);
@@ -2051,7 +2080,19 @@ function PilotTestingInner() {
     }
   }, []);
 
-  useEffect(() => { loadInvitations(); }, [loadInvitations]);
+  const loadAccounts = useCallback(async () => {
+    setAccountsLoading(true);
+    try {
+      const data = await apiFetch<{ accounts: PilotAccount[] }>('/pilot/accounts');
+      setAccounts(data.accounts);
+    } catch {
+      // Non-fatal — pilot accounts section just shows empty
+    } finally {
+      setAccountsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadInvitations(); loadAccounts(); }, [loadInvitations, loadAccounts]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -2080,7 +2121,7 @@ function PilotTestingInner() {
     }
   }
 
-  async function handleRevoke(inv: PilotInvitation) {
+  async function handleRevokeInvite(inv: PilotInvitation) {
     if (!confirm(`Revoke invitation for ${inv.email}?`)) return;
     setActionError(null);
     try {
@@ -2097,9 +2138,44 @@ function PilotTestingInner() {
     } catch (e: unknown) { setActionError((e as Error).message || 'Failed to extend'); }
   }
 
+  async function confirmRevoke() {
+    if (!revokeTarget) return;
+    setRevoking(true); setRevokeError(null);
+    try {
+      await apiFetch(`/pilot/accounts/${revokeTarget.userId}/revoke`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason: revokeReason.trim() || undefined }),
+      });
+      setRevokeTarget(null); setRevokeReason('');
+      loadAccounts();
+    } catch (e: unknown) {
+      setRevokeError((e as Error).message || 'Failed to revoke access');
+    } finally {
+      setRevoking(false);
+    }
+  }
+
+  async function handleRestore(acct: PilotAccount) {
+    if (!confirm(`Restore platform access for ${acct.name}?`)) return;
+    try {
+      await apiFetch(`/pilot/accounts/${acct.userId}/restore`, { method: 'PUT' });
+      loadAccounts();
+    } catch (e: unknown) {
+      setActionError((e as Error).message || 'Failed to restore access');
+    }
+  }
+
   function copyLink(link: string) {
     navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
+
+  const filteredAccounts = accounts.filter(a => {
+    if (accountFilter === 'active')        return a.accessStatus === 'active';
+    if (accountFilter === 'not_completed') return a.accessStatus === 'active' && !a.feedbackSubmitted;
+    if (accountFilter === 'completed')     return a.feedbackSubmitted;
+    if (accountFilter === 'revoked')       return a.accessStatus === 'revoked' || a.accessStatus === 'deactivated';
+    return true;
+  });
 
   const inputStyle: React.CSSProperties = {
     width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10,
@@ -2107,8 +2183,157 @@ function PilotTestingInner() {
   };
   const labelStyle: React.CSSProperties = { display: 'block', color: C.greyD, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 };
 
+  const FILTER_TABS: { key: PilotAccountFilter; label: string }[] = [
+    { key: 'all',           label: 'All' },
+    { key: 'active',        label: 'Active Access' },
+    { key: 'not_completed', label: 'Not Completed' },
+    { key: 'completed',     label: 'Completed' },
+    { key: 'revoked',       label: 'Revoked' },
+  ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* Revoke confirmation modal */}
+      {revokeTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.redBorder}`, borderRadius: 16, padding: 28, maxWidth: 480, width: '100%' }}>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Revoke Pilot Access</div>
+            <div style={{ color: C.greyD, fontSize: 13, marginBottom: 16 }}>
+              Revoke platform access for <strong style={{ color: C.white }}>{revokeTarget.name}</strong> ({revokeTarget.email})?
+              Their account, ACIA results, and all historical data will be preserved. They will not be able to sign in.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Internal Reason (optional)</label>
+              <input
+                value={revokeReason}
+                onChange={e => setRevokeReason(e.target.value)}
+                placeholder="e.g. Pilot validation not completed"
+                style={inputStyle}
+              />
+              <div style={{ color: C.grey, fontSize: 11, marginTop: 4 }}>Not shown to the tester.</div>
+            </div>
+            {revokeError && (
+              <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+                <div style={{ color: '#fca5a5', fontSize: 12 }}>{revokeError}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setRevokeTarget(null); setRevokeReason(''); setRevokeError(null); }}
+                style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontSize: 13 }}
+              >Cancel</button>
+              <button
+                onClick={confirmRevoke}
+                disabled={revoking}
+                style={{ background: C.red, color: C.white, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: revoking ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}
+              >{revoking ? 'Revoking…' : 'Revoke Access'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pilot Testers — Accepted Accounts */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>Pilot Testers</div>
+            <div style={{ color: C.greyD, fontSize: 12, marginTop: 2 }}>Accepted accounts with platform access status and feedback completion.</div>
+          </div>
+          <button onClick={loadAccounts} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+          {FILTER_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setAccountFilter(tab.key)}
+              style={{
+                background: accountFilter === tab.key ? C.crimson : C.border,
+                color: accountFilter === tab.key ? C.white : C.greyD,
+                border: 'none', borderRadius: 6, padding: '5px 12px',
+                cursor: 'pointer', fontSize: 11, fontWeight: 700,
+              }}
+            >{tab.label}</button>
+          ))}
+        </div>
+
+        {actionError && (
+          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+            <div style={{ color: '#fca5a5', fontSize: 13 }}>{actionError}</div>
+          </div>
+        )}
+
+        {accountsLoading ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 24 }}>Loading…</div>
+        ) : filteredAccounts.length === 0 ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 24 }}>
+            {accounts.length === 0 ? 'No accepted pilot testers yet.' : 'No testers match this filter.'}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filteredAccounts.map(acct => {
+              const isRevoked = acct.accessStatus === 'revoked' || acct.accessStatus === 'deactivated';
+              const roleMap: Record<string, string> = { youth: 'Participant', coach: 'Coach', employer: 'Employer', postsecondary: 'Post-Sec' };
+              return (
+                <div key={acct.userId} style={{ background: C.bg, border: `1px solid ${isRevoked ? C.redBorder : C.border}`, borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
+                      <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{acct.name}</span>
+                      {/* Access status badge */}
+                      {isRevoked ? (
+                        <span style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.red, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>ACCESS REVOKED</span>
+                      ) : (
+                        <span style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, color: C.green, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>ACTIVE</span>
+                      )}
+                      {/* Role badge */}
+                      <span style={{ background: '#1e293b', border: '1px solid #334155', color: C.greyD, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>
+                        {roleMap[acct.pilotRole] ?? acct.role}
+                      </span>
+                    </div>
+                    <div style={{ color: C.greyD, fontSize: 12 }}>{acct.email}</div>
+                    {acct.organization && <div style={{ color: C.grey, fontSize: 12 }}>{acct.organization}</div>}
+                    {/* Status row */}
+                    <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 11 }}>
+                        <span style={{ color: C.grey }}>Invitation: </span>
+                        <span style={{ color: C.green, fontWeight: 600 }}>ACCEPTED</span>
+                        {acct.acceptedAt && <span style={{ color: C.grey }}> · {fmtDate(acct.acceptedAt)}</span>}
+                      </div>
+                      <div style={{ fontSize: 11 }}>
+                        <span style={{ color: C.grey }}>Feedback: </span>
+                        {acct.feedbackSubmitted
+                          ? <span style={{ color: C.green, fontWeight: 600 }}>COMPLETED</span>
+                          : <span style={{ color: C.amber, fontWeight: 600 }}>NOT COMPLETED</span>}
+                      </div>
+                      {acct.lastActivityAt && (
+                        <div style={{ fontSize: 11 }}>
+                          <span style={{ color: C.grey }}>Last active: </span>
+                          <span style={{ color: C.greyD }}>{fmtDate(acct.lastActivityAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center' }}>
+                    {isRevoked ? (
+                      <button
+                        onClick={() => { setActionError(null); handleRestore(acct); }}
+                        style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}`, borderRadius: 8, padding: '6px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                      >Restore Access</button>
+                    ) : (
+                      <button
+                        onClick={() => { setActionError(null); setRevokeTarget(acct); setRevokeReason(''); setRevokeError(null); }}
+                        style={{ background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '6px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                      >Revoke Access</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Create invitation form */}
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
@@ -2255,7 +2480,7 @@ function PilotTestingInner() {
                         +7 days
                       </button>
                       <button
-                        onClick={() => handleRevoke(inv)}
+                        onClick={() => handleRevokeInvite(inv)}
                         style={{ background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}
                       >
                         Revoke
@@ -2307,7 +2532,7 @@ const INSTRUMENTS: Record<string, {
   C: { perspective: 'Technical Recruiter / Talent Acquisition', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '20–28 min', captainAcia: true, showIps: false, showEs: false },
   D: { perspective: 'Airport / Aviation Employer', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Full cohort — 4 pathways, 13 participants', disclosureLevel: 'Level 2', estimatedTime: '20–30 min', captainAcia: true, showIps: false, showEs: true },
   E: { perspective: 'Technical Aviation Organisation', experienceMode: 'GUIDED', provenance: 'AME_AMT', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '25–35 min', captainAcia: true, showIps: true, showEs: false },
-  F: { perspective: 'Regulatory / Public Authority', experienceMode: 'STATIC', provenance: 'AME_AMT', profile: 'N/A — static regulatory review', disclosureLevel: 'Level 1', estimatedTime: '15–20 min', captainAcia: false, showIps: false, showEs: false },
+  F: { perspective: 'Regulatory / Public Authority', experienceMode: 'STATIC', provenance: 'CROSS_PATHWAY', profile: 'N/A — static regulatory/public-authority review (platform-level)', disclosureLevel: 'Level 1', estimatedTime: '15–20 min', captainAcia: false, showIps: false, showEs: false },
 };
 
 const VSES_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
