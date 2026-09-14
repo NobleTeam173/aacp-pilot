@@ -11474,8 +11474,16 @@ async function handleValidationExperience(request, env) {
       experience_mode: 'STATIC',
       validator_name: session.validator_name,
       instrument,
+      provenance: VALIDATOR_PROVENANCE[instrument] || 'CROSS_PATHWAY',
       representative_data_label: 'Representative Data — This view uses fictional data to demonstrate how AACP workforce intelligence is presented. No real participant information is displayed.',
-      steps: ['orientation', 'regulatory_content', 'formal_validation']
+      steps: ['orientation', 'regulatory_content', 'formal_validation'],
+      four_pathways: [
+        { code: 'ATC',     label: 'Air Traffic Control',                 description: 'Roles in the management and safety of aircraft movement. Regulatory requirements, specific aptitude profile, and structured licensing pathway.' },
+        { code: 'PILOT',   label: 'Flight & Pilot Pathways',             description: 'Commercial and private flight pathways. Licensing tiers, medical requirements, training programme entry.' },
+        { code: 'AME_AMT', label: 'Aircraft Maintenance & Technical',    description: 'Licensed and unlicensed aircraft maintenance roles. AME licensing, apprenticeship, and technical entry pathways.' },
+        { code: 'STEM',    label: 'STEM Roles in Aviation & Aerospace',  description: 'Engineering, technology, data, and science roles across aviation, airports, aerospace, and related industries.' }
+      ],
+      captain_acia: null,
     });
   }
 
