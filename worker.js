@@ -1284,6 +1284,17 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE validation_sessions ADD COLUMN allow_real_ips INTEGER NOT NULL DEFAULT 0`).run().catch(() => {});
   await db.prepare(`ALTER TABLE validation_sessions ADD COLUMN allow_real_es INTEGER NOT NULL DEFAULT 0`).run().catch(() => {});
 
+  // ── Expiry policy change: 30 days → 14 days ──────────────────────────────────
+  // Recalculate expires_at for active/in-progress sessions to 14 days from invited_at,
+  // but only where that new date is still in the future (safe migration — does not
+  // reopen expired or revoked sessions; completed submissions are excluded by status).
+  await db.prepare(`
+    UPDATE validation_sessions
+    SET expires_at = datetime(invited_at, '+14 days')
+    WHERE status IN ('INVITED', 'IN_PROGRESS')
+      AND datetime(invited_at, '+14 days') > datetime('now')
+  `).run().catch(() => {});
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS validation_sandbox_profiles (
       id           TEXT PRIMARY KEY,
@@ -10847,7 +10858,7 @@ const VALIDATION_INSTRUMENTS = {
 };
 ;
 
-const VALIDATION_TOKEN_TTL_DAYS = 30;
+const VALIDATION_TOKEN_TTL_DAYS = 14;
 const AACP_DISPOSITIONS = ['UNDER_REVIEW','ACCEPTED','ACCEPTED_WITH_MODIFICATION','DEFERRED','REJECTED_WITH_RATIONALE'];
 
 // ── Phase 2B: Validator Experience Mode — representative fictional data ────────
@@ -11329,15 +11340,16 @@ async function handleAdminValidationSessionCreate(request, user, env) {
   const token = generateValidationToken();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const expires_at = validationTokenExpiry();
   try {
     await env.DB.prepare(`
       INSERT INTO validation_sessions (id, token, validator_name, validator_org, validator_email, instrument, aacp_version, scenario_id, status, invited_by, invited_at, expires_at, experience_mode, allow_real_ips, allow_real_es)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'INVITED', ?, ?, ?, ?, ?, ?)
-    `).bind(id, token, validator_name, validator_org || '', validator_email, instrument, aacp_version || '1.0', scenario_id || null, user.sub, now, validationTokenExpiry(), experience_mode, allow_real_ips ? 1 : 0, allow_real_es ? 1 : 0).run();
+    `).bind(id, token, validator_name, validator_org || '', validator_email, instrument, aacp_version || '1.0', scenario_id || null, user.sub, now, expires_at, experience_mode, allow_real_ips ? 1 : 0, allow_real_es ? 1 : 0).run();
   } catch (e) {
     return err('DB error: ' + (e && e.message ? e.message : String(e)), 500);
   }
-  return json({ id, token, experience_mode, expires_at: validationTokenExpiry() }, 201);
+  return json({ id, token, experience_mode, expires_at }, 201);
 }
 
 // Admin: GET /admin/validation/sessions/:id
