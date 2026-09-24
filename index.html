@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AACP — Aviation &amp; Aerospace Workforce Intelligence</title>
-  <meta name="description" content="AACP™ helps people explore aviation and aerospace career pathways, build workforce readiness and identify their next step. Serving participants, employers, post-secondary institutions and industry partners across Canada." />
+  <meta name="description" content="AACP™ Workforce Intelligence — Canada's aviation and aerospace workforce intelligence ecosystem. Helping talent, employers, post-secondary institutions and industry partners across Canada." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -13,17 +13,13 @@
     :root {
       --bg:            #08020a;
       --surface:       #100614;
-      --surface2:      #18091d;
       --border:        #2e1035;
       --crimson:       #80011f;
-      --crimson-light: #a8022a;
       --crimson-dim:   #5c0116;
-      --grey:          #6B7074;
-      --grey-light:    #9ca3a8;
-      --grey-dark:     #3d4044;
       --text:          #f0eef2;
       --muted:         #9490a0;
       --dim:           #4a4752;
+      --grey:          #6B7074;
     }
 
     html { scroll-behavior: smooth; }
@@ -40,38 +36,34 @@
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 4vw; height: 68px;
-      background: rgba(8, 2, 10, 0.92);
+      padding: 0 6vw; height: 68px;
+      background: rgba(8,2,10,0.92);
       backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(46, 16, 53, 0.5);
-      gap: 16px;
+      border-bottom: 1px solid rgba(46,16,53,0.5);
     }
-    .nav-logo { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; }
+    .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .nav-logo-mark {
       width: 36px; height: 36px; border-radius: 9px;
       background: linear-gradient(135deg, #80011f, #a8022a);
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-weight: 900; font-size: 11px;
-      color: #fff; letter-spacing: 0.3px;
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 11px; color: #fff;
     }
     .nav-logo-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; color: var(--text); letter-spacing: -0.3px; }
     .nav-logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-top: 1px; }
-    .nav-links { display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center; }
-    .nav-links a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.1px; transition: color .2s; white-space: nowrap; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.1px; transition: color .2s; }
     .nav-links a:hover { color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
     .nav-join {
-      background: transparent; color: var(--crimson); text-decoration: none;
+      color: var(--crimson); text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      letter-spacing: 0.2px; border: 1.5px solid var(--crimson);
-      transition: all .2s; white-space: nowrap;
+      border: 1.5px solid var(--crimson); transition: all .2s;
     }
-    .nav-join:hover { background: rgba(128,1,31,0.12); }
+    .nav-join:hover { background: rgba(128,1,31,0.1); }
     .nav-signin {
       background: var(--crimson); color: #fff; text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      letter-spacing: 0.1px; transition: all .2s;
-      box-shadow: 0 2px 14px rgba(128,1,31,0.3); white-space: nowrap;
+      transition: background .2s;
     }
     .nav-signin:hover { background: var(--crimson-dim); }
 
@@ -79,8 +71,7 @@
     .hero {
       position: relative; min-height: 100vh;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 140px 6vw 100px;
-      overflow: hidden;
+      text-align: center; padding: 140px 6vw 100px; overflow: hidden;
     }
     .hero-bg {
       position: absolute; inset: 0; z-index: 0;
@@ -89,77 +80,58 @@
     .hero-bg::after {
       content: ''; position: absolute; inset: 0;
       background: linear-gradient(180deg,
-        rgba(8,2,10,0.8) 0%,
-        rgba(8,2,10,0.55) 35%,
+        rgba(8,2,10,0.78) 0%,
+        rgba(8,2,10,0.50) 35%,
         rgba(8,2,10,0.93) 85%,
         rgba(8,2,10,1) 100%);
     }
-    .hero-content { position: relative; z-index: 1; max-width: 860px; }
-
+    .hero-content { position: relative; z-index: 1; max-width: 820px; }
     .hero-eyebrow {
       display: inline-flex; align-items: center; gap: 10px;
       background: rgba(128,1,31,0.12); border: 1px solid rgba(128,1,31,0.28);
       border-radius: 40px; padding: 7px 18px; font-size: 11px; font-weight: 600;
-      color: #dea8b2; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px;
+      color: #dea8b2; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px;
     }
-    .hero-eyebrow-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #80011f;
-      animation: pulse 2.4s ease-in-out infinite;
-    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #80011f; animation: pulse 2.4s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(0.8)} }
-
     .hero h1 {
       font-family: 'Fraunces', serif;
-      font-size: clamp(2.8rem, 6vw, 5.2rem);
-      font-weight: 900; line-height: 1.04;
-      letter-spacing: -2.5px; margin-bottom: 24px; color: var(--text);
+      font-size: clamp(3rem, 6.5vw, 5.4rem);
+      font-weight: 900; line-height: 1.04; letter-spacing: -2.5px;
+      margin-bottom: 28px; color: var(--text);
     }
     .hero h1 em {
       font-style: italic;
       background: linear-gradient(130deg, #c0374f 0%, #80011f 50%, #6B7074 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .hero-sub {
       font-size: clamp(1rem, 1.8vw, 1.15rem); color: var(--muted);
-      max-width: 600px; margin: 0 auto 44px; line-height: 1.8; font-weight: 400;
+      max-width: 560px; margin: 0 auto 52px; line-height: 1.85; font-weight: 400;
     }
-    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
     .btn-primary {
-      display: inline-flex; align-items: center; gap: 10px;
+      display: inline-flex; align-items: center;
       background: var(--crimson); color: #fff; text-decoration: none;
-      padding: 15px 32px; border-radius: 10px; font-size: 15px; font-weight: 700;
-      letter-spacing: 0.1px; transition: all .22s;
-      box-shadow: 0 0 36px rgba(128,1,31,0.4);
+      padding: 15px 34px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      transition: all .22s; box-shadow: 0 0 36px rgba(128,1,31,0.4);
     }
     .btn-primary:hover { background: var(--crimson-dim); transform: translateY(-1px); box-shadow: 0 4px 52px rgba(128,1,31,0.55); }
     .btn-secondary {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.04); color: var(--text); text-decoration: none;
-      padding: 15px 32px; border-radius: 10px; font-size: 15px; font-weight: 500;
-      border: 1px solid rgba(255,255,255,0.12); transition: all .22s; letter-spacing: 0.1px;
+      display: inline-flex; align-items: center;
+      background: transparent; color: var(--text); text-decoration: none;
+      padding: 15px 34px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      letter-spacing: 0.3px;
+      border: 1px solid rgba(255,255,255,0.14); transition: all .22s;
     }
-    .btn-secondary:hover { border-color: rgba(255,255,255,0.24); background: rgba(255,255,255,0.07); }
-    .hero-note { font-size: 12px; color: var(--dim); margin-top: 8px; }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.05); }
+    .hero-note { margin-top: 20px; font-size: 12px; color: var(--dim); }
     .hero-note a { color: var(--muted); text-decoration: none; }
     .hero-note a:hover { color: var(--text); }
 
-    .hero-stats {
-      display: flex; gap: 0; justify-content: center; flex-wrap: wrap;
-      margin-top: 72px; padding-top: 48px;
-      border-top: 1px solid rgba(46,16,53,0.5);
-    }
-    .stat-item { text-align: center; padding: 0 36px; border-right: 1px solid rgba(46,16,53,0.5); }
-    .stat-item:last-child { border-right: none; }
-    .stat-item .num {
-      font-family: 'Fraunces', serif;
-      font-size: 2.4rem; font-weight: 900; color: var(--text); letter-spacing: -1.5px; line-height: 1;
-    }
-    .stat-item .num span { color: var(--crimson); }
-    .stat-item .lbl { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
-
-    /* ── SECTION COMMON ── */
-    section { padding: 100px 6vw; }
+    /* ── SECTION ── */
+    section { padding: 108px 6vw; }
     .section-eyebrow {
       display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px;
       text-transform: uppercase; color: var(--crimson); margin-bottom: 16px;
@@ -170,17 +142,17 @@
       letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 18px;
     }
     .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 560px; line-height: 1.8; font-weight: 400; }
-    .section-header { max-width: 1200px; margin: 0 auto 56px; }
+    .section-header { max-width: 1200px; margin: 0 auto 64px; }
     .grid-max { max-width: 1200px; margin: 0 auto; }
     .divider { width: 48px; height: 2px; background: var(--crimson); margin: 18px 0; border-radius: 2px; }
 
-    /* ── IMAGERY STRIP ── */
+    /* ── IMAGERY ── */
     .imagery { padding: 0; }
-    .img-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; height: 420px; }
+    .img-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; height: 440px; }
     .img-panel { position: relative; overflow: hidden; }
     .img-panel img {
       width: 100%; height: 100%; object-fit: cover;
-      transition: transform .7s ease; filter: brightness(0.65) saturate(0.9);
+      filter: brightness(0.65) saturate(0.9); transition: transform .7s ease;
     }
     .img-panel:hover img { transform: scale(1.05); filter: brightness(0.8) saturate(1.05); }
     .img-panel-label {
@@ -190,301 +162,151 @@
       padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.3px;
     }
 
-    /* ── WHO IS AACP FOR ── */
-    .for-section { background: var(--surface); }
-    .audience-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .audience-card {
-      border-radius: 16px; padding: 36px 28px;
-      border: 1px solid rgba(46,16,53,0.5);
-      background: var(--bg);
-      position: relative; overflow: hidden;
-      transition: transform .25s, border-color .25s, box-shadow .25s;
+    /* ── PARTICIPANT SECTION ── */
+    .participant { background: var(--surface); }
+    .participant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: rgba(46,16,53,0.35); border: 1px solid rgba(46,16,53,0.4); border-radius: 20px; overflow: hidden; }
+    .p-block { background: var(--surface); padding: 64px 56px; }
+    .p-block-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--crimson); margin-bottom: 20px;
     }
-    .audience-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(128,1,31,0.35);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    .p-block h3 {
+      font-family: 'Fraunces', serif; font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+      font-weight: 800; letter-spacing: -0.8px; line-height: 1.15; margin-bottom: 20px;
     }
-    .audience-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    }
-    .ac-1::before { background: linear-gradient(90deg, #80011f, #a8022a); }
-    .ac-2::before { background: linear-gradient(90deg, #5c0116, #80011f); }
-    .ac-3::before { background: linear-gradient(90deg, #3d1020, #6B7074); }
-    .audience-card .ac-label {
-      font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-      color: var(--crimson); margin-bottom: 12px;
-    }
-    .audience-card h3 { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.4px; }
-    .audience-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.75; }
-    .for-statement {
-      max-width: 1200px; margin: 40px auto 0;
-      padding: 28px 36px;
-      background: rgba(128,1,31,0.06);
-      border: 1px solid rgba(128,1,31,0.18);
-      border-radius: 14px;
-      font-size: 1rem; color: var(--muted); line-height: 1.75; text-align: center;
-    }
-
-    /* ── ACIA ── */
-    .acia-section { background: var(--bg); }
-    .acia-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-    .acia-copy .section-sub { margin-bottom: 32px; }
-    .acia-card {
-      background: var(--surface); border: 1px solid rgba(46,16,53,0.6);
-      border-radius: 20px; padding: 40px; position: relative; overflow: hidden;
-    }
-    .acia-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(128,1,31,0.6), transparent);
-    }
-    .acia-outcomes { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; }
-    .ao-item {
-      display: flex; align-items: flex-start; gap: 14px;
-      padding: 14px 18px; border-radius: 10px;
-      border: 1px solid rgba(46,16,53,0.4); background: rgba(8,2,10,0.5);
-    }
-    .ao-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--crimson); margin-top: 5px; flex-shrink: 0; }
-    .ao-item p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
-    .acia-card-title { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
-    .acia-card-sub { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
-    .btn-acia {
-      display: inline-flex; align-items: center; gap: 8px;
+    .p-block p { font-size: 0.9rem; color: var(--muted); line-height: 1.8; margin-bottom: 36px; max-width: 380px; }
+    .p-block-cta {
+      display: inline-flex; align-items: center;
       background: var(--crimson); color: #fff; text-decoration: none;
-      padding: 13px 28px; border-radius: 9px; font-size: 14px; font-weight: 700;
+      padding: 14px 30px; border-radius: 9px; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
       transition: all .22s; box-shadow: 0 2px 24px rgba(128,1,31,0.35);
     }
-    .btn-acia:hover { background: var(--crimson-dim); transform: translateY(-1px); }
-    .acia-note { font-size: 11px; color: var(--dim); margin-top: 12px; letter-spacing: 0.3px; }
-
-    /* ── 8-WEEK PROGRAM ── */
-    .program-section { background: var(--surface); }
-    .pathways-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 56px; }
-    .pathway-card {
-      border-radius: 14px; padding: 28px 22px; text-align: center;
-      border: 1px solid rgba(46,16,53,0.5);
-      background: var(--bg); position: relative; overflow: hidden;
-      transition: transform .25s, border-color .25s;
+    .p-block-cta:hover { background: var(--crimson-dim); transform: translateY(-1px); }
+    .p-block-cta-secondary {
+      display: inline-flex; align-items: center;
+      background: transparent; color: var(--text); text-decoration: none;
+      padding: 14px 30px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.14); transition: all .22s;
     }
-    .pathway-card:hover { transform: translateY(-4px); border-color: rgba(128,1,31,0.4); }
-    .pathway-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, #80011f, #a8022a);
-    }
-    .pathway-icon { font-size: 2rem; margin-bottom: 14px; }
-    .pathway-card h4 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700; letter-spacing: -0.3px; line-height: 1.3; }
-
-    .journey-title {
-      font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700;
-      text-align: center; margin-bottom: 28px; color: var(--muted); letter-spacing: -0.3px;
-    }
-    .journey-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
-    .journey-steps::before {
-      content: ''; position: absolute; top: 28px; left: 10%; right: 10%; height: 1px;
-      background: linear-gradient(90deg, var(--crimson), rgba(128,1,31,0.2));
-      z-index: 0;
-    }
-    .journey-step { text-align: center; position: relative; z-index: 1; padding: 0 8px; }
-    .js-num {
-      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 16px;
-      background: var(--surface); border: 2px solid var(--crimson);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 11px; font-weight: 900;
-      color: var(--crimson); letter-spacing: 0.5px; text-transform: uppercase;
-    }
-    .journey-step h5 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text); margin-bottom: 8px; }
-    .journey-step p { font-size: 11px; color: var(--muted); line-height: 1.6; }
-
-    .program-cta-row {
-      display: flex; align-items: center; justify-content: center; gap: 14px;
-      margin-top: 52px; flex-wrap: wrap;
-    }
-    .program-contact { font-size: 13px; color: var(--muted); text-align: center; margin-top: 20px; }
-    .program-contact a { color: var(--grey-light); text-decoration: none; }
-    .program-contact a:hover { color: var(--text); }
-
-    /* ── OUTCOMES ── */
-    .outcomes-section { background: var(--bg); }
-    .outcomes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    .outcome-item {
-      display: flex; align-items: flex-start; gap: 14px;
-      padding: 20px 22px; border-radius: 12px;
-      border: 1px solid rgba(46,16,53,0.4);
-      background: rgba(16,6,20,0.5);
-    }
-    .outcome-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--crimson); margin-top: 5px; flex-shrink: 0; }
-    .outcome-item p { font-size: 0.875rem; color: var(--muted); line-height: 1.7; }
-    .outcomes-clarify {
-      max-width: 1200px; margin: 40px auto 0;
-      padding: 28px 36px;
-      border: 1px solid rgba(46,16,53,0.4);
-      border-radius: 14px;
-      font-size: 0.9rem; color: var(--dim); line-height: 1.75; text-align: center;
-    }
-    .outcomes-clarify strong { color: var(--muted); }
-
-    /* ── PLATFORM ── */
-    .platform { background: var(--surface); }
-    .platform-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 1px; background: rgba(46,16,53,0.4);
-      border: 1px solid rgba(46,16,53,0.4);
-      border-radius: 18px; overflow: hidden;
-    }
-    .platform-card {
-      background: var(--surface); padding: 36px 32px;
-      transition: background .25s; position: relative;
-    }
-    .platform-card::after {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(128,1,31,0.3), transparent);
-      opacity: 0; transition: opacity .25s;
-    }
-    .platform-card:hover { background: #1a0a20; }
-    .platform-card:hover::after { opacity: 1; }
-    .platform-number {
-      font-family: 'Fraunces', serif; font-size: 11px; font-weight: 700;
-      color: var(--crimson); letter-spacing: 2px; text-transform: uppercase;
-      margin-bottom: 18px; display: block;
-    }
-    .platform-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
-    .platform-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.75; }
+    .p-block-cta-secondary:hover { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.04); }
+    .p-contact { margin-top: 20px; font-size: 12px; color: var(--dim); }
+    .p-contact a { color: var(--muted); text-decoration: none; }
+    .p-contact a:hover { color: var(--text); }
+    .p-block-divider { width: 32px; height: 1px; background: rgba(46,16,53,0.8); margin: 32px 0; }
 
     /* ── INTELLIGENCE ── */
-    .analytics-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
-    .analytics-copy .section-sub { margin-bottom: 36px; }
-    .analytics-features { display: flex; flex-direction: column; gap: 12px; }
-    .af-item {
-      display: flex; align-items: flex-start; gap: 16px;
-      padding: 16px 18px; border-radius: 12px;
+    .intelligence-section { background: var(--bg); }
+    .intel-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .intel-features { display: flex; flex-direction: column; gap: 12px; margin-top: 36px; }
+    .if-item {
+      display: flex; align-items: flex-start; gap: 18px;
+      padding: 18px 20px; border-radius: 12px;
       border: 1px solid rgba(46,16,53,0.5); background: rgba(16,6,20,0.6);
       transition: border-color .2s;
     }
-    .af-item:hover { border-color: rgba(128,1,31,0.3); }
-    .af-num { font-family: 'Fraunces', serif; font-size: 13px; font-weight: 900; color: var(--crimson); min-width: 20px; line-height: 1.6; }
-    .af-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.2px; }
-    .af-text p { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
-
-    /* Intelligence visual */
-    .analytics-visual {
+    .if-item:hover { border-color: rgba(128,1,31,0.3); }
+    .if-num { font-family: 'Fraunces', serif; font-size: 12px; font-weight: 900; color: var(--crimson); min-width: 18px; line-height: 1.7; }
+    .if-text h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 4px; }
+    .if-text p { font-size: 0.81rem; color: var(--muted); line-height: 1.65; }
+    .intel-visual {
       background: var(--surface); border: 1px solid rgba(46,16,53,0.6);
-      border-radius: 18px; padding: 28px; position: relative; overflow: hidden;
+      border-radius: 18px; padding: 32px; position: relative; overflow: hidden;
     }
-    .analytics-visual::before {
+    .intel-visual::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
       background: linear-gradient(90deg, transparent, rgba(128,1,31,0.5), transparent);
     }
-    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
-    .av-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-    .av-badge {
+    .iv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+    .iv-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .iv-badge {
       background: rgba(128,1,31,0.15); color: #dea8b2;
       border: 1px solid rgba(128,1,31,0.3); border-radius: 20px;
-      padding: 3px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+      padding: 3px 12px; font-size: 11px; font-weight: 600;
     }
-    .signal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .signal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
     .signal-card {
       background: rgba(8,2,10,0.7); border: 1px solid rgba(46,16,53,0.5);
-      border-radius: 12px; padding: 14px 12px;
+      border-radius: 12px; padding: 16px 14px;
     }
     .sc-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
-    .sc-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+    .sc-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
     .sc-trend {
       display: inline-flex; align-items: center; gap: 5px;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-      padding: 3px 8px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;
     }
     .trend-up { background: rgba(128,1,31,0.15); color: #dea8b2; }
     .trend-em { background: rgba(107,112,116,0.15); color: #b8bfc4; }
-    .pipeline-section { margin-top: 4px; }
-    .pipeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .pipeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .pipeline-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
     .pipeline-note { font-size: 9px; color: var(--dim); }
-    .pipeline-bars { display: flex; flex-direction: column; gap: 9px; }
+    .pipeline-bars { display: flex; flex-direction: column; gap: 10px; }
     .pb-row { display: flex; align-items: center; gap: 10px; }
     .pb-lbl { font-size: 11px; color: var(--muted); width: 100px; flex-shrink: 0; font-weight: 500; }
-    .pb-track { flex: 1; height: 5px; background: rgba(46,16,53,0.6); border-radius: 3px; }
-    .pb-fill { height: 5px; border-radius: 3px; background: var(--crimson); }
-    .pb-dir { font-size: 10px; color: var(--grey-light); width: 20px; text-align: right; }
+    .pb-track { flex: 1; height: 4px; background: rgba(46,16,53,0.6); border-radius: 2px; }
+    .pb-fill { height: 4px; border-radius: 2px; background: var(--crimson); }
+    .pb-dir { font-size: 10px; color: var(--grey); width: 18px; text-align: right; }
 
     /* ── WHO IT SERVES ── */
     .roles { background: var(--surface); }
-    .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .roles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
     .role-card {
-      border-radius: 18px; padding: 32px 28px; border: 1px solid rgba(46,16,53,0.5);
-      background: var(--bg); position: relative; overflow: hidden;
+      border-radius: 16px; padding: 32px 26px;
+      border: 1px solid rgba(46,16,53,0.5); background: var(--bg);
+      position: relative; overflow: hidden;
       transition: transform .25s, border-color .25s, box-shadow .25s;
     }
-    .role-card:hover { transform: translateY(-5px); border-color: rgba(128,1,31,0.4); box-shadow: 0 20px 48px rgba(0,0,0,0.4); }
+    .role-card:hover { transform: translateY(-4px); border-color: rgba(128,1,31,0.35); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
     .role-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-    .role-youth::before     { background: linear-gradient(90deg, #80011f, #a8022a); }
-    .role-employer::before  { background: linear-gradient(90deg, #5c0116, #80011f); }
-    .role-postsec::before   { background: linear-gradient(90deg, #6B7074, #9ca3a8); }
-    .role-industry::before  { background: linear-gradient(90deg, #3d1219, #6B7074); }
-    .role-card h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.4px; }
-    .role-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.75; margin-bottom: 20px; }
+    .rc-1::before { background: linear-gradient(90deg, #80011f, #a8022a); }
+    .rc-2::before { background: linear-gradient(90deg, #5c0116, #80011f); }
+    .rc-3::before { background: linear-gradient(90deg, #6B7074, #9ca3a8); }
+    .rc-4::before { background: linear-gradient(90deg, #3d1219, #6B7074); }
+    .role-card h3 { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
+    .role-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.75; margin-bottom: 20px; }
     .role-tag {
       display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+      text-transform: uppercase; padding: 4px 11px; border-radius: 20px;
     }
     .tag-a { background: rgba(128,1,31,0.12); color: #dea8b2; border: 1px solid rgba(128,1,31,0.2); }
     .tag-b { background: rgba(107,112,116,0.12); color: #c4c8cc; border: 1px solid rgba(107,112,116,0.2); }
     .tag-c { background: rgba(92,1,22,0.12); color: #c4868e; border: 1px solid rgba(92,1,22,0.2); }
     .tag-d { background: rgba(61,16,37,0.2); color: #b8909a; border: 1px solid rgba(61,16,37,0.3); }
-    .role-cta {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; font-weight: 700; color: var(--crimson);
-      text-decoration: none; margin-top: 16px; letter-spacing: 0.3px;
-      transition: gap .2s;
-    }
-    .role-cta:hover { gap: 10px; }
 
-    /* ── DUAL CTA ── */
-    .dual-cta { background: var(--bg); }
-    .dual-cta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .cta-block {
-      border-radius: 22px; padding: 48px 40px;
-      border: 1px solid rgba(46,16,53,0.5);
-      background: var(--surface); position: relative; overflow: hidden;
+    /* ── INDUSTRY CTA ── */
+    .industry-cta { background: var(--bg); padding: 100px 6vw; }
+    .icta-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 64px;
+      padding: 56px 64px;
+      background: var(--surface); border: 1px solid rgba(46,16,53,0.5);
+      border-radius: 20px; position: relative; overflow: hidden;
     }
-    .cta-block::before {
+    .icta-inner::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(107,112,116,0.3), transparent);
     }
-    .cta-participant::before { background: linear-gradient(90deg, transparent, rgba(128,1,31,0.6), transparent); }
-    .cta-industry::before { background: linear-gradient(90deg, transparent, rgba(107,112,116,0.4), transparent); }
-    .cta-block-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--crimson); margin-bottom: 14px; }
-    .cta-block h3 { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.6px; line-height: 1.2; }
-    .cta-block p { font-size: 0.9rem; color: var(--muted); line-height: 1.75; margin-bottom: 28px; }
-    .cta-block-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .btn-express {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--crimson); color: #fff; text-decoration: none;
-      padding: 13px 26px; border-radius: 9px; font-size: 14px; font-weight: 700;
-      transition: all .22s; box-shadow: 0 2px 24px rgba(128,1,31,0.35);
-    }
-    .btn-express:hover { background: var(--crimson-dim); transform: translateY(-1px); }
-    .btn-learn {
-      display: inline-flex; align-items: center; gap: 8px;
+    .icta-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 14px; }
+    .icta-inner h3 { font-family: 'Fraunces', serif; font-size: clamp(1.4rem, 2.2vw, 1.9rem); font-weight: 800; letter-spacing: -0.7px; margin-bottom: 14px; }
+    .icta-inner p { font-size: 0.9rem; color: var(--muted); line-height: 1.75; max-width: 460px; }
+    .icta-right { text-align: center; flex-shrink: 0; }
+    .icta-email-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; }
+    .icta-email { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 20px; }
+    .icta-email a { color: var(--grey); text-decoration: none; }
+    .icta-email a:hover { color: var(--text); }
+    .btn-ghost {
+      display: inline-flex; align-items: center;
       background: transparent; color: var(--text); text-decoration: none;
-      padding: 13px 26px; border-radius: 9px; font-size: 14px; font-weight: 600;
-      border: 1px solid rgba(255,255,255,0.12); transition: all .22s;
+      padding: 13px 28px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      border: 1px solid rgba(107,112,116,0.3); transition: all .22s; letter-spacing: 0.3px;
     }
-    .btn-learn:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); }
-    .btn-contact {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: transparent; color: var(--text); text-decoration: none;
-      padding: 13px 26px; border-radius: 9px; font-size: 14px; font-weight: 600;
-      border: 1px solid rgba(107,112,116,0.3); transition: all .22s;
-    }
-    .btn-contact:hover { border-color: rgba(107,112,116,0.55); background: rgba(107,112,116,0.06); }
-    .cta-email { font-size: 12px; color: var(--dim); margin-top: 16px; }
-    .cta-email a { color: var(--muted); text-decoration: none; }
-    .cta-email a:hover { color: var(--text); }
-    .cta-disclaimer { font-size: 11px; color: var(--dim); margin-top: 12px; letter-spacing: 0.2px; line-height: 1.5; }
+    .btn-ghost:hover { border-color: rgba(107,112,116,0.6); background: rgba(107,112,116,0.06); }
 
     /* ── FOOTER ── */
     footer {
-      border-top: 1px solid rgba(46,16,53,0.4); padding: 52px 6vw;
-      display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 40px;
+      border-top: 1px solid rgba(46,16,53,0.4); padding: 48px 6vw;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 28px;
     }
     .footer-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .footer-logo-mark {
@@ -494,39 +316,39 @@
       font-family: 'Fraunces', serif; font-weight: 900; font-size: 11px; color: #fff;
     }
     .footer-name { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
-    .footer-tagline { font-size: 11px; color: var(--dim); margin-top: 1px; }
-    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: center; }
+    .footer-sub { font-size: 11px; color: var(--dim); margin-top: 1px; }
+    .footer-center { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
     .footer-links a { font-size: 13px; color: var(--dim); text-decoration: none; transition: color .2s; }
     .footer-links a:hover { color: var(--muted); }
+    .footer-copy { font-size: 11px; color: var(--dim); }
     .footer-contact { text-align: right; }
-    .footer-contact-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--crimson); margin-bottom: 8px; }
-    .footer-contact-email { font-size: 13px; color: var(--muted); }
-    .footer-contact-email a { color: var(--grey-light); text-decoration: none; }
-    .footer-contact-email a:hover { color: var(--text); }
+    .footer-contact-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--crimson); margin-bottom: 6px; }
+    .footer-contact a { font-size: 13px; color: var(--muted); text-decoration: none; display: block; }
+    .footer-contact a:hover { color: var(--text); }
     .footer-contact-desc { font-size: 11px; color: var(--dim); margin-top: 4px; }
-    .footer-copy { font-size: 12px; color: var(--dim); grid-column: 1 / -1; padding-top: 28px; border-top: 1px solid rgba(46,16,53,0.3); text-align: center; }
 
     /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .roles-grid { grid-template-columns: 1fr 1fr; }
+      .icta-inner { grid-template-columns: 1fr; gap: 32px; }
+      .icta-right { text-align: left; }
+    }
     @media (max-width: 960px) {
       .nav-links { display: none; }
-      .analytics-wrap { grid-template-columns: 1fr; }
-      .platform-grid { grid-template-columns: 1fr; }
-      .audience-grid { grid-template-columns: 1fr; }
-      .pathways-grid { grid-template-columns: 1fr 1fr; }
-      .journey-steps { grid-template-columns: 1fr; gap: 20px; }
-      .journey-steps::before { display: none; }
-      .outcomes-grid { grid-template-columns: 1fr; }
+      .intel-wrap { grid-template-columns: 1fr; gap: 48px; }
+      .participant-grid { grid-template-columns: 1fr; }
+      .p-block { padding: 48px 32px; }
       .img-grid { grid-template-columns: 1fr; height: auto; }
       .img-panel { height: 220px; }
-      .dual-cta-grid { grid-template-columns: 1fr; }
-      .cta-block { padding: 36px 24px; }
-      .acia-wrap { grid-template-columns: 1fr; gap: 40px; }
-      .hero-stats { gap: 0; }
-      .stat-item { padding: 0 18px; }
-      footer { grid-template-columns: 1fr; text-align: center; }
+      footer { flex-direction: column; text-align: center; }
       .footer-contact { text-align: center; }
-      .footer-links { justify-content: center; }
+      .footer-center { order: -1; }
       .signal-row { grid-template-columns: 1fr; }
+      .icta-inner { padding: 36px 28px; }
+    }
+    @media (max-width: 640px) {
+      .roles-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -542,14 +364,13 @@
     </div>
   </a>
   <div class="nav-links">
-    <a href="#for">Who It's For</a>
+    <a href="#participant">Participants</a>
     <a href="#acia">ACIA</a>
-    <a href="#program">8-Week Program</a>
     <a href="#intelligence">Workforce Intelligence</a>
-    <a href="#roles">Industry &amp; Partners</a>
+    <a href="#roles">Who It Serves</a>
   </div>
   <div class="nav-right">
-    <a href="#cohort" class="nav-join">Join a Cohort</a>
+    <a href="#participant" class="nav-join">Join a Cohort</a>
     <a href="/app.html" class="nav-signin">Sign In</a>
   </div>
 </nav>
@@ -559,40 +380,22 @@
   <div class="hero-bg"></div>
   <div class="hero-content">
     <div class="hero-eyebrow">
-      <span class="hero-eyebrow-dot"></span>
+      <span class="hero-dot"></span>
       2026 Cohort Now Forming
     </div>
     <h1>Find Your Place in<br/><em>Aviation &amp; Aerospace</em></h1>
     <p class="hero-sub">
-      Whether you're exploring aviation for the first time, already working in the industry, or considering a transition from another sector — AACP™ helps you explore career possibilities, understand your strengths, build workforce readiness and identify your next step.
+      AACP™ helps talent, employers, post-secondary institutions and industry partners across Canada engage with aviation and aerospace workforce intelligence and opportunity.
     </p>
     <div class="hero-actions">
-      <a href="#for" class="btn-primary">Explore AACP</a>
-      <a href="#cohort" class="btn-secondary">Join a Cohort</a>
+      <a href="#participant" class="btn-primary">Join a Cohort</a>
+      <a href="#intelligence" class="btn-secondary">Workforce Intelligence</a>
     </div>
-    <div class="hero-note">Already a cohort member? &nbsp;<a href="/app.html">Sign in to your dashboard</a></div>
-    <div class="hero-stats">
-      <div class="stat-item">
-        <div class="num">8</div>
-        <div class="lbl">Week Program</div>
-      </div>
-      <div class="stat-item">
-        <div class="num">4</div>
-        <div class="lbl">Major Pathways</div>
-      </div>
-      <div class="stat-item">
-        <div class="num">4</div>
-        <div class="lbl">Stakeholder Groups</div>
-      </div>
-      <div class="stat-item">
-        <div class="num">CA<span>N</span></div>
-        <div class="lbl">National Scope</div>
-      </div>
-    </div>
+    <div class="hero-note">Already a cohort member? &nbsp;<a href="/app.html">Sign in to your dashboard &rarr;</a></div>
   </div>
 </section>
 
-<!-- IMAGERY STRIP -->
+<!-- IMAGERY -->
 <div class="imagery">
   <div class="img-grid">
     <div class="img-panel">
@@ -610,202 +413,31 @@
   </div>
 </div>
 
-<!-- WHO IS AACP FOR -->
-<section class="for-section" id="for">
-  <div class="section-header">
-    <div class="section-eyebrow">Who Is AACP™ For?</div>
-    <h2 class="section-title">AACP Supports People at<br/>Different Stages of Their Journey</h2>
-    <div class="divider"></div>
-    <p class="section-sub">AACP™ is designed for people at different points in their aviation and aerospace career journey — from early exploration to career transition.</p>
-  </div>
+<!-- PARTICIPANT -->
+<section class="participant" id="participant">
   <div class="grid-max">
-    <div class="audience-grid">
+    <div class="participant-grid">
 
-      <div class="audience-card ac-1">
-        <div class="ac-label">Emerging Talent</div>
-        <h3>Exploring Aviation &amp; Aerospace</h3>
-        <p>Youth, recent graduates and early-career professionals interested in exploring aviation and aerospace career opportunities for the first time.</p>
-      </div>
-
-      <div class="audience-card ac-2">
-        <div class="ac-label">Aviation &amp; Aerospace Professionals</div>
-        <h3>Already in the Industry</h3>
-        <p>Individuals already working in aviation or aerospace who want to explore career pathways, development opportunities and potential next steps within the industry.</p>
-      </div>
-
-      <div class="audience-card ac-3">
-        <div class="ac-label">Career Transitioners</div>
-        <h3>Bringing Experience from Another Sector</h3>
-        <p>Experienced professionals from other industries who want to explore how their existing skills and experience could transfer into aviation and aerospace.</p>
-      </div>
-
-    </div>
-    <div class="for-statement">
-      Whether you're entering the industry, already working within it, or bringing experience from another sector — AACP™ helps you explore where you could fit and identify your next step.
-    </div>
-  </div>
-</section>
-
-<!-- ACIA -->
-<section class="acia-section" id="acia">
-  <div class="grid-max">
-    <div class="acia-wrap">
-      <div class="acia-copy">
-        <div class="section-eyebrow">ACIA — Aviation Career Intelligence</div>
-        <h2 class="section-title">Discover Your Aviation &amp; Aerospace Pathway</h2>
-        <div class="divider"></div>
-        <p class="section-sub" style="margin-bottom:32px">ACIA is AACP™'s proprietary career-intelligence experience, helping participants gain personalized insight into their strengths, development opportunities and potential alignment with aviation and aerospace career pathways.</p>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.8;max-width:480px">ACIA is completed inside your secure AACP™ participant dashboard. It is part of your AACP™ program experience — not a standalone open registration.</p>
-      </div>
-      <div class="acia-card">
-        <div class="acia-card-title">What ACIA Can Help You Understand</div>
-        <div class="acia-card-sub">ACIA delivers a high-level career intelligence profile to support your personal development and career exploration.</div>
-        <div class="acia-outcomes">
-          <div class="ao-item">
-            <div class="ao-dot"></div>
-            <p>Where your strengths and interests may align with aviation and aerospace opportunities</p>
-          </div>
-          <div class="ao-item">
-            <div class="ao-dot"></div>
-            <p>Areas where further development could strengthen your workforce readiness</p>
-          </div>
-          <div class="ao-item">
-            <div class="ao-dot"></div>
-            <p>Aviation and aerospace pathways that may be worth exploring further</p>
-          </div>
-          <div class="ao-item">
-            <div class="ao-dot"></div>
-            <p>A clearer starting point for your career conversations and next-step planning</p>
-          </div>
-        </div>
-        <div style="margin-top:28px">
-          <a href="#cohort" class="btn-acia">Start Your Career Discovery</a>
-          <div class="acia-note">ACIA is accessed through a controlled AACP™ cohort. Express interest below to get started.</div>
+      <!-- 8-WEEK COHORT -->
+      <div class="p-block" id="cohort">
+        <div class="p-block-label">AACP™ 8-Week Workforce Readiness Cohort</div>
+        <h3>Explore where you fit in aviation and aerospace.</h3>
+        <p>Designed for emerging talent, aviation and aerospace professionals, and professionals transitioning from other industries.</p>
+        <a href="/app.html" class="p-block-cta">Express Interest</a>
+        <div class="p-contact">
+          Questions? &nbsp;<a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
         </div>
       </div>
-    </div>
-  </div>
-</section>
 
-<!-- 8-WEEK PROGRAM -->
-<section class="program-section" id="program">
-  <div class="section-header">
-    <div class="section-eyebrow">8-Week Program</div>
-    <h2 class="section-title">8 Weeks. Four Major Pathways.<br/>A Clearer Direction.</h2>
-    <div class="divider"></div>
-    <p class="section-sub">The AACP™ 8-Week Aviation &amp; Aerospace Workforce Readiness Program helps participants explore aviation and aerospace career opportunities, gain industry exposure, strengthen workforce readiness and develop a clearer plan for their next step.</p>
-  </div>
-  <div class="grid-max">
+      <!-- ACIA -->
+      <div class="p-block" id="acia">
+        <div class="p-block-label">ACIA™ Career Intelligence</div>
+        <h3>Gain personalized insight into your strengths, development opportunities and potential aviation and aerospace career opportunities.</h3>
+        <div class="p-block-divider"></div>
+        <a href="/app.html" class="p-block-cta-secondary">Discover ACIA</a>
+        <div class="p-contact" style="margin-top:16px">ACIA is accessed through a controlled AACP™ cohort.</div>
+      </div>
 
-    <div class="pathways-grid">
-      <div class="pathway-card">
-        <div class="pathway-icon">✈️</div>
-        <h4>Pilot</h4>
-      </div>
-      <div class="pathway-card">
-        <div class="pathway-icon">🔧</div>
-        <h4>Aircraft Maintenance</h4>
-      </div>
-      <div class="pathway-card">
-        <div class="pathway-icon">📡</div>
-        <h4>Air Traffic Control</h4>
-      </div>
-      <div class="pathway-card">
-        <div class="pathway-icon">🛰️</div>
-        <h4>Aviation &amp; Aerospace STEM</h4>
-      </div>
-    </div>
-
-    <div class="journey-title">The AACP™ Program Journey</div>
-    <div class="journey-steps">
-      <div class="journey-step">
-        <div class="js-num">01</div>
-        <h5>Discover</h5>
-        <p>Explore your strengths, interests and career possibilities in aviation and aerospace.</p>
-      </div>
-      <div class="journey-step">
-        <div class="js-num">02</div>
-        <h5>Explore</h5>
-        <p>Learn about aviation and aerospace pathways and the opportunities available across the sector.</p>
-      </div>
-      <div class="journey-step">
-        <div class="js-num">03</div>
-        <h5>Experience</h5>
-        <p>Gain exposure to the aviation and aerospace industry through industry-informed activities.</p>
-      </div>
-      <div class="journey-step">
-        <div class="js-num">04</div>
-        <h5>Develop</h5>
-        <p>Strengthen workforce readiness and identify areas for continued development.</p>
-      </div>
-      <div class="journey-step">
-        <div class="js-num">05</div>
-        <h5>Connect</h5>
-        <p>Build a clearer next-step plan toward appropriate employment, education, training or industry opportunities.</p>
-      </div>
-    </div>
-
-    <div class="program-cta-row">
-      <a href="/app.html" class="btn-express">Express Interest</a>
-      <a href="#outcomes" class="btn-learn">What You Can Gain</a>
-    </div>
-    <div class="program-contact">
-      Have questions about an upcoming cohort? &nbsp;
-      <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
-    </div>
-
-  </div>
-</section>
-
-<!-- WHAT YOU CAN GAIN -->
-<section class="outcomes-section" id="outcomes">
-  <div class="section-header">
-    <div class="section-eyebrow">Participant Outcomes</div>
-    <h2 class="section-title">What You Can Gain<br/>from AACP™</h2>
-    <div class="divider"></div>
-    <p class="section-sub">AACP™ is designed to support career clarity, industry exposure and workforce readiness — not to guarantee a specific career outcome.</p>
-  </div>
-  <div class="grid-max">
-    <div class="outcomes-grid">
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Greater understanding of aviation and aerospace career opportunities across Canada</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Insight into personal strengths and areas for development in relation to aviation and aerospace pathways</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Exposure to aviation and aerospace professionals and industry environments</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Better understanding of education, training and career pathways relevant to your interests and goals</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Workforce-readiness development to support your next step in aviation and aerospace</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Greater clarity about potential next steps in the aviation and aerospace sector</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>Connections to relevant industry, training and career opportunities where appropriate</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>A personalized career intelligence profile to support development planning and career conversations</p>
-      </div>
-      <div class="outcome-item">
-        <div class="outcome-dot"></div>
-        <p>AACP™ program recognition upon successful completion, where applicable</p>
-      </div>
-    </div>
-    <div class="outcomes-clarify">
-      <strong>AACP™ complements formal education, technical training and regulated aviation pathways</strong> — helping participants explore opportunities, strengthen workforce readiness and make more informed decisions about their next steps. AACP™ does not replace regulated aviation education, occupational licensing, certification or technical training.
     </div>
   </div>
 </section>
@@ -828,102 +460,51 @@
   </div>
 </div>
 
-<!-- PLATFORM -->
-<section class="platform" id="platform">
-  <div class="section-header">
-    <div class="section-eyebrow">Platform Intelligence</div>
-    <h2 class="section-title">Workforce Intelligence<br/>Across the Entire Ecosystem</h2>
-    <div class="divider"></div>
-    <p class="section-sub">AACP™ delivers purposeful intelligence to every stakeholder in the aviation and aerospace workforce — supporting better decisions for talent, institutions, employers and industry.</p>
-  </div>
-  <div class="grid-max">
-    <div class="platform-grid">
-
-      <div class="platform-card">
-        <span class="platform-number">01</span>
-        <h3>Career Intelligence</h3>
-        <p>Help participants understand their strengths, development opportunities and potential aviation and aerospace career pathways — supporting clarity and direction at every stage of their journey.</p>
-      </div>
-
-      <div class="platform-card">
-        <span class="platform-number">02</span>
-        <h3>ACIA — Aviation Career Intelligence</h3>
-        <p>Career intelligence designed to help participants better understand their strengths, development opportunities and potential alignment with aviation and aerospace pathways.</p>
-      </div>
-
-      <div class="platform-card">
-        <span class="platform-number">03</span>
-        <h3>Workforce Readiness</h3>
-        <p>Provide authorized partners with visibility into emerging workforce readiness and areas where further development may be valuable — supporting workforce planning and talent-pipeline decisions.</p>
-      </div>
-
-      <div class="platform-card">
-        <span class="platform-number">04</span>
-        <h3>Talent Intelligence</h3>
-        <p>Help employers understand emerging talent, workforce capabilities and talent-development opportunities across Canadian aviation and aerospace pathways.</p>
-      </div>
-
-      <div class="platform-card">
-        <span class="platform-number">05</span>
-        <h3>Post-Secondary Intelligence</h3>
-        <p>Provide institutions with workforce and industry insights that can support program alignment, emerging pathways and stronger education-to-industry connections.</p>
-      </div>
-
-      <div class="platform-card">
-        <span class="platform-number">06</span>
-        <h3>Talent Pathways</h3>
-        <p>Strengthen connections among participants, employers, post-secondary institutions, training organizations and industry partners around shared workforce intelligence and opportunity.</p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
 <!-- WORKFORCE INTELLIGENCE -->
-<section id="intelligence">
+<section class="intelligence-section" id="intelligence">
   <div class="grid-max">
-    <div class="analytics-wrap">
-      <div class="analytics-copy">
+    <div class="intel-wrap">
+      <div class="intel-copy">
         <div class="section-eyebrow">Workforce Intelligence</div>
         <h2 class="section-title">Intelligence for Better<br/>Talent Decisions</h2>
         <div class="divider"></div>
-        <p class="section-sub" style="margin-bottom:36px">Transform workforce and talent information into actionable insight. AACP™ helps authorized partners understand emerging talent pipelines, workforce-readiness trends, development priorities and evolving aviation and aerospace workforce needs.</p>
-        <div class="analytics-features">
-          <div class="af-item">
-            <div class="af-num">01</div>
-            <div class="af-text">
+        <p class="section-sub">AACP™ helps authorized partners understand emerging talent pipelines, workforce-readiness trends, development priorities and evolving aviation and aerospace workforce needs.</p>
+        <div class="intel-features">
+          <div class="if-item">
+            <div class="if-num">01</div>
+            <div class="if-text">
               <h4>Talent Pipeline Insights</h4>
               <p>Understand emerging talent across aviation and aerospace pathways and how the pipeline is developing over time.</p>
             </div>
           </div>
-          <div class="af-item">
-            <div class="af-num">02</div>
-            <div class="af-text">
+          <div class="if-item">
+            <div class="if-num">02</div>
+            <div class="if-text">
               <h4>Workforce Readiness Trends</h4>
               <p>Identify high-level readiness and development patterns across participating cohorts to support workforce planning.</p>
             </div>
           </div>
-          <div class="af-item">
-            <div class="af-num">03</div>
-            <div class="af-text">
+          <div class="if-item">
+            <div class="if-num">03</div>
+            <div class="if-text">
               <h4>Regional Workforce Intelligence</h4>
-              <p>Explore workforce and talent trends across participating regions, supporting national and regional workforce strategy.</p>
+              <p>Explore workforce and talent trends across participating regions, supporting national and regional strategy.</p>
             </div>
           </div>
-          <div class="af-item">
-            <div class="af-num">04</div>
-            <div class="af-text">
+          <div class="if-item">
+            <div class="if-num">04</div>
+            <div class="if-text">
               <h4>Industry Demand Signals</h4>
-              <p>Understand changing workforce needs and emerging areas of demand across Canadian aviation and aerospace sectors.</p>
+              <p>Understand changing workforce needs and emerging areas of demand across Canadian aviation and aerospace.</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="analytics-visual">
-        <div class="av-header">
-          <div class="av-title">Workforce Intelligence Overview</div>
-          <div class="av-badge">Illustrative</div>
+      <div class="intel-visual">
+        <div class="iv-header">
+          <div class="iv-title">Workforce Intelligence Overview</div>
+          <div class="iv-badge">Illustrative</div>
         </div>
         <div class="signal-row">
           <div class="signal-card">
@@ -947,37 +528,35 @@
             <div class="sc-trend trend-em">&#9679; Tracked</div>
           </div>
         </div>
-        <div class="pipeline-section">
-          <div class="pipeline-header">
-            <div class="pipeline-title">Talent Pipeline by Pathway</div>
-            <div class="pipeline-note">Illustrative data</div>
+        <div class="pipeline-header">
+          <div class="pipeline-title">Talent Pipeline by Pathway</div>
+          <div class="pipeline-note">Illustrative data</div>
+        </div>
+        <div class="pipeline-bars">
+          <div class="pb-row">
+            <div class="pb-lbl">Maintenance</div>
+            <div class="pb-track"><div class="pb-fill" style="width:78%"></div></div>
+            <div class="pb-dir">&#8599;</div>
           </div>
-          <div class="pipeline-bars">
-            <div class="pb-row">
-              <div class="pb-lbl">Maintenance</div>
-              <div class="pb-track"><div class="pb-fill" style="width:78%"></div></div>
-              <div class="pb-dir">&#8599;</div>
-            </div>
-            <div class="pb-row">
-              <div class="pb-lbl">Avionics</div>
-              <div class="pb-track"><div class="pb-fill" style="width:62%"></div></div>
-              <div class="pb-dir">&#8599;</div>
-            </div>
-            <div class="pb-row">
-              <div class="pb-lbl">Flight Ops</div>
-              <div class="pb-track"><div class="pb-fill" style="width:55%"></div></div>
-              <div class="pb-dir">&#9675;</div>
-            </div>
-            <div class="pb-row">
-              <div class="pb-lbl">Aerospace</div>
-              <div class="pb-track"><div class="pb-fill" style="width:44%"></div></div>
-              <div class="pb-dir">&#8599;</div>
-            </div>
-            <div class="pb-row">
-              <div class="pb-lbl">ATC &amp; Support</div>
-              <div class="pb-track"><div class="pb-fill" style="width:38%"></div></div>
-              <div class="pb-dir">&#9675;</div>
-            </div>
+          <div class="pb-row">
+            <div class="pb-lbl">Avionics</div>
+            <div class="pb-track"><div class="pb-fill" style="width:62%"></div></div>
+            <div class="pb-dir">&#8599;</div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-lbl">Flight Ops</div>
+            <div class="pb-track"><div class="pb-fill" style="width:55%"></div></div>
+            <div class="pb-dir">&#9675;</div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-lbl">Aerospace</div>
+            <div class="pb-track"><div class="pb-fill" style="width:44%"></div></div>
+            <div class="pb-dir">&#8599;</div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-lbl">ATC &amp; Support</div>
+            <div class="pb-track"><div class="pb-fill" style="width:38%"></div></div>
+            <div class="pb-dir">&#9675;</div>
           </div>
         </div>
       </div>
@@ -992,74 +571,49 @@
     <div class="section-eyebrow">Who It Serves</div>
     <h2 class="section-title">One Ecosystem.<br/>Four Stakeholders.</h2>
     <div class="divider"></div>
-    <p class="section-sub">AACP™ Workforce Intelligence connects every stakeholder in the aviation and aerospace workforce pipeline around shared intelligence, development and opportunity.</p>
+    <p class="section-sub">AACP™ connects every stakeholder in the aviation and aerospace workforce pipeline around shared intelligence, development and opportunity.</p>
   </div>
   <div class="grid-max">
     <div class="roles-grid">
-
-      <div class="role-card role-youth">
+      <div class="role-card rc-1">
         <h3>Participants</h3>
-        <p>Explore aviation and aerospace career pathways, understand your strengths and development opportunities, and build greater clarity about your next steps in Canada's aviation and aerospace workforce.</p>
+        <p>Explore aviation and aerospace career pathways, understand your strengths and development opportunities, and build greater clarity about your next steps.</p>
         <span class="role-tag tag-a">Career Intelligence</span>
-        <br/>
-        <a href="#cohort" class="role-cta">Express Interest &#8594;</a>
       </div>
-
-      <div class="role-card role-employer">
+      <div class="role-card rc-2">
         <h3>Employers</h3>
-        <p>Gain visibility into emerging talent, workforce-readiness trends and talent pipelines that can support workforce planning, talent development and hiring decisions across aviation and aerospace.</p>
+        <p>Gain visibility into emerging talent, workforce-readiness trends and talent pipelines that can support workforce planning and hiring decisions.</p>
         <span class="role-tag tag-c">Talent Intelligence</span>
       </div>
-
-      <div class="role-card role-postsec">
+      <div class="role-card rc-3">
         <h3>Post-Secondary &amp; Training Institutions</h3>
-        <p>Access workforce and industry insights that can support program alignment, emerging talent pathways and stronger connections between education and evolving aviation and aerospace industry needs.</p>
+        <p>Access workforce and industry insights that can support program alignment, emerging talent pathways and stronger education-to-industry connections.</p>
         <span class="role-tag tag-b">Workforce Insights</span>
       </div>
-
-      <div class="role-card role-industry">
+      <div class="role-card rc-4">
         <h3>Industry Partners</h3>
-        <p>Contribute to and benefit from a stronger aviation and aerospace talent ecosystem through workforce intelligence, collaboration and future talent-pipeline development across Canada.</p>
+        <p>Contribute to and benefit from a stronger aviation and aerospace talent ecosystem through workforce intelligence, collaboration and talent-pipeline development.</p>
         <span class="role-tag tag-d">Industry Intelligence</span>
       </div>
-
     </div>
   </div>
 </section>
 
-<!-- DUAL CTA -->
-<section class="dual-cta" id="cohort">
-  <div class="grid-max">
-    <div class="dual-cta-grid">
-
-      <!-- PARTICIPANT CTA -->
-      <div class="cta-block cta-participant">
-        <div class="cta-block-label">For Participants</div>
-        <h3>Ready to Explore Your Future in Aviation &amp; Aerospace?</h3>
-        <p>Join the AACP™ 8-Week Aviation &amp; Aerospace Workforce Readiness Program and explore where your strengths, experience and interests could take you across Canada's aviation and aerospace sector.</p>
-        <div class="cta-block-actions">
-          <a href="/app.html" class="btn-express">Express Interest</a>
-          <a href="#program" class="btn-learn">Learn About the 8-Week Program</a>
-        </div>
-        <div class="cta-email">Have questions about an upcoming cohort? &nbsp;<a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></div>
-        <div class="cta-disclaimer">Expressing interest does not guarantee cohort admission, employment, training placement, certification, licensing or employer placement. AACP™ cohorts are subject to availability and approval.</div>
-      </div>
-
-      <!-- INDUSTRY CTA -->
-      <div class="cta-block cta-industry">
-        <div class="cta-block-label">For Industry &amp; Partners</div>
-        <h3>Interested in Partnering with AACP™?</h3>
-        <p>Connect with our team to explore employer, post-secondary, training and industry collaboration opportunities. AACP™ supports workforce intelligence, talent pipelines and industry partnership across Canada's aviation and aerospace sector.</p>
-        <div class="cta-block-actions">
-          <a href="mailto:info@aviationaerospacecompetency.com" class="btn-contact">Contact AACP</a>
-        </div>
-        <div class="cta-email"><a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></div>
-        <div class="cta-disclaimer" style="margin-top:8px">General inquiries, program information and partnership opportunities.</div>
-      </div>
-
+<!-- INDUSTRY CTA -->
+<div class="industry-cta">
+  <div class="icta-inner">
+    <div>
+      <div class="icta-label">Industry &amp; Partners</div>
+      <h3>Interested in Partnering with AACP™?</h3>
+      <p>Connect with our team to explore employer, post-secondary, training and industry collaboration opportunities across Canada's aviation and aerospace sector.</p>
+    </div>
+    <div class="icta-right">
+      <div class="icta-email-label">Contact AACP™</div>
+      <div class="icta-email"><a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></div>
+      <a href="mailto:info@aviationaerospacecompetency.com" class="btn-ghost">Contact AACP</a>
     </div>
   </div>
-</section>
+</div>
 
 <!-- FOOTER -->
 <footer>
@@ -1067,23 +621,24 @@
     <div class="footer-logo-mark">AACP</div>
     <div>
       <div class="footer-name">AACP™ Workforce Intelligence</div>
-      <div class="footer-tagline">Aviation &amp; Aerospace Workforce Intelligence — Canada</div>
+      <div class="footer-sub">Aviation &amp; Aerospace Workforce Intelligence — Canada</div>
     </div>
   </a>
-  <div class="footer-links">
-    <a href="#for">Who It's For</a>
-    <a href="#acia">ACIA</a>
-    <a href="#program">8-Week Program</a>
-    <a href="#intelligence">Workforce Intelligence</a>
-    <a href="#roles">Industry &amp; Partners</a>
-    <a href="/app.html">Sign In</a>
+  <div class="footer-center">
+    <div class="footer-links">
+      <a href="#participant">Join a Cohort</a>
+      <a href="#acia">ACIA</a>
+      <a href="#intelligence">Workforce Intelligence</a>
+      <a href="#roles">Who It Serves</a>
+      <a href="/app.html">Sign In</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 AACP™. All rights reserved.</div>
   </div>
   <div class="footer-contact">
     <div class="footer-contact-label">Contact AACP™</div>
-    <div class="footer-contact-email"><a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></div>
+    <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
     <div class="footer-contact-desc">General inquiries, program information &amp; partnerships</div>
   </div>
-  <div class="footer-copy">&copy; 2026 AACP™. All rights reserved. AACP™ Workforce Intelligence is a proprietary aviation and aerospace workforce-intelligence initiative.</div>
 </footer>
 
 </body>
