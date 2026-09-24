@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AACP — Aviation &amp; Aerospace Competence Program</title>
-  <meta name="description" content="AACP is Canada's premier aviation workforce intelligence platform. Competency validation, AI-powered career matching, and real-time cohort analytics aligned to Canadian Aviation Regulations." />
+  <title>AACP — Aviation &amp; Aerospace Workforce Intelligence</title>
+  <meta name="description" content="AACP™ Workforce Intelligence — Canada's aviation and aerospace workforce intelligence ecosystem connecting talent, post-secondary institutions, employers, and industry." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -36,7 +36,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* â”€â”€ NAV â”€â”€ */
+    /* ── NAV ── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -66,7 +66,7 @@
     }
     .nav-cta:hover { background: var(--crimson-dim); box-shadow: 0 4px 24px rgba(128,1,31,0.5); }
 
-    /* â”€â”€ HERO â”€â”€ */
+    /* ── HERO ── */
     .hero {
       position: relative; min-height: 100vh;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -149,7 +149,7 @@
     .stat-item .num span { color: var(--crimson); }
     .stat-item .lbl { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
 
-    /* â”€â”€ SECTION COMMON â”€â”€ */
+    /* ── SECTION COMMON ── */
     section { padding: 108px 6vw; }
     .section-eyebrow {
       display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px;
@@ -164,10 +164,10 @@
     .section-header { max-width: 1200px; margin: 0 auto 64px; }
     .grid-max { max-width: 1200px; margin: 0 auto; }
 
-    /* â”€â”€ DIVIDER LINE â”€â”€ */
+    /* ── DIVIDER LINE ── */
     .divider { width: 48px; height: 2px; background: var(--crimson); margin: 20px 0; border-radius: 2px; }
 
-    /* â”€â”€ PLATFORM â”€â”€ */
+    /* ── PLATFORM ── */
     .platform { background: var(--surface); }
     .platform-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
@@ -195,7 +195,7 @@
     .platform-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
     .platform-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.75; }
 
-    /* â”€â”€ ANALYTICS â”€â”€ */
+    /* ── ANALYTICS ── */
     .analytics-wrap {
       display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
     }
@@ -216,6 +216,7 @@
     .af-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.2px; }
     .af-text p { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
 
+    /* ── INTELLIGENCE VISUAL ── */
     .analytics-visual {
       background: var(--surface); border: 1px solid rgba(46,16,53,0.6);
       border-radius: 18px; padding: 28px; position: relative; overflow: hidden;
@@ -224,32 +225,41 @@
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
       background: linear-gradient(90deg, transparent, rgba(128,1,31,0.5), transparent);
     }
-    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .av-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
     .av-badge {
       background: rgba(128,1,31,0.15); color: #dea8b2;
       border: 1px solid rgba(128,1,31,0.3); border-radius: 20px;
       padding: 3px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
     }
-    .readiness-ring { display: flex; align-items: center; gap: 20px; margin-bottom: 28px; }
-    .ring-svg { flex-shrink: 0; }
-    .ring-label .big { font-family: 'Fraunces', serif; font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; }
-    .ring-label .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .mini-bars { display: flex; flex-direction: column; gap: 11px; }
-    .mb-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-    .mb-lbl { color: var(--muted); width: 96px; flex-shrink: 0; font-weight: 500; }
-    .mb-track { flex: 1; height: 4px; background: rgba(46,16,53,0.6); border-radius: 2px; }
-    .mb-fill { height: 4px; border-radius: 2px; }
-    .mb-val { color: var(--grey-light); width: 32px; text-align: right; font-weight: 600; font-size: 11px; }
-    .av-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .av-card {
+    /* Signal cards row */
+    .signal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .signal-card {
       background: rgba(8,2,10,0.7); border: 1px solid rgba(46,16,53,0.5);
-      border-radius: 10px; padding: 14px 10px; text-align: center;
+      border-radius: 12px; padding: 16px 14px;
     }
-    .av-card .n { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; }
-    .av-card .l { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.8px; }
+    .signal-card .sc-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+    .signal-card .sc-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+    .signal-card .sc-trend {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 3px 8px; border-radius: 20px;
+    }
+    .trend-up   { background: rgba(128,1,31,0.15); color: #dea8b2; }
+    .trend-em   { background: rgba(107,112,116,0.15); color: #b8bfc4; }
+    /* Pipeline bars */
+    .pipeline-section { margin-top: 4px; }
+    .pipeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .pipeline-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .pipeline-note { font-size: 9px; color: var(--dim); letter-spacing: 0.3px; }
+    .pipeline-bars { display: flex; flex-direction: column; gap: 9px; }
+    .pb-row { display: flex; align-items: center; gap: 10px; }
+    .pb-lbl { font-size: 11px; color: var(--muted); width: 100px; flex-shrink: 0; font-weight: 500; }
+    .pb-track { flex: 1; height: 5px; background: rgba(46,16,53,0.6); border-radius: 3px; }
+    .pb-fill { height: 5px; border-radius: 3px; background: var(--crimson); }
+    .pb-dir { font-size: 10px; color: var(--grey-light); width: 24px; text-align: right; }
 
-    /* â”€â”€ ROLES â”€â”€ */
+    /* ── ROLES ── */
     .roles { background: var(--surface); }
     .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .role-card {
@@ -265,11 +275,11 @@
     .role-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     }
-    .role-youth::before   { background: linear-gradient(90deg, #80011f, #a8022a); }
-    .role-coach::before   { background: linear-gradient(90deg, #6B7074, #9ca3a8); }
-    .role-employer::before { background: linear-gradient(90deg, #5c0116, #80011f); }
-    .role-admin::before   { background: linear-gradient(90deg, #3d1219, #6B7074); }
-.role-card h3 { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.4px; }
+    .role-youth::before     { background: linear-gradient(90deg, #80011f, #a8022a); }
+    .role-employer::before  { background: linear-gradient(90deg, #5c0116, #80011f); }
+    .role-postsec::before   { background: linear-gradient(90deg, #6B7074, #9ca3a8); }
+    .role-industry::before  { background: linear-gradient(90deg, #3d1219, #6B7074); }
+    .role-card h3 { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.4px; }
     .role-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.75; margin-bottom: 22px; }
     .role-tag {
       display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -280,7 +290,7 @@
     .tag-c { background: rgba(92,1,22,0.12); color: #c4868e; border: 1px solid rgba(92,1,22,0.2); }
     .tag-d { background: rgba(61,16,37,0.2); color: #b8909a; border: 1px solid rgba(61,16,37,0.3); }
 
-    /* â”€â”€ IMAGERY STRIP â”€â”€ */
+    /* ── IMAGERY STRIP ── */
     .imagery { padding: 0; }
     .img-grid {
       display: grid; grid-template-columns: 2fr 1fr 1fr; height: 480px;
@@ -299,7 +309,7 @@
       letter-spacing: 0.3px;
     }
 
-    /* â”€â”€ CTA â”€â”€ */
+    /* ── CTA ── */
     .cta-section {
       text-align: center; padding: 140px 6vw;
       background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(128,1,31,0.1) 0%, transparent 70%);
@@ -338,7 +348,7 @@
     .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 52px rgba(128,1,31,0.65); }
     .cta-note { margin-top: 18px; font-size: 12px; color: var(--dim); letter-spacing: 0.3px; }
 
-    /* â”€â”€ FOOTER â”€â”€ */
+    /* ── FOOTER ── */
     footer {
       border-top: 1px solid rgba(46,16,53,0.4); padding: 52px 6vw;
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
@@ -357,7 +367,7 @@
     .footer-links a:hover { color: var(--muted); }
     .footer-copy { font-size: 12px; color: var(--dim); }
 
-    /* â”€â”€ RESPONSIVE â”€â”€ */
+    /* ── RESPONSIVE ── */
     @media (max-width: 960px) {
       .analytics-wrap { grid-template-columns: 1fr; }
       .platform-grid { grid-template-columns: 1fr; }
@@ -369,6 +379,7 @@
       .stat-item { padding: 0 20px; }
       footer { flex-direction: column; text-align: center; }
       .footer-links { justify-content: center; }
+      .signal-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -386,7 +397,7 @@
   <div class="nav-links">
     <a href="#platform">Platform</a>
     <a href="#acia">ACIA</a>
-    <a href="#analytics">Analytics</a>
+    <a href="#intelligence">Intelligence</a>
     <a href="#roles">Who It Serves</a>
     <a href="#cohort">Join Cohort</a>
   </div>
@@ -403,7 +414,7 @@
     </div>
     <h1>Canada's Intelligence Layer<br/>for <em>Aviation &amp; Aerospace</em><br/>Workforce Development</h1>
     <p class="hero-sub">
-      AACP validates competencies, maps career pathways, and connects qualified talent to aviation and aerospace roles through evidence-based assessment aligned to Canadian Aviation Regulations.
+      AACP™ Workforce Intelligence connects talent, post-secondary institutions, employers, and industry around a shared understanding of aviation and aerospace workforce capability, development, and opportunity.
     </p>
     <div class="hero-actions">
       <a href="/app.html" class="btn-primary">
@@ -413,23 +424,23 @@
         Explore the Platform
       </a>
     </div>
-    <div class="cta-note">New to AACP? &nbsp;<a href="/app.html" style="color:var(--muted);">Create your account</a> to start ACIA &nbsp;&bull;&nbsp; Approval typically within 1 business day</div>
+    <div class="cta-note">New to AACP? &nbsp;<a href="/app.html" style="color:var(--muted);">Create your account</a> to begin &nbsp;&bull;&nbsp; Approval typically within 1 business day</div>
     <div class="hero-stats">
       <div class="stat-item">
         <div class="num">50<span>+</span></div>
         <div class="lbl">Pilot Participants</div>
       </div>
       <div class="stat-item">
-        <div class="num">12</div>
-        <div class="lbl">Core Competencies</div>
+        <div class="num">4</div>
+        <div class="lbl">Stakeholder Groups</div>
       </div>
       <div class="stat-item">
         <div class="num">5</div>
         <div class="lbl">Career Pathways</div>
       </div>
       <div class="stat-item">
-        <div class="num">72<span>%</span></div>
-        <div class="lbl">Avg Readiness Score</div>
+        <div class="num">CA<span>N</span></div>
+        <div class="lbl">National Scope</div>
       </div>
     </div>
   </div>
@@ -456,134 +467,160 @@
 <!-- PLATFORM -->
 <section class="platform" id="platform">
   <div class="section-header">
-    <div class="section-eyebrow">Platform Capabilities</div>
-    <h2 class="section-title">Built for the Demands of<br/>High-Stakes Aviation Careers</h2>
+    <div class="section-eyebrow">Platform Intelligence</div>
+    <h2 class="section-title">Workforce Intelligence<br/>Across the Entire Ecosystem</h2>
     <div class="divider"></div>
-    <p class="section-sub">Every capability is designed around regulatory compliance, rigorous skill validation, and measurable career outcomes for Canada's aviation sector.</p>
+    <p class="section-sub">AACP delivers purposeful intelligence to every stakeholder in the aviation and aerospace workforce — supporting better decisions for talent, institutions, employers, and industry.</p>
   </div>
   <div class="grid-max">
     <div class="platform-grid">
+
       <div class="platform-card">
         <span class="platform-number">01</span>
-        <h3>Competency Validation</h3>
-        <p>A structured, multi-source evidence framework maps candidate performance to CARs regulatory standards through direct observation, coach review, and structured assessment at every stage of a participant's journey.</p>
+        <h3>Career Intelligence</h3>
+        <p>Help participants understand their strengths, development opportunities, and potential aviation and aerospace career pathways — supporting clarity and direction at every stage of their journey.</p>
       </div>
+
       <div class="platform-card" id="acia">
         <span class="platform-number">02</span>
-        <h3>ACIA — Aviation Career Intelligence Assessment</h3>
-        <p>Every youth participant completes ACIA inside their dashboard after sign-in: realistic mission scenarios that build a personalized career pathway profile and role-match scoring, powered by a competency index algorithm that accounts for evidence quality, rubric alignment, and individual development trajectory.</p>
+        <h3>ACIA — Aviation Career Intelligence</h3>
+        <p>Career intelligence designed to help participants better understand their strengths, development opportunities, and potential alignment with aviation and aerospace pathways. Participants receive a high-level career intelligence profile to support their development and career exploration.</p>
       </div>
+
       <div class="platform-card">
         <span class="platform-number">03</span>
-        <h3>Cohort Analytics</h3>
-        <p>Purpose-built employer dashboards surface readiness bands, competency gap maps by role family, and workforce trend analysis across the full pilot cohort in a single, actionable view.</p>
+        <h3>Workforce Readiness</h3>
+        <p>Provide authorized partners with visibility into emerging workforce readiness and areas where further development may be valuable — supporting workforce planning and talent-pipeline decisions.</p>
       </div>
+
       <div class="platform-card">
         <span class="platform-number">04</span>
-        <h3>Evidence Portfolio</h3>
-        <p>Participants build a verifiable digital portfolio of competency evidence across five career pathways. Coaches review, certify, and return structured feedback with full audit traceability.</p>
+        <h3>Talent Intelligence</h3>
+        <p>Help employers understand emerging talent pools, workforce capabilities, and talent-development opportunities across Canadian aviation and aerospace pathways.</p>
       </div>
+
       <div class="platform-card">
         <span class="platform-number">05</span>
-        <h3>Privacy and Governance</h3>
-        <p>Granular consent management, immutable audit logging, and role-based access control ensure participant data is governed to the highest standard throughout the entire assessment lifecycle.</p>
+        <h3>Post-Secondary Intelligence</h3>
+        <p>Provide institutions with workforce and industry insights that can support program alignment, emerging pathways, and stronger education-to-industry connections.</p>
       </div>
+
       <div class="platform-card">
         <span class="platform-number">06</span>
-        <h3>Role Matching Engine</h3>
-        <p>A weighted fit-score algorithm connects job-ready participants to aviation role families including Jet Technician, Avionics Specialist, and AMT with transparent, explainable gap analysis for every match.</p>
+        <h3>Talent Pathways</h3>
+        <p>Strengthen connections among participants, employers, post-secondary institutions, training organizations, and industry partners around shared workforce intelligence and opportunity.</p>
       </div>
+
     </div>
   </div>
 </section>
 
-<!-- ANALYTICS -->
-<section id="analytics">
+<!-- ANALYTICS / INTELLIGENCE -->
+<section id="intelligence">
   <div class="grid-max">
     <div class="analytics-wrap">
       <div class="analytics-copy">
-        <div class="section-eyebrow">Real-Time Intelligence</div>
-        <h2 class="section-title">Analytics That Drive<br/>Confident Hiring</h2>
+        <div class="section-eyebrow">Workforce Intelligence</div>
+        <h2 class="section-title">Intelligence for Better<br/>Talent Decisions</h2>
         <div class="divider"></div>
-        <p class="section-sub" style="margin-bottom:36px">Every stakeholder receives a purpose-built view. Youth participants see their pathway. Coaches manage their cohort. Employers track workforce readiness with precision.</p>
+        <p class="section-sub" style="margin-bottom:36px">Transform workforce and talent information into actionable insight. AACP helps authorized partners understand emerging talent pipelines, workforce-readiness trends, development priorities, and evolving aviation and aerospace workforce needs.</p>
         <div class="analytics-features">
           <div class="af-item">
             <div class="af-num">01</div>
             <div class="af-text">
-              <h4>Live Readiness Scoring</h4>
-              <p>Composite readiness score updated after every assessment submission and coach review, giving participants and coaches a continuous, accurate picture of progress.</p>
+              <h4>Talent Pipeline Insights</h4>
+              <p>Understand emerging talent across aviation and aerospace pathways and how the pipeline is developing over time.</p>
             </div>
           </div>
           <div class="af-item">
             <div class="af-num">02</div>
             <div class="af-text">
-              <h4>Competency Gap Mapping</h4>
-              <p>Visual breakdown of skill gaps across Aviation Operations, Flight Support, and Avionics role families to support targeted development planning.</p>
+              <h4>Workforce Readiness Trends</h4>
+              <p>Identify high-level readiness and development patterns across participating cohorts to support workforce planning.</p>
             </div>
           </div>
           <div class="af-item">
             <div class="af-num">03</div>
             <div class="af-text">
-              <h4>Regulatory Compliance Alerts</h4>
-              <p>Automatic identification of CARs-aligned training gaps before they affect a participant's placement eligibility or regulatory standing.</p>
+              <h4>Regional Workforce Intelligence</h4>
+              <p>Explore workforce and talent trends across participating regions, supporting national and regional workforce strategy.</p>
+            </div>
+          </div>
+          <div class="af-item">
+            <div class="af-num">04</div>
+            <div class="af-text">
+              <h4>Industry Demand Signals</h4>
+              <p>Understand changing workforce needs and emerging areas of demand across Canadian aviation and aerospace sectors.</p>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Intelligence Visual — illustrative, no proprietary metrics -->
       <div class="analytics-visual">
         <div class="av-header">
-          <div class="av-title">Cohort Readiness Overview</div>
-          <div class="av-badge">Active</div>
+          <div class="av-title">Workforce Intelligence Overview</div>
+          <div class="av-badge">Illustrative</div>
         </div>
-        <div class="readiness-ring">
-          <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
-            <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(46,16,53,0.6)" stroke-width="8"/>
-            <circle cx="45" cy="45" r="36" fill="none" stroke="#80011f" stroke-width="8"
-              stroke-dasharray="226" stroke-dashoffset="63" stroke-linecap="round"
-              transform="rotate(-90 45 45)"/>
-          </svg>
-          <div class="ring-label">
-            <div class="big">72%</div>
-            <div class="sub">Avg Readiness Score</div>
+
+        <div class="signal-row">
+          <div class="signal-card">
+            <div class="sc-eyebrow">Talent Pipeline</div>
+            <div class="sc-label">Aviation &amp; Aerospace Pathways</div>
+            <div class="sc-trend trend-up">&#8599; Growing</div>
           </div>
-        </div>
-        <div class="mini-bars">
-          <div class="mb-row">
-            <div class="mb-lbl">Navigation</div>
-            <div class="mb-track"><div class="mb-fill" style="width:82%;background:#80011f"></div></div>
-            <div class="mb-val">82%</div>
+          <div class="signal-card">
+            <div class="sc-eyebrow">Industry Signal</div>
+            <div class="sc-label">Emerging Workforce Demand</div>
+            <div class="sc-trend trend-em">&#9679; Active</div>
           </div>
-          <div class="mb-row">
-            <div class="mb-lbl">Safety Ops</div>
-            <div class="mb-track"><div class="mb-fill" style="width:95%;background:#6B7074"></div></div>
-            <div class="mb-val">95%</div>
+          <div class="signal-card">
+            <div class="sc-eyebrow">Regional Intelligence</div>
+            <div class="sc-label">Multi-Region Coverage</div>
+            <div class="sc-trend trend-up">&#8599; Expanding</div>
           </div>
-          <div class="mb-row">
-            <div class="mb-lbl">Reg. Compliance</div>
-            <div class="mb-track"><div class="mb-fill" style="width:48%;background:#a8022a"></div></div>
-            <div class="mb-val">48%</div>
-          </div>
-          <div class="mb-row">
-            <div class="mb-lbl">Emergency Proc.</div>
-            <div class="mb-track"><div class="mb-fill" style="width:60%;background:#4d5154"></div></div>
-            <div class="mb-val">60%</div>
+          <div class="signal-card">
+            <div class="sc-eyebrow">Workforce Readiness</div>
+            <div class="sc-label">Development Priorities Identified</div>
+            <div class="sc-trend trend-em">&#9679; Tracked</div>
           </div>
         </div>
-        <div class="av-cards" style="margin-top:22px">
-          <div class="av-card">
-            <div class="n" style="color:#80011f">28</div>
-            <div class="l">Placement Ready</div>
+
+        <div class="pipeline-section">
+          <div class="pipeline-header">
+            <div class="pipeline-title">Talent Pipeline by Pathway</div>
+            <div class="pipeline-note">Illustrative data</div>
           </div>
-          <div class="av-card">
-            <div class="n" style="color:#6B7074">19</div>
-            <div class="l">In Progress</div>
-          </div>
-          <div class="av-card">
-            <div class="n" style="color:#a8022a">3</div>
-            <div class="l">Flagged</div>
+          <div class="pipeline-bars">
+            <div class="pb-row">
+              <div class="pb-lbl">Maintenance</div>
+              <div class="pb-track"><div class="pb-fill" style="width:78%"></div></div>
+              <div class="pb-dir">&#8599;</div>
+            </div>
+            <div class="pb-row">
+              <div class="pb-lbl">Avionics</div>
+              <div class="pb-track"><div class="pb-fill" style="width:62%"></div></div>
+              <div class="pb-dir">&#8599;</div>
+            </div>
+            <div class="pb-row">
+              <div class="pb-lbl">Flight Ops</div>
+              <div class="pb-track"><div class="pb-fill" style="width:55%"></div></div>
+              <div class="pb-dir">&#9675;</div>
+            </div>
+            <div class="pb-row">
+              <div class="pb-lbl">Aerospace</div>
+              <div class="pb-track"><div class="pb-fill" style="width:44%"></div></div>
+              <div class="pb-dir">&#8599;</div>
+            </div>
+            <div class="pb-row">
+              <div class="pb-lbl">ATC &amp; Support</div>
+              <div class="pb-track"><div class="pb-fill" style="width:38%"></div></div>
+              <div class="pb-dir">&#9675;</div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </section>
@@ -606,39 +643,39 @@
   </div>
 </div>
 
-<!-- ROLES -->
+<!-- WHO IT SERVES -->
 <section class="roles" id="roles">
   <div class="section-header">
     <div class="section-eyebrow">Who It Serves</div>
-    <h2 class="section-title">Four Roles. One Platform.</h2>
+    <h2 class="section-title">One Ecosystem.<br/>Four Stakeholders.</h2>
     <div class="divider"></div>
-    <p class="section-sub">AACP serves every stakeholder in the aviation and aerospace workforce pipeline within a single, secure, and intelligent environment.</p>
+    <p class="section-sub">AACP™ Workforce Intelligence connects every stakeholder in the aviation and aerospace workforce pipeline around shared intelligence, development, and opportunity.</p>
   </div>
   <div class="grid-max">
     <div class="roles-grid">
 
       <div class="role-card role-youth">
-        <h3>Participant</h3>
-        <p>Build your evidence portfolio, track competency progress across your chosen career pathway, and receive personalized guidance toward a verified role in aviation or aerospace. Register with your name, email, and phone to apply.</p>
-        <span class="role-tag tag-a">Pathway Tracking</span>
+        <h3>Participants</h3>
+        <p>Explore aviation and aerospace career pathways, understand your strengths and development opportunities, and build greater clarity about your next steps in Canada's aviation and aerospace workforce.</p>
+        <span class="role-tag tag-a">Career Intelligence</span>
       </div>
 
       <div class="role-card role-employer">
-        <h3>Employer</h3>
-        <p>Access verified workforce readiness intelligence, review role-matched candidate profiles, and analyse competency gaps by role family to make confident, evidence-backed hiring decisions. Register with your organization details for access.</p>
+        <h3>Employers</h3>
+        <p>Gain visibility into emerging talent, workforce-readiness trends, and talent pipelines that can support workforce planning, talent development, and hiring decisions across aviation and aerospace.</p>
         <span class="role-tag tag-c">Talent Intelligence</span>
       </div>
 
-      <div class="role-card role-postsecondary">
-        <h3>Post-Secondary Institution</h3>
-        <p>View validated competency data across participant cohorts in multiple Canadian regions. Support programme alignment, curriculum benchmarking, and partnership development with data-driven insight. Institutional registration required.</p>
-        <span class="role-tag tag-b">Regional Intelligence</span>
+      <div class="role-card role-postsec">
+        <h3>Post-Secondary &amp; Training Institutions</h3>
+        <p>Access workforce and industry insights that can support program alignment, emerging talent pathways, and stronger connections between education and evolving aviation and aerospace industry needs.</p>
+        <span class="role-tag tag-b">Workforce Insights</span>
       </div>
 
-      <div class="role-card role-admin">
-        <h3>AACP Administrator</h3>
-        <p>Reserved for AACP employees, coaches, trainers, and instructors. Administrators hold full platform access: approving cohorts and registrations, managing users across all roles, certifying competencies, and maintaining audit and compliance oversight.</p>
-        <span class="role-tag tag-d">Provisioned Access Only</span>
+      <div class="role-card role-industry">
+        <h3>Industry Partners</h3>
+        <p>Contribute to and benefit from a stronger aviation and aerospace talent ecosystem through workforce intelligence, collaboration, and future talent-pipeline development across Canada.</p>
+        <span class="role-tag tag-d">Industry Intelligence</span>
       </div>
 
     </div>
@@ -647,13 +684,13 @@
 
 <!-- CTA -->
 <section class="cta-section" id="cohort">
-  <h2>Begin Your Aviation<br/>Intelligence Journey</h2>
-  <p>Join Canada's most rigorous aviation workforce development programme and take the first step toward a verified career in aviation or aerospace.</p>
+  <h2>The Aviation Workforce<br/>Intelligence Platform</h2>
+  <p>AACP™ supports better decisions for talent, institutions, employers, and industry — built for the demands of Canada's aviation and aerospace workforce.</p>
   <div style="display:flex;justify-content:center">
     <div class="cta-card">
       <div class="cta-label">Cohort Access</div>
       <h3>Sign In to Your Dashboard</h3>
-      <p>Access your personal competency tracker, evidence portfolio, coach feedback, and career pathway progress in one secure environment.</p>
+      <p>Access your personal career intelligence, workforce insights, and pathway progress in one secure, authorized environment.</p>
       <a href="/app.html" class="cta-btn">
         Access Your Cohort Dashboard
       </a>
@@ -667,13 +704,13 @@
   <a href="/" class="footer-logo">
     <div class="footer-logo-mark">AACP</div>
     <div>
-      <div class="footer-name">AACP</div>
-      <div class="footer-tagline">Aviation &amp; Aerospace Competence Program</div>
+      <div class="footer-name">AACP™ Workforce Intelligence</div>
+      <div class="footer-tagline">Aviation &amp; Aerospace Workforce Intelligence</div>
     </div>
   </a>
   <div class="footer-links">
     <a href="#platform">Platform</a>
-    <a href="#analytics">Analytics</a>
+    <a href="#intelligence">Intelligence</a>
     <a href="#roles">Who It Serves</a>
     <a href="/app.html">Sign In</a>
   </div>
