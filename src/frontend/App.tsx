@@ -838,10 +838,10 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
 
 // ── Role → dashboard views ────────────────────────────────────────────────────
 
-type DashboardView = 'admin' | 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector';
+type DashboardView = 'admin' | 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector' | 'industry';
 
 function viewsForRole(role: Role): DashboardView[] {
-  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary'];
+  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary', 'industry'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   if (role === 'coach') return ['coach'];
@@ -855,6 +855,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
   coach: 'Career Advisor',
   employer: 'Employer',
   postsecondary: 'Post-Secondary',
+  industry: 'Industry Network',
 };
 
 // ── Placeholder for post-secondary dashboard ──────────────────────────────────
@@ -864,6 +865,46 @@ function PostSecondaryDashboard() {
     <div style={{ padding: 32 }}>
       <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Post-Secondary Dashboard</h2>
       <p style={{ color: '#9ca3a8', fontSize: 14 }}>Regional competency data across Canadian institutions — coming soon.</p>
+    </div>
+  );
+}
+
+// ── FAWN — Coming Soon placeholder ───────────────────────────────────────────
+// Replace this component with the real Industry Network module after AWS migration.
+
+function NetworkComingSoon() {
+  const capabilities = [
+    { label: 'Industry Network', desc: 'Connect with aviation, aerospace and emerging-technology organizations across Canada.' },
+    { label: 'Talent Trends', desc: 'Workforce intelligence and demand signals from industry partners.' },
+    { label: 'Industry Directory', desc: 'Searchable registry of network member organizations.' },
+    { label: 'Collaboration Opportunities', desc: 'Post and discover workforce initiatives, training partnerships and projects.' },
+    { label: 'Events & Updates', desc: 'Industry events, program updates and network announcements.' },
+  ];
+  return (
+    <div style={{ padding: '48px 32px', maxWidth: 680 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 10 }}>
+        Invite Only
+      </div>
+      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 900, margin: '0 0 6px', lineHeight: 1.2 }}>
+        AACP™ Future Aviation Workforce Network — Canada
+      </h1>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3a8', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 20 }}>
+        Coming Soon
+      </div>
+      <p style={{ fontSize: 14, color: '#c4b5c0', lineHeight: 1.8, marginBottom: 32, maxWidth: 560 }}>
+        An invite-only national industry network connecting aviation, aerospace and emerging-technology organizations around workforce intelligence, talent development and collaboration.
+      </p>
+      <div style={{ display: 'grid', gap: 12 }}>
+        {capabilities.map(c => (
+          <div key={c.label} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: 'var(--surface, #1a0d10)', border: '1px solid var(--border, #3d1020)', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8F0909', marginTop: 6, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, color: '#f1f5f9' }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: '#9ca3a8', lineHeight: 1.6 }}>{c.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1027,6 +1068,7 @@ export function App() {
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
+        {currentView === 'industry'       && <NetworkComingSoon />}
       </main>
     </div>
   );
