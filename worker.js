@@ -4302,6 +4302,15 @@ async function handleAdminConnectorProvenance(request, user, env) {
   const rawLimit      = parseInt(url.searchParams.get('limit') ?? '50', 10);
   const limit         = Math.min(isNaN(rawLimit) ? 50 : rawLimit, 200);
 
+  // Coaches may only query provenance scoped to a participant they have a coaching relationship with.
+  if (user.role === 'coach') {
+    if (!participantId) return err('participantId is required', 400);
+    const relationship = await env.DB.prepare(
+      `SELECT id FROM coaching_sessions WHERE coach_id = ? AND participant_id = ? LIMIT 1`
+    ).bind(user.sub, participantId).first().catch(() => null);
+    if (!relationship) return err('Participant not found', 404);
+  }
+
   if (competency && !COMPETENCY_LABELS[competency]) return err(`competency must be a canonical AACP code`);
   if (sourceType && !VALID_EVIDENCE_SOURCES.has(sourceType)) return err(`sourceType must be one of: ${[...VALID_EVIDENCE_SOURCES].join(', ')}`);
 
@@ -4877,6 +4886,13 @@ async function handleAdminConnectorParticipant(request, user, env) {
     `SELECT id FROM users WHERE id = ? AND role = 'youth'`
   ).bind(participantId).first().catch(() => null);
   if (!participant) return err('Participant not found', 404);
+
+  if (user.role === 'coach') {
+    const relationship = await env.DB.prepare(
+      `SELECT id FROM coaching_sessions WHERE coach_id = ? AND participant_id = ? LIMIT 1`
+    ).bind(user.sub, participantId).first().catch(() => null);
+    if (!relationship) return err('Participant not found', 404);
+  }
 
   const [longitudinal, { results: evidenceRows }] = await Promise.all([
     assembleParticipantLongitudinalIntelligence(env.DB, participantId),
@@ -7804,6 +7820,12 @@ async function handleRpasApply(request, env, ctx) {
 
 // GET /rpas/apply/status?email=... — public application status check
 async function handleRpasApplicationStatus(request, env) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const ipKey = `rpas_status_ip:${clientIp}`;
+  const ipCount = await countAllAttempts(env.DB, ipKey, 60 * 60 * 1000);
+  if (ipCount >= 20) return err('Too many requests. Please try again later.', 429);
+  await recordAttempt(env.DB, ipKey, true);
+
   const url = new URL(request.url);
   const email = url.searchParams.get('email')?.trim().toLowerCase();
   if (!email) return err('email query parameter required', 400);
