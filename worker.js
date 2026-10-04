@@ -2203,14 +2203,15 @@ const CONTACT_EMAIL = 'info@aviationaerospacecompetency.com';
 
 // Core send — throws on failure so callers can log the actual Resend error.
 async function sendEmail(env, { event, to, subject, text, html }) {
-  console.log(`[email] EVENT=${event} TO=${to} SUBJECT="${subject}"`);
+  const toMasked = to.replace(/(?<=.{2}).(?=.*@)/g, '*');
+  console.log(`[email] EVENT=${event} TO=${toMasked} SUBJECT="${subject}"`);
 
   if (!env.RESEND_API_KEY) {
-    console.error(`[email] FAILED event=${event} reason=RESEND_API_KEY_NOT_SET to=${to}`);
+    console.error(`[email] FAILED event=${event} reason=RESEND_API_KEY_NOT_SET to=${toMasked}`);
     throw new Error('RESEND_API_KEY not configured');
   }
 
-  console.log(`[email] REQUESTING Resend API event=${event} from=${FROM_ADDRESS} to=${to}`);
+  console.log(`[email] REQUESTING Resend API event=${event} from=${FROM_ADDRESS} to=${toMasked}`);
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -2221,13 +2222,13 @@ async function sendEmail(env, { event, to, subject, text, html }) {
   const resBody = await res.text().catch(() => '');
 
   if (!res.ok) {
-    console.error(`[email] RESEND_ERROR event=${event} status=${res.status} to=${to} body=${resBody}`);
+    console.error(`[email] RESEND_ERROR event=${event} status=${res.status} to=${toMasked} body=${resBody}`);
     throw new Error(`Resend ${res.status}: ${resBody}`);
   }
 
   let messageId = null;
   try { messageId = JSON.parse(resBody)?.id ?? null; } catch (_) {}
-  console.log(`[email] DELIVERED event=${event} to=${to} resend_id=${messageId}`);
+  console.log(`[email] DELIVERED event=${event} to=${toMasked} resend_id=${messageId}`);
   return messageId;
 }
 
@@ -2921,7 +2922,7 @@ async function handleLogin(request, env) {
   if (!user || !pwResult.valid) {
     await recordAttempt(env.DB, `login:${email}`, false);
     await recordAttempt(env.DB, `login_ip:${clientIp}`, false);
-    await audit(env.DB, 'login_failed', user?.id ?? null, 'session', { email });
+    await audit(env.DB, 'login_failed', user?.id ?? null, 'session', {});
     return err('Invalid credentials', 401);
   }
   // Transparently upgrade legacy low-iteration hashes on successful login
