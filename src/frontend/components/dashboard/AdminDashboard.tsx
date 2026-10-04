@@ -1281,7 +1281,7 @@ function AdminManagementPanel() {
   );
 }
 
-type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'handoffs';
+type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'handoffs' | 'eoi';
 
 // ── AACP Waitlist Panel (Admin view) ──────────────────────────────────────────
 
@@ -2002,6 +2002,7 @@ interface PilotInvitation {
   revokedAt: string | null;
   createdAt: string;
   status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  hubType: string | null;
 }
 
 const PILOT_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -2012,16 +2013,17 @@ const PILOT_STATUS_STYLES: Record<string, { label: string; color: string; bg: st
 };
 
 function PilotAccessPanel() {
-  const [pilotSubTab, setPilotSubTab] = useState<'pilot_testing' | 'external_validation'>('pilot_testing');
+  const [pilotSubTab, setPilotSubTab] = useState<'pilot_testing' | 'rpas_hub' | 'external_validation'>('pilot_testing');
 
   return (
     <div>
       {/* Sub-tab selector */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
         {([
-          { key: 'pilot_testing', label: 'Pilot Testing' },
+          { key: 'pilot_testing',      label: 'Pilot Testing' },
+          { key: 'rpas_hub',           label: 'RPAS Workforce Hub' },
           { key: 'external_validation', label: 'External Validation' },
-        ] as { key: 'pilot_testing' | 'external_validation'; label: string }[]).map(t => (
+        ] as { key: 'pilot_testing' | 'rpas_hub' | 'external_validation'; label: string }[]).map(t => (
           <button
             key={t.key}
             onClick={() => setPilotSubTab(t.key)}
@@ -2038,7 +2040,8 @@ function PilotAccessPanel() {
           </button>
         ))}
       </div>
-      {pilotSubTab === 'pilot_testing' && <PilotTestingInner />}
+      {pilotSubTab === 'pilot_testing'      && <PilotTestingInner />}
+      {pilotSubTab === 'rpas_hub'           && <RpasHubAdminPanel />}
       {pilotSubTab === 'external_validation' && <ExternalValidationPanel />}
     </div>
   );
@@ -2054,7 +2057,7 @@ function PilotTestingInner() {
   const [error, setError] = useState<string | null>(null);
 
   // Create form state
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '', hubType: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -2108,11 +2111,12 @@ function PilotTestingInner() {
           pilotRole: form.pilotRole,
           cohortName: form.cohortName.trim() || undefined,
           notes: form.notes.trim() || undefined,
+          hubType: form.hubType || undefined,
         }),
       });
       const link = `${window.location.origin}/app?pilot=${data.token}`;
       setCreatedLink(link);
-      setForm({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '' });
+      setForm({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '', hubType: '' });
       loadInvitations();
     } catch (e: unknown) {
       setCreateError((e as Error).message || 'Failed to create invitation');
@@ -2384,6 +2388,20 @@ function PilotTestingInner() {
               </select>
             </div>
           </div>
+          {form.pilotRole === 'youth' && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Hub Type (optional)</label>
+              <select value={form.hubType} onChange={e => setForm(f => ({ ...f, hubType: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">Standard Pilot Tester</option>
+                <option value="rpas">RPAS Workforce Hub</option>
+              </select>
+              {form.hubType === 'rpas' && (
+                <div style={{ color: C.amber, fontSize: 11, marginTop: 5 }}>
+                  This invitation will route the recipient into the RPAS Workforce Hub experience on account creation.
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Organization (optional)</label>
@@ -2457,6 +2475,11 @@ function PilotTestingInner() {
                       <span style={{ background: '#1e293b', border: '1px solid #334155', color: C.greyD, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>
                         {roleMap[inv.pilotRole] ?? inv.pilotRole}
                       </span>
+                      {inv.hubType === 'rpas' && (
+                        <span style={{ background: 'rgba(128,1,31,0.15)', border: '1px solid rgba(128,1,31,0.35)', color: '#c4868e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>
+                          RPAS Hub
+                        </span>
+                      )}
                     </div>
                     <div style={{ color: C.greyD, fontSize: 12 }}>{inv.email}</div>
                     {inv.organization && <div style={{ color: C.grey, fontSize: 12 }}>{inv.organization}</div>}
@@ -3485,6 +3508,7 @@ export function AdminDashboard() {
           { key: 'participants', label: 'Participant Overrides' },
           { key: 'handoffs', label: 'Handoffs' },
           { key: 'acia_integrity', label: 'ACIA Integrity' },
+          { key: 'eoi', label: 'Expressions of Interest' },
           { key: 'pilot', label: 'Pilot Access' },
           { key: 'audit', label: 'Audit Log' },
           { key: 'questions', label: 'Question Bank' },
@@ -3514,6 +3538,7 @@ export function AdminDashboard() {
       {adminTab === 'coaches'        && <CoachInvitationsPanel />}
       {adminTab === 'participants'   && <ParticipantOverridePanel />}
       {adminTab === 'acia_integrity' && <ACIAIntegrityPanel />}
+      {adminTab === 'eoi'            && <EoiAdminPanel />}
       {adminTab === 'pilot'          && <PilotAccessPanel />}
       {adminTab === 'audit'          && <AuditLogPanel />}
       {adminTab === 'admins'         && isSuperAdmin && <AdminManagementPanel />}
@@ -3671,3 +3696,906 @@ export function AdminDashboard() {
   );
 }
 
+// ── RPAS Hub Admin Panel ──────────────────────────────────────────────────────
+
+interface RpasApplication {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  city: string | null;
+  province: string | null;
+  careerStage: string | null;
+  currentSituation: string | null;
+  rpasExperience: string | null;
+  motivation: string | null;
+  preferredCohort: string;
+  assignedCohort: string;
+  feeAcknowledged: boolean;
+  paymentStatus: string;
+  participantAccess: string;
+  status: string;
+  reviewerNotes: string | null;
+  reviewedAt: string | null;
+  invitedAt: string | null;
+  createdAt: string;
+}
+
+interface RpasParticipant {
+  userId: string;
+  name: string;
+  email: string;
+  hubStatus: string;
+  intakeComplete: boolean;
+  aciaIntakeStatus: string | null;
+  enrolledAt: string | null;
+  createdAt: string;
+}
+
+const RPAS_APP_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  new:          { label: 'New',           color: C.amber,   bg: C.amberBg,  border: C.amberBorder },
+  under_review: { label: 'Under Review',  color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.3)' },
+  accepted:     { label: 'Accepted',      color: C.green,   bg: C.greenBg,  border: C.greenBorder },
+  waitlisted:   { label: 'Waitlisted',    color: C.greyD,   bg: '#1e293b',  border: '#334155' },
+  not_selected: { label: 'Not Selected',  color: C.red,     bg: C.redBg,    border: C.redBorder },
+  enrolled:     { label: 'Enrolled',      color: C.green,   bg: C.greenBg,  border: C.greenBorder },
+};
+
+const RPAS_PAYMENT_STYLES: Record<string, { label: string; color: string }> = {
+  not_requested:     { label: 'Not Requested',  color: C.greyD },
+  payment_pending:   { label: 'Payment Pending', color: C.amber },
+  payment_confirmed: { label: 'Payment Confirmed', color: C.green },
+};
+
+const RPAS_ACCESS_STYLES: Record<string, { label: string; color: string }> = {
+  not_enabled: { label: 'Not Enabled', color: C.greyD },
+  enabled:     { label: 'Enabled',     color: C.green },
+};
+
+const RPAS_COHORT_LABELS: Record<string, string> = {
+  nov_16_2026:  'Nov 16, 2026',
+  dec_14_2026:  'Dec 14, 2026',
+  either:       'Either',
+  not_assigned: '—',
+};
+
+const HUB_STATUS_LABELS: Record<string, string> = {
+  intake:        'Intake — background form',
+  assessment:    'Assessment — ACIA in progress',
+  profile_ready: 'Profile ready — awaiting enrolment',
+  enrolled:      'Enrolled — program underway',
+  complete:      'Complete',
+};
+
+type RpasAppFilter = 'all' | 'new' | 'under_review' | 'accepted' | 'waitlisted' | 'not_selected' | 'enrolled';
+
+function RpasHubAdminPanel() {
+  const [applications, setApplications] = useState<RpasApplication[]>([]);
+  const [participants, setParticipants] = useState<RpasParticipant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [participantsLoading, setParticipantsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [appFilter, setAppFilter] = useState<RpasAppFilter>('all');
+
+  const [reviewTarget, setReviewTarget] = useState<RpasApplication | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<string>('under_review');
+  const [reviewCohort, setReviewCohort]   = useState<string>('not_assigned');
+  const [paymentTarget, setPaymentTarget]   = useState<RpasApplication | null>(null);
+  const [paymentStatusVal, setPaymentStatusVal] = useState<string>('not_requested');
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentError, setPaymentError]   = useState<string | null>(null);
+  const [accessTarget, setAccessTarget]   = useState<RpasApplication | null>(null);
+  const [accessSaving, setAccessSaving]   = useState(false);
+  const [accessError, setAccessError]     = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const [inviting, setInviting] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<{ appId: string; link: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10,
+    padding: '10px 13px', color: C.white, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle: React.CSSProperties = {
+    display: 'block', color: C.greyD, fontSize: 11, fontWeight: 700,
+    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5,
+  };
+
+  const loadApplications = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiFetch<{ applications: RpasApplication[] }>('/admin/rpas/applications');
+      setApplications(data.applications);
+    } catch (e: unknown) {
+      setError((e as Error).message || 'Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadParticipants = useCallback(async () => {
+    setParticipantsLoading(true);
+    try {
+      const data = await apiFetch<{ participants: RpasParticipant[] }>('/admin/rpas/participants');
+      setParticipants(data.participants);
+    } catch {
+      // Non-fatal
+    } finally {
+      setParticipantsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadApplications(); loadParticipants(); }, [loadApplications, loadParticipants]);
+
+  async function submitReview() {
+    if (!reviewTarget) return;
+    setReviewing(true); setReviewError(null);
+    try {
+      await apiFetch(`/admin/rpas/applications/${reviewTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: reviewStatus !== reviewTarget.status ? reviewStatus : undefined,
+          assignedCohort: reviewCohort !== reviewTarget.assignedCohort ? reviewCohort : undefined,
+          reviewerNotes: reviewNotes.trim() || undefined,
+        }),
+      });
+      setReviewTarget(null); setReviewNotes('');
+      loadApplications();
+    } catch (e: unknown) {
+      setReviewError((e as Error).message || 'Review failed');
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  async function submitPayment() {
+    if (!paymentTarget) return;
+    setPaymentSaving(true); setPaymentError(null);
+    try {
+      await apiFetch(`/admin/rpas/applications/${paymentTarget.id}/payment`, {
+        method: 'PATCH',
+        body: JSON.stringify({ paymentStatus: paymentStatusVal }),
+      });
+      setPaymentTarget(null);
+      loadApplications();
+    } catch (e: unknown) {
+      setPaymentError((e as Error).message || 'Failed to update payment status');
+    } finally {
+      setPaymentSaving(false);
+    }
+  }
+
+  async function submitAccess(app: RpasApplication, newAccess: string) {
+    setAccessTarget(app); setAccessSaving(true); setAccessError(null);
+    try {
+      await apiFetch(`/admin/rpas/applications/${app.id}/access`, {
+        method: 'PATCH',
+        body: JSON.stringify({ participantAccess: newAccess }),
+      });
+      setAccessTarget(null);
+      loadApplications();
+    } catch (e: unknown) {
+      setAccessError((e as Error).message || 'Failed to update access');
+    } finally {
+      setAccessSaving(false);
+    }
+  }
+
+  async function handleInvite(app: RpasApplication) {
+    setInviting(app.id); setActionError(null); setInviteLink(null);
+    try {
+      const data = await apiFetch<{ token: string; invitationId: string }>(`/admin/rpas/applications/${app.id}/invite`, { method: 'POST' });
+      const link = `${window.location.origin}/app?pilot=${data.token}`;
+      setInviteLink({ appId: app.id, link });
+      loadApplications();
+    } catch (e: unknown) {
+      setActionError((e as Error).message || 'Failed to issue invitation');
+    } finally {
+      setInviting(null);
+    }
+  }
+
+  function copyLink(link: string) {
+    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+  }
+
+  const filteredApps = appFilter === 'all' ? applications : applications.filter(a => a.status === appFilter);
+
+  const APP_FILTER_TABS: { key: RpasAppFilter; label: string }[] = [
+    { key: 'all',          label: `All (${applications.length})` },
+    { key: 'new',          label: `New (${applications.filter(a => a.status === 'new').length})` },
+    { key: 'under_review', label: 'Under Review' },
+    { key: 'accepted',     label: `Accepted (${applications.filter(a => a.status === 'accepted').length})` },
+    { key: 'waitlisted',   label: 'Waitlisted' },
+    { key: 'not_selected', label: 'Not Selected' },
+    { key: 'enrolled',     label: 'Enrolled' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* Review modal */}
+      {reviewTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+              Review EOI — {reviewTarget.firstName} {reviewTarget.lastName}
+            </div>
+            <div style={{ color: C.greyD, fontSize: 13, marginBottom: 20 }}>
+              {reviewTarget.email}
+              {(reviewTarget.city || reviewTarget.province) && ` · ${[reviewTarget.city, reviewTarget.province].filter(Boolean).join(', ')}`}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+              {reviewTarget.careerStage && (
+                <div><div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Career Stage</div><div style={{ color: C.greyD, fontSize: 12 }}>{reviewTarget.careerStage.replace(/_/g, ' ')}</div></div>
+              )}
+              {reviewTarget.rpasExperience && (
+                <div><div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>RPAS Experience</div><div style={{ color: C.greyD, fontSize: 12 }}>{reviewTarget.rpasExperience.replace(/_/g, ' ')}</div></div>
+              )}
+              <div><div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Preferred Cohort</div><div style={{ color: C.greyD, fontSize: 12 }}>{RPAS_COHORT_LABELS[reviewTarget.preferredCohort] ?? reviewTarget.preferredCohort}</div></div>
+              <div><div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Fee Acknowledged</div><div style={{ color: reviewTarget.feeAcknowledged ? C.green : C.red, fontSize: 12 }}>{reviewTarget.feeAcknowledged ? 'Yes' : 'No'}</div></div>
+            </div>
+            {reviewTarget.motivation && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Comment</div>
+                <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.5 }}>{reviewTarget.motivation}</div>
+              </div>
+            )}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>EOI Status</label>
+              <select value={reviewStatus} onChange={e => setReviewStatus(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="new">New</option>
+                <option value="under_review">Under Review</option>
+                <option value="accepted">Accepted — notify applicant of next steps</option>
+                <option value="waitlisted">Waitlisted — hold for future cohort</option>
+                <option value="not_selected">Not Selected</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Assign Cohort</label>
+              <select value={reviewCohort} onChange={e => setReviewCohort(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="not_assigned">Not Assigned</option>
+                <option value="nov_16_2026">November 16, 2026</option>
+                <option value="dec_14_2026">December 14, 2026</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <label style={labelStyle}>Internal Notes (optional)</label>
+              <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} placeholder="Context for this decision (not shown to applicant)" rows={3} style={{ ...inputStyle, resize: 'vertical' as const }} />
+            </div>
+            {reviewError && (
+              <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+                <div style={{ color: '#fca5a5', fontSize: 12 }}>{reviewError}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setReviewTarget(null); setReviewNotes(''); setReviewError(null); }} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+              <button onClick={submitReview} disabled={reviewing} style={{ background: reviewing ? C.crimsonD : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: reviewing ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
+                {reviewing ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment modal */}
+      {paymentTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28, maxWidth: 420, width: '100%' }}>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Update Payment Status</div>
+            <div style={{ color: C.greyD, fontSize: 13, marginBottom: 18 }}>{paymentTarget.firstName} {paymentTarget.lastName} · {paymentTarget.email}</div>
+            <div style={{ background: 'rgba(128,1,31,0.08)', border: '1px solid rgba(128,1,31,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: C.greyD, marginBottom: 16, lineHeight: 1.6 }}>
+              Do not record card numbers or banking credentials. This records only the payment state confirmed off-platform.
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Payment Status</label>
+              <select value={paymentStatusVal} onChange={e => setPaymentStatusVal(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="not_requested">Not Requested</option>
+                <option value="payment_pending">Payment Pending — instructions sent</option>
+                <option value="payment_confirmed">Payment Confirmed — $1,200 CAD received</option>
+              </select>
+            </div>
+            {paymentStatusVal === 'payment_confirmed' && paymentTarget.status !== 'accepted' && (
+              <div style={{ background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: C.amber }}>
+                Warning: This EOI is not yet marked "Accepted". Payment can only be confirmed for accepted EOIs.
+              </div>
+            )}
+            {paymentError && (
+              <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+                <div style={{ color: '#fca5a5', fontSize: 12 }}>{paymentError}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setPaymentTarget(null); setPaymentError(null); }} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+              <button onClick={submitPayment} disabled={paymentSaving} style={{ background: paymentSaving ? C.crimsonD : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
+                {paymentSaving ? 'Saving…' : 'Update Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite link banner */}
+      {inviteLink && (
+        <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 12, padding: '16px 20px' }}>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>RPAS Hub invitation issued — share this link:</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <code style={{ color: C.grey, fontSize: 12, wordBreak: 'break-all', flex: 1 }}>{inviteLink.link}</code>
+            <button
+              onClick={() => copyLink(inviteLink.link)}
+              style={{ background: copied ? C.green : C.border, color: C.white, border: 'none', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+            >{copied ? 'Copied!' : 'Copy Link'}</button>
+          </div>
+          <div style={{ color: C.greyD, fontSize: 12, marginTop: 8 }}>This link will not be shown again. Copy it before dismissing.</div>
+          <button onClick={() => setInviteLink(null)} style={{ marginTop: 10, background: 'none', border: 'none', color: C.grey, fontSize: 12, cursor: 'pointer', padding: 0 }}>Dismiss</button>
+        </div>
+      )}
+
+      {actionError && (
+        <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10, padding: '10px 14px' }}>
+          <div style={{ color: '#fca5a5', fontSize: 13 }}>{actionError}</div>
+        </div>
+      )}
+
+      {/* Applications */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>Expressions of Interest</div>
+            <div style={{ color: C.greyD, fontSize: 12, marginTop: 2 }}>Public applications submitted via the RPAS Workforce Hub section of the website.</div>
+          </div>
+          <button onClick={loadApplications} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+          {APP_FILTER_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setAppFilter(tab.key)}
+              style={{
+                background: appFilter === tab.key ? C.crimson : C.border,
+                color: appFilter === tab.key ? C.white : C.greyD,
+                border: 'none', borderRadius: 6, padding: '5px 12px',
+                cursor: 'pointer', fontSize: 11, fontWeight: 700,
+              }}
+            >{tab.label}</button>
+          ))}
+        </div>
+        {loading ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 32 }}>Loading…</div>
+        ) : error ? (
+          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>
+          </div>
+        ) : filteredApps.length === 0 ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 32 }}>
+            {applications.length === 0 ? 'No expressions of interest yet.' : 'No applications match this filter.'}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {accessError && (
+              <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ color: '#fca5a5', fontSize: 12 }}>{accessError}</div>
+              </div>
+            )}
+            {filteredApps.map(app => {
+              const st  = RPAS_APP_STATUS_STYLES[app.status]  ?? RPAS_APP_STATUS_STYLES.new;
+              const pay = RPAS_PAYMENT_STYLES[app.paymentStatus] ?? RPAS_PAYMENT_STYLES.not_requested;
+              const acc = RPAS_ACCESS_STYLES[app.participantAccess]  ?? RPAS_ACCESS_STYLES.not_enabled;
+              const canEnableAccess = app.status === 'accepted' && app.paymentStatus === 'payment_confirmed' && app.participantAccess !== 'enabled';
+              return (
+                <div key={app.id} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                        <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{app.firstName} {app.lastName}</span>
+                        <span style={{ background: st.bg, border: `1px solid ${st.border}`, color: st.color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>{st.label}</span>
+                        <span style={{ color: pay.color, fontSize: 10, fontWeight: 700 }}>{pay.label}</span>
+                        {app.participantAccess === 'enabled' && (
+                          <span style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, color: C.green, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>ACCESS ON</span>
+                        )}
+                      </div>
+                      <div style={{ color: C.greyD, fontSize: 12 }}>{app.email}</div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 5, flexWrap: 'wrap' }}>
+                        {app.preferredCohort && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Preferred: </span><span style={{ color: C.greyD }}>{RPAS_COHORT_LABELS[app.preferredCohort] ?? app.preferredCohort}</span></div>}
+                        {app.assignedCohort && app.assignedCohort !== 'not_assigned' && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Assigned: </span><span style={{ color: C.white }}>{RPAS_COHORT_LABELS[app.assignedCohort] ?? app.assignedCohort}</span></div>}
+                        {app.careerStage && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Stage: </span><span style={{ color: C.greyD }}>{app.careerStage.replace(/_/g, ' ')}</span></div>}
+                        <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(app.createdAt)}</span></div>
+                        <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Fee ack: </span><span style={{ color: app.feeAcknowledged ? C.green : C.red }}>{app.feeAcknowledged ? 'Yes' : 'No'}</span></div>
+                      </div>
+                      {app.reviewerNotes && <div style={{ color: C.greyD, fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>Notes: {app.reviewerNotes}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => { setReviewTarget(app); setReviewNotes(app.reviewerNotes ?? ''); setReviewStatus(app.status); setReviewCohort(app.assignedCohort ?? 'not_assigned'); setReviewError(null); }}
+                        style={{ background: '#1e293b', color: C.greyD, border: '1px solid #334155', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+                      >Review</button>
+                      <button
+                        onClick={() => { setPaymentTarget(app); setPaymentStatusVal(app.paymentStatus); setPaymentError(null); }}
+                        style={{ background: '#1e293b', color: pay.color, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+                      >Payment</button>
+                      {canEnableAccess && (
+                        <button
+                          onClick={() => submitAccess(app, 'enabled')}
+                          disabled={accessTarget?.id === app.id && accessSaving}
+                          style={{ background: `linear-gradient(135deg, ${C.green}, #16a34a)`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+                        >{accessTarget?.id === app.id && accessSaving ? 'Enabling…' : 'Enable Access →'}</button>
+                      )}
+                      {app.participantAccess === 'enabled' && !app.invitedAt && (
+                        <button
+                          onClick={() => handleInvite(app)}
+                          disabled={inviting === app.id}
+                          style={{ background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: inviting === app.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}
+                        >{inviting === app.id ? 'Issuing…' : 'Issue Invite →'}</button>
+                      )}
+                    </div>
+                  </div>
+                  {/* Access status bar for accepted+paid */}
+                  {app.status === 'accepted' && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 11 }}>
+                      <span><span style={{ color: C.grey }}>Payment: </span><span style={{ color: pay.color }}>{pay.label}</span></span>
+                      <span><span style={{ color: C.grey }}>Access: </span><span style={{ color: acc.color }}>{acc.label}</span></span>
+                      {app.invitedAt && <span><span style={{ color: C.grey }}>Invite sent: </span><span style={{ color: C.greyD }}>{fmtDate(app.invitedAt)}</span></span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Hub Participants */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>Hub Participants</div>
+            <div style={{ color: C.greyD, fontSize: 12, marginTop: 2 }}>Accounts created via RPAS Hub invitations and their current journey status.</div>
+          </div>
+          <button onClick={loadParticipants} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+        </div>
+        {participantsLoading ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 32 }}>Loading…</div>
+        ) : participants.length === 0 ? (
+          <div style={{ color: C.grey, fontSize: 13, textAlign: 'center', padding: 32 }}>No RPAS Hub participants yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {participants.map(p => (
+              <div key={p.userId} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{p.name}</span>
+                  <span style={{ background: 'rgba(128,1,31,0.15)', border: '1px solid rgba(128,1,31,0.35)', color: '#c4868e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>
+                    RPAS Hub
+                  </span>
+                </div>
+                <div style={{ color: C.greyD, fontSize: 12 }}>{p.email}</div>
+                <div style={{ color: C.grey, fontSize: 11, marginTop: 6 }}>
+                  {HUB_STATUS_LABELS[p.hubStatus] ?? p.hubStatus}
+                </div>
+                <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 11 }}>
+                    <span style={{ color: C.grey }}>Intake: </span>
+                    <span style={{ color: p.intakeComplete ? C.green : C.amber, fontWeight: 600 }}>
+                      {p.intakeComplete ? 'Complete' : 'Pending'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11 }}>
+                    <span style={{ color: C.grey }}>ACIA: </span>
+                    <span style={{ color: p.aciaIntakeStatus === 'complete' ? C.green : C.grey, fontWeight: 600 }}>
+                      {p.aciaIntakeStatus === 'complete' ? 'Complete' : p.aciaIntakeStatus ?? 'Not started'}
+                    </span>
+                  </div>
+                  {p.enrolledAt && (
+                    <div style={{ fontSize: 11 }}>
+                      <span style={{ color: C.grey }}>Enrolled: </span>
+                      <span style={{ color: C.greyD }}>{fmtDate(p.enrolledAt)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── EOI Admin Panel ────────────────────────────────────────────────────────────
+
+interface EoiIndividual {
+  id: string; firstName: string; lastName: string; email: string;
+  phone: string | null; city: string | null; province: string | null; country: string;
+  careerStage: string | null; areasOfInterest: string[];
+  rpasExperience: string | null; background: string | null;
+  willingnessToPay: string | null; fundingDependency: string | null;
+  referralSource: string | null; comment: string | null;
+  utmSource: string | null; utmMedium: string | null; utmCampaign: string | null;
+  status: string; followUpNotes: string | null; contactedAt: string | null;
+  createdAt: string;
+}
+
+interface EoiPartner {
+  id: string; firstName: string; lastName: string; jobTitle: string | null;
+  email: string; phone: string | null; orgName: string; orgType: string | null;
+  city: string | null; province: string | null; country: string; website: string | null;
+  partnershipInterests: string[]; comment: string | null; referralSource: string | null;
+  utmSource: string | null; utmMedium: string | null; utmCampaign: string | null;
+  status: string; followUpNotes: string | null; contactedAt: string | null;
+  createdAt: string;
+}
+
+const EOI_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  new:           { label: 'New',           color: C.amber,   bg: C.amberBg,  border: C.amberBorder },
+  contacted:     { label: 'Contacted',     color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',   border: 'rgba(96,165,250,0.3)' },
+  follow_up:     { label: 'Follow-Up',     color: '#a78bfa', bg: 'rgba(167,139,250,0.08)',  border: 'rgba(167,139,250,0.3)' },
+  moved_forward: { label: 'Moved Forward', color: C.green,   bg: C.greenBg,  border: C.greenBorder },
+  closed:        { label: 'Closed',        color: C.greyD,   bg: '#1e293b',  border: '#334155' },
+};
+
+const EOI_INTEREST_LABELS: Record<string, string> = {
+  workforce_readiness: 'Workforce Readiness', rpas_workforce_hub: 'RPAS Workforce Hub',
+  future_aviation_aerospace: 'Future Aviation & Aerospace', not_sure: 'Not Sure Yet',
+};
+
+const EOI_PARTNER_INTEREST_LABELS: Record<string, string> = {
+  talent_pipeline: 'Talent Pipeline', hiring_emerging_talent: 'Hiring / Emerging Talent',
+  industry_participation: 'Industry Participation', workforce_readiness_collaboration: 'Workforce Readiness',
+  education_training_pathways: 'Education / Training', rpas_workforce_opportunities: 'RPAS Opportunities',
+  indigenous_workforce: 'Indigenous Workforce', newcomer_internationally_trained: 'Newcomer Talent',
+  cohort_sponsorship: 'Cohort Sponsorship', workforce_intelligence: 'Workforce Intelligence',
+  funding_project_collaboration: 'Funding / Project', other: 'Other',
+};
+
+type EoiSubTab = 'individuals' | 'partners';
+
+function EoiAdminPanel() {
+  const [subTab, setSubTab] = useState<EoiSubTab>('individuals');
+  const subTabs: { key: EoiSubTab; label: string }[] = [
+    { key: 'individuals', label: 'Individuals' },
+    { key: 'partners',    label: 'Industry & Partners' },
+  ];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
+        {subTabs.map(t => (
+          <button key={t.key} onClick={() => setSubTab(t.key)} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '9px 20px', fontSize: 13, fontWeight: 700,
+            color: subTab === t.key ? C.white : C.greyD,
+            borderBottom: `2px solid ${subTab === t.key ? C.crimson : 'transparent'}`,
+            marginBottom: -1, letterSpacing: 0.2,
+            transition: 'color 0.15s, border-color 0.15s',
+          }}>{t.label}</button>
+        ))}
+      </div>
+      {subTab === 'individuals' && <EoiIndividualsPanel />}
+      {subTab === 'partners'    && <EoiPartnersPanel />}
+    </div>
+  );
+}
+
+function useEoiList<T>(endpoint: string) {
+  const [items, setItems]     = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiFetch<{ items: T[] }>(`${endpoint}?limit=200`);
+      setItems(data.items ?? []);
+    } catch (e: unknown) {
+      setError((e as Error).message || 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }, [endpoint]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { items, loading, error, search, setSearch, statusFilter, setStatusFilter, reload: load };
+}
+
+function EoiStatusBadge({ status }: { status: string }) {
+  const s = EOI_STATUS_STYLES[status] ?? EOI_STATUS_STYLES.new;
+  return (
+    <span style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>
+      {s.label}
+    </span>
+  );
+}
+
+function EoiDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+      <div style={{ color: C.greyD, fontSize: 13 }}>{value}</div>
+    </div>
+  );
+}
+
+function EoiRecordActions({ id, status, followUpNotes, endpoint, onSaved }: {
+  id: string; status: string; followUpNotes: string | null; endpoint: string; onSaved: () => void;
+}) {
+  const [editing, setEditing]   = useState(false);
+  const [newStatus, setNewStatus] = useState(status);
+  const [notes, setNotes]       = useState(followUpNotes ?? '');
+  const [saving, setSaving]     = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const inputSt: React.CSSProperties = {
+    background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+    padding: '8px 12px', color: C.white, fontSize: 12, outline: 'none', width: '100%', boxSizing: 'border-box',
+  };
+
+  async function save() {
+    setSaving(true); setSaveError(null);
+    try {
+      await apiFetch(`${endpoint}/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus !== status ? newStatus : undefined, followUpNotes: notes }),
+      });
+      setEditing(false);
+      onSaved();
+    } catch (e: unknown) {
+      setSaveError((e as Error).message || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <button onClick={() => setEditing(true)} style={{ background: '#1e293b', color: C.greyD, border: '1px solid #334155', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+        Update
+      </button>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+      <select value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ ...inputSt, cursor: 'pointer' }}>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="follow_up">Follow-Up</option>
+        <option value="moved_forward">Moved Forward</option>
+        <option value="closed">Closed</option>
+      </select>
+      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Internal follow-up notes…" style={{ ...inputSt, resize: 'vertical' }} />
+      {saveError && <div style={{ color: '#fca5a5', fontSize: 11 }}>{saveError}</div>}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button onClick={save} disabled={saving} style={{ background: C.crimson, color: C.white, border: 'none', borderRadius: 7, padding: '6px 14px', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button onClick={() => setEditing(false)} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer', fontSize: 11 }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EoiIndividualsPanel() {
+  const { items, loading, error, search, setSearch, statusFilter, setStatusFilter, reload } = useEoiList<EoiIndividual>('/admin/eoi/individuals');
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const filtered = items.filter(i => {
+    const matchStatus = !statusFilter || i.status === statusFilter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || `${i.firstName} ${i.lastName} ${i.email} ${i.city ?? ''} ${i.province ?? ''}`.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+
+  const statusTabs = ['', 'new', 'contacted', 'follow_up', 'moved_forward', 'closed'];
+  const statusLabels: Record<string, string> = {
+    '': `All (${items.length})`,
+    new: `New (${items.filter(x => x.status === 'new').length})`,
+    contacted: 'Contacted', follow_up: 'Follow-Up', moved_forward: 'Moved Forward', closed: 'Closed',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, city…"
+          style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 14px', color: C.white, fontSize: 13, outline: 'none', minWidth: 220 }} />
+        <button onClick={() => reload()} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+      </div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {statusTabs.map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            background: statusFilter === s ? C.crimson : C.border, color: statusFilter === s ? C.white : C.greyD,
+            border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+          }}>{statusLabels[s]}</button>
+        ))}
+      </div>
+      {loading ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 32, textAlign: 'center' }}>Loading…</div>
+      ) : error ? (
+        <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 32, textAlign: 'center' }}>
+          {items.length === 0 ? 'No individual expressions of interest yet.' : 'No results match your filters.'}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map(item => (
+            <div key={item.id} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap', cursor: 'pointer' }}
+                onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{item.firstName} {item.lastName}</span>
+                    <EoiStatusBadge status={item.status} />
+                    {item.areasOfInterest.includes('rpas_workforce_hub') && (
+                      <span style={{ background: 'rgba(128,1,31,0.15)', border: '1px solid rgba(128,1,31,0.35)', color: '#c4868e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>RPAS</span>
+                    )}
+                  </div>
+                  <div style={{ color: C.greyD, fontSize: 12 }}>{item.email}</div>
+                  {(item.city || item.province) && <div style={{ color: C.grey, fontSize: 11, marginTop: 2 }}>{[item.city, item.province].filter(Boolean).join(', ')}</div>}
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                    {item.careerStage && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Stage: </span><span style={{ color: C.greyD }}>{item.careerStage.replace(/_/g, ' ')}</span></div>}
+                    {item.willingnessToPay && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>WTP: </span><span style={{ color: C.greyD }}>{item.willingnessToPay.replace(/_/g, ' ')}</span></div>}
+                    {item.referralSource && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{item.referralSource.replace(/_/g, ' ')}</span></div>}
+                    <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(item.createdAt)}</span></div>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <EoiRecordActions id={item.id} status={item.status} followUpNotes={item.followUpNotes} endpoint="/admin/eoi/individuals" onSaved={() => reload()} />
+                  <span style={{ color: C.grey, fontSize: 11 }}>{expanded === item.id ? '▲' : '▼'}</span>
+                </div>
+              </div>
+              {expanded === item.id && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {item.areasOfInterest.length > 0 && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Areas of Interest</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {item.areasOfInterest.map(a => (
+                          <span key={a} style={{ background: `${C.crimson}18`, border: `1px solid ${C.crimson}44`, borderRadius: 5, padding: '3px 9px', color: C.white, fontSize: 11 }}>
+                            {EOI_INTEREST_LABELS[a] ?? a}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {item.rpasExperience && <EoiDetail label="RPAS Experience" value={item.rpasExperience.replace(/_/g, ' ')} />}
+                  {item.background && <EoiDetail label="Background" value={item.background.replace(/_/g, ' ')} />}
+                  {item.fundingDependency && <EoiDetail label="Funding Dependency" value={item.fundingDependency} />}
+                  {item.phone && <EoiDetail label="Phone" value={item.phone} />}
+                  {item.utmSource && <EoiDetail label="UTM Source" value={item.utmSource} />}
+                  {item.utmCampaign && <EoiDetail label="UTM Campaign" value={item.utmCampaign} />}
+                  {item.comment && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Comment</div>
+                      <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.6 }}>{item.comment}</div>
+                    </div>
+                  )}
+                  {item.followUpNotes && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Follow-Up Notes</div>
+                      <div style={{ color: C.greyD, fontSize: 13, fontStyle: 'italic', lineHeight: 1.6 }}>{item.followUpNotes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EoiPartnersPanel() {
+  const { items, loading, error, search, setSearch, statusFilter, setStatusFilter, reload } = useEoiList<EoiPartner>('/admin/eoi/partners');
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const filtered = items.filter(i => {
+    const matchStatus = !statusFilter || i.status === statusFilter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || `${i.firstName} ${i.lastName} ${i.email} ${i.orgName} ${i.city ?? ''} ${i.province ?? ''}`.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+
+  const statusTabs = ['', 'new', 'contacted', 'follow_up', 'moved_forward', 'closed'];
+  const statusLabels: Record<string, string> = {
+    '': `All (${items.length})`,
+    new: `New (${items.filter(x => x.status === 'new').length})`,
+    contacted: 'Contacted', follow_up: 'Follow-Up', moved_forward: 'Moved Forward', closed: 'Closed',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, organization…"
+          style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 14px', color: C.white, fontSize: 13, outline: 'none', minWidth: 220 }} />
+        <button onClick={() => reload()} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
+      </div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {statusTabs.map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            background: statusFilter === s ? C.crimson : C.border, color: statusFilter === s ? C.white : C.greyD,
+            border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+          }}>{statusLabels[s]}</button>
+        ))}
+      </div>
+      {loading ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 32, textAlign: 'center' }}>Loading…</div>
+      ) : error ? (
+        <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ color: C.grey, fontSize: 13, padding: 32, textAlign: 'center' }}>
+          {items.length === 0 ? 'No industry / partner expressions of interest yet.' : 'No results match your filters.'}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map(item => (
+            <div key={item.id} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap', cursor: 'pointer' }}
+                onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{item.firstName} {item.lastName}</span>
+                    <EoiStatusBadge status={item.status} />
+                    {item.partnershipInterests.includes('rpas_workforce_opportunities') && (
+                      <span style={{ background: 'rgba(128,1,31,0.15)', border: '1px solid rgba(128,1,31,0.35)', color: '#c4868e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>RPAS</span>
+                    )}
+                  </div>
+                  <div style={{ color: C.greyD, fontSize: 12 }}>{item.orgName}{item.jobTitle ? ` · ${item.jobTitle}` : ''}</div>
+                  <div style={{ color: C.grey, fontSize: 12, marginTop: 1 }}>{item.email}</div>
+                  {(item.city || item.province) && <div style={{ color: C.grey, fontSize: 11, marginTop: 2 }}>{[item.city, item.province].filter(Boolean).join(', ')}</div>}
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                    {item.orgType && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Type: </span><span style={{ color: C.greyD }}>{item.orgType.replace(/_/g, ' ')}</span></div>}
+                    {item.referralSource && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{item.referralSource.replace(/_/g, ' ')}</span></div>}
+                    <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(item.createdAt)}</span></div>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <EoiRecordActions id={item.id} status={item.status} followUpNotes={item.followUpNotes} endpoint="/admin/eoi/partners" onSaved={() => reload()} />
+                  <span style={{ color: C.grey, fontSize: 11 }}>{expanded === item.id ? '▲' : '▼'}</span>
+                </div>
+              </div>
+              {expanded === item.id && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {item.partnershipInterests.length > 0 && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Partnership Interests</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {item.partnershipInterests.map(a => (
+                          <span key={a} style={{ background: `${C.crimson}18`, border: `1px solid ${C.crimson}44`, borderRadius: 5, padding: '3px 9px', color: C.white, fontSize: 11 }}>
+                            {EOI_PARTNER_INTEREST_LABELS[a] ?? a}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {item.phone && <EoiDetail label="Phone" value={item.phone} />}
+                  {item.website && <EoiDetail label="Website" value={item.website} />}
+                  {item.utmSource && <EoiDetail label="UTM Source" value={item.utmSource} />}
+                  {item.comment && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Comment</div>
+                      <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.6 }}>{item.comment}</div>
+                    </div>
+                  )}
+                  {item.followUpNotes && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Follow-Up Notes</div>
+                      <div style={{ color: C.greyD, fontSize: 13, fontStyle: 'italic', lineHeight: 1.6 }}>{item.followUpNotes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

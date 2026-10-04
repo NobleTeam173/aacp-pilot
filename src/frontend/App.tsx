@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
+import { RpasHubDashboard } from './components/rpas/RpasHubDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
@@ -915,6 +916,7 @@ export function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('youth');
   const [adminPendingCount, setAdminPendingCount] = useState(0);
+  const [isRpasHub, setIsRpasHub] = useState(() => localStorage.getItem('aacp_participant_type') === 'rpas_direct');
 
   // Validator experience — path-based routing /validate/:token
   const validateMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
@@ -940,6 +942,10 @@ export function App() {
           localStorage.setItem('aacp_role', auth.role);
           localStorage.setItem('aacp_user_id', auth.userId);
           if (auth.name) localStorage.setItem('aacp_name', auth.name);
+          if (auth.hubType === 'rpas') {
+            localStorage.setItem('aacp_participant_type', 'rpas_direct');
+            setIsRpasHub(true);
+          }
           window.location.replace(window.location.pathname);
         }}
       />
@@ -1004,6 +1010,8 @@ export function App() {
     if (refreshToken) request('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {});
     clearStoredTokens();
     localStorage.removeItem('aacp_user_id');
+    localStorage.removeItem('aacp_participant_type');
+    setIsRpasHub(false);
     setAuth(null);
   }
 
@@ -1064,7 +1072,7 @@ export function App() {
       <main className="app-content" aria-label="Dashboard view">
         {currentView === 'admin'          && <AdminDashboard />}
         {currentView === 'connector'      && <ConnectorDashboard />}
-        {currentView === 'youth'          && <YouthDashboard />}
+        {currentView === 'youth'          && (isRpasHub ? <RpasHubDashboard /> : <YouthDashboard />)}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}

@@ -1327,6 +1327,125 @@ async function runMigrations(db) {
       created_at   TEXT NOT NULL
     )
   `).run().catch(() => {});
+
+  // ── RPAS Workforce Hub ────────────────────────────────────────────────────────
+
+  // rpas_applications — public EOI submissions (no account required)
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS rpas_applications (
+      id              TEXT PRIMARY KEY,
+      first_name      TEXT NOT NULL,
+      last_name       TEXT NOT NULL,
+      email           TEXT NOT NULL,
+      phone           TEXT,
+      current_situation TEXT,
+      rpas_experience TEXT,
+      motivation      TEXT,
+      status          TEXT NOT NULL DEFAULT 'new',
+      reviewer_id     TEXT,
+      reviewer_notes  TEXT,
+      reviewed_at     TEXT,
+      invited_at      TEXT,
+      invitation_id   TEXT,
+      created_at      TEXT NOT NULL,
+      updated_at      TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_rpas_app_email ON rpas_applications(email)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_rpas_app_status ON rpas_applications(status)`).run().catch(() => {});
+
+  // rpas_profiles — RPAS Hub participant profile data (created on account creation)
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS rpas_profiles (
+      id                   TEXT PRIMARY KEY,
+      user_id              TEXT NOT NULL UNIQUE REFERENCES users(id),
+      tc_cert_status       TEXT,
+      experience_level     TEXT,
+      practical_context    TEXT,
+      application_domains  TEXT DEFAULT '[]',
+      hub_status           TEXT NOT NULL DEFAULT 'intake',
+      application_id       TEXT,
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
+  // Add hub_type column to pilot_invitations for RPAS Hub invitations
+  await db.prepare(`ALTER TABLE pilot_invitations ADD COLUMN hub_type TEXT`).run().catch(() => {});
+  // rpas_applications — add EOI-flow columns (idempotent)
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN city TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN province TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN career_stage TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN preferred_cohort TEXT DEFAULT 'either'`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN assigned_cohort TEXT DEFAULT 'not_assigned'`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'not_requested'`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN participant_access TEXT NOT NULL DEFAULT 'not_enabled'`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN fee_acknowledged INTEGER NOT NULL DEFAULT 0`).run().catch(() => {});
+
+  // ── EOI tables ─────────────────────────────────────────────────────────────
+
+  // eoi_individuals — public Expression of Interest from individuals
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS eoi_individuals (
+      id                   TEXT PRIMARY KEY,
+      first_name           TEXT NOT NULL,
+      last_name            TEXT NOT NULL,
+      email                TEXT NOT NULL,
+      phone                TEXT,
+      city                 TEXT,
+      province             TEXT,
+      country              TEXT NOT NULL DEFAULT 'Canada',
+      career_stage         TEXT,
+      areas_of_interest    TEXT NOT NULL DEFAULT '[]',
+      rpas_experience      TEXT,
+      background           TEXT,
+      willingness_to_pay   TEXT,
+      funding_dependency   TEXT,
+      referral_source      TEXT,
+      comment              TEXT,
+      utm_source           TEXT,
+      utm_medium           TEXT,
+      utm_campaign         TEXT,
+      status               TEXT NOT NULL DEFAULT 'new',
+      follow_up_notes      TEXT,
+      contacted_at         TEXT,
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_ind_email  ON eoi_individuals(email)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_ind_status ON eoi_individuals(status)`).run().catch(() => {});
+
+  // eoi_partners — public Expression of Interest from industry/partner organizations
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS eoi_partners (
+      id                   TEXT PRIMARY KEY,
+      first_name           TEXT NOT NULL,
+      last_name            TEXT NOT NULL,
+      job_title            TEXT,
+      email                TEXT NOT NULL,
+      phone                TEXT,
+      org_name             TEXT NOT NULL,
+      org_type             TEXT,
+      city                 TEXT,
+      province             TEXT,
+      country              TEXT NOT NULL DEFAULT 'Canada',
+      website              TEXT,
+      partnership_interests TEXT NOT NULL DEFAULT '[]',
+      comment              TEXT,
+      referral_source      TEXT,
+      utm_source           TEXT,
+      utm_medium           TEXT,
+      utm_campaign         TEXT,
+      status               TEXT NOT NULL DEFAULT 'new',
+      follow_up_notes      TEXT,
+      contacted_at         TEXT,
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_email  ON eoi_partners(email)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_status ON eoi_partners(status)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -6722,6 +6841,17 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
   if (!ACIA_VALID_STAGES.has(rawStage)) return err(`Invalid assessmentStage. Valid values: baseline, program_completion, followup_90_day`);
   const stage = normalizeAciaStage(rawStage); // normalize legacy aliases
 
+  // ── Payment gate: RPAS intake requires accepted EOI + confirmed payment + enabled access ──
+  if (stage === 'rpas_intake') {
+    const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+    const eoiApp = userRow?.email
+      ? await env.DB.prepare(`SELECT status, payment_status, participant_access FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`).bind(userRow.email).first().catch(() => null)
+      : null;
+    if (!eoiApp || eoiApp.participant_access !== 'enabled') {
+      return err('RPAS ACIA access requires an accepted EOI with confirmed payment and enabled participant access.', 403);
+    }
+  }
+
   const submissionId = body.submissionId ?? null;
   const now = new Date().toISOString();
 
@@ -7557,6 +7687,762 @@ async function handleProgramInterest(request, user, env, ctx) {
   return json({ recorded: true, message: 'Your interest in the 8-Week AACP Program has been noted. An AACP advisor will be in touch.' });
 }
 
+// ── RPAS Workforce Hub ────────────────────────────────────────────────────────
+
+const RPAS_APPLICATION_STATUSES = new Set(['new', 'under_review', 'accepted', 'waitlisted', 'not_selected', 'enrolled']);
+const RPAS_PAYMENT_STATUSES     = new Set(['not_requested', 'payment_pending', 'payment_confirmed']);
+const RPAS_COHORTS              = new Set(['nov_16_2026', 'dec_14_2026', 'either', 'not_assigned']);
+
+const RPAS_APPLICATION_DOMAINS = [
+  'infrastructure_monitoring', 'search_and_rescue', 'geospatial_mapping',
+  'thermal_imaging', 'inspection', 'agriculture', 'public_safety', 'defence', 'other',
+];
+
+async function seedRpasProgram(db) {
+  const activities = [
+    { id: 'rp-v1-d01-a01', key: 'rp_d01_orientation',        title: 'RPAS Workforce Hub Orientation',           day: 1, order: 1 },
+    { id: 'rp-v1-d02-a01', key: 'rp_d02_systems_regs',        title: 'RPAS Systems & Regulatory Framework',      day: 2, order: 1 },
+    { id: 'rp-v1-d03-a01', key: 'rp_d03_mission_planning',    title: 'Mission Planning & Risk Assessment',       day: 3, order: 1 },
+    { id: 'rp-v1-d04-a01', key: 'rp_d04_operations_sim',      title: 'Applied RPAS Operations Simulation',      day: 4, order: 1 },
+    { id: 'rp-v1-d05-a01', key: 'rp_d05_workforce_profile',   title: 'Workforce Profile & Next-Step Pathway',   day: 5, order: 1 },
+  ];
+  for (const a of activities) {
+    await db.prepare(
+      `INSERT OR IGNORE INTO program_activity_templates
+         (id, activity_key, title, week_number, activity_order, pathway_category, program_version, created_at)
+       VALUES (?, ?, ?, ?, ?, 'rpas', 'rpas-1.0', ?)`
+    ).bind(a.id, a.key, a.title, a.day, a.order, new Date().toISOString()).run().catch(() => {});
+  }
+}
+
+// Email helpers for RPAS Hub
+function emailRpasApplicationReceived(env, { name, email }) {
+  const text = `Hi ${name},\n\nThank you for your interest in the AACP™ RPAS Workforce Hub. We have received your application and our team will review it shortly.\n\nYou will hear from us regarding the outcome of your application.\n\nAACP™ Team`;
+  const html = `<p>Hi ${name},</p><p>Thank you for your interest in the <strong>AACP™ RPAS Workforce Hub</strong>. We have received your application and our team will review it shortly.</p><p>You will hear from us regarding the outcome of your application.</p><p>AACP™ Team</p>`;
+  return sendEmail(env, { event: 'rpas_application_received', to: email, subject: 'AACP™ RPAS Workforce Hub — Application Received', text, html });
+}
+function emailAdminRpasApplication(env, { name, email, applicationId }) {
+  const adminEmail = env.AACP_ADMIN_EMAIL || env.AACP_SUPER_ADMIN_EMAIL;
+  if (!adminEmail) return Promise.resolve();
+  const text = `New RPAS Workforce Hub application received.\n\nName: ${name}\nEmail: ${email}\nApplication ID: ${applicationId}\n\nReview in the AACP admin dashboard.`;
+  const html = `<p>New RPAS Workforce Hub application received.</p><ul><li><strong>Name:</strong> ${name}</li><li><strong>Email:</strong> ${email}</li><li><strong>Application ID:</strong> ${applicationId}</li></ul>`;
+  return sendEmail(env, { event: 'admin_rpas_application', to: adminEmail, subject: `AACP™ — RPAS Hub Application: ${name}`, text, html });
+}
+function emailRpasPreAccepted(env, { name, email }) {
+  return emailRpasEoiAccepted(env, { name, email });
+}
+function emailRpasEoiAccepted(env, { name, email }) {
+  const text = `Hi ${name},\n\nYour Expression of Interest has been accepted for the AACP™ RPAS Workforce Hub. The program fee is $1,200 CAD.\n\nPlease follow the payment instructions provided by AACP. Your participant access, including ACIA™ RPAS Career Intelligence, will be enabled once payment has been confirmed.\n\nFor questions about payment arrangements, contact: info@aviationaerospacecompetency.com\n\nAACP™ Team`;
+  const html = `<p>Hi ${name},</p><p>Your Expression of Interest has been accepted for the <strong>AACP™ RPAS Workforce Hub</strong>.</p><p>The program fee is <strong>$1,200 CAD</strong>. Please follow the payment instructions provided by AACP. Your participant access, including ACIA™ RPAS Career Intelligence, will be enabled once payment has been confirmed.</p><p>For questions about payment arrangements, contact: <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></p><p>AACP™ Team</p>`;
+  return sendEmail(env, { event: 'rpas_eoi_accepted', to: email, subject: 'AACP™ RPAS Workforce Hub — Expression of Interest Accepted', text, html });
+}
+function emailRpasDeclined(env, { name, email }) {
+  const text = `Hi ${name},\n\nThank you for your interest in the AACP™ RPAS Workforce Hub. After reviewing your application, we are not able to offer you a place in the current cohort.\n\nWe encourage you to apply again in a future cohort.\n\nAACP™ Team`;
+  const html = `<p>Hi ${name},</p><p>Thank you for your interest in the <strong>AACP™ RPAS Workforce Hub</strong>. After reviewing your application, we are not able to offer you a place in the current cohort.</p><p>We encourage you to apply again in a future cohort.</p><p>AACP™ Team</p>`;
+  return sendEmail(env, { event: 'rpas_declined', to: email, subject: 'AACP™ RPAS Workforce Hub — Application Update', text, html });
+}
+function emailRpasWaitlisted(env, { name, email }) {
+  const text = `Hi ${name},\n\nThank you for your interest in the AACP™ RPAS Workforce Hub. Your application has been placed on our waitlist. We will be in touch if a place becomes available.\n\nAACP™ Team`;
+  const html = `<p>Hi ${name},</p><p>Thank you for your interest in the <strong>AACP™ RPAS Workforce Hub</strong>. Your application has been placed on our waitlist. We will be in touch if a place becomes available.</p><p>AACP™ Team</p>`;
+  return sendEmail(env, { event: 'rpas_waitlisted', to: email, subject: 'AACP™ RPAS Workforce Hub — Application Waitlisted', text, html });
+}
+
+// POST /rpas/apply — public EOI (no account required)
+async function handleRpasApply(request, env, ctx) {
+  const body = await request.json().catch(() => null);
+  if (!body?.firstName || !body?.lastName || !body?.email) {
+    return err('firstName, lastName, and email are required', 400);
+  }
+  const email = body.email.trim().toLowerCase();
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRe.test(email)) return err('Invalid email address', 400);
+
+  // Prevent duplicate submissions for same email
+  const existing = await env.DB.prepare(
+    `SELECT id, status FROM rpas_applications WHERE email = ? AND status NOT IN ('not_selected') ORDER BY created_at DESC LIMIT 1`
+  ).bind(email).first().catch(() => null);
+  if (existing) {
+    return json({ applied: true, message: 'An expression of interest for this email address already exists.', status: existing.status });
+  }
+
+  const preferredCohort = ['nov_16_2026', 'dec_14_2026', 'either'].includes(body.preferredCohort) ? body.preferredCohort : 'either';
+  const feeAcknowledged = body.feeAcknowledged === true ? 1 : 0;
+
+  const id = randomHex(12);
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO rpas_applications
+       (id, first_name, last_name, email, phone, city, province, career_stage,
+        current_situation, rpas_experience, motivation,
+        preferred_cohort, fee_acknowledged,
+        payment_status, participant_access,
+        status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'not_requested', 'not_enabled', 'new', ?, ?)`
+  ).bind(
+    id, body.firstName.trim(), body.lastName.trim(), email,
+    body.phone?.trim() ?? null,
+    body.city?.trim() ?? null,
+    body.province?.trim() ?? null,
+    body.careerStage ?? null,
+    body.currentSituation ?? null,
+    body.rpasExperience ?? null,
+    body.motivation?.trim() ?? null,
+    preferredCohort, feeAcknowledged,
+    now, now
+  ).run();
+
+  await audit(env.DB, 'rpas_application_submitted', null, 'rpas_application', { applicationId: id, email }).catch(() => {});
+
+  const fullName = `${body.firstName.trim()} ${body.lastName.trim()}`;
+  ctx.waitUntil(Promise.all([
+    emailRpasApplicationReceived(env, { name: fullName, email }).catch(() => {}),
+    emailAdminRpasApplication(env, { name: fullName, email, applicationId: id }).catch(() => {}),
+  ]));
+
+  return json({ applied: true, applicationId: id, message: 'Your application has been received. We will be in touch shortly.' });
+}
+
+// GET /rpas/apply/status?email=... — public application status check
+async function handleRpasApplicationStatus(request, env) {
+  const url = new URL(request.url);
+  const email = url.searchParams.get('email')?.trim().toLowerCase();
+  if (!email) return err('email query parameter required', 400);
+  const app = await env.DB.prepare(
+    `SELECT status FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`
+  ).bind(email).first().catch(() => null);
+  if (!app) return json({ found: false });
+  return json({ found: true, status: app.status });
+}
+
+// GET /admin/rpas/applications — admin list
+async function handleAdminRpasApplications(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status');
+  let query = 'SELECT * FROM rpas_applications';
+  const params = [];
+  if (statusFilter && RPAS_APPLICATION_STATUSES.has(statusFilter)) {
+    query += ' WHERE status = ?';
+    params.push(statusFilter);
+  }
+  query += ' ORDER BY created_at DESC';
+  const { results } = await env.DB.prepare(query).bind(...params).all();
+  const applications = results.map(r => ({
+    id: r.id,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    email: r.email,
+    phone: r.phone,
+    city: r.city,
+    province: r.province,
+    careerStage: r.career_stage,
+    currentSituation: r.current_situation,
+    rpasExperience: r.rpas_experience,
+    motivation: r.motivation,
+    preferredCohort: r.preferred_cohort ?? 'either',
+    assignedCohort: r.assigned_cohort ?? 'not_assigned',
+    feeAcknowledged: !!r.fee_acknowledged,
+    paymentStatus: r.payment_status ?? 'not_requested',
+    participantAccess: r.participant_access ?? 'not_enabled',
+    status: r.status,
+    reviewerId: r.reviewer_id,
+    reviewerNotes: r.reviewer_notes,
+    reviewedAt: r.reviewed_at,
+    invitedAt: r.invited_at,
+    invitationId: r.invitation_id,
+    createdAt: r.created_at,
+  }));
+  return json({ applications, total: applications.length });
+}
+
+// PATCH /admin/rpas/applications/:id — review: update status, cohort, reviewer notes
+async function handleAdminRpasApplicationReview(request, user, env, ctx) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const id = new URL(request.url).pathname.split('/').pop();
+  if (!id) return err('Application ID required', 400);
+  const app = await env.DB.prepare('SELECT * FROM rpas_applications WHERE id = ?').bind(id).first();
+  if (!app) return err('Application not found', 404);
+
+  const body = await request.json().catch(() => ({}));
+  const reviewStatuses = ['new', 'under_review', 'accepted', 'waitlisted', 'not_selected'];
+  if (body.status && !reviewStatuses.includes(body.status)) {
+    return err(`status must be one of: ${reviewStatuses.join(', ')}`, 400);
+  }
+  if (body.assignedCohort && !RPAS_COHORTS.has(body.assignedCohort)) {
+    return err('Invalid assignedCohort value', 400);
+  }
+
+  const updates = []; const binds = [];
+  const newStatus = body.status ?? app.status;
+  if (body.status)          { updates.push('status = ?');        binds.push(body.status); }
+  if (body.reviewerNotes !== undefined) { updates.push('reviewer_notes = ?'); binds.push(body.reviewerNotes); }
+  if (body.assignedCohort)  { updates.push('assigned_cohort = ?'); binds.push(body.assignedCohort); }
+  if (!updates.length)      return err('Nothing to update', 400);
+
+  const now = new Date().toISOString();
+  updates.push('reviewer_id = ?', 'reviewed_at = ?', 'updated_at = ?');
+  binds.push(user.sub, now, now, id);
+  await env.DB.prepare(`UPDATE rpas_applications SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+  await audit(env.DB, `rpas_eoi_${newStatus}`, user.sub, 'rpas_application', { applicationId: id, email: app.email });
+
+  const fullName = `${app.first_name} ${app.last_name}`;
+  if (body.status === 'accepted') {
+    ctx.waitUntil(emailRpasEoiAccepted(env, { name: fullName, email: app.email }).catch(() => {}));
+  } else if (body.status === 'not_selected') {
+    ctx.waitUntil(emailRpasDeclined(env, { name: fullName, email: app.email }).catch(() => {}));
+  } else if (body.status === 'waitlisted') {
+    ctx.waitUntil(emailRpasWaitlisted(env, { name: fullName, email: app.email }).catch(() => {}));
+  }
+
+  return json({ updated: true });
+}
+
+// PATCH /admin/rpas/applications/:id/payment — update payment status (off-platform confirmation)
+async function handleAdminRpasApplicationPayment(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const parts = new URL(request.url).pathname.split('/');
+  const id = parts[parts.length - 2];
+  if (!id) return err('Application ID required', 400);
+  const app = await env.DB.prepare('SELECT * FROM rpas_applications WHERE id = ?').bind(id).first();
+  if (!app) return err('Application not found', 404);
+
+  const body = await request.json().catch(() => ({}));
+  if (!body.paymentStatus || !RPAS_PAYMENT_STATUSES.has(body.paymentStatus)) {
+    return err(`paymentStatus must be one of: ${[...RPAS_PAYMENT_STATUSES].join(', ')}`, 400);
+  }
+  // Payment can only be confirmed for accepted EOIs
+  if (body.paymentStatus === 'payment_confirmed' && app.status !== 'accepted') {
+    return err('Payment can only be confirmed for accepted EOIs', 400);
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(`UPDATE rpas_applications SET payment_status = ?, updated_at = ? WHERE id = ?`)
+    .bind(body.paymentStatus, now, id).run();
+  await audit(env.DB, 'rpas_eoi_payment_updated', user.sub, 'rpas_application', { applicationId: id, paymentStatus: body.paymentStatus });
+
+  return json({ updated: true });
+}
+
+// PATCH /admin/rpas/applications/:id/access — enable participant access (requires accepted + payment_confirmed)
+async function handleAdminRpasApplicationAccess(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const parts = new URL(request.url).pathname.split('/');
+  const id = parts[parts.length - 2];
+  if (!id) return err('Application ID required', 400);
+  const app = await env.DB.prepare('SELECT * FROM rpas_applications WHERE id = ?').bind(id).first();
+  if (!app) return err('Application not found', 404);
+
+  const body = await request.json().catch(() => ({}));
+  const newAccess = body.participantAccess;
+  if (!['not_enabled', 'enabled'].includes(newAccess)) {
+    return err('participantAccess must be "not_enabled" or "enabled"', 400);
+  }
+  if (newAccess === 'enabled') {
+    if (app.status !== 'accepted')              return err('EOI must be accepted before enabling access', 400);
+    if (app.payment_status !== 'payment_confirmed') return err('Payment must be confirmed before enabling access', 400);
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(`UPDATE rpas_applications SET participant_access = ?, updated_at = ? WHERE id = ?`)
+    .bind(newAccess, now, id).run();
+  await audit(env.DB, `rpas_participant_access_${newAccess}`, user.sub, 'rpas_application', { applicationId: id, email: app.email });
+
+  return json({ updated: true });
+}
+
+// POST /admin/rpas/applications/:id/invite — issue pilot invite from pre-accepted application
+async function handleAdminRpasApplicationInvite(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const parts = new URL(request.url).pathname.split('/');
+  const id = parts[parts.length - 2];
+  if (!id) return err('Application ID required', 400);
+  const app = await env.DB.prepare('SELECT * FROM rpas_applications WHERE id = ?').bind(id).first();
+  if (!app) return err('Application not found', 404);
+  if (app.status !== 'accepted')                  return err('EOI must be accepted before issuing an invite', 400);
+  if (app.payment_status !== 'payment_confirmed') return err('Payment must be confirmed before issuing an invite', 400);
+  if (app.invitation_id) return err('An invitation has already been issued for this application', 400);
+
+  // Delegate to existing pilot invitation handler by constructing equivalent request
+  const body = await request.json().catch(() => ({}));
+  const inviteBody = {
+    email: app.email,
+    firstName: app.first_name,
+    lastName: app.last_name,
+    organization: body.organization ?? null,
+    pilotRole: 'youth',
+    cohortName: body.cohortName ?? null,
+    notes: body.notes ?? null,
+    hubType: 'rpas',
+    rpasApplicationId: id,
+  };
+
+  // Create invite directly (same logic as handleCreatePilotInvitation)
+  const existing = await env.DB.prepare(
+    `SELECT id FROM pilot_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
+  ).bind(app.email, new Date().toISOString()).first();
+  if (existing) return err('An active invitation already exists for this email address. Revoke it first.', 409);
+
+  const rawToken = randomHex(32);
+  const tokenHash = await sha256hex(rawToken);
+  const invId = randomHex(8);
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 days for RPAS Hub
+
+  await env.DB.prepare(
+    `INSERT INTO pilot_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'youth', ?, ?, 'rpas', ?, ?, ?)`
+  ).bind(
+    invId, tokenHash, app.email, app.first_name, app.last_name,
+    inviteBody.organization, inviteBody.cohortName, inviteBody.notes,
+    expiresAt, user.sub, now
+  ).run();
+
+  await env.DB.prepare(
+    `UPDATE rpas_applications SET invitation_id = ?, invited_at = ?, participant_access = 'enabled', updated_at = ? WHERE id = ?`
+  ).bind(invId, now, now, id).run();
+
+  await audit(env.DB, 'rpas_hub_invite_issued', user.sub, 'rpas_application', { applicationId: id, invitationId: invId, email: app.email });
+
+  return json({ success: true, invitationId: invId, token: rawToken, expiresAt });
+}
+
+// GET /admin/rpas/participants — list RPAS Hub participants with journey status
+async function handleAdminRpasParticipants(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+
+  const rows = await env.DB.prepare(`
+    SELECT
+      u.id          AS userId,
+      u.name,
+      u.email,
+      rp.hub_status AS hubStatus,
+      rp.created_at AS createdAt,
+      pe.created_at AS enrolledAt,
+      (SELECT COUNT(*) FROM acia_assessments aa
+         WHERE aa.participant_id = u.id AND aa.stage = 'rpas_intake' AND aa.status = 'complete') AS aciaIntakeDone,
+      (SELECT status FROM acia_assessments aa
+         WHERE aa.participant_id = u.id AND aa.stage = 'rpas_intake'
+         ORDER BY aa.created_at DESC LIMIT 1) AS aciaIntakeStatus,
+      CASE WHEN rp.tc_cert_status IS NOT NULL AND rp.experience_level IS NOT NULL THEN 1 ELSE 0 END AS intakeComplete
+    FROM rpas_profiles rp
+    JOIN users u ON u.id = rp.user_id
+    LEFT JOIN program_enrollments pe ON pe.participant_id = u.id AND pe.program_version = 'rpas-1.0'
+    ORDER BY rp.created_at DESC
+  `).all().catch(() => ({ results: [] }));
+
+  const participants = (rows.results ?? []).map(r => ({
+    userId:           r.userId,
+    name:             r.name,
+    email:            r.email,
+    hubStatus:        r.hubStatus,
+    intakeComplete:   r.intakeComplete === 1,
+    aciaIntakeStatus: r.aciaIntakeDone ? 'complete' : (r.aciaIntakeStatus ?? null),
+    enrolledAt:       r.enrolledAt ?? null,
+    createdAt:        r.createdAt,
+  }));
+
+  return json({ participants });
+}
+
+// GET /rpas/profile — participant gets their RPAS profile
+async function handleRpasProfileGet(request, user, env) {
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin'); if (guard) return guard;
+  const targetId = user.role === 'admin' || user.role === 'super_admin'
+    ? (new URL(request.url).searchParams.get('userId') ?? user.sub)
+    : user.sub;
+
+  const [profile, careerCtx] = await Promise.all([
+    env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(targetId).first().catch(() => null),
+    env.DB.prepare('SELECT participant_type FROM participant_career_context WHERE participant_id = ?').bind(targetId).first().catch(() => null),
+  ]);
+
+  if (!profile) return err('RPAS profile not found', 404);
+
+  let domains = [];
+  try { domains = JSON.parse(profile.application_domains || '[]'); } catch {}
+
+  return json({
+    id: profile.id,
+    userId: profile.user_id,
+    tcCertStatus: profile.tc_cert_status,
+    experienceLevel: profile.experience_level,
+    practicalContext: profile.practical_context,
+    applicationDomains: domains,
+    hubStatus: profile.hub_status,
+    participantType: careerCtx?.participant_type ?? 'rpas_direct',
+    createdAt: profile.created_at,
+    updatedAt: profile.updated_at,
+  });
+}
+
+// POST /rpas/profile — save intake form data
+async function handleRpasProfileSave(request, user, env) {
+  const guard = requireRole(user, 'youth'); if (guard) return guard;
+
+  const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+  if (!profile) return err('RPAS profile not found — ensure account was created via RPAS Hub invite', 404);
+
+  const body = await request.json().catch(() => ({}));
+  const now = new Date().toISOString();
+
+  const validCertStatuses = new Set(['none', 'basic', 'advanced', 'pilot_certificate']);
+  const validExperienceLevels = new Set(['none', 'hobbyist', 'commercial', 'certified']);
+
+  const tcCertStatus = validCertStatuses.has(body.tcCertStatus) ? body.tcCertStatus : (profile.tc_cert_status ?? null);
+  const experienceLevel = validExperienceLevels.has(body.experienceLevel) ? body.experienceLevel : (profile.experience_level ?? null);
+  const practicalContext = typeof body.practicalContext === 'string' ? body.practicalContext.slice(0, 2000) : (profile.practical_context ?? null);
+
+  let domains = [];
+  if (Array.isArray(body.applicationDomains)) {
+    domains = body.applicationDomains.filter(d => RPAS_APPLICATION_DOMAINS.includes(d));
+  }
+
+  const newStatus = profile.hub_status === 'intake' && tcCertStatus && experienceLevel ? 'assessment' : profile.hub_status;
+
+  await env.DB.prepare(
+    `UPDATE rpas_profiles SET tc_cert_status = ?, experience_level = ?, practical_context = ?, application_domains = ?, hub_status = ?, updated_at = ? WHERE user_id = ?`
+  ).bind(tcCertStatus, experienceLevel, practicalContext, JSON.stringify(domains), newStatus, now, user.sub).run();
+
+  await audit(env.DB, 'rpas_profile_saved', user.sub, 'rpas_profile', { tcCertStatus, experienceLevel, hubStatus: newStatus });
+
+  return json({ saved: true, hubStatus: newStatus });
+}
+
+// GET /rpas/status — participant journey status
+async function handleRpasStatus(request, user, env) {
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin'); if (guard) return guard;
+  const targetId = user.role === 'admin' || user.role === 'super_admin'
+    ? (new URL(request.url).searchParams.get('userId') ?? user.sub)
+    : user.sub;
+
+  const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(targetId).first().catch(() => null);
+  const [profile, enrollment, aciaRecord, eoiApp] = await Promise.all([
+    env.DB.prepare('SELECT hub_status, tc_cert_status, experience_level FROM rpas_profiles WHERE user_id = ?').bind(targetId).first().catch(() => null),
+    env.DB.prepare(`SELECT status, enrolled_at FROM program_enrollments WHERE user_id = ? AND program_version = 'rpas-1.0'`).bind(targetId).first().catch(() => null),
+    env.DB.prepare(`SELECT id, status, completed_at FROM acia_assessments WHERE user_id = ? AND pathway_type = 'rpas' AND assessment_stage = 'rpas_intake' ORDER BY created_at DESC LIMIT 1`).bind(targetId).first().catch(() => null),
+    userRow?.email
+      ? env.DB.prepare(`SELECT status, payment_status, participant_access FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`).bind(userRow.email).first().catch(() => null)
+      : null,
+  ]);
+
+  // Payment gate: ACIA RPAS access requires accepted EOI + payment_confirmed + participant_access enabled
+  const paymentGated = !eoiApp || eoiApp.participant_access !== 'enabled';
+
+  return json({
+    hubStatus: profile?.hub_status ?? 'intake',
+    intakeComplete: !!(profile?.tc_cert_status && profile?.experience_level),
+    aciaIntakeStatus: aciaRecord ? { id: aciaRecord.id, status: aciaRecord.status, completedAt: aciaRecord.completed_at } : null,
+    enrollment: enrollment ? { status: enrollment.status, enrolledAt: enrollment.enrolled_at } : null,
+    paymentGated,
+    eoiStatus: eoiApp?.status ?? null,
+    paymentStatus: eoiApp?.payment_status ?? null,
+  });
+}
+
+// POST /rpas/enroll — enroll in the 1-week Applied RPAS Workforce Program
+async function handleRpasEnroll(request, user, env) {
+  const guard = requireRole(user, 'youth'); if (guard) return guard;
+
+  const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+  if (!profile) return err('RPAS profile not found', 404);
+  if (!['assessment', 'profile_ready'].includes(profile.hub_status)) {
+    return err('Complete the RPAS intake and ACIA assessment before enrolling', 400);
+  }
+
+  const existing = await env.DB.prepare(
+    `SELECT user_id FROM program_enrollments WHERE user_id = ? AND program_version = 'rpas-1.0'`
+  ).bind(user.sub).first().catch(() => null);
+  if (existing) return json({ alreadyEnrolled: true, message: 'You are already enrolled in the RPAS Workforce Program.' });
+
+  const now = new Date().toISOString();
+  const userRow = await env.DB.prepare('SELECT name, email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+
+  await env.DB.prepare(
+    `INSERT INTO program_enrollments (user_id, user_name, email, status, released_week, program_version, enrolled_at, created_at, updated_at)
+     VALUES (?, ?, ?, 'active', 1, 'rpas-1.0', ?, ?, ?)`
+  ).bind(user.sub, userRow?.name ?? '', userRow?.email ?? '', now, now, now).run();
+
+  await env.DB.prepare(
+    `UPDATE rpas_profiles SET hub_status = 'enrolled', updated_at = ? WHERE user_id = ?`
+  ).bind(now, user.sub).run();
+
+  // Mark RPAS application as enrolled if linked
+  if (profile.application_id) {
+    await env.DB.prepare(
+      `UPDATE rpas_applications SET status = 'enrolled', updated_at = ? WHERE id = ?`
+    ).bind(now, profile.application_id).run().catch(() => {});
+  }
+
+  await audit(env.DB, 'rpas_program_enrolled', user.sub, 'program', { programVersion: 'rpas-1.0' });
+
+  return json({ enrolled: true, message: 'You have been enrolled in the Applied RPAS Workforce Program.' });
+}
+
+// ── EOI handlers ──────────────────────────────────────────────────────────────
+
+const EOI_STATUSES = new Set(['new', 'contacted', 'follow_up', 'moved_forward', 'closed']);
+
+const EOI_INDIVIDUAL_INTERESTS = new Set([
+  'workforce_readiness', 'rpas_workforce_hub', 'future_aviation_aerospace', 'not_sure',
+]);
+
+const EOI_PARTNER_INTERESTS = new Set([
+  'talent_pipeline', 'hiring_emerging_talent', 'industry_participation',
+  'workforce_readiness_collaboration', 'education_training_pathways',
+  'rpas_workforce_opportunities', 'indigenous_workforce', 'newcomer_internationally_trained',
+  'cohort_sponsorship', 'workforce_intelligence', 'funding_project_collaboration', 'other',
+]);
+
+function sanitizeText(val, maxLen = 500) {
+  if (typeof val !== 'string') return undefined;
+  const s = val.trim().slice(0, maxLen);
+  return s.length > 0 ? s : undefined;
+}
+
+function sanitizeEmail(val) {
+  if (typeof val !== 'string') return null;
+  return val.trim().toLowerCase().slice(0, 254);
+}
+
+// POST /eoi/individual
+async function handleEoiIndividual(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const rateKey = `eoi_individual:${ip}`;
+  const recent = await countAllAttempts(env.DB, rateKey, 3600000); // 1 hour window
+  if (recent >= 10) return err('Too many submissions. Please try again later.', 429);
+
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+
+  const email = sanitizeEmail(body.email);
+  if (!email || !email.includes('@')) return err('A valid email address is required', 400);
+
+  const firstName = sanitizeText(body.firstName, 100);
+  const lastName  = sanitizeText(body.lastName,  100);
+  if (!firstName) return err('First name is required', 400);
+  if (!lastName)  return err('Last name is required', 400);
+
+  // Validate areas of interest
+  const rawInterests = Array.isArray(body.areasOfInterest) ? body.areasOfInterest : [];
+  const interests = rawInterests.filter(i => EOI_INDIVIDUAL_INTERESTS.has(i));
+
+  const id  = randomHex(8);
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO eoi_individuals
+      (id, first_name, last_name, email, phone, city, province, country,
+       career_stage, areas_of_interest, rpas_experience, background,
+       willingness_to_pay, funding_dependency, referral_source, comment,
+       utm_source, utm_medium, utm_campaign,
+       status, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+  `).bind(
+    id,
+    firstName,
+    lastName,
+    email,
+    sanitizeText(body.phone, 30) ?? null,
+    sanitizeText(body.city, 100) ?? null,
+    sanitizeText(body.province, 100) ?? null,
+    sanitizeText(body.country, 100) ?? 'Canada',
+    sanitizeText(body.careerStage, 100) ?? null,
+    JSON.stringify(interests),
+    sanitizeText(body.rpasExperience, 200) ?? null,
+    sanitizeText(body.background, 200) ?? null,
+    sanitizeText(body.willingnessToPay, 100) ?? null,
+    sanitizeText(body.fundingDependency, 100) ?? null,
+    sanitizeText(body.referralSource, 200) ?? null,
+    sanitizeText(body.comment, 1000) ?? null,
+    sanitizeText(body.utmSource, 200) ?? null,
+    sanitizeText(body.utmMedium, 200) ?? null,
+    sanitizeText(body.utmCampaign, 200) ?? null,
+    now, now
+  ).run().catch(e => { throw new Error('Submission failed: ' + e.message); });
+
+  await recordAttempt(env.DB, rateKey, true);
+
+  return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
+}
+
+// POST /eoi/partner
+async function handleEoiPartner(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const rateKey = `eoi_partner:${ip}`;
+  const recent = await countAllAttempts(env.DB, rateKey, 3600000);
+  if (recent >= 10) return err('Too many submissions. Please try again later.', 429);
+
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+
+  const email   = sanitizeEmail(body.email);
+  const orgName = sanitizeText(body.orgName, 200);
+  if (!email || !email.includes('@')) return err('A valid work email address is required', 400);
+  if (!orgName) return err('Organization name is required', 400);
+
+  const firstName = sanitizeText(body.firstName, 100);
+  const lastName  = sanitizeText(body.lastName,  100);
+  if (!firstName) return err('First name is required', 400);
+  if (!lastName)  return err('Last name is required', 400);
+
+  const rawInterests = Array.isArray(body.partnershipInterests) ? body.partnershipInterests : [];
+  const interests = rawInterests.filter(i => EOI_PARTNER_INTERESTS.has(i));
+
+  const id  = randomHex(8);
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO eoi_partners
+      (id, first_name, last_name, job_title, email, phone,
+       org_name, org_type, city, province, country, website,
+       partnership_interests, comment, referral_source,
+       utm_source, utm_medium, utm_campaign,
+       status, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+  `).bind(
+    id,
+    firstName,
+    lastName,
+    sanitizeText(body.jobTitle, 200) ?? null,
+    email,
+    sanitizeText(body.phone, 30) ?? null,
+    orgName,
+    sanitizeText(body.orgType, 100) ?? null,
+    sanitizeText(body.city, 100) ?? null,
+    sanitizeText(body.province, 100) ?? null,
+    sanitizeText(body.country, 100) ?? 'Canada',
+    sanitizeText(body.website, 300) ?? null,
+    JSON.stringify(interests),
+    sanitizeText(body.comment, 1000) ?? null,
+    sanitizeText(body.referralSource, 200) ?? null,
+    sanitizeText(body.utmSource, 200) ?? null,
+    sanitizeText(body.utmMedium, 200) ?? null,
+    sanitizeText(body.utmCampaign, 200) ?? null,
+    now, now
+  ).run().catch(e => { throw new Error('Submission failed: ' + e.message); });
+
+  await recordAttempt(env.DB, rateKey, true);
+
+  return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
+}
+
+// GET /admin/eoi/individuals
+async function handleAdminEoiIndividuals(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const params = new URL(request.url).searchParams;
+  const status  = params.get('status');
+  const interest = params.get('interest');
+  const search  = params.get('search')?.toLowerCase();
+  const limit   = Math.min(parseInt(params.get('limit') ?? '100', 10), 200);
+  const offset  = parseInt(params.get('offset') ?? '0', 10);
+
+  const rows = await env.DB.prepare(`
+    SELECT * FROM eoi_individuals ORDER BY created_at DESC LIMIT ? OFFSET ?
+  `).bind(limit, offset).all().catch(() => ({ results: [] }));
+
+  let items = (rows.results ?? []).map(r => ({
+    id: r.id, firstName: r.first_name, lastName: r.last_name, email: r.email,
+    phone: r.phone, city: r.city, province: r.province, country: r.country,
+    careerStage: r.career_stage, areasOfInterest: safeJsonParse(r.areas_of_interest, []),
+    rpasExperience: r.rpas_experience, background: r.background,
+    willingnessToPay: r.willingness_to_pay, fundingDependency: r.funding_dependency,
+    referralSource: r.referral_source, comment: r.comment,
+    utmSource: r.utm_source, utmMedium: r.utm_medium, utmCampaign: r.utm_campaign,
+    status: r.status, followUpNotes: r.follow_up_notes, contactedAt: r.contacted_at,
+    createdAt: r.created_at,
+  }));
+
+  if (status) items = items.filter(i => i.status === status);
+  if (interest) items = items.filter(i => i.areasOfInterest.includes(interest));
+  if (search) items = items.filter(i =>
+    `${i.firstName} ${i.lastName} ${i.email} ${i.city ?? ''} ${i.province ?? ''}`.toLowerCase().includes(search)
+  );
+
+  return json({ items, total: items.length });
+}
+
+// PATCH /admin/eoi/individuals/:id
+async function handleAdminEoiIndividualUpdate(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const id = new URL(request.url).pathname.split('/').pop();
+  if (!id) return err('ID required', 400);
+  let body; try { body = await request.json(); } catch { return err('Invalid body', 400); }
+
+  const status = body.status;
+  if (status !== undefined && !EOI_STATUSES.has(status)) return err('Invalid status', 400);
+
+  const now = new Date().toISOString();
+  const updates = [];
+  const binds = [];
+  if (status !== undefined)           { updates.push('status = ?');          binds.push(status); }
+  if (body.followUpNotes !== undefined){ updates.push('follow_up_notes = ?'); binds.push(sanitizeText(body.followUpNotes, 1000) ?? null); }
+  if (status === 'contacted' || status === 'follow_up') { updates.push('contacted_at = ?'); binds.push(now); }
+  if (updates.length === 0) return err('Nothing to update', 400);
+  updates.push('updated_at = ?'); binds.push(now); binds.push(id);
+
+  await env.DB.prepare(`UPDATE eoi_individuals SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+  await audit(env.DB, 'eoi_individual_updated', user.sub, 'eoi_individual', { id, status });
+  return json({ success: true });
+}
+
+// GET /admin/eoi/partners
+async function handleAdminEoiPartners(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const params = new URL(request.url).searchParams;
+  const status  = params.get('status');
+  const interest = params.get('interest');
+  const search  = params.get('search')?.toLowerCase();
+  const limit   = Math.min(parseInt(params.get('limit') ?? '100', 10), 200);
+  const offset  = parseInt(params.get('offset') ?? '0', 10);
+
+  const rows = await env.DB.prepare(`
+    SELECT * FROM eoi_partners ORDER BY created_at DESC LIMIT ? OFFSET ?
+  `).bind(limit, offset).all().catch(() => ({ results: [] }));
+
+  let items = (rows.results ?? []).map(r => ({
+    id: r.id, firstName: r.first_name, lastName: r.last_name, jobTitle: r.job_title,
+    email: r.email, phone: r.phone, orgName: r.org_name, orgType: r.org_type,
+    city: r.city, province: r.province, country: r.country, website: r.website,
+    partnershipInterests: safeJsonParse(r.partnership_interests, []),
+    comment: r.comment, referralSource: r.referral_source,
+    utmSource: r.utm_source, utmMedium: r.utm_medium, utmCampaign: r.utm_campaign,
+    status: r.status, followUpNotes: r.follow_up_notes, contactedAt: r.contacted_at,
+    createdAt: r.created_at,
+  }));
+
+  if (status) items = items.filter(i => i.status === status);
+  if (interest) items = items.filter(i => i.partnershipInterests.includes(interest));
+  if (search) items = items.filter(i =>
+    `${i.firstName} ${i.lastName} ${i.email} ${i.orgName} ${i.city ?? ''} ${i.province ?? ''}`.toLowerCase().includes(search)
+  );
+
+  return json({ items, total: items.length });
+}
+
+// PATCH /admin/eoi/partners/:id
+async function handleAdminEoiPartnerUpdate(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const id = new URL(request.url).pathname.split('/').pop();
+  if (!id) return err('ID required', 400);
+  let body; try { body = await request.json(); } catch { return err('Invalid body', 400); }
+
+  const status = body.status;
+  if (status !== undefined && !EOI_STATUSES.has(status)) return err('Invalid status', 400);
+
+  const now = new Date().toISOString();
+  const updates = [];
+  const binds = [];
+  if (status !== undefined)            { updates.push('status = ?');          binds.push(status); }
+  if (body.followUpNotes !== undefined){ updates.push('follow_up_notes = ?'); binds.push(sanitizeText(body.followUpNotes, 1000) ?? null); }
+  if (status === 'contacted' || status === 'follow_up') { updates.push('contacted_at = ?'); binds.push(now); }
+  if (updates.length === 0) return err('Nothing to update', 400);
+  updates.push('updated_at = ?'); binds.push(now); binds.push(id);
+
+  await env.DB.prepare(`UPDATE eoi_partners SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+  await audit(env.DB, 'eoi_partner_updated', user.sub, 'eoi_partner', { id, status });
+  return json({ success: true });
+}
+
 // ── Audit handler ─────────────────────────────────────────────────────────────
 
 async function handleAuditLogs(request, user, env) {
@@ -7644,6 +8530,7 @@ const ACIA_VALID_STAGES = new Set([
   'followup_90_day',    // 90-day post-completion ACIA
   'completion',         // legacy alias for program_completion
   'followup',           // legacy alias for followup_90_day
+  'rpas_intake',        // RPAS Workforce Hub intake assessment
 ]);
 
 // Canonical stage label for display and storage normalization
@@ -7666,6 +8553,7 @@ const VALID_PARTICIPANT_TYPES = new Set([
   'aviation_worker',           // existing aviation/aerospace industry worker
   'cross_industry_transitioner', // transitioning from another industry
   'experienced_professional',  // experienced in aviation/aerospace, seeking progression
+  'rpas_direct',               // direct-entry RPAS Workforce Hub participant
   'other',                     // does not fit the above categories
 ]);
 
@@ -10321,6 +11209,7 @@ async function handleCreatePilotInvitation(request, user, env) {
   }
   const validPilotRoles = new Set(['youth', 'employer', 'postsecondary', 'coach']);
   if (!validPilotRoles.has(body.pilotRole)) return err('pilotRole must be youth, employer, postsecondary, or coach');
+  const hubType = body.hubType === 'rpas' ? 'rpas' : null;
   const email = body.email.trim().toLowerCase();
   // Check for existing active (non-revoked, non-expired) invitation for this email
   const existing = await env.DB.prepare(
@@ -10335,8 +11224,8 @@ async function handleCreatePilotInvitation(request, user, env) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
   await env.DB.prepare(
-    `INSERT INTO pilot_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, expires_at, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO pilot_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, tokenHash, email,
     body.firstName.trim(), body.lastName.trim(),
@@ -10344,12 +11233,20 @@ async function handleCreatePilotInvitation(request, user, env) {
     body.pilotRole,
     body.cohortName?.trim() ?? null,
     body.notes?.trim() ?? null,
+    hubType,
     expiresAt, user.sub, now
   ).run();
 
   await audit(env.DB, 'pilot_invitation_created', user.sub, 'pilot_invitation', {
-    invitationId: id, email, pilotRole: body.pilotRole, cohortName: body.cohortName ?? null,
+    invitationId: id, email, pilotRole: body.pilotRole, cohortName: body.cohortName ?? null, hubType,
   });
+
+  // If this invite is linked to an RPAS application, mark it as invited
+  if (body.rpasApplicationId) {
+    await env.DB.prepare(
+      `UPDATE rpas_applications SET status = 'invited', invitation_id = ?, invited_at = ?, updated_at = ? WHERE id = ?`
+    ).bind(id, now, now, body.rpasApplicationId).run().catch(() => {});
+  }
 
   return json({ success: true, invitationId: id, token: rawToken, expiresAt });
 }
@@ -10371,6 +11268,7 @@ async function handleListPilotInvitations(request, user, env) {
     organization: r.invited_organization,
     pilotRole: r.pilot_role,
     cohortName: r.cohort_name,
+    hubType: r.hub_type ?? null,
     notes: r.notes,
     expiresAt: r.expires_at,
     acceptedAt: r.accepted_at,
@@ -10404,6 +11302,7 @@ async function handleGetPilotInviteInfo(request, env) {
     organization: inv.invited_organization,
     pilotRole: inv.pilot_role,
     cohortName: inv.cohort_name,
+    hubType: inv.hub_type ?? null,
     expiresAt: inv.expires_at,
   });
 }
@@ -10471,16 +11370,31 @@ async function handleAcceptPilotInvite(request, env) {
     `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
   ).bind(refreshTokenHashPilot, id, expiresAt, now).run();
 
+  // Seed RPAS Hub records for RPAS Hub invitees
+  if (inv.hub_type === 'rpas') {
+    const ccId = randomHex(8);
+    await env.DB.prepare(
+      `INSERT INTO participant_career_context (id, participant_id, participant_type, created_at, updated_at)
+       VALUES (?, ?, 'rpas_direct', ?, ?)
+       ON CONFLICT(participant_id) DO UPDATE SET participant_type = 'rpas_direct', updated_at = excluded.updated_at`
+    ).bind(ccId, id, now, now).run().catch(() => {});
+    const rpId = randomHex(8);
+    await env.DB.prepare(
+      `INSERT INTO rpas_profiles (id, user_id, hub_status, created_at, updated_at) VALUES (?, ?, 'intake', ?, ?)`
+    ).bind(rpId, id, now, now).run().catch(() => {});
+  }
+
   await audit(env.DB, 'pilot_registration_completed', id, 'user', {
-    invitationId: inv.id, pilotRole: inv.pilot_role, cohortName: inv.cohort_name ?? null,
+    invitationId: inv.id, pilotRole: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: inv.hub_type ?? null,
   });
 
   return json({
     success: true,
     userId: id, name: fullName, role: inv.pilot_role,
     pilotAccount: true,
+    hubType: inv.hub_type ?? null,
     accessToken, refreshToken, tokenType: 'Bearer',
-    message: 'Welcome to the AACP pilot program!',
+    message: inv.hub_type === 'rpas' ? 'Welcome to the AACP RPAS Workforce Hub!' : 'Welcome to the AACP pilot program!',
   });
 }
 
@@ -11785,10 +12699,19 @@ async function _routeRequest(request, env, ctx) {
       await seedCurriculum(env.DB);
       await applyCurriculumSeedCorrections(env.DB);
       await seedCompletionAuthority(env.DB);
+      await seedRpasProgram(env.DB);
     }
 
     if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
     if (path === '/ping')   return new Response('pong');
+
+    // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
+    if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
+    if (path === '/rpas/apply/status'   && request.method === 'GET')  return handleRpasApplicationStatus(request, env);
+
+    // ── EOI public routes ─────────────────────────────────────────────────────
+    if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env);
+    if (path === '/eoi/partner'         && request.method === 'POST') return handleEoiPartner(request, env);
 
     // /app → serve the React dashboard
     if (path === '/app' || path === '/app/') {
@@ -11872,6 +12795,26 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/transition/profile' && request.method === 'GET')  return handleTransitionProfileGet(request, user, env);
     if (path === '/transition/profile' && request.method === 'POST') return handleTransitionProfileSave(request, user, env);
     if (path === '/transition/result'  && request.method === 'POST') return handleTransitionResultSave(request, user, env);
+
+    // ── RPAS Workforce Hub — authenticated routes ─────────────────────────────
+    if (path === '/rpas/profile' && request.method === 'GET')  return handleRpasProfileGet(request, user, env);
+    if (path === '/rpas/profile' && request.method === 'POST') return handleRpasProfileSave(request, user, env);
+    if (path === '/rpas/status'  && request.method === 'GET')  return handleRpasStatus(request, user, env);
+    if (path === '/rpas/enroll'  && request.method === 'POST') return handleRpasEnroll(request, user, env);
+
+    // ── RPAS Workforce Hub — admin routes ─────────────────────────────────────
+    if (path === '/admin/rpas/applications'                                             && request.method === 'GET')   return handleAdminRpasApplications(request, user, env);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+$/)                             && request.method === 'PATCH') return handleAdminRpasApplicationReview(request, user, env, ctx);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/payment$/)                    && request.method === 'PATCH') return handleAdminRpasApplicationPayment(request, user, env);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/access$/)                     && request.method === 'PATCH') return handleAdminRpasApplicationAccess(request, user, env);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env);
+    if (path === '/admin/rpas/participants'                                             && request.method === 'GET')   return handleAdminRpasParticipants(request, user, env);
+
+    // ── EOI admin routes ──────────────────────────────────────────────────────
+    if (path === '/admin/eoi/individuals'                                              && request.method === 'GET')  return handleAdminEoiIndividuals(request, user, env);
+    if (path.match(/^\/admin\/eoi\/individuals\/[^/]+$/)                              && request.method === 'PATCH') return handleAdminEoiIndividualUpdate(request, user, env);
+    if (path === '/admin/eoi/partners'                                                 && request.method === 'GET')  return handleAdminEoiPartners(request, user, env);
+    if (path.match(/^\/admin\/eoi\/partners\/[^/]+$/)                                 && request.method === 'PATCH') return handleAdminEoiPartnerUpdate(request, user, env);
 
     if (path === '/acia/assessment/complete' && request.method === 'POST') return handleAciaAssessmentComplete(request, user, env, ctx);
     if (path === '/acia/assessments'         && request.method === 'GET')  return handleAciaAssessmentsGet(request, user, env);

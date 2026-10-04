@@ -26,12 +26,13 @@ interface InviteInfo {
   organization: string | null;
   pilotRole: string;
   cohortName: string | null;
+  hubType: string | null;
   expiresAt: string;
 }
 
 interface Props {
   token: string;
-  onComplete: (auth: { accessToken: string; refreshToken: string; userId: string; name: string; role: string }) => void;
+  onComplete: (auth: { accessToken: string; refreshToken: string; userId: string; name: string; role: string; hubType?: string | null }) => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -71,9 +72,9 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
     setSubmitting(true);
     try {
       const data = await request<{
-        accessToken: string; refreshToken: string; userId: string; name: string; role: string;
+        accessToken: string; refreshToken: string; userId: string; name: string; role: string; hubType?: string | null;
       }>(`/pilot/invite/${token}`, { method: 'POST', body: { password, email: inviteInfo!.email, careerStage: inviteInfo!.pilotRole === 'youth' ? careerStage : undefined } });
-      onComplete({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.userId, name: data.name, role: data.role });
+      onComplete({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.userId, name: data.name, role: data.role, hubType: data.hubType ?? null });
     } catch (e: unknown) {
       setError((e as Error).message || 'Registration failed. Please try again.');
     } finally {
@@ -119,12 +120,16 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
           <div style={{ display: 'inline-block', background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, borderRadius: 16, padding: '14px 20px', marginBottom: 20 }}>
             <span style={{ color: C.white, fontWeight: 800, fontSize: 20, letterSpacing: 1 }}>AACP™</span>
           </div>
-          <div style={{ color: C.grey, fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Early Access Program</div>
+          <div style={{ color: C.grey, fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+            {inviteInfo.hubType === 'rpas' ? 'RPAS Workforce Hub' : 'Early Access Program'}
+          </div>
           <h1 style={{ color: C.white, fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
-            You're Invited
+            {inviteInfo.hubType === 'rpas' ? 'Welcome to the RPAS Workforce Hub' : "You're Invited"}
           </h1>
           <p style={{ color: C.greyD, fontSize: 14, marginTop: 10, lineHeight: 1.6 }}>
-            Experience the Aviation &amp; Aerospace Competency Platform
+            {inviteInfo.hubType === 'rpas'
+              ? 'Create your account to begin your RPAS career intelligence intake.'
+              : 'Experience the Aviation & Aerospace Competency Platform'}
           </p>
         </div>
 

@@ -231,7 +231,7 @@ function generateSubmissionId(): string {
   return [...arr].map((b, i) => ([4, 6, 8, 10].includes(i) ? '-' : '') + b.toString(16).padStart(2, '0')).join('');
 }
 
-export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentStage; onComplete?: () => void }) {
+export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete }: { stage?: AssessmentStage; pathwayType?: string; onComplete?: () => void }) {
   const [view, setView] = useState<ViewState>('welcome');
   const [session, setSession] = useState<ACIASession | null>(null);
   const [transitionMsg, setTransitionMsg] = useState('');
@@ -287,7 +287,7 @@ export function ACIA({ stage = 'baseline', onComplete }: { stage?: AssessmentSta
     return {
       submissionId: submissionId.current,
       assessmentStage: stage,
-      pathwayType: 'standard',
+      pathwayType,
       topPathway: alignments[0]?.pathwayId ?? null,
       competencyProfile,
       careerAlignment: alignments.map(a => ({ pathway: a.pathwayId, alignment: a.alignment, label: a.label ?? a.pathwayId })),

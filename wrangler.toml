@@ -9,6 +9,7 @@ routes = [
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 
 # [vars] intentionally empty.
 # AACP_AUTH_TEST_MODE must be set via: npx wrangler secret put AACP_AUTH_TEST_MODE
