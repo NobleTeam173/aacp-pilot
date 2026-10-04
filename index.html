@@ -237,7 +237,71 @@
     .pb-row { display: flex; align-items: center; gap: 10px; }
     .pb-lbl { font-size: 11px; color: var(--muted); width: 100px; flex-shrink: 0; font-weight: 500; }
     .pb-track { flex: 1; height: 4px; background: rgba(46,16,53,0.6); border-radius: 2px; }
-    .pb-fill { height: 4px; border-radius: 2px; background: var(--crimson); }
+    .pb-fill {
+      height: 4px; border-radius: 2px; background: var(--crimson);
+      transform-origin: left;
+      animation: bar-scale 1.6s cubic-bezier(.4,0,.2,1) both;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(128,1,31,0.5); }
+      50% { opacity: 0.65; transform: scale(0.8); box-shadow: 0 0 0 4px rgba(128,1,31,0); }
+    }
+    @keyframes bar-scale {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pulse-live {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--crimson); flex-shrink: 0;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .pulse-live-grey {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--grey); flex-shrink: 0;
+      animation: pulse-dot 3s ease-in-out infinite;
+    }
+
+    /* ── HERO BADGE ── */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--crimson); border: 1px solid rgba(128,1,31,0.3);
+      background: rgba(128,1,31,0.08); border-radius: 20px;
+      padding: 6px 14px; margin-bottom: 22px;
+    }
+
+    /* ── PLATFORM STATS ── */
+    .platform-stats {
+      background: var(--surface);
+      border-top: 1px solid rgba(46,16,53,0.5);
+      border-bottom: 1px solid rgba(46,16,53,0.5);
+      padding: 0 6vw;
+    }
+    .platform-stats-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: stretch;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .ps-item {
+      flex: 1; min-width: 140px; padding: 20px 24px; text-align: center;
+      border-right: 1px solid rgba(46,16,53,0.4);
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .ps-item:last-child { border-right: none; }
+    .ps-top {
+      display: flex; align-items: center; gap: 7px;
+    }
+    .ps-num {
+      font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 900;
+      color: var(--text); letter-spacing: -0.5px; line-height: 1;
+    }
+    .ps-lbl { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
     .pb-dir { font-size: 10px; color: var(--grey); width: 18px; text-align: right; }
 
     /* ── WHO IT SERVES ── */
@@ -566,6 +630,7 @@
 <section class="hero" id="home">
   <div class="hero-bg"></div>
   <div class="hero-content">
+    <div class="hero-badge"><span class="pulse-live"></span>Workforce Intelligence Platform</div>
     <h1>Find Your Place in<br/><em>Aviation &amp; Aerospace</em></h1>
     <p class="hero-sub">
       AACP™ helps talent, employers, post-secondary institutions and industry partners across Canada engage with aviation and aerospace workforce intelligence and opportunity.
@@ -596,6 +661,32 @@
   </div>
 </div>
 
+<!-- PLATFORM STATS -->
+<div class="platform-stats">
+  <div class="platform-stats-inner">
+    <div class="ps-item">
+      <div class="ps-top"><div class="ps-num">8-Wk</div></div>
+      <div class="ps-lbl">Workforce Readiness</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-top"><div class="ps-num" style="font-size:0.95rem;letter-spacing:0.3px;">National</div></div>
+      <div class="ps-lbl">Reach</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-top"><div class="ps-num" style="font-size:0.95rem;letter-spacing:0.3px;">Industry</div></div>
+      <div class="ps-lbl">Informed</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-top"><div class="ps-num" style="font-size:0.95rem;letter-spacing:0.3px;">Career</div></div>
+      <div class="ps-lbl">Intelligence</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-top"><div class="ps-num" style="font-size:0.95rem;letter-spacing:0.3px;">Workforce</div></div>
+      <div class="ps-lbl">Intelligence</div>
+    </div>
+  </div>
+</div>
+
 <!-- PARTICIPANT -->
 <section class="participant" id="participant">
   <div class="grid-max">
@@ -614,7 +705,7 @@
       <div class="p-block" id="acia">
         <div class="p-block-label">ACIA™ Career Intelligence</div>
         <h3>Discover what your experience could mean for your future.</h3>
-        <p>ACIA™ provides personalized career intelligence to help participants understand their strengths, development opportunities and potential alignment with opportunities across aviation and aerospace.</p>
+        <p>ACIA™ provides personalized career intelligence to help participants better understand their strengths, development opportunities and potential direction within aviation and aerospace.</p>
         <div class="p-block-divider"></div>
         <a href="/app.html" class="p-block-cta-secondary">Discover ACIA</a>
       </div>
@@ -682,57 +773,57 @@
       <div class="intel-visual">
         <div class="iv-header">
           <div class="iv-title">Workforce Intelligence Overview</div>
-          <div class="iv-badge">Illustrative</div>
+          <div class="iv-badge">Illustrative View</div>
         </div>
         <div class="signal-row">
           <div class="signal-card">
             <div class="sc-eyebrow">Talent Pipeline</div>
-            <div class="sc-label">Aviation &amp; Aerospace Pathways</div>
-            <div class="sc-trend trend-up">&#8599; Growing</div>
+            <div class="sc-label">Emerging Talent Pathways</div>
+            <div class="sc-trend trend-up">Pipeline Analysis</div>
           </div>
           <div class="signal-card">
-            <div class="sc-eyebrow">Industry Signal</div>
-            <div class="sc-label">Emerging Workforce Demand</div>
-            <div class="sc-trend trend-em">&#9679; Active</div>
+            <div class="sc-eyebrow">Industry Intelligence</div>
+            <div class="sc-label">Workforce Demand Patterns</div>
+            <div class="sc-trend trend-em">Demand Mapping</div>
           </div>
           <div class="signal-card">
             <div class="sc-eyebrow">Regional Intelligence</div>
             <div class="sc-label">Multi-Region Coverage</div>
-            <div class="sc-trend trend-up">&#8599; Expanding</div>
+            <div class="sc-trend trend-up">Regional Overview</div>
           </div>
           <div class="signal-card">
             <div class="sc-eyebrow">Workforce Readiness</div>
-            <div class="sc-label">Development Priorities Identified</div>
-            <div class="sc-trend trend-em">&#9679; Tracked</div>
+            <div class="sc-label">Development Priority Areas</div>
+            <div class="sc-trend trend-em">Readiness Profile</div>
           </div>
         </div>
         <div class="pipeline-header">
-          <div class="pipeline-title">Talent Pipeline by Pathway</div>
-          <div class="pipeline-note">Illustrative data</div>
+          <div class="pipeline-title">Workforce Participation by Area</div>
+          <div class="pipeline-note">Illustrative</div>
         </div>
         <div class="pipeline-bars">
           <div class="pb-row">
-            <div class="pb-lbl">Maintenance</div>
+            <div class="pb-lbl">Technical Roles</div>
             <div class="pb-track"><div class="pb-fill" style="width:78%"></div></div>
             <div class="pb-dir">&#8599;</div>
           </div>
           <div class="pb-row">
-            <div class="pb-lbl">Avionics</div>
+            <div class="pb-lbl">Operations</div>
             <div class="pb-track"><div class="pb-fill" style="width:62%"></div></div>
             <div class="pb-dir">&#8599;</div>
           </div>
           <div class="pb-row">
-            <div class="pb-lbl">Flight Ops</div>
+            <div class="pb-lbl">Management</div>
             <div class="pb-track"><div class="pb-fill" style="width:55%"></div></div>
             <div class="pb-dir">&#9675;</div>
           </div>
           <div class="pb-row">
-            <div class="pb-lbl">Aerospace</div>
+            <div class="pb-lbl">Engineering</div>
             <div class="pb-track"><div class="pb-fill" style="width:44%"></div></div>
             <div class="pb-dir">&#8599;</div>
           </div>
           <div class="pb-row">
-            <div class="pb-lbl">ATC &amp; Support</div>
+            <div class="pb-lbl">Safety &amp; Compliance</div>
             <div class="pb-track"><div class="pb-fill" style="width:38%"></div></div>
             <div class="pb-dir">&#9675;</div>
           </div>
@@ -841,15 +932,15 @@
         <div style="display:flex;align-items:flex-start;gap:16px;padding:16px 18px;background:var(--surface);border:1px solid rgba(46,16,53,0.4);border-radius:12px;">
           <div style="font-family:'Fraunces',serif;font-size:11px;font-weight:900;color:var(--crimson);min-width:20px;margin-top:2px;">02</div>
           <div>
-            <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text);">AACP reviews your application</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Our team will review your submission and be in touch. Acceptance is not guaranteed and cohort spaces are limited.</div>
+            <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text);">AACP reviews your expression of interest</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Our team will review your submission and be in touch. Cohort spaces are limited, and submitting an Expression of Interest does not guarantee acceptance.</div>
           </div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:16px;padding:16px 18px;background:var(--surface);border:1px solid rgba(46,16,53,0.4);border-radius:12px;">
           <div style="font-family:'Fraunces',serif;font-size:11px;font-weight:900;color:var(--crimson);min-width:20px;margin-top:2px;">03</div>
           <div>
             <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text);">Confirm your place</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Accepted participants receive next-step instructions. Your place is confirmed upon payment of the $1,200 CAD program fee.</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Individuals whose Expressions of Interest are accepted will receive next-step instructions, including payment arrangements. Your place is confirmed once the $1,200 CAD program fee has been received.</div>
           </div>
         </div>
       </div>
@@ -869,7 +960,7 @@
     <div class="eoi-section-header">
       <div class="eoi-section-eyebrow">Get Involved</div>
       <h2 class="eoi-section-title">Express Your Interest in AACP™</h2>
-      <p class="eoi-section-sub">Let us know you're interested. We'll use this information to understand demand for upcoming opportunities and may reach out when something relevant becomes available.</p>
+      <p class="eoi-section-sub">Explore how you can engage with AACP™. Individuals can express interest in upcoming workforce opportunities, while employers, institutions and industry partners can explore opportunities to collaborate with AACP™.</p>
     </div>
 
     <!-- Path selector -->
