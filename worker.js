@@ -2904,8 +2904,13 @@ async function handleLogin(request, env) {
   if (!body?.email || !body?.password) return err('email and password are required');
 
   const email = body.email.trim().toLowerCase();
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
 
-  // Rate limiting: max 10 failed attempts per 15-minute window per email
+  // Per-IP limit: 30 failed attempts per 15 minutes (blocks credential stuffing across many accounts)
+  const ipFails = await countRecentAttempts(env.DB, `login_ip:${clientIp}`, 15 * 60 * 1000);
+  if (ipFails >= 30) return err('Too many login attempts from this address. Please wait 15 minutes before trying again.', 429);
+
+  // Per-email limit: 10 failed attempts per 15-minute window
   const recentFails = await countRecentAttempts(env.DB, `login:${email}`, 15 * 60 * 1000);
   if (recentFails >= 10) {
     return err('Too many failed login attempts. Please wait 15 minutes before trying again.', 429);
@@ -2915,6 +2920,7 @@ async function handleLogin(request, env) {
   const pwResult = user ? await verifyPassword(body.password, user.passwordHash) : { valid: false, needsRehash: false };
   if (!user || !pwResult.valid) {
     await recordAttempt(env.DB, `login:${email}`, false);
+    await recordAttempt(env.DB, `login_ip:${clientIp}`, false);
     await audit(env.DB, 'login_failed', user?.id ?? null, 'session', { email });
     return err('Invalid credentials', 401);
   }
