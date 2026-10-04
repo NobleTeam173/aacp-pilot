@@ -32,6 +32,8 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.anthropic.com https://api.resend.com; frame-ancestors 'none'",
 };
 
 // Roles: super_admin (platform owner), admin (staff), youth, employer, postsecondary
@@ -7765,6 +7767,12 @@ function emailRpasWaitlisted(env, { name, email }) {
 
 // POST /rpas/apply — public EOI (no account required)
 async function handleRpasApply(request, env, ctx) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const ipKey = `rpas_apply_ip:${clientIp}`;
+  const ipCount = await countAllAttempts(env.DB, ipKey, 60 * 60 * 1000);
+  if (ipCount >= 5) return err('Too many submissions from this address. Please try again later.', 429);
+  await recordAttempt(env.DB, ipKey, true);
+
   const body = await request.json().catch(() => null);
   if (!body?.firstName || !body?.lastName || !body?.email) {
     return err('firstName, lastName, and email are required', 400);
