@@ -18,6 +18,89 @@ const PBKDF2_LEGACY_THRESHOLD  = 10000;
 // Captain ACIA — server-controlled system prompt; client-supplied systemPrompt is NEVER accepted.
 const CAPTAIN_ACIA_SYSTEM_PROMPT = `You are Captain ACIA, AACP's aviation and aerospace career mentor. You guide participants through aviation career exploration, helping them understand pathways, competencies, and opportunities in Canada's aviation and aerospace industry. You draw on knowledge of pilot licensing, ATC, aircraft maintenance, aerospace engineering, airport operations, and adjacent careers. You are encouraging, knowledgeable, and focused on helping participants discover their best-fit career path within aviation and aerospace. You do not provide legal, financial, or medical advice. Keep all responses focused on aviation and aerospace career guidance.`;
 
+// RPAS Workforce Intelligence — server-controlled system prompt for Bank 16 intake assessment.
+// Client-supplied systemPrompt is NEVER accepted. Do not expose this prompt to participants.
+const CAPTAIN_RPAS_SYSTEM_PROMPT = `You are conducting a Bank 16 RPAS Workforce Intelligence experience for the AACP™ RPAS Workforce Hub. The experience has two phases: a brief 3-question starting-point intake, followed immediately by interactive RPAS missions that generate the majority of evidence.
+
+════════════════════════════════════
+PHASE 1 — INTAKE (exactly 3 questions)
+════════════════════════════════════
+
+Ask these three questions in order. Do not ask any additional questions before transitioning to missions. Each question is conversational and open — do not present them as a form.
+
+QUESTION 1 — BACKGROUND
+Ask what education, training, technical field or professional background the participant brings. Frame it as understanding what they bring with them — not as a credential check. Transferable capability from any technical, operational, scientific or practical background is relevant.
+
+QUESTION 2 — TRANSPORT CANADA CREDENTIAL STATUS
+Ask whether the participant currently holds a Transport Canada RPAS certificate. The four categories are:
+  (a) No Transport Canada RPAS certificate
+  (b) Basic Operations certificate
+  (c) Advanced Operations certificate
+  (d) Other relevant RPAS training or credential (ask them to briefly describe it)
+Use correct Transport Canada terminology. Do not use the term "drone licence." Do not describe certificates generically. Store the participant's answer exactly as stated — do not infer qualification or readiness from credential status.
+
+QUESTION 3 — RPAS EXPERIENCE
+Establish their practical starting point. The categories are:
+  (a) No previous RPAS experience
+  (b) Recreational or personal flying experience
+  (c) Training or coursework experience
+  (d) Professional or applied RPAS experience
+Where relevant, invite them to briefly identify the type of application they have experience with (e.g. photography, inspection, mapping, emergency services). Keep it brief.
+
+TRANSITION AFTER QUESTION 3
+After the participant answers Question 3, do not ask a fourth intake question. Acknowledge their starting point briefly and authentically — one or two sentences that reflect what they actually told you — then launch directly into the first mission. Example tone: "That background in [X] gives us a strong starting point. Let's put it to work. Your first mission is ready."
+
+The transition must feel intentional, not like an abrupt stop. Captain ACIA is moving the participant forward with purpose.
+
+════════════════════════════════════
+PHASE 2 — RPAS MISSIONS
+════════════════════════════════════
+
+The missions, not the intake, generate the majority of Bank 16 evidence. After the transition, you are no longer conducting intake. Do not return to background questions or credential topics unless the participant raises them.
+
+RPAS APPLICATION DOMAINS — draw scenarios from these areas:
+1. Infrastructure Monitoring — bridges, transmission lines, industrial facilities, structural inspection
+2. Search and Rescue — terrain interpretation, operating conditions, dynamic response, team coordination
+3. Geospatial Data Collection — coverage planning, data quality, mapping missions, GIS contexts
+4. Thermal Imaging — anomaly identification, scope-of-role judgment, reporting findings appropriately
+
+SCENARIO STRUCTURE
+Use a multi-step structure for each mission:
+Mission context → inspect environment → identify relevant information → make decision → conditions change → respond → explain or select next action.
+
+INTERACTION FAMILIES — draw from these during missions:
+- Safety Orientation: Pre-flight judgment, weather go/no-go, lost-link response, pressure resistance
+- Operational Awareness: Environment scanning, hazard identification, airspace context
+- Spatial Reasoning: Drone-camera perspective interpretation, coverage planning, terrain orientation
+- Problem Solving: Equipment anomalies, data quality issues, mid-mission decisions
+- Multitasking: Competing operational events, prioritisation under pressure
+- Communication: Mission handover, reporting a concern, explaining findings to non-specialists
+- Regulatory Navigation: Introduce regulatory context naturally inside scenarios. Do not reproduce the Transport Canada Basic or Advanced exam. Reference TP 15263 as the authoritative source where relevant.
+- Adaptive Learning: Present new information mid-scenario and observe whether the participant updates their reasoning.
+
+REGULATORY AWARENESS
+- RPAS at or above 250 g must be registered with Transport Canada.
+- Basic and Advanced operations have different limitations. Advanced operations require an Advanced certificate and, for certain aircraft, a manufacturer declaration.
+- Introduce regulatory awareness through scenario context, not standalone knowledge questions.
+- Do not use Transport Canada pass marks as thresholds. ACIA does not determine regulatory qualification.
+- Source: Transport Canada TP 15263.
+
+CAREER INTELLIGENCE OBJECTIVE
+Use the intake context (background, credential status, experience) when framing missions and interpreting responses — but do not equate a credential with high readiness or lack of a credential with low potential. The missions reveal capability regardless of starting point.
+
+RPAS career paths extend beyond drone pilot: inspection, GIS/geomatics, engineering support, emergency response, environmental monitoring, data analytics, and other domains where RPAS is a complementary capability.
+
+════════════════════════════════════
+CONDUCT — both phases
+════════════════════════════════════
+- Keep each interaction focused and appropriately brief.
+- Use plain, professional language. Avoid jargon unless the participant introduces it first.
+- One question or scenario at a time. Wait for the participant's response before continuing.
+- Remain encouraging and professionally curious. Never indicate whether a response was correct or incorrect.
+- Do not disclose which capability or dimension you are observing.
+- Lack of prior RPAS knowledge is not evidence of low workforce potential. Look for transferable reasoning.
+- Begin with a brief, welcoming introduction followed immediately by Question 1.`;
+
 // CORS — origin allowlist; wildcard is never used.
 const ALLOWED_ORIGINS = new Set([
   'https://aviationaerospacecompetency.com',
@@ -1379,6 +1462,21 @@ async function runMigrations(db) {
 
   // Add hub_type column to pilot_invitations for RPAS Hub invitations
   await db.prepare(`ALTER TABLE pilot_invitations ADD COLUMN hub_type TEXT`).run().catch(() => {});
+  // rpas_session_logs — Bank 16 session log storage for audit and re-analysis
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS rpas_session_logs (
+      id                   TEXT PRIMARY KEY,
+      participant_id       TEXT NOT NULL REFERENCES users(id),
+      assessment_id        TEXT,
+      session_log          TEXT NOT NULL DEFAULT '[]',
+      interaction_results  TEXT NOT NULL DEFAULT '{}',
+      participant_context  TEXT NOT NULL DEFAULT '{}',
+      created_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_rpas_session_log_participant ON rpas_session_logs(participant_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_rpas_session_log_assessment ON rpas_session_logs(assessment_id)`).run().catch(() => {});
+
   // rpas_applications — add EOI-flow columns (idempotent)
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN city TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN province TEXT`).run().catch(() => {});
@@ -2461,6 +2559,39 @@ async function emailAciaCompleted(env, { name, email, pathwayType, badgeId, comp
   const text = `Hi ${name},\n\nYou've completed your ACIA assessment. Your Career Intelligence Profile and digital badge are now available in your dashboard.\n\nCompleted: ${date}\nPathway: ${pathway}\nBadge ID: ${badgeId.slice(0, 12).toUpperCase()}\n\nView your profile:\n${PLATFORM_URL}\n\nDigital badge verification:\n${verifyUrl}\n\n— The AACP Team`;
 
   return sendEmail(env, { event: 'acia_completed', to: email, subject: 'Your ACIA Is Complete — Career Intelligence Profile Ready', text, html });
+}
+
+// ── 5b. RPAS Workforce Intelligence intake completed ──────────────────────────
+async function emailRpasIntakeCompleted(env, { name, email, badgeId, topPathway, completedAt }) {
+  const pathwayLabel = PATHWAY_ID_TO_LABEL[topPathway] ?? topPathway ?? 'RPAS Workforce';
+  const verifyUrl = `https://aviationaerospacecompetency.com/badge/verify/${badgeId}`;
+  const date = new Date(completedAt).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  const html = emailLayout({
+    preheader: 'Your RPAS Workforce Intelligence profile is ready.',
+    body: eH1('RPAS Career Intelligence Report Ready') +
+      eP(`Hi ${name},`) +
+      eP('You\'ve completed the <strong>Bank 16 RPAS Workforce Intelligence</strong> intake experience. Your RPAS Career Intelligence profile is now available in your AACP dashboard.') +
+      eTable(
+        eInfoRow('Completed', date) +
+        eInfoRow('Top RPAS Pathway', pathwayLabel) +
+        eInfoRow('Profile Status', 'Available') +
+        eInfoRow('Digital Badge', 'Issued') +
+        eInfoRow('Badge ID', badgeId.slice(0, 12).toUpperCase())
+      ) +
+      eBtn('View Your RPAS Career Intelligence Report →', PLATFORM_URL) +
+      eDivider() +
+      eP('<strong>What\'s in your RPAS profile?</strong>', 'margin-bottom:6px') +
+      `<ul style="margin:0 0 16px;padding-left:20px;color:#374151;font-size:14px;line-height:1.8">
+        <li>RPAS application pathway alignments based on mission evidence</li>
+        <li>Workforce capability profile across RPAS-relevant dimensions</li>
+        <li>Starting-point context and transferable capability analysis</li>
+        <li>Digital completion badge for professional profiles</li>
+      </ul>` +
+      eDivider() +
+      eNote('This profile reflects capability patterns observed across your Bank 16 missions. It is a workforce intelligence tool — not a regulatory qualification or Transport Canada certificate determination.'),
+  });
+  const text = `Hi ${name},\n\nYou've completed the Bank 16 RPAS Workforce Intelligence experience. Your RPAS Career Intelligence profile is now available.\n\nCompleted: ${date}\nTop RPAS Pathway: ${pathwayLabel}\nBadge ID: ${badgeId.slice(0, 12).toUpperCase()}\n\nView your profile:\n${PLATFORM_URL}\n\nDigital badge verification:\n${verifyUrl}\n\n— The AACP Team`;
+  return sendEmail(env, { event: 'rpas_intake_completed', to: email, subject: 'Your RPAS Career Intelligence Report Is Ready', text, html });
 }
 
 // ── 6. Program interest / enrollment application received ─────────────────────
@@ -6680,6 +6811,452 @@ async function handleAciaChat(request, env) {
   return json({ reply, response: reply });
 }
 
+// ── RPAS Workforce Intelligence Chat (Bank 16) ────────────────────────────────
+async function handleAciaRpasChat(request, env) {
+  const user = await authenticate(request, env);
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  // SEC-RPAS-01: Gate — RPAS intake requires accepted EOI + enabled participant access.
+  // Mirrors the same check in handleAciaAssessmentComplete for rpas_intake stage.
+  const rpasUserRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  const rpasApp = rpasUserRow?.email
+    ? await env.DB.prepare(`SELECT participant_access FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`).bind(rpasUserRow.email).first().catch(() => null)
+    : null;
+  if (!rpasApp || rpasApp.participant_access !== 'enabled') {
+    return err('RPAS Workforce Hub access requires an accepted application with enabled participant access.', 403);
+  }
+
+  const rpasAttempts = await countAllAttempts(env.DB, `rpas_chat:${user.sub}`, 60 * 60 * 1000);
+  if (rpasAttempts >= 30) {
+    return err('RPAS intake request limit reached. Please try again in an hour.', 429);
+  }
+  await recordAttempt(env.DB, `rpas_chat:${user.sub}`, true);
+
+  const body = await request.json().catch(() => null);
+  if (!body?.messages || !Array.isArray(body.messages)) {
+    return err('messages array required');
+  }
+
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) return err('AI service not configured', 503);
+
+  const maxTokens = Math.min(Number(body.maxTokens ?? 800), 1500);
+  const ALLOWED_CHAT_ROLES = new Set(['user', 'assistant']);
+  const messages = body.messages.slice(-30)
+    .filter(m => ALLOWED_CHAT_ROLES.has(m.role))
+    .map(m => ({
+      role: m.role,
+      content: String(m.content).slice(0, 4000),
+    }));
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-8',
+      max_tokens: maxTokens,
+      system: CAPTAIN_RPAS_SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error('Anthropic API error (RPAS):', res.status, errBody);
+    return err('AI service error', 502);
+  }
+
+  const data = await res.json();
+  const reply = data.content?.[0]?.text ?? '';
+  return json({ reply, response: reply });
+}
+
+// ── RPAS Workforce Intelligence Assessment Complete (Bank 16) ─────────────────
+// POST /acia/rpas/assessment/complete
+// Accepts the full Bank 16 session log + interaction results, calls Claude for
+// server-side evidence interpretation, then atomically persists all RPAS evidence.
+// The client NEVER generates the competencyProfile — evidence interpretation is
+// server-controlled to preserve ACIA integrity.
+async function handleAciaRpasAssessmentComplete(request, env, ctx) {
+  const user = await authenticate(request, env);
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  const roleGuard = requireRole(user, 'youth', 'admin', 'super_admin');
+  if (roleGuard) return roleGuard;
+
+  // Access gate — same check as handleAciaRpasChat
+  const rpasUserRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  const rpasApp = rpasUserRow?.email
+    ? await env.DB.prepare(`SELECT participant_access FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`).bind(rpasUserRow.email).first().catch(() => null)
+    : null;
+  if (!rpasApp || rpasApp.participant_access !== 'enabled') {
+    return err('RPAS Workforce Hub access requires an accepted application with enabled participant access.', 403);
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body) return err('Request body required');
+
+  const sessionLog = body.sessionLog;
+  const interactionResults = body.interactionResults ?? {};
+  const participantContext = body.participantContext ?? {};
+  const submissionId = body.submissionId ?? null;
+  const now = new Date().toISOString();
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) return err('AI service not configured', 503);
+
+  if (!Array.isArray(sessionLog) || sessionLog.length === 0) {
+    return err('sessionLog array required');
+  }
+
+  // Idempotency — if this submissionId already succeeded, return existing record
+  if (submissionId) {
+    const idempotent = await env.DB.prepare(
+      `SELECT id, badge_id, completed_at FROM acia_assessments WHERE submission_id = ? AND user_id = ?`
+    ).bind(submissionId, user.sub).first().catch(() => null);
+    if (idempotent) {
+      return json({ assessmentId: idempotent.id, badgeId: idempotent.badge_id, completedAt: idempotent.completed_at, idempotent: true }, 200);
+    }
+  }
+
+  // Stage lock — rpas_intake can only be completed once per participant
+  const existing = await env.DB.prepare(
+    `SELECT id, badge_id, completed_at FROM acia_assessments WHERE user_id = ? AND status = 'complete' AND assessment_stage = 'rpas_intake'`
+  ).bind(user.sub).first().catch(() => null);
+  if (existing) {
+    if (submissionId) {
+      await env.DB.prepare(`UPDATE acia_assessments SET submission_id = ? WHERE id = ? AND submission_id IS NULL`)
+        .bind(submissionId, existing.id).run().catch(() => {});
+    }
+    return json({ assessmentId: existing.id, badgeId: existing.badge_id, completedAt: existing.completed_at, locked: true }, 200);
+  }
+
+  // Participant integrity guard
+  const participantGuard = await requireValidEvidenceParticipant(env.DB, user.sub);
+  if (participantGuard) return participantGuard;
+
+  // Observability — log the save attempt
+  const attemptId = randomHex(16);
+  await env.DB.prepare(`
+    INSERT INTO acia_save_attempts (id, participant_id, submission_id, attempt_number, save_started_at, created_at)
+    VALUES (?,?,?,?,?,?)
+  `).bind(attemptId, user.sub, submissionId ?? attemptId, 1, now, now).run().catch(() => {});
+
+  // ── Server-side evidence interpretation ──────────────────────────────────────
+  // Build a structured prompt from the session log + interaction results.
+  // Claude returns a JSON evidence profile — client never supplies competency scores.
+  const RPAS_EVIDENCE_INTERPRETATION_PROMPT = `You are the AACP™ RPAS Workforce Intelligence evidence interpreter. You receive a Bank 16 session log and structured interaction results from a completed RPAS intake experience. Your job is to produce a structured evidence profile for the participant.
+
+EVIDENCE DIMENSIONS (use only these keys):
+SR  Spatial Reasoning
+MR  Mechanical Reasoning
+AP  Attention & Precision
+PS  Problem Solving
+SO  Safety Orientation
+DM  Decision Making
+WM  Working Memory
+MT  Multitasking & Prioritization
+CM  Communication
+PR  Procedural Reasoning
+SA  Situational Awareness
+AL  Adaptive Learning
+AK  Aviation Knowledge
+OA  Operational Awareness
+TT  Technical Transferability
+
+EVIDENCE STATES (use only these values): insufficient | emerging | developing | demonstrated | strong
+
+RPAS CAREER PATHWAYS (use only these IDs for careerAlignment):
+rpas_operator | rpas_inspector | rpas_sar | rpas_geomatics | rpas_engineering | rpas_data
+
+ALIGNMENT STATES: low_alignment | developing | strong_alignment
+
+RULES:
+- Assess only from what the participant actually demonstrated in the session log and interaction results.
+- Do not equate a Transport Canada credential with high readiness or lack of credential with low potential.
+- The intake context (background, credential_status, rpas_experience) is starting-point context only — it informs interpretation but is not scored.
+- Only include a dimension in competencyProfile if there is genuine evidence for it. Omit dimensions with no observable signal.
+- A participant who is new to RPAS may still show strong SA, DM, PS or AL through their reasoning. Look for transferable evidence.
+- careerAlignment must include 1–4 pathway entries with alignment state and a brief rationale (1 sentence).
+- developmentAreas: 0–3 items, each a brief specific observation about what the participant could develop.
+- sessionSummary.intake must preserve the verbatim-equivalent substance of the three intake answers (background, tc_credential_status, rpas_experience).
+- evidenceConfidence: low | moderate | high — based on how much signal the session log contains.
+
+Respond with valid JSON only, no markdown fences, no explanation outside the JSON:
+{
+  "competencyProfile": { "DIM": "state", ... },
+  "careerAlignment": [{ "pathway": "rpas_id", "alignment": "state", "rationale": "one sentence" }, ...],
+  "topPathway": "rpas_id",
+  "developmentAreas": ["...", ...],
+  "evidenceConfidence": "moderate",
+  "sessionSummary": {
+    "intake": {
+      "background": "...",
+      "tc_credential_status": "none | tc_basic_operations | tc_advanced_operations | other_rpas_training",
+      "rpas_experience": "none | recreational | training | professional",
+      "rpas_experience_detail": "..."
+    },
+    "missionHighlights": "...",
+    "overallObservation": "..."
+  }
+}`;
+
+  // Condense the session log to fit context limits — preserve all turns but cap content length
+  const condensedLog = sessionLog.slice(0, 60).map(m => ({
+    role: m.role,
+    content: String(m.content ?? '').slice(0, 2000),
+  }));
+
+  const interpretationPayload = {
+    sessionLog: condensedLog,
+    interactionResults,
+    participantContext,
+  };
+
+  let interpretedProfile = null;
+  try {
+    const interpRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 2000,
+        system: RPAS_EVIDENCE_INTERPRETATION_PROMPT,
+        messages: [{
+          role: 'user',
+          content: `Session data:\n${JSON.stringify(interpretationPayload)}`,
+        }],
+      }),
+    });
+
+    if (!interpRes.ok) {
+      const errBody = await interpRes.text();
+      console.error('[RPAS] evidence interpretation API error:', interpRes.status, errBody);
+      return err('Evidence interpretation service error. Please try again.', 502);
+    }
+
+    const interpData = await interpRes.json();
+    const rawJson = interpData.content?.[0]?.text ?? '';
+    interpretedProfile = JSON.parse(rawJson);
+  } catch (e) {
+    console.error('[RPAS] evidence interpretation parse failed:', e?.message ?? String(e));
+    return err('Evidence interpretation could not be completed. Please try again.', 500);
+  }
+
+  const assessmentId = randomHex(16);
+  const badgeId = randomHex(24);
+  const participantName = body.participantName ?? user.email;
+  const topPathway = interpretedProfile.topPathway ?? null;
+
+  try {
+    // ── Atomic D1 batch — all RPAS completion writes ──────────────────────────
+    const batchStmts = [];
+
+    // [A] acia_assessments — canonical rpas_intake completion record
+    batchStmts.push(env.DB.prepare(`
+      INSERT INTO acia_assessments
+        (id, user_id, pathway_type, acia_version, assessment_stage, started_at, completed_at,
+         top_pathway, competency_profile, career_alignment, evidence_confidence,
+         development_areas, recommended_pathways, session_summary, badge_id, badge_issued_at,
+         status, created_at, submission_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).bind(
+      assessmentId, user.sub, 'rpas', '1.0', 'rpas_intake',
+      body.startedAt ?? null, now,
+      topPathway,
+      JSON.stringify(interpretedProfile.competencyProfile ?? {}),
+      JSON.stringify(interpretedProfile.careerAlignment ?? []),
+      interpretedProfile.evidenceConfidence ?? 'moderate',
+      JSON.stringify(interpretedProfile.developmentAreas ?? []),
+      JSON.stringify([]),
+      JSON.stringify(interpretedProfile.sessionSummary ?? {}),
+      badgeId, now, 'complete', now, submissionId ?? null,
+    ));
+
+    // [B] acia_badges — completion badge
+    batchStmts.push(env.DB.prepare(`
+      INSERT INTO acia_badges
+        (id, assessment_id, user_id, participant_name, participant_email, acia_version, pathway_type, issue_date, status, created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
+    `).bind(badgeId, assessmentId, user.sub, participantName, user.email, '1.0', 'rpas', now, 'active', now));
+
+    // [C] competency_evidence — one row per interpreted dimension
+    if (interpretedProfile.competencyProfile && typeof interpretedProfile.competencyProfile === 'object') {
+      const validEntries = Object.entries(interpretedProfile.competencyProfile).filter(([key]) => key in COMPETENCY_LABELS);
+      for (const [key, val] of validEntries) {
+        const rawState = typeof val === 'string' ? val : (val?.state ?? 'emerging');
+        const state = EVIDENCE_STATE_LABELS.includes(rawState) ? rawState : 'emerging';
+        batchStmts.push(env.DB.prepare(
+          `INSERT INTO competency_evidence
+             (id, participant_id, competency_id, evidence_source, observer_type,
+              source_record_id, source_record_type, evidence_state, evidence_confidence,
+              occurred_at, created_at, visibility_scope, verification_status)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        ).bind(
+          randomHex(16), user.sub, key, 'acia', 'acia_system',
+          assessmentId, 'acia_assessment',
+          state, interpretedProfile.evidenceConfidence ?? 'moderate',
+          now, now, 'talent_summary', 'verified',
+        ));
+      }
+    }
+
+    // [D] career_alignment_snapshots — RPAS pathway alignments
+    if (Array.isArray(interpretedProfile.careerAlignment)) {
+      for (const alignment of interpretedProfile.careerAlignment.slice(0, 6)) {
+        const pathwayId = typeof alignment === 'object' ? (alignment.pathway ?? alignment.id ?? String(alignment)) : String(alignment);
+        const alignState = typeof alignment === 'object' ? (alignment.alignment ?? 'developing') : 'developing';
+        batchStmts.push(env.DB.prepare(
+          `INSERT INTO career_alignment_snapshots
+             (id, participant_id, career_pathway_id, alignment_state, evidence_confidence,
+              evidence_count, evidence_source_count, generated_at, model_version)
+           VALUES (?,?,?,?,?,?,?,?,?)`
+        ).bind(
+          randomHex(16), user.sub, pathwayId, alignState,
+          interpretedProfile.evidenceConfidence ?? 'moderate',
+          1, 1, now, 'rpas-bank16-1.0',
+        ));
+      }
+    }
+
+    await env.DB.batch(batchStmts);
+
+    // ── Post-commit: store session log for audit + re-analysis ────────────────
+    // Non-fatal — audit log failure must never roll back the committed assessment.
+    env.DB.prepare(`
+      INSERT INTO rpas_session_logs
+        (id, participant_id, assessment_id, session_log, interaction_results, participant_context, created_at)
+      VALUES (?,?,?,?,?,?,?)
+    `).bind(
+      randomHex(16), user.sub, assessmentId,
+      JSON.stringify(condensedLog),
+      JSON.stringify(interactionResults),
+      JSON.stringify(participantContext),
+      now,
+    ).run().catch(e => console.warn('[RPAS] session log write non-fatal:', e?.message ?? String(e)));
+
+    // Observability
+    await env.DB.prepare(`UPDATE acia_save_attempts SET save_succeeded_at = ?, assessment_id = ? WHERE id = ?`)
+      .bind(now, assessmentId, attemptId).run().catch(() => {});
+
+    await audit(env.DB, 'rpas_intake_complete', user.sub, 'acia_assessment', { assessmentId, badgeId, topPathway, submissionId });
+
+    // RPAS Career Intelligence Report email (required before external participant launch)
+    if (user.email) {
+      fireEmail(ctx, emailRpasIntakeCompleted(env, {
+        name: participantName,
+        email: user.email,
+        badgeId,
+        topPathway,
+        completedAt: now,
+      }), 'rpas_intake_completed');
+    }
+
+    return json({ assessmentId, badgeId, completedAt: now, topPathway }, 201);
+
+  } catch (e) {
+    const reason = e?.message ?? String(e ?? 'unknown');
+    await env.DB.prepare(`UPDATE acia_save_attempts SET save_failed_at = ?, failure_reason = ? WHERE id = ?`)
+      .bind(now, reason.slice(0, 500), attemptId).run().catch(() => {});
+    console.error('[RPAS] atomic completion batch failed:', reason);
+    return err('Your RPAS assessment could not be securely saved. Your progress has been preserved. Please try again.', 500);
+  }
+}
+
+// ── RPAS Career Intelligence Report ──────────────────────────────────────────
+// GET /acia/rpas/report
+// Returns the participant's latest RPAS assessment, competency profile,
+// career alignment snapshots, and badge for the Career Intelligence Report view.
+async function handleAciaRpasReport(request, env) {
+  const user = await authenticate(request, env);
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  // RPAS access gate — same guard as chat and assessment/complete
+  const rpasUserRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  const rpasApp = rpasUserRow?.email
+    ? await env.DB.prepare('SELECT participant_access FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1').bind(rpasUserRow.email).first().catch(() => null)
+    : null;
+  if (!rpasApp || rpasApp.participant_access !== 'enabled') {
+    return err('RPAS Workforce Hub access required.', 403);
+  }
+
+  try {
+    // Latest RPAS assessment for this participant
+    const assessment = await env.DB.prepare(`
+      SELECT id, completed_at, assessment_stage, pathway_type,
+             top_pathway, competency_profile, career_alignment,
+             evidence_confidence, development_areas, session_summary, badge_id
+      FROM acia_assessments
+      WHERE user_id = ? AND pathway_type = 'rpas'
+      ORDER BY completed_at DESC LIMIT 1
+    `).bind(user.sub).first().catch(() => null);
+
+    if (!assessment) return json({ status: 'no_assessment' }, 200);
+
+    const assessmentId = assessment.id;
+
+    // Competency evidence
+    const evidenceRows = await env.DB.prepare(`
+      SELECT competency_id, evidence_state, evidence_confidence
+      FROM competency_evidence
+      WHERE participant_id = ? AND source_record_id = ?
+      ORDER BY competency_id
+    `).bind(user.sub, assessmentId).all().catch(() => ({ results: [] }));
+
+    // Career alignment snapshots
+    const alignmentRows = await env.DB.prepare(`
+      SELECT career_pathway_id, alignment_state, evidence_confidence
+      FROM career_alignment_snapshots
+      WHERE participant_id = ?
+      ORDER BY generated_at DESC LIMIT 6
+    `).bind(user.sub).all().catch(() => ({ results: [] }));
+
+    // Badge
+    const badge = await env.DB.prepare(`
+      SELECT id, issued_at, badge_type, status
+      FROM acia_badges
+      WHERE participant_id = ? AND badge_type = 'rpas'
+      ORDER BY issued_at DESC LIMIT 1
+    `).bind(user.sub).first().catch(() => null);
+
+    const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
+
+    return json({
+      status: 'complete',
+      assessment: {
+        id: assessmentId,
+        completedAt: assessment.completed_at,
+        stage: assessment.assessment_stage,
+      },
+      competencyProfile: Object.fromEntries(
+        (evidenceRows.results ?? []).map(r => [r.competency_id, {
+          state: r.evidence_state,
+          confidence: r.evidence_confidence,
+        }])
+      ),
+      careerAlignment: parseJ(assessment.career_alignment, alignmentRows.results ?? []),
+      topPathway: assessment.top_pathway ?? null,
+      developmentAreas: parseJ(assessment.development_areas, []),
+      sessionSummary: parseJ(assessment.session_summary, null),
+      evidenceConfidence: assessment.evidence_confidence ?? null,
+      badge: badge ? { id: badge.id, issuedAt: badge.issued_at, status: badge.status } : null,
+    });
+  } catch (e) {
+    console.error('[RPAS report]', e?.message ?? String(e));
+    return err('Could not retrieve RPAS report.', 500);
+  }
+}
+
 // ── Transition profile handlers ───────────────────────────────────────────────
 
 async function handleTransitionProfileGet(request, user, env) {
@@ -8638,6 +9215,8 @@ const COMPETENCY_LABELS = {
   WM:'Working Memory', MT:'Multitasking & Prioritization', CM:'Communication',
   PR:'Procedural Reasoning', SA:'Situational Awareness', AL:'Adaptive Learning',
   AK:'Aviation Knowledge',
+  // Bank 16 — RPAS Workforce Intelligence dimensions (approved 2026-10-05)
+  OA:'Operational Awareness', TT:'Technical Transferability',
 };
 
 // ── Canonical pathway ID → participant-facing label ───────────────────────────
@@ -8658,6 +9237,13 @@ const PATHWAY_ID_TO_LABEL = {
   atc:              'Air Traffic Control',
   fss:              'Flight Service Specialist',
   uav:              'Remotely Piloted Aircraft (UAV)',
+  // RPAS Workforce Hub application pathways (Bank 16)
+  rpas_operator:    'RPAS Operator',
+  rpas_inspector:   'RPAS Inspection Technician',
+  rpas_sar:         'RPAS Search & Rescue Operations',
+  rpas_geomatics:   'RPAS GIS & Geomatics',
+  rpas_engineering: 'RPAS Engineering Support',
+  rpas_data:        'RPAS Data & Analytics',
   aerospace_mfg:    'Aerospace Manufacturing',
   aerospace_eng:    'Aerospace Engineering',
   aviation_tech:    'Aviation Technology',
@@ -12937,6 +13523,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/audit/logs' && request.method === 'GET') return handleAuditLogs(request, user, env);
 
     if (path === '/acia/chat'        && request.method === 'POST') return handleAciaChat(request, env);
+    if (path === '/acia/rpas/chat'   && request.method === 'POST') return handleAciaRpasChat(request, env);
     if (path === '/acia/result'      && request.method === 'GET')  return handleAciaGetResult(request, user, env);
     if (path === '/acia/result'      && request.method === 'POST') return handleAciaSaveResult(request, user, env);
     if (path === '/program/status'   && request.method === 'GET')  return handleProgramStatus(request, user, env);
@@ -12980,7 +13567,9 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/eoi/partners'                                                 && request.method === 'GET')  return handleAdminEoiPartners(request, user, env);
     if (path.match(/^\/admin\/eoi\/partners\/[^/]+$/)                                 && request.method === 'PATCH') return handleAdminEoiPartnerUpdate(request, user, env);
 
-    if (path === '/acia/assessment/complete' && request.method === 'POST') return handleAciaAssessmentComplete(request, user, env, ctx);
+    if (path === '/acia/assessment/complete'      && request.method === 'POST') return handleAciaAssessmentComplete(request, user, env, ctx);
+    if (path === '/acia/rpas/assessment/complete' && request.method === 'POST') return handleAciaRpasAssessmentComplete(request, env, ctx);
+    if (path === '/acia/rpas/report'             && request.method === 'GET')  return handleAciaRpasReport(request, env);
     if (path === '/acia/assessments'         && request.method === 'GET')  return handleAciaAssessmentsGet(request, user, env);
     if (path === '/acia/eligibility'         && request.method === 'GET')  return handleAciaEligibility(request, user, env);
     if (path === '/acia/checkpoint'          && request.method === 'POST') return handleAciaCheckpoint(request, user, env);
