@@ -601,6 +601,35 @@
     @media (max-width: 640px) {
       .roles-grid { grid-template-columns: 1fr; }
     }
+
+    /* Commercial ACIA section */
+    .acia-commercial { padding: 80px 24px; background: var(--surface); }
+    .acia-commercial-inner { max-width: 1100px; margin: 0 auto; }
+    .acia-commercial-header { text-align: center; margin-bottom: 52px; }
+    .acia-commercial-header .section-eyebrow { margin-bottom: 14px; }
+    .acia-commercial-header h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 700; color: var(--text); margin: 0 0 16px; text-wrap: balance; }
+    .acia-commercial-header p { max-width: 640px; margin: 0 auto; font-size: 1.05rem; color: var(--dim); line-height: 1.7; }
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .pricing-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 36px 32px 40px; display: flex; flex-direction: column; position: relative; }
+    .pricing-card.featured { border-color: var(--accent); border-width: 2px; }
+    .pricing-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 20px; white-space: nowrap; }
+    .pricing-tier { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    .pricing-card h3 { font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+    .pricing-price { font-size: 2rem; font-weight: 800; color: var(--text); margin: 20px 0 6px; letter-spacing: -0.02em; }
+    .pricing-price span { font-size: 0.9rem; font-weight: 400; color: var(--dim); }
+    .pricing-desc { font-size: 0.9rem; color: var(--dim); margin-bottom: 24px; line-height: 1.6; }
+    .pricing-features { list-style: none; padding: 0; margin: 0 0 32px; display: flex; flex-direction: column; gap: 10px; }
+    .pricing-features li { font-size: 0.88rem; color: var(--text); padding-left: 20px; position: relative; line-height: 1.5; }
+    .pricing-features li::before { content: ''; position: absolute; left: 0; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: 0.7; }
+    .pricing-cta { display: block; text-align: center; padding: 13px 24px; border-radius: 7px; font-size: 0.9rem; font-weight: 600; text-decoration: none; margin-top: auto; transition: opacity 0.15s; }
+    .pricing-cta-primary { background: var(--accent); color: #fff; }
+    .pricing-cta-secondary { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+    .pricing-cta:hover { opacity: 0.85; }
+    .pricing-note { text-align: center; margin-top: 28px; font-size: 0.82rem; color: var(--dim); line-height: 1.6; }
+    @media (max-width: 700px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .acia-commercial { padding: 60px 24px; }
+    }
   </style>
 </head>
 <body>
@@ -711,6 +740,51 @@
       </div>
 
     </div>
+  </div>
+</section>
+
+<!-- ACIA COMMERCIAL -->
+<section class="acia-commercial" id="acia-career-intelligence">
+  <div class="acia-commercial-inner">
+    <div class="acia-commercial-header">
+      <div class="section-eyebrow">Individual Access</div>
+      <h2>ACIA™ Career Intelligence</h2>
+      <p>Not currently enrolled in an AACP cohort? Access ACIA™ Career Intelligence directly and receive a personalized career intelligence profile for aviation and aerospace.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <div class="pricing-card">
+        <div class="pricing-tier">ACIA™ Career Intelligence</div>
+        <h3>Career Intelligence</h3>
+        <div class="pricing-price">$199 <span>CAD</span></div>
+        <p class="pricing-desc">A structured intelligence-led assessment designed to map your strengths, aptitudes and interests to aviation and aerospace opportunities.</p>
+        <ul class="pricing-features">
+          <li>ACIA™ assessment (approx. 30–40 min)</li>
+          <li>Personalized career intelligence profile</li>
+          <li>Pathway alignment insights</li>
+          <li>Digital credential on completion</li>
+        </ul>
+        <a href="acia-register.html?package=acia_solo" class="pricing-cta pricing-cta-secondary">Get Started</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most Complete</div>
+        <div class="pricing-tier">ACIA™ Career Intelligence + Career Strategy</div>
+        <h3>Career Intelligence + Career Strategy</h3>
+        <div class="pricing-price">$399 <span>CAD</span></div>
+        <p class="pricing-desc">Everything in Career Intelligence, plus a personalized career strategy session with a qualified AACP coach to help you interpret your profile and identify your next step.</p>
+        <ul class="pricing-features">
+          <li>ACIA™ assessment (approx. 30–40 min)</li>
+          <li>Personalized career intelligence profile</li>
+          <li>Pathway alignment insights</li>
+          <li>Digital credential on completion</li>
+          <li>One-on-one career strategy session with an AACP coach</li>
+        </ul>
+        <a href="acia-register.html?package=acia_plus_coaching" class="pricing-cta pricing-cta-primary">Get Started</a>
+      </div>
+
+    </div>
+    <p class="pricing-note">Registration is subject to review. Once approved, you will receive payment instructions from the AACP team. Payment is arranged directly with AACP.</p>
   </div>
 </section>
 

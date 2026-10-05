@@ -354,6 +354,11 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE users ADD COLUMN pilot_status TEXT DEFAULT 'active'`).run().catch(() => {});
   await db.prepare(`ALTER TABLE users ADD COLUMN last_activity_at TEXT`).run().catch(() => {});
 
+  // Commercial ACIA: package selection, payment tracking, access authorization
+  await db.prepare(`ALTER TABLE users ADD COLUMN acia_package TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN acia_payment_status TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN acia_access_enabled INTEGER DEFAULT 0`).run().catch(() => {});
+
   // Talent Pipeline Intelligence — professional profiles, talent network, employer connections
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS professional_profiles (
@@ -2085,6 +2090,9 @@ function rowToUser(row) {
     pilotCohort: row.pilot_cohort ?? null,
     invitationId: row.invitation_id ?? null,
     pilotStatus: row.pilot_status ?? 'active',
+    aciaPackage: row.acia_package ?? null,
+    aciaPaymentStatus: row.acia_payment_status ?? null,
+    aciaAccessEnabled: !!row.acia_access_enabled,
   };
 }
 
@@ -2160,15 +2168,19 @@ async function handleRegister(request, env, ctx) {
 
   const careerStage = role === 'youth' ? (body.careerStage ?? 'exploring') : null;
 
+  const VALID_ACIA_PACKAGES = new Set(['acia_solo', 'acia_plus_coaching']);
+  const aciaPackage = role === 'youth' && body.aciaPackage ? body.aciaPackage.trim() : null;
+  if (aciaPackage && !VALID_ACIA_PACKAGES.has(aciaPackage)) return err('Invalid aciaPackage. Valid values: acia_solo, acia_plus_coaching');
+
   await env.DB.prepare(
-    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, job_title, institution_name, region, province, program_area, cohort_id, career_stage, status, mfa_enabled, mfa_secret, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NULL, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, job_title, institution_name, region, province, program_area, cohort_id, career_stage, acia_package, status, mfa_enabled, mfa_secret, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NULL, ?, ?)`
   ).bind(
     id, email, passwordHash, body.name.trim(), role, body.phone.trim(), phoneNorm,
     body.organizationName?.trim() ?? null, body.jobTitle?.trim() ?? null,
     body.institutionName?.trim() ?? null, body.region?.trim() ?? null,
     body.province?.trim() ?? null, body.programArea?.trim() ?? null,
-    body.cohortId ?? null, careerStage, now, now,
+    body.cohortId ?? null, careerStage, aciaPackage, now, now,
   ).run();
 
   await audit(env.DB, 'register', id, 'user', { role, status: 'pending' });
@@ -2351,6 +2363,47 @@ async function emailAccountApproved(env, { name, email }) {
   const text = `Hi ${name},\n\nYour AACP account has been approved. You can now sign in and begin your Aviation Career Intelligence Assessment (ACIA).\n\n${PLATFORM_URL}\n\nWelcome aboard.\n\n— The AACP Team`;
 
   return sendEmail(env, { event: 'account_approved', to: email, subject: 'Your AACP Account Has Been Approved', text, html });
+}
+
+// ── 3b. ACIA commercial — payment instructions (sent on approval of commercial ACIA registrant) ──
+async function emailAciaPaymentInstructions(env, { name, email, aciaPackage }) {
+  const packageLabel = aciaPackage === 'acia_plus_coaching' ? 'ACIA™ Career Intelligence + Career Strategy ($399 CAD)' : 'ACIA™ Career Intelligence ($199 CAD)';
+  const html = emailLayout({
+    preheader: 'Your AACP registration has been approved. Payment instructions are inside.',
+    body: eH1('Registration Approved — Payment Instructions') +
+      eP(`Hi ${name},`) +
+      eP(`Your AACP registration has been approved. To complete your enrolment and activate your access, please arrange payment for the following:`) +
+      eTable(
+        eInfoRow('Package', packageLabel) +
+        eInfoRow('Payment Method', 'Please contact AACP for payment arrangements') +
+        eInfoRow('Contact', CONTACT_EMAIL)
+      ) +
+      eP('Once your payment has been received and confirmed by our team, you will receive a follow-up email with instructions to sign in and begin your ACIA™ Career Intelligence assessment.') +
+      eBtn(`Contact AACP — ${CONTACT_EMAIL}`, `mailto:${CONTACT_EMAIL}`) +
+      eDivider() +
+      eNote('If you have any questions, reply to this email or contact us directly. We look forward to supporting your aviation career journey.'),
+  });
+  const text = `Hi ${name},\n\nYour AACP registration has been approved.\n\nPackage: ${packageLabel}\n\nTo complete your enrolment, please contact us at ${CONTACT_EMAIL} to arrange payment. Once payment is confirmed, you will receive instructions to sign in and begin your ACIA™ Career Intelligence assessment.\n\n— The AACP Team`;
+  return sendEmail(env, { event: 'acia_payment_instructions', to: email, subject: 'AACP Registration Approved — Payment Instructions', text, html });
+}
+
+// ── 3c. ACIA commercial — access enabled (sent on payment confirmation or admin direct grant) ──
+async function emailAciaAccessEnabled(env, { name, email, sponsored = false }) {
+  const intro = sponsored
+    ? 'Great news — your ACIA™ Career Intelligence access has been activated as part of your sponsored programme.'
+    : 'Great news — your payment has been received and your ACIA™ Career Intelligence access is now active.';
+  const html = emailLayout({
+    preheader: 'Your ACIA™ Career Intelligence access is now active. Sign in to begin.',
+    body: eH1('Your ACIA™ Access Is Now Active') +
+      eP(`Hi ${name},`) +
+      eP(intro) +
+      eP('You can now sign in and begin your <strong>ACIA™ Career Intelligence</strong> assessment. The assessment takes approximately 30–40 minutes and provides a personalized career intelligence profile.') +
+      eBtn('Sign In and Begin ACIA™ →', PLATFORM_URL) +
+      eDivider() +
+      eNote('Welcome aboard. We look forward to supporting your aviation career journey.'),
+  });
+  const text = `Hi ${name},\n\n${intro}\n\nYou can now sign in and begin your ACIA™ Career Intelligence assessment.\n\n${PLATFORM_URL}\n\n— The AACP Team`;
+  return sendEmail(env, { event: 'acia_access_enabled', to: email, subject: 'Your ACIA™ Career Intelligence Access Is Now Active', text, html });
 }
 
 // ── 4. Account declined (or additional info required) ─────────────────────────
@@ -2827,13 +2880,16 @@ function fireEmail(ctx, promise, event) {
 async function handleAdminPendingUsers(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const { results } = await env.DB.prepare(
-    `SELECT id, name, email, role, phone, organization_name, institution_name, region, created_at
+    `SELECT id, name, email, role, phone, organization_name, institution_name, region, created_at, acia_package, acia_payment_status, acia_access_enabled
      FROM users WHERE status = 'pending' ORDER BY created_at DESC`
   ).all();
   const pending = results.map((r) => ({
     id: r.id, name: r.name, email: r.email, role: r.role, phone: r.phone,
     organizationName: r.organization_name, institutionName: r.institution_name,
     region: r.region, createdAt: r.created_at,
+    aciaPackage: r.acia_package ?? null,
+    aciaPaymentStatus: r.acia_payment_status ?? null,
+    aciaAccessEnabled: !!r.acia_access_enabled,
   }));
   return json({ users: pending, total: pending.length });
 }
@@ -2844,7 +2900,7 @@ async function handleAdminUserAction(request, user, env, ctx) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.userId || !body?.action) return err('userId and action (approve|reject) are required');
-  const target = await env.DB.prepare('SELECT id, name, email FROM users WHERE id = ?').bind(body.userId).first();
+  const target = await env.DB.prepare('SELECT id, name, email, acia_package FROM users WHERE id = ?').bind(body.userId).first();
   if (!target) return err('User not found', 404);
   const now = new Date().toISOString();
   const reason = typeof body.reason === 'string' ? body.reason.trim() : null;
@@ -2852,7 +2908,11 @@ async function handleAdminUserAction(request, user, env, ctx) {
   if (body.action === 'approve') {
     await env.DB.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').bind('active', now, target.id).run();
     await audit(env.DB, 'user_approved', user.sub, 'user', { targetUserId: target.id, adminId: user.sub });
-    fireEmail(ctx, emailAccountApproved(env, { name: target.name, email: target.email }), 'account_approved');
+    if (target.acia_package) {
+      fireEmail(ctx, emailAciaPaymentInstructions(env, { name: target.name, email: target.email, aciaPackage: target.acia_package }), 'acia_payment_instructions');
+    } else {
+      fireEmail(ctx, emailAccountApproved(env, { name: target.name, email: target.email }), 'account_approved');
+    }
     return json({ success: true, message: `${target.name} approved.` });
   }
   if (body.action === 'reject') {
@@ -2870,7 +2930,7 @@ async function handleAdminAllUsers(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status'); // pending | active | rejected | null (all)
-  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at FROM users`;
+  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at, acia_package, acia_payment_status, acia_access_enabled FROM users`;
   const params = [];
   if (statusFilter && ['pending', 'active', 'rejected'].includes(statusFilter)) {
     query += ` WHERE status = ?`;
@@ -2886,6 +2946,9 @@ async function handleAdminAllUsers(request, user, env) {
     id: r.id, name: r.name, email: r.email, role: r.role, phone: r.phone,
     organizationName: r.organization_name, institutionName: r.institution_name,
     region: r.region, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at,
+    aciaPackage: r.acia_package ?? null,
+    aciaPaymentStatus: r.acia_payment_status ?? null,
+    aciaAccessEnabled: !!r.acia_access_enabled,
   }));
   return json({ users, total: users.length });
 }
@@ -2896,6 +2959,46 @@ async function handleAdminNotifications(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const row = await env.DB.prepare(`SELECT COUNT(*) as count FROM users WHERE status = 'pending' AND role != 'admin'`).first();
   return json({ pendingCount: row?.count ?? 0 });
+}
+
+// ── Admin: confirm ACIA payment (commercial pathway) ─────────────────────────
+async function handleAdminAciaPayment(request, user, env, ctx) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const segments = new URL(request.url).pathname.split('/');
+  const targetId = segments[3]; // /admin/users/:id/acia-payment
+  if (!targetId) return err('User ID required', 400);
+  const target = await env.DB.prepare('SELECT id, name, email, acia_package FROM users WHERE id = ?').bind(targetId).first();
+  if (!target) return err('User not found', 404);
+  if (!target.acia_package) return err('This user does not have a commercial ACIA package.', 400);
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE users SET acia_payment_status = 'payment_confirmed', acia_access_enabled = 1, updated_at = ? WHERE id = ?`
+  ).bind(now, target.id).run();
+  await audit(env.DB, 'acia_payment_confirmed', user.sub, 'user', { targetUserId: target.id, adminId: user.sub });
+  fireEmail(ctx, emailAciaAccessEnabled(env, { name: target.name, email: target.email, sponsored: false }), 'acia_access_enabled');
+  return json({ success: true, message: `ACIA payment confirmed and access enabled for ${target.name}.` });
+}
+
+// ── Admin: grant ACIA access directly (sponsored/cohort pathway) ─────────────
+async function handleAdminAciaAccessGrant(request, user, env, ctx) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const segments = new URL(request.url).pathname.split('/');
+  const targetId = segments[3]; // /admin/users/:id/acia-access
+  if (!targetId) return err('User ID required', 400);
+  const body = await request.json().catch(() => null);
+  const target = await env.DB.prepare('SELECT id, name, email, acia_package FROM users WHERE id = ?').bind(targetId).first();
+  if (!target) return err('User not found', 404);
+  if (!target.acia_package) return err('This user does not have a commercial ACIA package registered. For standard cohort participants, ACIA access is always available once approved.', 400);
+  const now = new Date().toISOString();
+  const enabled = body?.enabled !== false; // default true
+  await env.DB.prepare(
+    `UPDATE users SET acia_access_enabled = ?, updated_at = ? WHERE id = ?`
+  ).bind(enabled ? 1 : 0, now, target.id).run();
+  await audit(env.DB, enabled ? 'acia_access_granted' : 'acia_access_revoked', user.sub, 'user', { targetUserId: target.id, adminId: user.sub, sponsored: true });
+  if (enabled) {
+    fireEmail(ctx, emailAciaAccessEnabled(env, { name: target.name, email: target.email, sponsored: true }), 'acia_access_enabled');
+  }
+  return json({ success: true, message: enabled ? `ACIA access granted for ${target.name}.` : `ACIA access revoked for ${target.name}.` });
 }
 
 async function handleLogin(request, env) {
@@ -6866,6 +6969,14 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
   if (!ACIA_VALID_STAGES.has(rawStage)) return err(`Invalid assessmentStage. Valid values: baseline, program_completion, followup_90_day`);
   const stage = normalizeAciaStage(rawStage); // normalize legacy aliases
 
+  // ── Commercial ACIA gate: baseline requires payment confirmation or admin access grant ──
+  if (stage === 'baseline') {
+    const aciaUserRow = await env.DB.prepare('SELECT acia_package, acia_access_enabled FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+    if (aciaUserRow?.acia_package && !aciaUserRow?.acia_access_enabled) {
+      return err('ACIA access requires payment confirmation or administrator authorization.', 403);
+    }
+  }
+
   // ── Payment gate: RPAS intake requires accepted EOI + confirmed payment + enabled access ──
   if (stage === 'rpas_intake') {
     const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
@@ -7244,6 +7355,20 @@ async function handleAciaAssessmentsGet(request, user, env) {
 async function handleAciaEligibility(request, user, env) {
   const guard = requireRole(user, 'youth', 'admin');
   if (guard) return guard;
+
+  // Commercial ACIA gate: if this user has a package but payment/access not yet confirmed, block access
+  const aciaRow = await env.DB.prepare('SELECT acia_package, acia_access_enabled FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  if (aciaRow?.acia_package && !aciaRow?.acia_access_enabled) {
+    return json({
+      stages: {
+        baseline: { status: 'locked', reason: 'Access will be enabled once your payment has been confirmed by AACP.' },
+        completion: { status: 'locked', reason: 'Complete the Baseline ACIA first' },
+        followup: { status: 'locked', reason: 'Available 90 days after completion of the 8-Week AACP and during/after employer or workplace experience.' },
+      },
+      program: { enrolled: false, completed: false, completedAt: null },
+      aciaAccessPending: true,
+    });
+  }
 
   const { results: assessments } = await env.DB.prepare(
     `SELECT id, assessment_stage, completed_at FROM acia_assessments WHERE user_id = ? AND status = 'complete' ORDER BY completed_at ASC`
@@ -12802,6 +12927,8 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/users/pending'       && request.method === 'GET')  return handleAdminPendingUsers(request, user, env);
     if (path === '/admin/users/all'           && request.method === 'GET')  return handleAdminAllUsers(request, user, env);
     if (path === '/admin/users/action'        && request.method === 'POST') return handleAdminUserAction(request, user, env, ctx);
+    if (path.startsWith('/admin/users/') && path.endsWith('/acia-payment') && request.method === 'PATCH') return handleAdminAciaPayment(request, user, env, ctx);
+    if (path.startsWith('/admin/users/') && path.endsWith('/acia-access')  && request.method === 'PATCH') return handleAdminAciaAccessGrant(request, user, env, ctx);
     if (path === '/admin/notifications'       && request.method === 'GET')  return handleAdminNotifications(request, user, env);
 
     if (path === '/dashboard/competency' && request.method === 'GET')  return handleCompetencyGet(request, user, env);
