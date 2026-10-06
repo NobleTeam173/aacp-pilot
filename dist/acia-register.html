@@ -219,14 +219,36 @@
 
         <div class="section-heading" style="margin-top:8px">Career Context</div>
 
-        <div class="field">
-          <label for="careerStage">Where are you in your career journey?</label>
-          <select id="careerStage" name="careerStage">
-            <option value="exploring">Exploring aviation and aerospace</option>
-            <option value="early">Early in my aviation/aerospace career</option>
-            <option value="transitioning">Transitioning from another industry</option>
-            <option value="experienced">Experienced professional seeking direction</option>
-          </select>
+        <div class="form-row">
+          <div class="field">
+            <label for="province">Province / Territory</label>
+            <select id="province" name="province">
+              <option value="">Select…</option>
+              <option value="Alberta">Alberta</option>
+              <option value="British Columbia">British Columbia</option>
+              <option value="Manitoba">Manitoba</option>
+              <option value="New Brunswick">New Brunswick</option>
+              <option value="Newfoundland and Labrador">Newfoundland and Labrador</option>
+              <option value="Northwest Territories">Northwest Territories</option>
+              <option value="Nova Scotia">Nova Scotia</option>
+              <option value="Nunavut">Nunavut</option>
+              <option value="Ontario">Ontario</option>
+              <option value="Prince Edward Island">Prince Edward Island</option>
+              <option value="Quebec">Quebec</option>
+              <option value="Saskatchewan">Saskatchewan</option>
+              <option value="Yukon">Yukon</option>
+              <option value="Outside Canada">Outside Canada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="careerStage">Career Stage</label>
+            <select id="careerStage" name="careerStage">
+              <option value="exploring">Exploring aviation and aerospace</option>
+              <option value="early">Early in my aviation/aerospace career</option>
+              <option value="transitioning">Transitioning from another industry</option>
+              <option value="experienced">Experienced professional seeking direction</option>
+            </select>
+          </div>
         </div>
 
         <div id="formMsg" class="msg" role="alert"></div>
@@ -275,6 +297,7 @@
     var phone = document.getElementById('phone').value.trim();
     var email = document.getElementById('email').value.trim();
     var password = document.getElementById('password').value;
+    var province = document.getElementById('province').value;
     var careerStage = document.getElementById('careerStage').value;
 
     if (!name || !phone || !email || !password) {
@@ -288,7 +311,7 @@
       var res = await fetch('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email, password, role: 'youth', careerStage, aciaPackage: pkg }),
+        body: JSON.stringify({ name, phone, email, password, role: 'youth', careerStage, province: province || undefined, region: province || undefined, aciaPackage: pkg }),
       });
       var data = await res.json().catch(() => ({}));
       if (!res.ok) {
