@@ -1486,6 +1486,12 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'not_requested'`).run().catch(() => {});
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN participant_access TEXT NOT NULL DEFAULT 'not_enabled'`).run().catch(() => {});
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN fee_acknowledged INTEGER NOT NULL DEFAULT 0`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
 
   // ── EOI tables ─────────────────────────────────────────────────────────────
 
@@ -8498,8 +8504,10 @@ async function handleRpasApply(request, env, ctx) {
     return json({ applied: true, message: 'An expression of interest for this email address already exists.', status: existing.status });
   }
 
-  const preferredCohort = ['nov_16_2026', 'dec_14_2026', 'either'].includes(body.preferredCohort) ? body.preferredCohort : 'either';
-  const feeAcknowledged = body.feeAcknowledged === true ? 1 : 0;
+  const preferredCohort     = ['nov_16_2026', 'dec_14_2026', 'either'].includes(body.preferredCohort) ? body.preferredCohort : 'either';
+  const feeAcknowledged     = body.feeAcknowledged === true ? 1 : 0;
+  const referralSourceKey   = REFERRAL_SOURCE_KEYS.has(body.referralSourceKey) ? body.referralSourceKey : null;
+  const referralSourceOther = referralSourceKey === 'other' ? sanitizeText(body.referralSourceOther, 300) ?? null : null;
 
   const id = randomHex(12);
   const now = new Date().toISOString();
@@ -8508,9 +8516,10 @@ async function handleRpasApply(request, env, ctx) {
        (id, first_name, last_name, email, phone, city, province, career_stage,
         current_situation, rpas_experience, motivation,
         preferred_cohort, fee_acknowledged,
+        referral_source_key, referral_source_other,
         payment_status, participant_access,
         status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'not_requested', 'not_enabled', 'new', ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'not_requested', 'not_enabled', 'new', ?, ?)`
   ).bind(
     id, body.firstName.trim(), body.lastName.trim(), email,
     body.phone?.trim() ?? null,
@@ -8521,6 +8530,7 @@ async function handleRpasApply(request, env, ctx) {
     body.rpasExperience ?? null,
     body.motivation?.trim() ?? null,
     preferredCohort, feeAcknowledged,
+    referralSourceKey, referralSourceOther,
     now, now
   ).run();
 
@@ -8581,6 +8591,8 @@ async function handleAdminRpasApplications(request, user, env) {
     preferredCohort: r.preferred_cohort ?? 'either',
     assignedCohort: r.assigned_cohort ?? 'not_assigned',
     feeAcknowledged: !!r.fee_acknowledged,
+    referralSourceKey: r.referral_source_key ?? null,
+    referralSourceOther: r.referral_source_other ?? null,
     paymentStatus: r.payment_status ?? 'not_requested',
     participantAccess: r.participant_access ?? 'not_enabled',
     status: r.status,
@@ -8943,6 +8955,21 @@ function sanitizeEmail(val) {
   return val.trim().toLowerCase().slice(0, 254);
 }
 
+// Referral-source taxonomy — stable internal keys used across all EOI forms
+const REFERRAL_SOURCE_KEYS = new Set([
+  'city_of_calgary_yec',
+  'aacp_website',
+  'social_media',
+  'linkedin',
+  'word_of_mouth',
+  'employer_referral',
+  'post_secondary_institution',
+  'industry_association',
+  'job_board',
+  'news_media',
+  'other',
+]);
+
 // POST /eoi/individual
 async function handleEoiIndividual(request, env) {
   const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
@@ -8968,14 +8995,18 @@ async function handleEoiIndividual(request, env) {
   const id  = randomHex(8);
   const now = new Date().toISOString();
 
+  const referralSourceKey   = REFERRAL_SOURCE_KEYS.has(body.referralSourceKey) ? body.referralSourceKey : null;
+  const referralSourceOther = referralSourceKey === 'other' ? sanitizeText(body.referralSourceOther, 300) ?? null : null;
+
   await env.DB.prepare(`
     INSERT INTO eoi_individuals
       (id, first_name, last_name, email, phone, city, province, country,
        career_stage, areas_of_interest, rpas_experience, background,
-       willingness_to_pay, funding_dependency, referral_source, comment,
+       willingness_to_pay, funding_dependency, referral_source,
+       referral_source_key, referral_source_other, comment,
        utm_source, utm_medium, utm_campaign,
        status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
   `).bind(
     id,
     firstName,
@@ -8991,7 +9022,9 @@ async function handleEoiIndividual(request, env) {
     sanitizeText(body.background, 200) ?? null,
     sanitizeText(body.willingnessToPay, 100) ?? null,
     sanitizeText(body.fundingDependency, 100) ?? null,
-    sanitizeText(body.referralSource, 200) ?? null,
+    referralSourceKey,
+    referralSourceKey,
+    referralSourceOther,
     sanitizeText(body.comment, 1000) ?? null,
     sanitizeText(body.utmSource, 200) ?? null,
     sanitizeText(body.utmMedium, 200) ?? null,
@@ -9030,14 +9063,18 @@ async function handleEoiPartner(request, env) {
   const id  = randomHex(8);
   const now = new Date().toISOString();
 
+  const referralSourceKey   = REFERRAL_SOURCE_KEYS.has(body.referralSourceKey) ? body.referralSourceKey : null;
+  const referralSourceOther = referralSourceKey === 'other' ? sanitizeText(body.referralSourceOther, 300) ?? null : null;
+
   await env.DB.prepare(`
     INSERT INTO eoi_partners
       (id, first_name, last_name, job_title, email, phone,
        org_name, org_type, city, province, country, website,
        partnership_interests, comment, referral_source,
+       referral_source_key, referral_source_other,
        utm_source, utm_medium, utm_campaign,
        status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
   `).bind(
     id,
     firstName,
@@ -9053,7 +9090,9 @@ async function handleEoiPartner(request, env) {
     sanitizeText(body.website, 300) ?? null,
     JSON.stringify(interests),
     sanitizeText(body.comment, 1000) ?? null,
-    sanitizeText(body.referralSource, 200) ?? null,
+    referralSourceKey,
+    referralSourceKey,
+    referralSourceOther,
     sanitizeText(body.utmSource, 200) ?? null,
     sanitizeText(body.utmMedium, 200) ?? null,
     sanitizeText(body.utmCampaign, 200) ?? null,
@@ -9085,7 +9124,9 @@ async function handleAdminEoiIndividuals(request, user, env) {
     careerStage: r.career_stage, areasOfInterest: safeJsonParse(r.areas_of_interest, []),
     rpasExperience: r.rpas_experience, background: r.background,
     willingnessToPay: r.willingness_to_pay, fundingDependency: r.funding_dependency,
-    referralSource: r.referral_source, comment: r.comment,
+    referralSource: r.referral_source,
+    referralSourceKey: r.referral_source_key, referralSourceOther: r.referral_source_other,
+    comment: r.comment,
     utmSource: r.utm_source, utmMedium: r.utm_medium, utmCampaign: r.utm_campaign,
     status: r.status, followUpNotes: r.follow_up_notes, contactedAt: r.contacted_at,
     createdAt: r.created_at,

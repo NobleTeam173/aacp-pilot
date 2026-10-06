@@ -318,6 +318,28 @@
         <textarea id="motivation" name="motivation" rows="3" placeholder="Anything else you'd like us to know…"></textarea>
       </div>
 
+      <div class="field">
+        <label for="rpas-source">How did you hear about the RPAS Workforce Hub? *</label>
+        <select id="rpas-source" name="referralSourceKey" required>
+          <option value="">Select…</option>
+          <option value="city_of_calgary_yec">City of Calgary Youth Employment Centre</option>
+          <option value="employer_referral">Employer referral</option>
+          <option value="post_secondary_institution">Post-secondary institution</option>
+          <option value="industry_association">Industry association</option>
+          <option value="word_of_mouth">Friend or colleague</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="social_media">Social media</option>
+          <option value="job_board">Job board</option>
+          <option value="news_media">News or media</option>
+          <option value="aacp_website">AACP™ website</option>
+          <option value="other">Other — please specify</option>
+        </select>
+      </div>
+      <div class="field" id="rpas-source-other-wrap" hidden>
+        <label for="rpas-source-other">Please specify <span class="opt">(required if Other selected)</span></label>
+        <input id="rpas-source-other" name="referralSourceOther" type="text" maxlength="300" placeholder="Where did you hear about the RPAS Workforce Hub?" />
+      </div>
+
       <div class="fee-box">
         <strong>Program Fee: $1,200 CAD</strong><br>
         This is a paid program. Admission is subject to AACP review. Accepted participants will receive next-step instructions including payment arrangements. Your place is not confirmed until payment is received. Contact <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a> with questions.
@@ -372,6 +394,15 @@
     msgEl.hidden = false;
   }
 
+  var rpasSourceSel  = document.getElementById('rpas-source');
+  var rpasOtherWrap  = document.getElementById('rpas-source-other-wrap');
+  var rpasOtherInput = document.getElementById('rpas-source-other');
+  rpasSourceSel.addEventListener('change', function () {
+    var isOther = rpasSourceSel.value === 'other';
+    rpasOtherWrap.hidden = !isOther;
+    rpasOtherInput.required = isOther;
+  });
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     btnEl.disabled = true;
@@ -388,8 +419,10 @@
       careerStage:     form.querySelector('[name="careerStage"]').value || undefined,
       rpasExperience:  form.querySelector('[name="rpasExperience"]').value || undefined,
       preferredCohort: form.querySelector('[name="preferredCohort"]').value || 'either',
-      motivation:      form.querySelector('[name="motivation"]').value.trim() || undefined,
-      feeAcknowledged: form.querySelector('[name="feeAcknowledged"]').checked,
+      motivation:          form.querySelector('[name="motivation"]').value.trim() || undefined,
+      referralSourceKey:   form.querySelector('[name="referralSourceKey"]').value || undefined,
+      referralSourceOther: form.querySelector('[name="referralSourceOther"]').value.trim() || undefined,
+      feeAcknowledged:     form.querySelector('[name="feeAcknowledged"]').checked,
     };
 
     fetch('/rpas/apply', {
