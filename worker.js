@@ -390,7 +390,7 @@ async function runMigrations(db) {
   await db.prepare(`CREATE TABLE IF NOT EXISTS employer_signals (id TEXT PRIMARY KEY, org_id TEXT, employer_name TEXT NOT NULL, industry_subsector TEXT, region TEXT, occupation TEXT, role_title TEXT, competency TEXT NOT NULL, skill TEXT, importance_level TEXT DEFAULT 'medium', proficiency_expectation TEXT DEFAULT 'intermediate', hiring_difficulty TEXT, skills_gap TEXT, emerging_requirement INTEGER DEFAULT 0, certification_required TEXT, workforce_readiness_expectation TEXT, future_demand TEXT DEFAULT 'stable', source TEXT DEFAULT 'employer_submission', collected_by TEXT, collected_at TEXT, validation_status TEXT DEFAULT 'new', validated_by TEXT, validated_at TEXT, validation_notes TEXT, created_at TEXT, updated_at TEXT)`).run().catch(() => {});
   await db.prepare(`CREATE TABLE IF NOT EXISTS curriculum_mappings (id TEXT PRIMARY KEY, org_id TEXT, institution_name TEXT NOT NULL, program_name TEXT NOT NULL, course_name TEXT, learning_outcome TEXT, skill TEXT, aacp_competency TEXT NOT NULL, alignment_level TEXT DEFAULT 'insufficient_evidence', notes TEXT, created_by TEXT, created_at TEXT, updated_at TEXT)`).run().catch(() => {});
 
-  // Pilot / Early Access Invitation System
+  // Cohort Invitation System (table later renamed to cohort_invitations via migration below)
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS pilot_invitations (
       id TEXT PRIMARY KEY,
@@ -1460,8 +1460,8 @@ async function runMigrations(db) {
     )
   `).run().catch(() => {});
 
-  // Add hub_type column to pilot_invitations for RPAS Hub invitations
-  await db.prepare(`ALTER TABLE pilot_invitations ADD COLUMN hub_type TEXT`).run().catch(() => {});
+  // Add hub_type column to cohort_invitations for RPAS Hub invitations
+  await db.prepare(`ALTER TABLE cohort_invitations ADD COLUMN hub_type TEXT`).run().catch(() => {});
   // rpas_session_logs — Bank 16 session log storage for audit and re-analysis
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS rpas_session_logs (
@@ -1492,6 +1492,11 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+
+  // Rename pilot_invitations → cohort_invitations (idempotent)
+  await db.prepare(`ALTER TABLE pilot_invitations RENAME TO cohort_invitations`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_cohort_inv_token ON cohort_invitations(token_hash)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_cohort_inv_email ON cohort_invitations(invited_email)`).run().catch(() => {});
 
   // ── EOI tables ─────────────────────────────────────────────────────────────
 
@@ -2261,6 +2266,12 @@ async function handleRegister(request, env, ctx) {
 
   // Admin and super_admin accounts cannot be self-registered — they are provisioned by invite only
   if (role === 'admin' || role === 'super_admin') return err('Administrator accounts are provisioned by invitation only. Contact your administrator.', 403);
+
+  // Cohort participants must register via their invitation link — direct registration is blocked
+  // unless they are selecting a commercial ACIA package (self-directed pathway)
+  if (role === 'youth' && !body.aciaPackage) {
+    return err('Cohort participant registration is by invitation only. If you have been accepted into a cohort, please use the registration link from your invitation email. To access AACP™ independently, please register through the commercial pathway and select an ACIA package.', 403);
+  }
 
   // Role-specific required fields
   if (role === 'employer' && !body.organizationName) return err('Organization name is required for Employer accounts');
@@ -8727,9 +8738,9 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
     rpasApplicationId: id,
   };
 
-  // Create invite directly (same logic as handleCreatePilotInvitation)
+  // Create invite directly (same logic as handleCreateCohortInvitation)
   const existing = await env.DB.prepare(
-    `SELECT id FROM pilot_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
+    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
   ).bind(app.email, new Date().toISOString()).first();
   if (existing) return err('An active invitation already exists for this email address. Revoke it first.', 409);
 
@@ -8740,7 +8751,7 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 days for RPAS Hub
 
   await env.DB.prepare(
-    `INSERT INTO pilot_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
+    `INSERT INTO cohort_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 'youth', ?, ?, 'rpas', ?, ?, ?)`
   ).bind(
     invId, tokenHash, app.email, app.first_name, app.last_name,
@@ -11988,21 +11999,21 @@ async function handleCompetencyGap(request, user, env) {
   return json({ gaps });
 }
 
-// ── Pilot / Early Access Invitation System ─────────────────────────────────────
+// ── Cohort Invitation System ───────────────────────────────────────────────────
 
-async function handleCreatePilotInvitation(request, user, env) {
+async function handleCreateCohortInvitation(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.firstName || !body?.lastName || !body?.pilotRole) {
     return err('email, firstName, lastName, and pilotRole are required');
   }
-  const validPilotRoles = new Set(['youth', 'employer', 'postsecondary', 'coach']);
-  if (!validPilotRoles.has(body.pilotRole)) return err('pilotRole must be youth, employer, postsecondary, or coach');
+  const validRoles = new Set(['youth', 'employer', 'postsecondary', 'coach']);
+  if (!validRoles.has(body.pilotRole)) return err('pilotRole must be youth, employer, postsecondary, or coach');
   const hubType = body.hubType === 'rpas' ? 'rpas' : null;
   const email = body.email.trim().toLowerCase();
   // Check for existing active (non-revoked, non-expired) invitation for this email
   const existing = await env.DB.prepare(
-    `SELECT id FROM pilot_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
+    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
   ).bind(email, new Date().toISOString()).first();
   if (existing) return err('An active invitation already exists for this email address. Revoke it first or wait for it to expire.');
 
@@ -12013,7 +12024,7 @@ async function handleCreatePilotInvitation(request, user, env) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
   await env.DB.prepare(
-    `INSERT INTO pilot_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
+    `INSERT INTO cohort_invitations (id, token_hash, invited_email, invited_first_name, invited_last_name, invited_organization, pilot_role, cohort_name, notes, hub_type, expires_at, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, tokenHash, email,
@@ -12026,7 +12037,7 @@ async function handleCreatePilotInvitation(request, user, env) {
     expiresAt, user.sub, now
   ).run();
 
-  await audit(env.DB, 'pilot_invitation_created', user.sub, 'pilot_invitation', {
+  await audit(env.DB, 'cohort_invitation_created', user.sub, 'cohort_invitation', {
     invitationId: id, email, pilotRole: body.pilotRole, cohortName: body.cohortName ?? null, hubType,
   });
 
@@ -12040,12 +12051,12 @@ async function handleCreatePilotInvitation(request, user, env) {
   return json({ success: true, invitationId: id, token: rawToken, expiresAt });
 }
 
-async function handleListPilotInvitations(request, user, env) {
+async function handleListCohortInvitations(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const now = new Date().toISOString();
   const { results } = await env.DB.prepare(
     `SELECT pi.*, u.name as accepted_by_name
-     FROM pilot_invitations pi
+     FROM cohort_invitations pi
      LEFT JOIN users u ON u.id = pi.accepted_by
      ORDER BY pi.created_at DESC`
   ).all();
@@ -12072,13 +12083,13 @@ async function handleListPilotInvitations(request, user, env) {
   return json({ invitations, total: invitations.length });
 }
 
-async function handleGetPilotInviteInfo(request, env) {
+async function handleGetCohortInviteInfo(request, env) {
   const url = new URL(request.url);
-  const rawToken = url.pathname.replace('/pilot/invite/', '').split('/')[0];
+  const rawToken = url.pathname.replace('/cohort/invite/', '').split('/')[0];
   if (!rawToken) return err('Invalid invitation link', 400);
   const tokenHash = await sha256hex(rawToken);
   const inv = await env.DB.prepare(
-    `SELECT * FROM pilot_invitations WHERE token_hash = ?`
+    `SELECT * FROM cohort_invitations WHERE token_hash = ?`
   ).bind(tokenHash).first();
   if (!inv) return err('Invitation not found or invalid', 404);
   if (inv.revoked_at) return err('This invitation has been revoked', 410);
@@ -12096,13 +12107,13 @@ async function handleGetPilotInviteInfo(request, env) {
   });
 }
 
-async function handleAcceptPilotInvite(request, env) {
+async function handleAcceptCohortInvite(request, env) {
   const url = new URL(request.url);
-  const rawToken = url.pathname.replace('/pilot/invite/', '').split('/')[0];
+  const rawToken = url.pathname.replace('/cohort/invite/', '').split('/')[0];
   if (!rawToken) return err('Invalid invitation link', 400);
   const tokenHash = await sha256hex(rawToken);
   const inv = await env.DB.prepare(
-    `SELECT * FROM pilot_invitations WHERE token_hash = ?`
+    `SELECT * FROM cohort_invitations WHERE token_hash = ?`
   ).bind(tokenHash).first();
   if (!inv) return err('Invitation not found or invalid', 404);
   if (inv.revoked_at) return err('This invitation has been revoked', 410);
@@ -12124,19 +12135,23 @@ async function handleAcceptPilotInvite(request, env) {
   const passwordHash = await hashPassword(body.password);
   const now = new Date().toISOString();
 
-  // Determine name from invitation fields
   const fullName = `${inv.invited_first_name} ${inv.invited_last_name}`.trim();
 
   const validCareerStages = new Set(['exploring', 'student', 'stem', 'transition', 'aviation_professional', 'intl_aviation_professional']);
   const careerStage = (inv.pilot_role === 'youth' && validCareerStages.has(body.careerStage)) ? body.careerStage : 'exploring';
 
+  // Cohort participants: status = 'pending' — must still be approved by admin
+  // RPAS Hub invitees: status = 'active' — RPAS flow manages their access separately
+  const initialStatus = inv.hub_type === 'rpas' ? 'active' : 'pending';
+
   await env.DB.prepare(
-    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_account, pilot_cohort, invitation_id, pilot_status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, 'active', 0, NULL, 1, 1, ?, ?, 'active', ?, ?)`
+    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_cohort, invitation_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?, 0, NULL, 1, ?, ?, ?, ?)`
   ).bind(
     id, inv.invited_email, passwordHash, fullName, inv.pilot_role,
     inv.invited_organization ?? '',
     careerStage,
+    initialStatus,
     inv.cohort_name ?? null,
     inv.id,
     now, now
@@ -12144,22 +12159,10 @@ async function handleAcceptPilotInvite(request, env) {
 
   // Mark invitation as accepted
   await env.DB.prepare(
-    `UPDATE pilot_invitations SET accepted_at = ?, accepted_by = ? WHERE id = ?`
+    `UPDATE cohort_invitations SET accepted_at = ?, accepted_by = ? WHERE id = ?`
   ).bind(now, id, inv.id).run();
 
-  // Issue tokens immediately so pilot tester lands in dashboard
-  const accessSecret  = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
-  const refreshSecret = requireSecret(env, 'AACP_REFRESH_TOKEN_SECRET');
-  const basePayload = { sub: id, email: inv.invited_email, role: inv.pilot_role, cohortId: null };
-  const accessToken  = await createJwt({ ...basePayload, tokenType: 'access'  }, accessSecret,  ACCESS_EXPIRES_SEC);
-  const refreshToken = await createJwt({ ...basePayload, tokenType: 'refresh' }, refreshSecret, REFRESH_EXPIRES_SEC);
-  const expiresAt = Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC;
-  const refreshTokenHashPilot = await hashTokenForStorage(refreshToken);
-  await env.DB.prepare(
-    `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
-  ).bind(refreshTokenHashPilot, id, expiresAt, now).run();
-
-  // Seed RPAS Hub records for RPAS Hub invitees
+  // RPAS Hub invitees: seed hub records and issue tokens immediately
   if (inv.hub_type === 'rpas') {
     const ccId = randomHex(8);
     await env.DB.prepare(
@@ -12171,47 +12174,67 @@ async function handleAcceptPilotInvite(request, env) {
     await env.DB.prepare(
       `INSERT INTO rpas_profiles (id, user_id, hub_status, created_at, updated_at) VALUES (?, ?, 'intake', ?, ?)`
     ).bind(rpId, id, now, now).run().catch(() => {});
+
+    const accessSecret  = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+    const refreshSecret = requireSecret(env, 'AACP_REFRESH_TOKEN_SECRET');
+    const basePayload = { sub: id, email: inv.invited_email, role: inv.pilot_role, cohortId: null };
+    const accessToken  = await createJwt({ ...basePayload, tokenType: 'access'  }, accessSecret,  ACCESS_EXPIRES_SEC);
+    const refreshToken = await createJwt({ ...basePayload, tokenType: 'refresh' }, refreshSecret, REFRESH_EXPIRES_SEC);
+    const expiresAt = Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC;
+    const refreshTokenHash = await hashTokenForStorage(refreshToken);
+    await env.DB.prepare(
+      `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
+    ).bind(refreshTokenHash, id, expiresAt, now).run();
+
+    await audit(env.DB, 'cohort_registration_completed', id, 'user', {
+      invitationId: inv.id, role: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: 'rpas',
+    });
+    return json({
+      success: true,
+      userId: id, name: fullName, role: inv.pilot_role,
+      hubType: 'rpas',
+      accessToken, refreshToken, tokenType: 'Bearer',
+      message: 'Welcome to the AACP RPAS Workforce Hub!',
+    });
   }
 
-  await audit(env.DB, 'pilot_registration_completed', id, 'user', {
-    invitationId: inv.id, pilotRole: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: inv.hub_type ?? null,
+  // Standard cohort participants: pending approval — no tokens yet
+  await audit(env.DB, 'cohort_registration_completed', id, 'user', {
+    invitationId: inv.id, role: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: null,
   });
-
   return json({
     success: true,
     userId: id, name: fullName, role: inv.pilot_role,
-    pilotAccount: true,
-    hubType: inv.hub_type ?? null,
-    accessToken, refreshToken, tokenType: 'Bearer',
-    message: inv.hub_type === 'rpas' ? 'Welcome to the AACP RPAS Workforce Hub!' : 'Welcome to the AACP pilot program!',
+    status: 'pending',
+    message: 'Your account has been created. You will receive an email once your access has been approved.',
   });
 }
 
-async function handleRevokePilotInvitation(request, user, env) {
+async function handleRevokeCohortInvitation(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const id = new URL(request.url).pathname.split('/')[3];
   if (!id) return err('Invitation ID required', 400);
-  const inv = await env.DB.prepare('SELECT * FROM pilot_invitations WHERE id = ?').bind(id).first();
+  const inv = await env.DB.prepare('SELECT * FROM cohort_invitations WHERE id = ?').bind(id).first();
   if (!inv) return err('Invitation not found', 404);
   if (inv.accepted_at) return err('Cannot revoke an already-accepted invitation');
   if (inv.revoked_at) return err('Invitation is already revoked');
   const now = new Date().toISOString();
-  await env.DB.prepare('UPDATE pilot_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ?').bind(now, user.sub, id).run();
-  await audit(env.DB, 'pilot_invitation_revoked', user.sub, 'pilot_invitation', { invitationId: id, email: inv.invited_email });
+  await env.DB.prepare('UPDATE cohort_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ?').bind(now, user.sub, id).run();
+  await audit(env.DB, 'cohort_invitation_revoked', user.sub, 'cohort_invitation', { invitationId: id, email: inv.invited_email });
   return json({ success: true, message: 'Invitation revoked.' });
 }
 
-async function handleExtendPilotInvitation(request, user, env) {
+async function handleExtendCohortInvitation(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const id = new URL(request.url).pathname.split('/')[3];
   if (!id) return err('Invitation ID required', 400);
-  const inv = await env.DB.prepare('SELECT * FROM pilot_invitations WHERE id = ?').bind(id).first();
+  const inv = await env.DB.prepare('SELECT * FROM cohort_invitations WHERE id = ?').bind(id).first();
   if (!inv) return err('Invitation not found', 404);
   if (inv.revoked_at) return err('Cannot extend a revoked invitation');
   if (inv.accepted_at) return err('Cannot extend an already-accepted invitation');
   const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  await env.DB.prepare('UPDATE pilot_invitations SET expires_at = ? WHERE id = ?').bind(newExpiry, id).run();
-  await audit(env.DB, 'pilot_invitation_extended', user.sub, 'pilot_invitation', { invitationId: id, newExpiry });
+  await env.DB.prepare('UPDATE cohort_invitations SET expires_at = ? WHERE id = ?').bind(newExpiry, id).run();
+  await audit(env.DB, 'cohort_invitation_extended', user.sub, 'cohort_invitation', { invitationId: id, newExpiry });
   return json({ success: true, expiresAt: newExpiry });
 }
 
@@ -12243,7 +12266,7 @@ async function handleListPilotAccounts(request, user, env) {
       pi.created_at AS invitation_created_at,
       pf.submitted_at AS feedback_submitted_at,
       aa.completed_at AS acia_completed_at
-    FROM pilot_invitations pi
+    FROM cohort_invitations pi
     JOIN users u ON u.invitation_id = pi.id
     LEFT JOIN pilot_feedback pf ON pf.user_id = u.id
     LEFT JOIN acia_assessments aa ON aa.user_id = u.id AND aa.status = 'complete'
@@ -12356,7 +12379,7 @@ async function handlePilotAnalytics(request, user, env) {
         SUM(CASE WHEN accepted_at IS NOT NULL THEN 1 ELSE 0 END) as accepted,
         SUM(CASE WHEN revoked_at IS NOT NULL THEN 1 ELSE 0 END) as revoked,
         SUM(CASE WHEN accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ? THEN 1 ELSE 0 END) as pending
-      FROM pilot_invitations
+      FROM cohort_invitations
     `).bind(now).first(),
   ]);
   return json({
@@ -13526,9 +13549,9 @@ async function _routeRequest(request, env, ctx) {
     if (path.startsWith('/auth/coach-invite/') && request.method === 'GET')  return handleGetCoachInviteInfo(request, env);
     if (path.startsWith('/auth/coach-invite/') && request.method === 'POST') return handleAcceptCoachInvite(request, env);
 
-    // Pilot invite — public (token-gated, no JWT required)
-    if (path.startsWith('/pilot/invite/') && request.method === 'GET')  return handleGetPilotInviteInfo(request, env);
-    if (path.startsWith('/pilot/invite/') && request.method === 'POST') return handleAcceptPilotInvite(request, env);
+    // Cohort invite — public (token-gated, no JWT required)
+    if (path.startsWith('/cohort/invite/') && request.method === 'GET')  return handleGetCohortInviteInfo(request, env);
+    if (path.startsWith('/cohort/invite/') && request.method === 'POST') return handleAcceptCohortInvite(request, env);
 
     // Public badge verification (no auth required)
     if (path.startsWith('/badge/verify/') && request.method === 'GET') {
@@ -13648,11 +13671,11 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/coach-invitations'      && request.method === 'GET')  return handleCoachInviteList(request, user, env);
     if (path === '/admin/coach-invitations/send' && request.method === 'POST') return handleSendCoachInvite(request, user, env, ctx);
 
-    // Pilot invitation management (admin / super_admin)
-    if (path === '/pilot/invitations'                                           && request.method === 'GET')  return handleListPilotInvitations(request, user, env);
-    if (path === '/pilot/invitations'                                           && request.method === 'POST') return handleCreatePilotInvitation(request, user, env);
-    if (path.startsWith('/pilot/invitations/') && path.endsWith('/revoke')      && request.method === 'PUT')  return handleRevokePilotInvitation(request, user, env);
-    if (path.startsWith('/pilot/invitations/') && path.endsWith('/extend')      && request.method === 'PUT')  return handleExtendPilotInvitation(request, user, env);
+    // Cohort invitation management (admin / super_admin)
+    if (path === '/cohort/invitations'                                           && request.method === 'GET')  return handleListCohortInvitations(request, user, env);
+    if (path === '/cohort/invitations'                                           && request.method === 'POST') return handleCreateCohortInvitation(request, user, env);
+    if (path.startsWith('/cohort/invitations/') && path.endsWith('/revoke')      && request.method === 'PUT')  return handleRevokeCohortInvitation(request, user, env);
+    if (path.startsWith('/cohort/invitations/') && path.endsWith('/extend')      && request.method === 'PUT')  return handleExtendCohortInvitation(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/deactivate')  && request.method === 'PUT')  return handleDeactivatePilotAccount(request, user, env);
     if (path === '/pilot/accounts'                                              && request.method === 'GET')  return handleListPilotAccounts(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/revoke')     && request.method === 'PUT')  return handleRevokePilotAccess(request, user, env);
