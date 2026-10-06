@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Express Interest | AACP™</title>
+  <meta name="description" content="Express your interest in AACP™ workforce readiness programs, the RPAS Workforce Hub, or partnership opportunities." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #08020a;
+      --surface:     #100614;
+      --border:      #2e1035;
+      --crimson:     #80011f;
+      --crimson-dim: #5c0116;
+      --text:        #f0eef2;
+      --muted:       #9490a0;
+      --dim:         #4a4752;
+      --grey:        #6B7074;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 6vw; height: 64px;
+      background: rgba(8,2,10,0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(46,16,53,0.5);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #80011f, #a8022a);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 10px; color: #fff;
+    }
+    .nav-logo-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; color: var(--text); }
+    .nav-logo-sub  { font-size: 9px; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-top: 1px; }
+    .nav-back {
+      font-size: 13px; color: var(--muted); text-decoration: none;
+      display: flex; align-items: center; gap: 6px; transition: color .2s;
+    }
+    .nav-back:hover { color: var(--text); }
+
+    /* ── PAGE ── */
+    .page-wrap { max-width: 840px; margin: 0 auto; padding: 60px 6vw 100px; }
+
+    .page-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--crimson); margin-bottom: 14px; text-align: center;
+    }
+    .page-title {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800; letter-spacing: -0.8px; line-height: 1.1;
+      margin-bottom: 14px; text-align: center;
+    }
+    .page-sub {
+      font-size: 0.95rem; color: var(--muted); line-height: 1.8;
+      max-width: 520px; margin: 0 auto 48px; text-align: center;
+    }
+
+    /* ── PATH SELECTOR ── */
+    .paths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 40px; }
+    .path-btn {
+      background: var(--surface); border: 1px solid rgba(46,16,53,0.5); border-radius: 16px;
+      padding: 24px 26px; cursor: pointer; text-align: left;
+      transition: border-color .2s, background .2s;
+      appearance: none;
+    }
+    .path-btn:hover, .path-btn.active {
+      border-color: var(--crimson); background: rgba(128,1,31,0.08);
+    }
+    .path-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--crimson); margin-bottom: 8px; }
+    .path-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .path-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── FORM PANEL ── */
+    .form-wrap { max-width: 760px; margin: 0 auto; }
+    .form-panel {
+      background: var(--surface); border: 1px solid rgba(46,16,53,0.5);
+      border-radius: 20px; padding: 40px 36px; position: relative; overflow: hidden;
+    }
+    .form-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(128,1,31,0.5), transparent);
+    }
+    .form { display: flex; flex-direction: column; gap: 16px; }
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+    .opt { color: var(--dim); font-weight: 500; }
+    .field input, .field select, .field textarea {
+      background: var(--bg); border: 1px solid rgba(46,16,53,0.7);
+      border-radius: 10px; padding: 11px 14px;
+      color: var(--text); font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color .2s; resize: vertical;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--crimson); }
+    .field input::placeholder, .field textarea::placeholder { color: var(--dim); }
+    .field select option { background: #100614; }
+
+    .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .check-item {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--bg); border: 1px solid rgba(46,16,53,0.6);
+      border-radius: 8px; padding: 7px 12px; cursor: pointer;
+      font-size: 13px; color: var(--muted); transition: border-color .18s, color .18s;
+    }
+    .check-item input[type="checkbox"] { accent-color: var(--crimson); width: 14px; height: 14px; }
+    .check-item:has(input:checked) { border-color: var(--crimson); color: var(--text); background: rgba(128,1,31,0.1); }
+
+    .divider { border: none; border-top: 1px solid rgba(46,16,53,0.4); margin: 8px 0; }
+    .group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); }
+
+    .cond-field { display: none; flex-direction: column; gap: 5px; }
+    .cond-field.visible { display: flex; }
+
+    .consent { font-size: 12px; color: var(--dim); line-height: 1.7; margin-top: 4px; }
+
+    .submit-btn {
+      display: inline-flex; align-items: center; justify-content: center; width: 100%;
+      background: linear-gradient(135deg, var(--crimson), var(--crimson-dim));
+      color: var(--text); border: none; border-radius: 10px;
+      padding: 15px; font-weight: 700; font-size: 14px; cursor: pointer;
+      font-family: inherit; letter-spacing: 0.3px; transition: opacity .2s; margin-top: 4px;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .form-msg { border-radius: 10px; padding: 14px 18px; font-size: 14px; line-height: 1.6; margin-top: 4px; }
+    .form-msg.success { background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
+    .form-msg.error   { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
+
+    .page-footer {
+      border-top: 1px solid rgba(46,16,53,0.4); padding: 32px 6vw;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+      font-size: 12px; color: var(--dim);
+    }
+    .page-footer a { color: var(--muted); text-decoration: none; }
+    .page-footer a:hover { color: var(--text); }
+
+    @media (max-width: 700px) {
+      .paths { grid-template-columns: 1fr; }
+      .page-wrap { padding: 40px 5vw 80px; }
+      .form-panel { padding: 28px 20px; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">AACP</div>
+    <div>
+      <div class="nav-logo-text">AACP™</div>
+      <div class="nav-logo-sub">Workforce Intelligence</div>
+    </div>
+  </a>
+  <a href="/" class="nav-back">&#8592; Back</a>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-eyebrow">Get Involved</div>
+  <h1 class="page-title">Express Your Interest in AACP™</h1>
+  <p class="page-sub">
+    Explore how you can engage with AACP™. Individuals can express interest in upcoming workforce opportunities, while employers, institutions and industry partners can explore opportunities to collaborate with AACP™.
+  </p>
+
+  <!-- Path selector -->
+  <div class="paths">
+    <button class="path-btn active" id="path-individual" type="button">
+      <div class="path-eyebrow">For Individuals</div>
+      <div class="path-title">Express Interest</div>
+      <div class="path-desc">Interested in AACP™ workforce readiness, the RPAS Workforce Hub, or future aviation and aerospace opportunities.</div>
+    </button>
+    <button class="path-btn" id="path-partner" type="button">
+      <div class="path-eyebrow">For Industry &amp; Partners</div>
+      <div class="path-title">Partner with AACP™</div>
+      <div class="path-desc">Employers, post-secondary institutions, training providers, industry associations and other organizations.</div>
+    </button>
+  </div>
+
+  <!-- Individual EOI -->
+  <div class="form-wrap" id="panel-individual">
+    <div class="form-panel">
+      <form class="form" id="ind-form" autocomplete="off">
+
+        <div class="form-row">
+          <div class="field">
+            <label for="ind-first">First Name *</label>
+            <input id="ind-first" name="firstName" type="text" required placeholder="First name" />
+          </div>
+          <div class="field">
+            <label for="ind-last">Last Name *</label>
+            <input id="ind-last" name="lastName" type="text" required placeholder="Last name" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="ind-email">Email Address *</label>
+          <input id="ind-email" name="email" type="email" required placeholder="your@email.com" />
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="ind-phone">Phone <span class="opt">(optional)</span></label>
+            <input id="ind-phone" name="phone" type="tel" placeholder="+1 (000) 000-0000" />
+          </div>
+          <div class="field">
+            <label for="ind-city">City <span class="opt">(optional)</span></label>
+            <input id="ind-city" name="city" type="text" placeholder="City" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="ind-province">Province / Territory <span class="opt">(optional)</span></label>
+            <select id="ind-province" name="province">
+              <option value="">Select…</option>
+              <option>Alberta</option><option>British Columbia</option><option>Manitoba</option>
+              <option>New Brunswick</option><option>Newfoundland and Labrador</option>
+              <option>Northwest Territories</option><option>Nova Scotia</option><option>Nunavut</option>
+              <option>Ontario</option><option>Prince Edward Island</option><option>Quebec</option>
+              <option>Saskatchewan</option><option>Yukon</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ind-country">Country</label>
+            <input id="ind-country" name="country" type="text" value="Canada" placeholder="Country" />
+          </div>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Your Background</div>
+
+        <div class="field">
+          <label for="ind-stage">Which best describes you? <span class="opt">(optional)</span></label>
+          <select id="ind-stage" name="careerStage">
+            <option value="">Select…</option>
+            <option value="student">Student</option>
+            <option value="recent_graduate">Recent graduate</option>
+            <option value="early_career">Early-career professional</option>
+            <option value="experienced_professional">Experienced professional</option>
+            <option value="career_transitioner">Career transitioner</option>
+            <option value="internationally_trained">Internationally trained professional</option>
+            <option value="seeking_employment">Currently seeking employment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ind-bg">Educational or professional background <span class="opt">(optional)</span></label>
+          <select id="ind-bg" name="background">
+            <option value="">Select…</option>
+            <option value="aviation_aerospace">Aviation / Aerospace</option>
+            <option value="engineering_technical">Engineering / Technical</option>
+            <option value="stem">STEM / Science / Technology</option>
+            <option value="trades">Skilled Trades</option>
+            <option value="business_management">Business / Management</option>
+            <option value="education">Education</option>
+            <option value="healthcare">Healthcare</option>
+            <option value="military_defence">Military / Defence</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Areas of Interest</div>
+
+        <div class="field">
+          <label>What are you interested in exploring with AACP™? <span class="opt">(select all that apply)</span></label>
+          <div class="check-group" id="ind-interests">
+            <label class="check-item"><input type="checkbox" value="workforce_readiness" /> AACP™ workforce readiness opportunities</label>
+            <label class="check-item"><input type="checkbox" value="rpas_workforce_hub" id="ind-rpas-cb" /> AACP™ RPAS Workforce Hub</label>
+            <label class="check-item"><input type="checkbox" value="future_aviation_aerospace" /> Future aviation and aerospace opportunities</label>
+            <label class="check-item"><input type="checkbox" value="not_sure" /> Not sure yet</label>
+          </div>
+        </div>
+
+        <div class="cond-field field" id="ind-rpas-cond">
+          <label for="ind-rpas-exp">How would you describe your current experience with RPAS/drones? <span class="opt">(optional)</span></label>
+          <select id="ind-rpas-exp" name="rpasExperience">
+            <option value="">Select…</option>
+            <option value="new_to_rpas">New to RPAS</option>
+            <option value="some_exposure">Some previous exposure or experience</option>
+            <option value="training_cert">Previous RPAS training / certification</option>
+            <option value="professional_commercial">Professional / commercial RPAS experience</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Program Participation</div>
+
+        <div class="field">
+          <label for="ind-wtp">If considering a future AACP™ workforce readiness opportunity, which participation option would be most realistic? <span class="opt">(optional)</span></label>
+          <select id="ind-wtp" name="willingnessToPay">
+            <option value="">Select…</option>
+            <option value="fully_sponsored">Fully sponsored / funded</option>
+            <option value="up_to_500">Up to $500</option>
+            <option value="501_1000">$501–$1,000</option>
+            <option value="1001_1500">$1,001–$1,500</option>
+            <option value="1501_2000">$1,501–$2,000</option>
+            <option value="more_than_2000">More than $2,000</option>
+            <option value="employer_sponsored">Employer-sponsored</option>
+            <option value="not_sure">Not sure yet</option>
+          </select>
+          <span style="font-size:11px;color:var(--dim);margin-top:4px;">This question is for market research only and does not constitute a price quote, commitment or offer.</span>
+        </div>
+
+        <div class="field">
+          <label for="ind-funding">Would your decision to participate depend on financial support being available? <span class="opt">(optional)</span></label>
+          <select id="ind-funding" name="fundingDependency">
+            <option value="">Select…</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="possibly">Possibly</option>
+          </select>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">How You Found Us</div>
+
+        <div class="field">
+          <label for="ind-source">How did you hear about AACP™? <span class="opt">(optional)</span></label>
+          <select id="ind-source" name="referralSource">
+            <option value="">Select…</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="employer">Employer</option>
+            <option value="postsecondary">Post-secondary institution</option>
+            <option value="community_workforce">Community / workforce organization</option>
+            <option value="industry_association">Industry association</option>
+            <option value="event_presentation">Event or presentation</option>
+            <option value="referral">Friend / colleague / referral</option>
+            <option value="online_search">Online search</option>
+            <option value="aacp_noble_outreach">AACP / Noble Consulting outreach</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ind-comment">Anything else you'd like us to know? <span class="opt">(optional, max 500 characters)</span></label>
+          <textarea id="ind-comment" name="comment" rows="3" maxlength="500" placeholder="Is there anything else you would like us to know about your interest in AACP™?"></textarea>
+        </div>
+
+        <p class="consent">
+          The personal information you provide will be used by Noble Consulting to receive and manage your Expression of Interest, communicate regarding relevant AACP™ opportunities, and for other purposes described in our <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">Privacy Policy</a>. Submitting this form does not guarantee participation, admission, employment, funding or any program offer. This is not an application or admissions process.
+        </p>
+
+        <button type="submit" class="submit-btn" id="ind-submit">Submit Expression of Interest</button>
+      </form>
+      <div id="ind-msg" class="form-msg" hidden></div>
+    </div>
+  </div>
+
+  <!-- Partner / Industry EOI -->
+  <div class="form-wrap" id="panel-partner" hidden>
+    <div class="form-panel">
+      <form class="form" id="prt-form" autocomplete="off">
+
+        <div class="form-row">
+          <div class="field">
+            <label for="prt-first">First Name *</label>
+            <input id="prt-first" name="firstName" type="text" required placeholder="First name" />
+          </div>
+          <div class="field">
+            <label for="prt-last">Last Name *</label>
+            <input id="prt-last" name="lastName" type="text" required placeholder="Last name" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="prt-title">Job Title <span class="opt">(optional)</span></label>
+            <input id="prt-title" name="jobTitle" type="text" placeholder="Your title" />
+          </div>
+          <div class="field">
+            <label for="prt-email">Work Email *</label>
+            <input id="prt-email" name="email" type="email" required placeholder="you@organization.com" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="prt-org">Organization Name *</label>
+            <input id="prt-org" name="orgName" type="text" required placeholder="Organization" />
+          </div>
+          <div class="field">
+            <label for="prt-org-type">Organization Type <span class="opt">(optional)</span></label>
+            <select id="prt-org-type" name="orgType">
+              <option value="">Select…</option>
+              <option value="employer_aviation">Employer: Aviation / Aerospace</option>
+              <option value="employer_other">Employer: Other Industry</option>
+              <option value="postsecondary">Post-Secondary Institution</option>
+              <option value="training_provider">Training Provider</option>
+              <option value="industry_association">Industry Association</option>
+              <option value="indigenous_org">Indigenous Organization / Community</option>
+              <option value="community_workforce">Community / Workforce Organization</option>
+              <option value="economic_development">Economic Development Organization</option>
+              <option value="government">Government</option>
+              <option value="sponsor_funder">Sponsor / Funder</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="prt-phone">Phone <span class="opt">(optional)</span></label>
+            <input id="prt-phone" name="phone" type="tel" placeholder="+1 (000) 000-0000" />
+          </div>
+          <div class="field">
+            <label for="prt-website">Website <span class="opt">(optional)</span></label>
+            <input id="prt-website" name="website" type="url" placeholder="https://…" />
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="field">
+            <label for="prt-city">City <span class="opt">(optional)</span></label>
+            <input id="prt-city" name="city" type="text" placeholder="City" />
+          </div>
+          <div class="field">
+            <label for="prt-province">Province / Territory <span class="opt">(optional)</span></label>
+            <select id="prt-province" name="province">
+              <option value="">Select…</option>
+              <option>Alberta</option><option>British Columbia</option><option>Manitoba</option>
+              <option>New Brunswick</option><option>Newfoundland and Labrador</option>
+              <option>Northwest Territories</option><option>Nova Scotia</option><option>Nunavut</option>
+              <option>Ontario</option><option>Prince Edward Island</option><option>Quebec</option>
+              <option>Saskatchewan</option><option>Yukon</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="prt-country">Country</label>
+            <input id="prt-country" name="country" type="text" value="Canada" placeholder="Country" />
+          </div>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Partnership Interests</div>
+
+        <div class="field">
+          <label>What are you interested in discussing with AACP™? <span class="opt">(select all that apply)</span></label>
+          <div class="check-group" id="prt-interests">
+            <label class="check-item"><input type="checkbox" value="rpas_workforce_opportunities" /> RPAS workforce opportunities</label>
+            <label class="check-item"><input type="checkbox" value="talent_pipeline" /> Talent / workforce pipeline</label>
+            <label class="check-item"><input type="checkbox" value="hiring_emerging_talent" /> Hiring / emerging talent</label>
+            <label class="check-item"><input type="checkbox" value="industry_participation" /> Industry participation</label>
+            <label class="check-item"><input type="checkbox" value="workforce_readiness_collaboration" /> Workforce readiness collaboration</label>
+            <label class="check-item"><input type="checkbox" value="education_training_pathways" /> Education / training pathways</label>
+            <label class="check-item"><input type="checkbox" value="indigenous_workforce" /> Indigenous workforce initiatives</label>
+            <label class="check-item"><input type="checkbox" value="newcomer_internationally_trained" /> Newcomer / internationally trained talent</label>
+            <label class="check-item"><input type="checkbox" value="cohort_sponsorship" /> Cohort sponsorship / support</label>
+            <label class="check-item"><input type="checkbox" value="workforce_intelligence" /> Workforce intelligence</label>
+            <label class="check-item"><input type="checkbox" value="funding_project_collaboration" /> Funding / project collaboration</label>
+            <label class="check-item"><input type="checkbox" value="other" /> Other</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="prt-source">How did you hear about AACP™? <span class="opt">(optional)</span></label>
+          <select id="prt-source" name="referralSource">
+            <option value="">Select…</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="industry_association">Industry association</option>
+            <option value="event_presentation">Event or presentation</option>
+            <option value="referral">Colleague / referral</option>
+            <option value="online_search">Online search</option>
+            <option value="aacp_noble_outreach">AACP / Noble Consulting outreach</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="prt-comment">Workforce, talent or partnership opportunity to discuss? <span class="opt">(optional, max 500 characters)</span></label>
+          <textarea id="prt-comment" name="comment" rows="3" maxlength="500" placeholder="Is there a workforce, talent or partnership opportunity you would like to discuss with AACP™?"></textarea>
+        </div>
+
+        <p class="consent">
+          The personal information you provide will be used by Noble Consulting to receive and manage your Expression of Interest, communicate regarding relevant AACP™ opportunities, and for other purposes described in our <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">Privacy Policy</a>. Submitting this form does not establish a partnership, agreement or commitment of any kind.
+        </p>
+
+        <button type="submit" class="submit-btn" id="prt-submit">Submit Expression of Interest</button>
+      </form>
+      <div id="prt-msg" class="form-msg" hidden></div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="page-footer">
+  <a href="/">&#8592; aviationaerospacecompetency.com</a>
+  <span>&copy; 2026 Noble Consulting. All rights reserved. AACP™ Workforce Intelligence.</span>
+  <a href="privacy.html">Privacy Policy</a>
+  <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
+</footer>
+
+<script>
+(function () {
+
+  // ── Path switcher ──────────────────────────────────────────────────────────
+  var indPanel = document.getElementById('panel-individual');
+  var prtPanel = document.getElementById('panel-partner');
+  var indBtn   = document.getElementById('path-individual');
+  var prtBtn   = document.getElementById('path-partner');
+
+  function showPath(path) {
+    if (path === 'partner') {
+      indPanel.hidden = true; prtPanel.hidden = false;
+      indBtn.classList.remove('active'); prtBtn.classList.add('active');
+    } else {
+      prtPanel.hidden = true; indPanel.hidden = false;
+      prtBtn.classList.remove('active'); indBtn.classList.add('active');
+    }
+  }
+
+  indBtn.addEventListener('click', function () { showPath('individual'); });
+  prtBtn.addEventListener('click', function () { showPath('partner'); });
+
+  // Apply ?path=partner from query string
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('path') === 'partner') showPath('partner');
+
+  // ── RPAS conditional field ─────────────────────────────────────────────────
+  var rpasCb   = document.getElementById('ind-rpas-cb');
+  var rpasCond = document.getElementById('ind-rpas-cond');
+  rpasCb.addEventListener('change', function () {
+    rpasCond.classList.toggle('visible', rpasCb.checked);
+  });
+
+  // ── UTM capture ───────────────────────────────────────────────────────────
+  function getUtm() {
+    var p = new URLSearchParams(window.location.search);
+    return {
+      utmSource:   p.get('utm_source')   || undefined,
+      utmMedium:   p.get('utm_medium')   || undefined,
+      utmCampaign: p.get('utm_campaign') || undefined,
+    };
+  }
+
+  function getChecked(groupId) {
+    return Array.from(document.querySelectorAll('#' + groupId + ' input[type="checkbox"]:checked'))
+      .map(function (c) { return c.value; });
+  }
+
+  function showMsg(el, text, type) {
+    el.textContent = text; el.className = 'form-msg ' + type; el.hidden = false;
+  }
+
+  // ── Individual EOI ─────────────────────────────────────────────────────────
+  var indForm = document.getElementById('ind-form');
+  var indMsg  = document.getElementById('ind-msg');
+  var indSub  = document.getElementById('ind-submit');
+
+  indForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    indSub.disabled = true; indSub.textContent = 'Submitting…'; indMsg.hidden = true;
+    var utm = getUtm();
+    var body = {
+      firstName:         indForm.querySelector('[name="firstName"]').value.trim(),
+      lastName:          indForm.querySelector('[name="lastName"]').value.trim(),
+      email:             indForm.querySelector('[name="email"]').value.trim(),
+      phone:             indForm.querySelector('[name="phone"]').value.trim() || undefined,
+      city:              indForm.querySelector('[name="city"]').value.trim() || undefined,
+      province:          indForm.querySelector('[name="province"]').value || undefined,
+      country:           indForm.querySelector('[name="country"]').value.trim() || 'Canada',
+      careerStage:       indForm.querySelector('[name="careerStage"]').value || undefined,
+      background:        indForm.querySelector('[name="background"]').value || undefined,
+      areasOfInterest:   getChecked('ind-interests'),
+      rpasExperience:    indForm.querySelector('[name="rpasExperience"]') ? indForm.querySelector('[name="rpasExperience"]').value || undefined : undefined,
+      willingnessToPay:  indForm.querySelector('[name="willingnessToPay"]').value || undefined,
+      fundingDependency: indForm.querySelector('[name="fundingDependency"]').value || undefined,
+      referralSource:    indForm.querySelector('[name="referralSource"]').value || undefined,
+      comment:           indForm.querySelector('[name="comment"]').value.trim() || undefined,
+      utmSource:         utm.utmSource,
+      utmMedium:         utm.utmMedium,
+      utmCampaign:       utm.utmCampaign,
+    };
+
+    fetch('/eoi/individual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          indForm.hidden = true;
+          showMsg(indMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. We\'ll use the information you provided to understand interest in upcoming AACP opportunities and may contact you when a relevant opportunity becomes available.', 'success');
+        } else {
+          showMsg(indMsg, res.data.error || 'Submission failed. Please try again.', 'error');
+          indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
+        }
+      })
+      .catch(function () {
+        showMsg(indMsg, 'A network error occurred. Please check your connection and try again.', 'error');
+        indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
+      });
+  });
+
+  // ── Partner EOI ────────────────────────────────────────────────────────────
+  var prtForm = document.getElementById('prt-form');
+  var prtMsg  = document.getElementById('prt-msg');
+  var prtSub  = document.getElementById('prt-submit');
+
+  prtForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    prtSub.disabled = true; prtSub.textContent = 'Submitting…'; prtMsg.hidden = true;
+    var utm = getUtm();
+    var body = {
+      firstName:            prtForm.querySelector('[name="firstName"]').value.trim(),
+      lastName:             prtForm.querySelector('[name="lastName"]').value.trim(),
+      jobTitle:             prtForm.querySelector('[name="jobTitle"]').value.trim() || undefined,
+      email:                prtForm.querySelector('[name="email"]').value.trim(),
+      phone:                prtForm.querySelector('[name="phone"]').value.trim() || undefined,
+      orgName:              prtForm.querySelector('[name="orgName"]').value.trim(),
+      orgType:              prtForm.querySelector('[name="orgType"]').value || undefined,
+      city:                 prtForm.querySelector('[name="city"]').value.trim() || undefined,
+      province:             prtForm.querySelector('[name="province"]').value || undefined,
+      country:              prtForm.querySelector('[name="country"]').value.trim() || 'Canada',
+      website:              prtForm.querySelector('[name="website"]').value.trim() || undefined,
+      partnershipInterests: getChecked('prt-interests'),
+      referralSource:       prtForm.querySelector('[name="referralSource"]').value || undefined,
+      comment:              prtForm.querySelector('[name="comment"]').value.trim() || undefined,
+      utmSource:            utm.utmSource,
+      utmMedium:            utm.utmMedium,
+      utmCampaign:          utm.utmCampaign,
+    };
+
+    fetch('/eoi/partner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          prtForm.hidden = true;
+          showMsg(prtMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. A member of the AACP team may contact you to explore potential alignment and next steps.', 'success');
+        } else {
+          showMsg(prtMsg, res.data.error || 'Submission failed. Please try again.', 'error');
+          prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';
+        }
+      })
+      .catch(function () {
+        showMsg(prtMsg, 'A network error occurred. Please check your connection and try again.', 'error');
+        prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';
+      });
+  });
+
+})();
+</script>
+
+</body>
+</html>

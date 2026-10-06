@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPAS Workforce Intelligence — Bank 16 | AACP™</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #08020a;
+      --surface:      #100614;
+      --surface-2:    #18091e;
+      --border:       #2e1035;
+      --border-light: #3d1c47;
+      --crimson:      #80011f;
+      --crimson-dim:  #5c0116;
+      --crimson-glow: rgba(128,1,31,0.18);
+      --text:         #f0eef2;
+      --muted:        #9490a0;
+      --dim:          #4a4752;
+      --go:           #2d9e6b;
+      --go-bg:        rgba(45,158,107,0.12);
+      --warn:         #d4a017;
+      --warn-bg:      rgba(212,160,23,0.1);
+      --blue:         #4a90c4;
+      --blue-bg:      rgba(74,144,196,0.12);
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ───────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 20px; height: 56px;
+      background: rgba(8,2,10,0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(46,16,53,0.5);
+    }
+    .nav-mark {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg,#80011f,#a8022a);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 10px; color: #fff;
+      flex-shrink: 0;
+    }
+    .nav-label { font-size: 12px; font-weight: 600; }
+    .nav-sub   { font-size: 10px; color: var(--muted); }
+    .nav-user  { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .nav-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--crimson); background: var(--crimson-glow);
+      border: 1px solid rgba(128,1,31,0.3); border-radius: 20px; padding: 2px 8px;
+    }
+
+    /* ── Screen shell ─────────────────────── */
+    #screen {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px 40px;
+    }
+
+    /* ── Loading ──────────────────────────── */
+    .loading-wrap { text-align: center; }
+    .spinner {
+      width: 36px; height: 36px; border: 2.5px solid var(--border);
+      border-top-color: var(--crimson); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Access denied ────────────────────── */
+    .locked-wrap { text-align: center; max-width: 440px; }
+    .locked-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(128,1,31,0.12); border: 1.5px solid rgba(128,1,31,0.3);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+    }
+    .locked-icon svg { width: 24px; height: 24px; fill: none; stroke: #c43050; stroke-width: 2; }
+
+    /* ── Welcome screen ───────────────────── */
+    .welcome-wrap { max-width: 640px; width: 100%; text-align: center; }
+    .welcome-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--crimson); margin-bottom: 16px;
+    }
+    .welcome-title {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2rem, 4vw, 3rem); font-weight: 900;
+      letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 16px;
+    }
+    .welcome-sub {
+      font-size: 1rem; color: var(--muted); line-height: 1.75; margin-bottom: 32px; max-width: 520px; margin-inline: auto;
+    }
+    .welcome-points {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 36px;
+    }
+    .welcome-point {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+    }
+    .welcome-point span { color: var(--crimson); font-size: 14px; }
+
+    /* ── Intake chat ──────────────────────── */
+    .intake-wrap { max-width: 700px; width: 100%; }
+    .intake-header { margin-bottom: 20px; }
+    .intake-progress { display: flex; gap: 6px; margin-bottom: 12px; }
+    .progress-dot {
+      height: 3px; border-radius: 2px; flex: 1; background: var(--border);
+      transition: background 0.3s;
+    }
+    .progress-dot.active { background: var(--crimson); }
+    .progress-dot.done   { background: var(--crimson-dim); }
+    .intake-context { font-size: 11px; color: var(--dim); }
+
+    .chat-log {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; min-height: 220px; max-height: 480px;
+      overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+      margin-bottom: 16px;
+    }
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    }
+    .msg.assistant .msg-avatar { background: var(--crimson-glow); color: var(--crimson); border: 1px solid rgba(128,1,31,0.3); }
+    .msg.user .msg-avatar { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .msg-bubble {
+      max-width: 85%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 11px 15px; font-size: 14px; line-height: 1.7;
+    }
+    .msg.user .msg-bubble { background: rgba(128,1,31,0.1); border-color: rgba(128,1,31,0.25); }
+    .msg-typing { display: flex; gap: 4px; padding: 4px 0; }
+    .msg-typing span {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--dim);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    .msg-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .msg-typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+    .input-row { display: flex; gap: 10px; }
+    .chat-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; color: var(--text);
+      font-family: inherit; font-size: 14px; outline: none; resize: none;
+      transition: border-color .2s; min-height: 52px; max-height: 140px;
+    }
+    .chat-input:focus { border-color: rgba(128,1,31,0.5); }
+    .chat-input::placeholder { color: var(--dim); }
+    .send-btn {
+      width: 52px; height: 52px; border-radius: 10px; border: none;
+      background: var(--crimson); color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: opacity .15s;
+    }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .send-btn svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── Mission transition ───────────────── */
+    .transition-wrap { max-width: 540px; text-align: center; }
+    .transition-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--crimson-glow); border: 1.5px solid rgba(128,1,31,0.35);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;
+    }
+    .transition-icon svg { width: 28px; height: 28px; fill: none; stroke: #c43050; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .transition-title { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+    .transition-sub { font-size: 0.95rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── Mission UI ───────────────────────── */
+    .mission-wrap { max-width: 900px; width: 100%; }
+    .mission-header {
+      display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .mission-domain-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--crimson); background: var(--crimson-glow); border: 1px solid rgba(128,1,31,0.25);
+      border-radius: 20px; padding: 4px 12px; white-space: nowrap;
+    }
+    .mission-title { font-size: 1.1rem; font-weight: 700; flex: 1; min-width: 200px; }
+    .mission-phase-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .phase-chip {
+      font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+      color: var(--dim); cursor: pointer; transition: all .15s;
+    }
+    .phase-chip.active { color: var(--text); border-color: var(--crimson); background: var(--crimson-glow); }
+    .phase-chip.done   { color: var(--muted); border-color: var(--border-light); text-decoration: line-through; }
+
+    .mission-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+    }
+    .mission-card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .mission-card-header h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+    .mission-card-header p  { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.65; }
+    .mission-visual { padding: 20px; border-bottom: 1px solid var(--border); }
+    .mission-response { padding: 20px; }
+    .mission-response label {
+      display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    .mission-textarea {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; color: var(--text);
+      font-family: inherit; font-size: 14px; line-height: 1.65;
+      resize: vertical; outline: none; min-height: 100px;
+      transition: border-color .2s;
+    }
+    .mission-textarea:focus { border-color: rgba(128,1,31,0.5); }
+    .mission-textarea::placeholder { color: var(--dim); }
+
+    /* annotation grid */
+    .annotation-zone {
+      display: inline-block; cursor: pointer;
+      transition: all .15s;
+    }
+    .annotation-marker {
+      fill: rgba(128,1,31,0.25); stroke: #c43050; stroke-width: 1.5;
+    }
+    .annotation-marker.flagged { fill: rgba(212,160,23,0.25); stroke: var(--warn); }
+    .annotation-marker.normal  { fill: rgba(45,158,107,0.2); stroke: var(--go); }
+    .feature-label { font-family: 'DM Mono', monospace; font-size: 9px; fill: var(--muted); }
+    .feature-label.active { fill: var(--text); }
+
+    /* option cards */
+    .options-grid { display: flex; flex-direction: column; gap: 10px; }
+    .option-card {
+      background: var(--surface-2); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 18px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .option-card:hover { border-color: var(--border-light); }
+    .option-card.selected { border-color: var(--crimson); background: var(--crimson-glow); }
+    .option-card strong { font-size: 13px; font-weight: 600; display: block; margin-bottom: 3px; }
+    .option-card span { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* slider control */
+    .slider-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .slider-row label { font-size: 12px; color: var(--muted); min-width: 120px; }
+    .slider-row input[type=range] { flex: 1; accent-color: var(--crimson); }
+    .slider-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text); min-width: 40px; }
+    .toggle-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .toggle-btn {
+      padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border);
+      font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+      transition: all .15s; background: transparent;
+    }
+    .toggle-btn.active { border-color: var(--crimson); color: var(--text); background: var(--crimson-glow); }
+
+    /* annotation legend */
+    .anno-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .anno-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .anno-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .anno-dot.flag { background: var(--crimson); }
+    .anno-dot.normal { background: var(--go); }
+    .anno-dot.doc { background: var(--warn); }
+
+    /* thermal panel */
+    .thermal-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .thermal-panel { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .panel-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 6px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+
+    /* phase nav footer */
+    .mission-footer {
+      padding: 18px 22px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .footer-hint { font-size: 12px; color: var(--dim); }
+    .next-btn {
+      padding: 11px 24px; border-radius: 10px; border: none;
+      background: var(--crimson); color: #fff; font-family: inherit;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    .next-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Complete screen ──────────────────── */
+    .complete-wrap { max-width: 540px; text-align: center; }
+    .complete-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--crimson-glow); border: 1.5px solid rgba(128,1,31,0.4);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;
+    }
+    .complete-icon svg { width: 32px; height: 32px; fill: none; stroke: #c43050; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .complete-title { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 900; margin-bottom: 14px; letter-spacing: -0.02em; }
+    .complete-sub { font-size: 0.95rem; color: var(--muted); line-height: 1.8; margin-bottom: 28px; }
+    .complete-badge {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 22px; text-align: left; margin-bottom: 20px;
+    }
+    .badge-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .badge-row:last-child { border-bottom: none; }
+    .badge-row span:first-child { color: var(--muted); }
+    .badge-row span:last-child { font-weight: 600; }
+
+    /* ── Shared utilities ─────────────────── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px 32px; border-radius: 10px; border: none;
+      background: var(--crimson); color: #fff; font-family: inherit;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 12px 24px; border-radius: 10px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); font-family: inherit; font-size: 14px;
+      font-weight: 500; cursor: pointer; transition: all .15s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--border-light); }
+    h2 { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+    p.body { font-size: 14px; color: var(--muted); line-height: 1.75; }
+    .alert {
+      border-radius: 8px; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-top: 14px;
+    }
+    .alert.warn { background: var(--warn-bg); border: 1px solid rgba(212,160,23,0.3); color: var(--warn); }
+    .alert.info { background: var(--blue-bg); border: 1px solid rgba(74,144,196,0.3); color: var(--blue); }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 600px) {
+      .thermal-panels { grid-template-columns: 1fr; }
+      .mission-header { gap: 10px; }
+      .mission-wrap { padding: 0; }
+      .welcome-points { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-mark">A</div>
+  <div>
+    <div class="nav-label">AACP™ RPAS Workforce Hub</div>
+    <div class="nav-sub">Bank 16 — Workforce Intelligence</div>
+  </div>
+  <span class="nav-badge">Bank 16</span>
+  <span class="nav-user" id="navUser"></span>
+</nav>
+
+<div id="screen">
+  <!-- Loading -->
+  <div id="viewLoading" class="loading-wrap">
+    <div class="spinner"></div>
+    <p class="body">Verifying access…</p>
+  </div>
+
+  <!-- Locked -->
+  <div id="viewLocked" class="locked-wrap" hidden>
+    <div class="locked-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Access Restricted</h2>
+    <p class="body" style="margin-bottom:20px">Bank 16 access requires an accepted RPAS Workforce Hub application with confirmed participant access. If your application has been approved, please contact the AACP team.</p>
+    <a href="/rpas-eoi.html" class="btn-secondary">Return to EOI</a>
+  </div>
+
+  <!-- Welcome -->
+  <div id="viewWelcome" class="welcome-wrap" hidden>
+    <div class="welcome-eyebrow">RPAS Workforce Intelligence</div>
+    <h1 class="welcome-title">Bank 16</h1>
+    <p class="welcome-sub">A brief conversation to establish your starting point, followed by four RPAS scenario missions. No prior drone experience required — we're looking for how you think and solve problems.</p>
+    <div class="welcome-points">
+      <div class="welcome-point"><span>①</span> 3 starting-point questions</div>
+      <div class="welcome-point"><span>②</span> RPAS mission scenarios</div>
+      <div class="welcome-point"><span>③</span> Career Intelligence output</div>
+    </div>
+    <div class="alert info" style="text-align:left;margin-bottom:28px">
+      This is not a regulatory exam. There are no pass marks. Your profile reflects workforce capability patterns for career intelligence — not certification determination.
+    </div>
+    <button class="btn-primary" onclick="startIntake()">Begin</button>
+  </div>
+
+  <!-- Intake chat -->
+  <div id="viewIntake" class="intake-wrap" hidden>
+    <div class="intake-header">
+      <div class="intake-progress">
+        <div class="progress-dot" id="pd0"></div>
+        <div class="progress-dot" id="pd1"></div>
+        <div class="progress-dot" id="pd2"></div>
+      </div>
+      <div class="intake-context" id="intakeCtx">Starting-point questions (3 of 3 to complete)</div>
+    </div>
+    <div class="chat-log" id="chatLog"></div>
+    <div class="input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="Type your response…" rows="2"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mission transition -->
+  <div id="viewTransition" class="transition-wrap" hidden>
+    <div class="transition-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="transition-title">Starting-point noted.</div>
+    <p class="transition-sub" id="transitionMsg">Preparing your first mission…</p>
+    <div class="spinner" style="margin:28px auto 0"></div>
+  </div>
+
+  <!-- Mission -->
+  <div id="viewMission" class="mission-wrap" hidden>
+    <div class="mission-header">
+      <span class="mission-domain-tag" id="missionDomain"></span>
+      <span class="mission-title" id="missionTitle"></span>
+    </div>
+    <div class="mission-phase-bar" id="missionPhaseBar"></div>
+    <div class="mission-card" id="missionCard">
+      <!-- populated per mission/phase -->
+    </div>
+  </div>
+
+  <!-- Submitting -->
+  <div id="viewSubmitting" class="loading-wrap" hidden>
+    <div class="spinner"></div>
+    <p class="body">Generating your RPAS Career Intelligence profile…</p>
+    <p class="body" style="margin-top:6px;font-size:12px;color:var(--dim)">This takes 30–60 seconds. Please don't close this page.</p>
+  </div>
+
+  <!-- Complete -->
+  <div id="viewComplete" class="complete-wrap" hidden>
+    <div class="complete-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="complete-title">Profile Ready</div>
+    <p class="complete-sub">Your RPAS Career Intelligence profile has been generated and your RPAS Career Intelligence Report is on its way by email.</p>
+    <div class="complete-badge" id="completeBadge"></div>
+    <a href="/rpas-report.html" class="btn-primary" style="margin-bottom:10px">View Full Report</a>
+    <a href="/app.html" class="btn-secondary" style="display:inline-flex;margin-top:6px">Back to Dashboard</a>
+  </div>
+
+  <!-- Error -->
+  <div id="viewError" class="locked-wrap" hidden>
+    <div class="locked-icon" style="background:rgba(212,160,23,0.1);border-color:rgba(212,160,23,0.3)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h2>Something went wrong</h2>
+    <p class="body" id="errorMsg" style="margin-bottom:20px">An unexpected error occurred.</p>
+    <button class="btn-secondary" onclick="location.reload()">Try again</button>
+  </div>
+</div>
+
+<script>
+// ── State ───────────────────────────────────────────────────────────────────
+const STATE = {
+  token: null,
+  user: null,
+  messages: [],          // intake chat history
+  userTurnCount: 0,      // how many user turns sent in intake
+  sessionLog: [],        // full session log (intake + mission)
+  interactionResults: {},// structured interaction data
+  participantContext: {},// extracted intake context
+  startedAt: new Date().toISOString(),
+  submissionId: crypto.randomUUID(),
+  currentMission: null,
+  currentMissionIndex: 0,
+  currentPhase: 0,
+  missionPhaseData: {},  // accumulated per-phase interaction data
+};
+
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+function getToken() {
+  try { return localStorage.getItem('aacp_access_token'); } catch { return null; }
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${STATE.token}`, ...(opts.headers ?? {}) },
+  });
+  if (res.status === 401) { showView('locked'); return null; }
+  return res;
+}
+
+// ── View management ──────────────────────────────────────────────────────────
+const VIEWS = ['Loading','Locked','Welcome','Intake','Transition','Mission','Submitting','Complete','Error'];
+function showView(name) {
+  VIEWS.forEach(v => {
+    const el = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
+    if (el) el.hidden = (v.toLowerCase() !== name.toLowerCase());
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  showView('loading');
+  STATE.token = getToken();
+  if (!STATE.token) { showView('locked'); return; }
+  const name = (() => { try { return localStorage.getItem('aacp_name') || ''; } catch { return ''; } })();
+  if (name) document.getElementById('navUser').textContent = name;
+
+  // Verify RPAS access by calling the chat endpoint with an empty probe — use a quick GET to eligibility first
+  try {
+    // Lightweight check: send a dry-run probe
+    const probe = await apiFetch('/acia/rpas/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages: [{ role: 'user', content: '__probe__' }] }),
+    });
+    if (!probe) return; // 401 handled in apiFetch
+    if (probe.status === 403) { showView('locked'); return; }
+    // 200 or other — access granted, proceed to welcome
+  } catch {
+    showView('locked'); return;
+  }
+
+  STATE.user = name || 'Participant';
+  showView('welcome');
+})();
+
+// ── Intake chat ──────────────────────────────────────────────────────────────
+async function startIntake() {
+  showView('intake');
+  updateProgress();
+  // Kick off with an empty user greeting so Captain RPAS delivers the welcome + Q1
+  await sendFirstMessage();
+}
+
+async function sendFirstMessage() {
+  setInputEnabled(false);
+  addTypingIndicator();
+  const data = await callChat([{ role: 'user', content: 'Hello, I am ready to begin.' }]);
+  removeTypingIndicator();
+  if (!data) return;
+  const reply = data.reply;
+  STATE.messages.push({ role: 'user', content: 'Hello, I am ready to begin.' });
+  STATE.messages.push({ role: 'assistant', content: reply });
+  STATE.sessionLog.push({ role: 'user', content: 'Hello, I am ready to begin.', phase: 'intake' });
+  STATE.sessionLog.push({ role: 'assistant', content: reply, phase: 'intake' });
+  appendMessage('assistant', reply);
+  setInputEnabled(true);
+  document.getElementById('chatInput').focus();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize(input);
+
+  appendMessage('user', text);
+  STATE.messages.push({ role: 'user', content: text });
+  STATE.sessionLog.push({ role: 'user', content: text, phase: 'intake' });
+  STATE.userTurnCount++;
+  updateProgress();
+  setInputEnabled(false);
+  addTypingIndicator();
+
+  const data = await callChat(STATE.messages);
+  removeTypingIndicator();
+  if (!data) return;
+
+  const reply = data.reply;
+  STATE.messages.push({ role: 'assistant', content: reply });
+  STATE.sessionLog.push({ role: 'assistant', content: reply, phase: 'intake' });
+  appendMessage('assistant', reply);
+
+  // After 3 user turns, the intake is complete — transition to missions
+  if (STATE.userTurnCount >= 3) {
+    setInputEnabled(false);
+    setTimeout(() => beginMissionTransition(reply), 1200);
+  } else {
+    setInputEnabled(true);
+    document.getElementById('chatInput').focus();
+  }
+}
+
+async function callChat(messages) {
+  try {
+    const res = await apiFetch('/acia/rpas/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages, maxTokens: 600 }),
+    });
+    if (!res || !res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+function updateProgress() {
+  const n = STATE.userTurnCount;
+  [0,1,2].forEach(i => {
+    const dot = document.getElementById('pd' + i);
+    if (i < n) dot.className = 'progress-dot done';
+    else if (i === n) dot.className = 'progress-dot active';
+    else dot.className = 'progress-dot';
+  });
+  const remaining = 3 - n;
+  document.getElementById('intakeCtx').textContent =
+    n >= 3 ? 'Starting-point complete' : `Question ${n + 1} of 3`;
+}
+
+function appendMessage(role, text) {
+  const log = document.getElementById('chatLog');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'assistant' ? 'C' : 'You';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  log.appendChild(wrap);
+  log.scrollTop = log.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const log = document.getElementById('chatLog');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg assistant'; wrap.id = 'typing';
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar'; avatar.textContent = 'C';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<div class="msg-typing"><span></span><span></span><span></span></div>';
+  wrap.appendChild(avatar); wrap.appendChild(bubble);
+  log.appendChild(wrap); log.scrollTop = log.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function setInputEnabled(on) {
+  document.getElementById('chatInput').disabled = !on;
+  document.getElementById('sendBtn').disabled = !on;
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('chatInput');
+  if (inp) inp.addEventListener('input', () => autoResize(inp));
+});
+
+// ── Mission transition ───────────────────────────────────────────────────────
+function beginMissionTransition(lastReply) {
+  showView('transition');
+  // Extract a short snippet from the last assistant reply as the transition message
+  const snippet = lastReply.length > 200 ? lastReply.slice(0, 197) + '…' : lastReply;
+  document.getElementById('transitionMsg').textContent = snippet;
+  setTimeout(() => launchMission(), 3000);
+}
+
+// ── Missions ─────────────────────────────────────────────────────────────────
+const MISSIONS = ['IM001', 'SAR001', 'GEO001', 'TH001'];
+
+function launchMission() {
+  STATE.currentMissionIndex = 0;
+  STATE.currentMission = MISSIONS[0];
+  STATE.currentPhase = 0;
+  renderMission();
+  showView('mission');
+}
+
+function renderMission() {
+  const m = STATE.currentMission;
+  document.getElementById('missionDomain').textContent = MISSION_META[m].domain;
+  document.getElementById('missionTitle').textContent = MISSION_META[m].title;
+  renderPhaseBar();
+  renderPhaseContent();
+}
+
+function renderPhaseBar() {
+  const m = MISSION_META[STATE.currentMission];
+  const bar = document.getElementById('missionPhaseBar');
+  bar.innerHTML = m.phases.map((p, i) => {
+    let cls = 'phase-chip';
+    if (i === STATE.currentPhase) cls += ' active';
+    else if (i < STATE.currentPhase) cls += ' done';
+    return `<span class="${cls}">${p.label}</span>`;
+  }).join('');
+}
+
+function renderPhaseContent() {
+  const m = MISSION_META[STATE.currentMission];
+  const phase = m.phases[STATE.currentPhase];
+  document.getElementById('missionCard').innerHTML = phase.render();
+  // Initialize any interactive elements
+  if (phase.init) phase.init();
+}
+
+function advancePhase() {
+  // Collect current phase data before advancing
+  collectPhaseData();
+  STATE.currentPhase++;
+  const m = MISSION_META[STATE.currentMission];
+  if (STATE.currentPhase >= m.phases.length) {
+    // Mission complete — check if more missions or submit
+    finalizeMission();
+  } else {
+    renderMission();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function collectPhaseData() {
+  const key = `${STATE.currentMission}_phase${STATE.currentPhase}`;
+  const data = {};
+  // Collect text response
+  const ta = document.getElementById('phaseResponse');
+  if (ta) data.response = ta.value.trim();
+  // Collect selected option
+  const sel = document.querySelector('.option-card.selected');
+  if (sel) data.selectedOption = sel.dataset.option;
+  // Collect annotations
+  if (STATE.missionPhaseData[key]) Object.assign(data, STATE.missionPhaseData[key]);
+  STATE.interactionResults[key] = data;
+  STATE.sessionLog.push({
+    role: 'user',
+    content: JSON.stringify(data),
+    phase: `mission_${STATE.currentMission}_phase${STATE.currentPhase}`,
+    interactionType: MISSION_META[STATE.currentMission].phases[STATE.currentPhase].interactionType,
+  });
+}
+
+function setPhaseData(key, value) {
+  const k = `${STATE.currentMission}_phase${STATE.currentPhase}`;
+  if (!STATE.missionPhaseData[k]) STATE.missionPhaseData[k] = {};
+  STATE.missionPhaseData[k][key] = value;
+}
+
+function finalizeMission() {
+  STATE.currentMissionIndex++;
+  if (STATE.currentMissionIndex < MISSIONS.length) {
+    // Advance to the next mission with a brief transition
+    STATE.currentMission = MISSIONS[STATE.currentMissionIndex];
+    STATE.currentPhase = 0;
+    const next = MISSION_META[STATE.currentMission];
+    document.getElementById('transitionMsg').textContent =
+      `Mission ${STATE.currentMissionIndex} of ${MISSIONS.length} complete. Up next: ${next.title}.`;
+    showView('transition');
+    setTimeout(() => {
+      renderMission();
+      showView('mission');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 2500);
+  } else {
+    submitAssessment();
+  }
+}
+
+// ── MISSION META ─────────────────────────────────────────────────────────────
+const MISSION_META = {
+
+  // ── IM001: Bridge Inspection ──────────────────────────────────────────────
+  IM001: {
+    domain: 'Infrastructure Monitoring',
+    title: 'RPAS-IM-001 — Bridge Inspection',
+    phases: [
+      {
+        label: 'Phase 1 — Environment Scan',
+        interactionType: 'annotation',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Pre-flight environment scan</h3>
+            <p>You have been tasked with an RPAS inspection of the Millbank Road Bridge. Before launching, scan the environment below and mark every feature you would consider as part of your pre-flight assessment. Tap or click any feature to annotate it. There is no required sequence.</p>
+          </div>
+          <div class="mission-visual">
+            <div class="anno-legend">
+              <div class="anno-leg-item"><div class="anno-dot flag"></div> Hazard / consideration flagged</div>
+              <div class="anno-leg-item"><div class="anno-dot doc"></div> Feature noted</div>
+            </div>
+            ${renderBridgeSVG()}
+            <p style="font-size:11px;color:var(--dim);margin-top:10px">Tap features to annotate. You can annotate as many as you like.</p>
+          </div>
+          <div class="mission-response">
+            <label>Any additional observations before launch?</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Optional — add any further pre-flight observations here…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint" id="annotationCount">0 features annotated</span>
+            <button class="next-btn" onclick="advancePhase()">Confirm pre-flight scan →</button>
+          </div>
+        `,
+        init: () => { /* SVG click handlers set in renderBridgeSVG */ },
+      },
+      {
+        label: 'Phase 2 — Flight Approach',
+        interactionType: 'selection+text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Flight approach selection</h3>
+            <p>Based on your pre-flight scan, select the flight approach you would use to inspect the understructure and main span of the Millbank Road Bridge.</p>
+          </div>
+          <div class="mission-visual">
+            <div class="options-grid">
+              <div class="option-card" data-option="A" onclick="selectOption(this)">
+                <strong>Option A — South-bank low-level pass</strong>
+                <span>Low-altitude flight along the understructure from the south bank. Close-range imagery. Requires tight clearance from barge traffic below.</span>
+              </div>
+              <div class="option-card" data-option="B" onclick="selectOption(this)">
+                <strong>Option B — North-bank elevated circuit</strong>
+                <span>30 m elevated circuit from the north bank, staying above road traffic. Broader field of view. Avoids the waterway corridor entirely.</span>
+              </div>
+              <div class="option-card" data-option="C" onclick="selectOption(this)">
+                <strong>Option C — Dual-pass from both banks</strong>
+                <span>Two-pass approach: mid-structure height from each bank. Full structural coverage. Longer flight time. Requires two launch points.</span>
+              </div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Briefly explain your choice (2–3 sentences)</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Why did you select this approach? What trade-offs did you consider?"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Select one approach, then explain your reasoning.</span>
+            <button class="next-btn" onclick="advancePhase()">Confirm approach →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 3 — Conditions Change',
+        interactionType: 'text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Conditions update — revised decision required</h3>
+            <p>New weather data has just come in. Wind speed has increased to <strong>38 km/h with gusts from the west</strong>, pushing airflow toward the power transmission lines on the east bank.</p>
+          </div>
+          <div class="mission-visual">
+            <div class="alert warn">
+              ⚠ Weather update: Wind 38 km/h SW gusting to 52 km/h. Active barge traffic on waterway. Transmission lines 12 m east of the bridge deck remain energised.
+            </div>
+            <div style="margin-top:16px">
+              <div class="options-grid">
+                <div class="option-card" data-option="go_proceed" onclick="selectOption(this)">
+                  <strong>Proceed with selected approach</strong>
+                  <span>Conditions are manageable. Continue as planned.</span>
+                </div>
+                <div class="option-card" data-option="go_revised" onclick="selectOption(this)">
+                  <strong>Proceed with a revised approach</strong>
+                  <span>Modify flight path or parameters to account for the new wind conditions.</span>
+                </div>
+                <div class="option-card" data-option="no_go" onclick="selectOption(this)">
+                  <strong>No-go — postpone the mission</strong>
+                  <span>Conditions exceed acceptable limits. Reschedule when wind subsides.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Explain your decision — what changed in your thinking and why?</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Describe how the new information affected your decision and what you would do next…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Select your decision, then explain your reasoning.</span>
+            <button class="next-btn" onclick="advancePhase()">Submit decision and continue →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+    ],
+  },
+
+  // ── SAR001: Mountain SAR ──────────────────────────────────────────────────
+  SAR001: {
+    domain: 'Search & Rescue',
+    title: 'RPAS-SAR-001 — Mountain Search and Rescue',
+    phases: [
+      {
+        label: 'Phase 1 — Search Sectors',
+        interactionType: 'sector+text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Search sector planning</h3>
+            <p>A hiker is overdue on the Ridgeline Trail. Last known contact: 6 hours ago near the parking area. Select the sectors you would prioritise for RPAS search, then explain your reasoning for each.</p>
+          </div>
+          <div class="mission-visual">
+            ${renderSARMap()}
+            <div id="sarSectors" style="margin-top:14px;display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="mission-response">
+            <label>Why did you prioritise these sectors?</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Explain your sector selection — terrain, last known position, probability of travel…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Select 1–3 search sectors on the map above.</span>
+            <button class="next-btn" onclick="advancePhase()">Confirm sectors →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 2 — Airspace Constraint',
+        interactionType: 'selection+text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Operational constraint</h3>
+            <p>One of your planned search sectors overlaps a Class F Restricted Area (CYR 523) active until 18:00. You cannot legally fly there without authorisation. Authorisation will take 4+ hours to obtain.</p>
+          </div>
+          <div class="mission-visual">
+            <div class="alert warn">
+              CYR 523 active 0800–1800Z. Sector 2 (north ridge) falls within the restricted boundary. Current time: 14:30. Sunset: 20:15.
+            </div>
+            <div style="margin-top:16px">
+              <div class="options-grid">
+                <div class="option-card" data-option="delay" onclick="selectOption(this)">
+                  <strong>Delay restricted-sector search until after 18:00</strong>
+                  <span>Comply with airspace. Search other sectors now. Risk: 3.5 additional hours before full coverage.</span>
+                </div>
+                <div class="option-card" data-option="reroute" onclick="selectOption(this)">
+                  <strong>Modify search boundary to avoid restricted airspace</strong>
+                  <span>Reroute to search the adjacent terrain that falls outside CYR 523. Reduced coverage but compliant.</span>
+                </div>
+                <div class="option-card" data-option="request" onclick="selectOption(this)">
+                  <strong>Begin authorisation request now and search other sectors meanwhile</strong>
+                  <span>File request immediately, search available sectors, enter restricted area after authorisation if time permits.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Explain your decision</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="How do you weigh the regulatory constraint against the urgency of the search?"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint"></span>
+            <button class="next-btn" onclick="advancePhase()">Confirm decision →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 3 — Detection Decision',
+        interactionType: 'selection+text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Thermal detection — classification required</h3>
+            <p>Your thermal camera has returned a heat signature from inside the canopy zone. You need to classify the detection and decide your next action.</p>
+          </div>
+          <div class="mission-visual">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Thermal reading</div>
+              <div style="font-size:13px;line-height:1.7;color:var(--text)">Canopy zone NW quadrant. Heat signature approx. 2.2 m in length, stationary for 8 minutes. Delta +3.4°C above ambient. No movement detected. Dense tree canopy — visual confirmation not possible from current altitude.</div>
+            </div>
+            <div class="options-grid">
+              <div class="option-card" data-option="subject" onclick="selectOption(this)"><strong>Possible subject</strong><span>Signature consistent with a person.</span></div>
+              <div class="option-card" data-option="animal" onclick="selectOption(this)"><strong>Possible animal</strong><span>Signature may be wildlife (deer, bear).</span></div>
+              <div class="option-card" data-option="artifact" onclick="selectOption(this)"><strong>Possible equipment artifact</strong><span>Rock, water source or other thermal mass.</span></div>
+              <div class="option-card" data-option="inconclusive" onclick="selectOption(this)"><strong>Inconclusive — further data needed</strong><span>Cannot classify from current information.</span></div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>What is your next action and why?</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Describe what you do next — fly lower to confirm, relay to ground team, mark and continue, or another action…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint"></span>
+            <button class="next-btn" onclick="advancePhase()">Submit detection decision →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+    ],
+  },
+
+  // ── GEO001: Agricultural Mapping ─────────────────────────────────────────
+  GEO001: {
+    domain: 'Geospatial Data Collection',
+    title: 'RPAS-GEO-001 — Agricultural Mapping Mission',
+    phases: [
+      {
+        label: 'Phase 1 — Flight Plan',
+        interactionType: 'configuration',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Flight plan configuration</h3>
+            <p>You are tasked with producing an orthomosaic map of the Harland Farm property. Configure your flight plan to achieve complete, usable coverage of the main field.</p>
+          </div>
+          <div class="mission-visual">
+            ${renderFieldSVG()}
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+              <div class="slider-row">
+                <label>Flight line orientation</label>
+                <div class="toggle-row" style="margin:0">
+                  <button class="toggle-btn active" id="togNS" onclick="setOrientation('NS')">N–S lines</button>
+                  <button class="toggle-btn" id="togEW" onclick="setOrientation('EW')">E–W lines</button>
+                </div>
+              </div>
+              <div class="slider-row">
+                <label>Side overlap</label>
+                <input type="range" id="overlapSlider" min="50" max="90" value="70" step="5" oninput="updateFlightPlan()">
+                <span class="slider-val" id="overlapVal">70%</span>
+              </div>
+              <div class="slider-row">
+                <label>Altitude AGL</label>
+                <div class="toggle-row" style="margin:0">
+                  <button class="toggle-btn active" id="alt30" onclick="setAltitude(30)">30 m</button>
+                  <button class="toggle-btn" id="alt60" onclick="setAltitude(60)">60 m</button>
+                  <button class="toggle-btn" id="alt90" onclick="setAltitude(90)">90 m</button>
+                </div>
+              </div>
+              <div id="flightPlanStats" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);margin-top:4px">
+                Est. coverage: 98% &nbsp;|&nbsp; Est. flight time: 14 min &nbsp;|&nbsp; GSD: ~1.5 cm/px &nbsp;|&nbsp; Uncovered zones: none
+              </div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Notes on your configuration choices (optional)</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Why did you choose this orientation, overlap and altitude? Any trade-offs?"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Configure your flight plan above, then proceed.</span>
+            <button class="next-btn" onclick="captureFlightPlan()">Confirm flight plan →</button>
+          </div>
+        `,
+        init: () => { updateFlightPlan(); },
+      },
+      {
+        label: 'Phase 2 — Data Quality',
+        interactionType: 'classification',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Post-flight data quality assessment</h3>
+            <p>Three image tiles from your flight have been returned for quality review. Classify each tile and make a re-fly decision.</p>
+          </div>
+          <div class="mission-visual">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              ${['Motion blur — east edge of main field (gust during pass)', 'Shadow anomaly — pond area, south-west corner', 'Clean capture — central crop zone'].map((desc, i) => `
+                <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px">
+                  <div style="font-size:12px;font-weight:600;margin-bottom:6px">Tile ${i+1}: ${desc}</div>
+                  <div class="options-grid" style="flex-direction:row;flex-wrap:wrap;gap:6px">
+                    <div class="option-card" data-option="tile${i+1}_usable" onclick="selectOption(this,true)" style="flex:1;min-width:100px;padding:8px 12px">
+                      <strong style="font-size:12px">Usable</strong>
+                    </div>
+                    <div class="option-card" data-option="tile${i+1}_reflly" onclick="selectOption(this,true)" style="flex:1;min-width:100px;padding:8px 12px">
+                      <strong style="font-size:12px">Re-fly required</strong>
+                    </div>
+                    <div class="option-card" data-option="tile${i+1}_note" onclick="selectOption(this,true)" style="flex:1;min-width:100px;padding:8px 12px">
+                      <strong style="font-size:12px">Note and continue</strong>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Explain your decision on the shadow anomaly tile (Tile 2)</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="What does the shadow anomaly tell you, and why did you classify Tile 2 the way you did?"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Classify all three tiles, then explain Tile 2.</span>
+            <button class="next-btn" onclick="advancePhase()">Confirm quality review →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 3 — Client Question',
+        interactionType: 'text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Client question — plain-language response required</h3>
+            <p>The project manager has sent a message after reviewing your flight specs.</p>
+          </div>
+          <div class="mission-visual">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Message from project manager</div>
+              <p style="font-size:14px;line-height:1.7;color:var(--text)">"The client needs sub-5 cm ground sample distance (GSD) for the equipment yard in the south-east corner. Can your current flight parameters deliver that, and what would you need to change if not?"</p>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Your response to the project manager</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Respond clearly and accurately. Use plain language — the project manager is not a pilot or mapping specialist…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Respond as you would in a professional exchange.</span>
+            <button class="next-btn" onclick="advancePhase()">Submit response and complete mission →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+    ],
+  },
+
+  // ── TH001: Industrial Thermal ─────────────────────────────────────────────
+  TH001: {
+    domain: 'Thermal Imaging',
+    title: 'RPAS-TH-001 — Industrial Thermal Inspection',
+    phases: [
+      {
+        label: 'Phase 1 — Anomaly Identification',
+        interactionType: 'annotation',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Thermal anomaly identification</h3>
+            <p>You have completed a thermal imaging flight over a rooftop HVAC array at an industrial facility. Review the visible and thermal panels below. Click each zone in the thermal panel to reveal its delta reading, then annotate equipment you consider worth flagging.</p>
+          </div>
+          <div class="mission-visual">
+            <div class="thermal-panels">
+              <div class="thermal-panel">
+                <div class="panel-label">Visible Light</div>
+                ${renderThermalVisible()}
+              </div>
+              <div class="thermal-panel">
+                <div class="panel-label">Thermal (click zones to reveal)</div>
+                ${renderThermalSVG()}
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="anno-legend">
+                <div class="anno-leg-item"><div class="anno-dot doc"></div> Document</div>
+                <div class="anno-leg-item"><div class="anno-dot flag"></div> Flag for review</div>
+                <div class="anno-leg-item"><div class="anno-dot normal"></div> Normal</div>
+              </div>
+              <div id="thermalAnnotations" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Summary note for the inspection record</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Summarise your thermal findings for the inspection record…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Click thermal zones to reveal readings, then annotate.</span>
+            <button class="next-btn" onclick="advancePhase()">Confirm annotations →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 2 — Scope of Role',
+        interactionType: 'text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Scope-of-role question</h3>
+            <p>You have submitted your thermal annotation report. The site facilities supervisor has now asked you directly:</p>
+          </div>
+          <div class="mission-visual">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Facilities Supervisor</div>
+              <p style="font-size:14px;line-height:1.7;color:var(--text)">"Unit C is reading 18°C above ambient and you've flagged it. Should we shut it down now? What's your recommendation?"</p>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Your response to the supervisor</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="How do you respond? Consider your role as the RPAS operator versus the maintenance decision authority…"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint">Respond as you would in a real professional exchange.</span>
+            <button class="next-btn" onclick="advancePhase()">Submit response →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+      {
+        label: 'Phase 3 — Report Format',
+        interactionType: 'selection+text',
+        render: () => `
+          <div class="mission-card-header">
+            <h3>Findings delivery</h3>
+            <p>Your inspection is complete. How would you deliver your thermal findings to the client?</p>
+          </div>
+          <div class="mission-visual">
+            <div class="options-grid">
+              <div class="option-card" data-option="verbal" onclick="selectOption(this)">
+                <strong>Verbal briefing only</strong>
+                <span>Walk the supervisor through findings on-site before leaving.</span>
+              </div>
+              <div class="option-card" data-option="annotated_image" onclick="selectOption(this)">
+                <strong>Annotated thermal image with notes</strong>
+                <span>Export annotated imagery with delta readings and classifications. Send to client contact.</span>
+              </div>
+              <div class="option-card" data-option="formal_report" onclick="selectOption(this)">
+                <strong>Formal written anomaly report</strong>
+                <span>Structured report: site details, methodology, findings, classifications, recommended next steps.</span>
+              </div>
+              <div class="option-card" data-option="direct_maintenance" onclick="selectOption(this)">
+                <strong>Flag to maintenance directly — no client copy</strong>
+                <span>Contact maintenance team with the anomaly. Handle internally without a formal deliverable.</span>
+              </div>
+            </div>
+          </div>
+          <div class="mission-response">
+            <label>Why did you choose this delivery format?</label>
+            <textarea class="mission-textarea" id="phaseResponse" placeholder="Explain your reasoning — what does this format communicate and who needs what?"></textarea>
+          </div>
+          <div class="mission-footer">
+            <span class="footer-hint"></span>
+            <button class="next-btn" onclick="advancePhase()">Complete mission and generate profile →</button>
+          </div>
+        `,
+        init: () => {},
+      },
+    ],
+  },
+};
+
+// ── SVG Environments ─────────────────────────────────────────────────────────
+
+function renderBridgeSVG() {
+  // Isometric-style bridge environment — simplified SVG
+  const annotations = { mast_n: false, mast_s: false, powerlines: false, waterway: false, road: false, barge: false };
+  STATE._bridgeAnnotations = annotations;
+
+  return `<svg id="bridgeSVG" viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg"
+    style="width:100%;max-width:560px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);display:block;cursor:pointer">
+
+    <!-- sky / ground -->
+    <rect x="0" y="0" width="560" height="160" fill="#0d0818"/>
+    <rect x="0" y="160" width="560" height="140" fill="#0a1a10"/>
+
+    <!-- waterway -->
+    <rect x="0" y="200" width="560" height="60" fill="#091a28" rx="0"/>
+    <text x="280" y="235" text-anchor="middle" class="feature-label" fill="#3a6a8a" font-size="10">WATERWAY</text>
+
+    <!-- road lanes -->
+    <rect x="140" y="160" width="280" height="40" fill="#1a1428"/>
+    <line x1="280" y1="160" x2="280" y2="200" stroke="#4a4752" stroke-width="1" stroke-dasharray="6,4"/>
+    <text x="280" y="185" text-anchor="middle" class="feature-label" fill="#4a4752" font-size="9">ROAD TRAFFIC</text>
+
+    <!-- bridge deck -->
+    <rect x="120" y="155" width="320" height="10" fill="#2a1835" stroke="#3d1c47" stroke-width="1"/>
+
+    <!-- north mast -->
+    <rect x="168" y="80" width="14" height="80" fill="#2a1835" stroke="#3d1c47" stroke-width="1.5"/>
+    <polygon points="175,70 165,80 185,80" fill="#80011f"/>
+    <text x="175" y="65" text-anchor="middle" class="feature-label" id="lbl_mast_n" font-size="9">MAST N</text>
+
+    <!-- south mast -->
+    <rect x="378" y="80" width="14" height="80" fill="#2a1835" stroke="#3d1c47" stroke-width="1.5"/>
+    <polygon points="385,70 375,80 395,80" fill="#80011f"/>
+    <text x="385" y="65" text-anchor="middle" class="feature-label" id="lbl_mast_s" font-size="9">MAST S</text>
+
+    <!-- power lines east bank -->
+    <line x1="430" y1="50" x2="560" y2="50" stroke="#d4a017" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <line x1="430" y1="60" x2="560" y2="60" stroke="#d4a017" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="495" y="44" text-anchor="middle" class="feature-label" id="lbl_powerlines" fill="#7a5000" font-size="9">POWER LINES</text>
+    <rect x="425" y="45" width="4" height="20" fill="#d4a017" opacity="0.7"/>
+
+    <!-- barge -->
+    <rect x="60" y="215" width="80" height="22" fill="#1a2a1a" stroke="#2d9e6b" stroke-width="1" rx="2"/>
+    <text x="100" y="230" text-anchor="middle" class="feature-label" id="lbl_barge" fill="#1a4a2a" font-size="9">BARGE</text>
+
+    <!-- annotation hit zones (invisible, click targets) -->
+    <!-- mast zones: 80px wide centred on each mast (SVG x=175, x=385) for adequate mobile touch target -->
+    <rect id="az_mast_n" x="135" y="55" width="80" height="100" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('mast_n')"/>
+    <rect id="az_mast_s" x="347" y="55" width="72" height="110" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('mast_s')"/>
+    <rect id="az_powerlines" x="420" y="35" width="140" height="40" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('powerlines')"/>
+    <rect id="az_waterway" x="0" y="195" width="560" height="70" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('waterway')"/>
+    <rect id="az_road" x="130" y="155" width="300" height="45" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('road')"/>
+    <rect id="az_barge" x="50" y="210" width="100" height="35" fill="transparent" class="annotation-zone" onclick="toggleBridgeAnnotation('barge')"/>
+
+    <!-- annotation rings (initially hidden) -->
+    <circle id="ring_mast_n"    cx="175" cy="120" r="18" fill="rgba(128,1,31,0.2)" stroke="#c43050" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+    <circle id="ring_mast_s"    cx="385" cy="120" r="18" fill="rgba(128,1,31,0.2)" stroke="#c43050" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+    <circle id="ring_powerlines" cx="495" cy="55"  r="24" fill="rgba(212,160,23,0.2)" stroke="#d4a017" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+    <circle id="ring_waterway"  cx="280" cy="230" r="20" fill="rgba(128,1,31,0.2)" stroke="#c43050" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+    <circle id="ring_road"      cx="280" cy="178" r="18" fill="rgba(128,1,31,0.2)" stroke="#c43050" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+    <circle id="ring_barge"     cx="100" cy="226" r="18" fill="rgba(212,160,23,0.2)" stroke="#d4a017" stroke-width="1.5" opacity="0" style="pointer-events:none"/>
+
+    <!-- compass -->
+    <text x="530" y="290" text-anchor="middle" fill="#3a3040" font-size="10" font-family="DM Mono">N↑</text>
+  </svg>`;
+}
+
+const BRIDGE_FEATURE_LABELS = {
+  mast_n: 'North mast pylon',
+  mast_s: 'South mast pylon',
+  powerlines: 'Power transmission lines (east bank)',
+  waterway: 'Active waterway / barge traffic',
+  road: 'Road traffic / lane clearance',
+  barge: 'Active barge in waterway',
+};
+
+function toggleBridgeAnnotation(feature) {
+  if (!STATE._bridgeAnnotations) return;
+  STATE._bridgeAnnotations[feature] = !STATE._bridgeAnnotations[feature];
+  const ring = document.getElementById('ring_' + feature);
+  if (ring) ring.setAttribute('opacity', STATE._bridgeAnnotations[feature] ? '1' : '0');
+  const lbl = document.getElementById('lbl_' + feature);
+  if (lbl) lbl.setAttribute('fill', STATE._bridgeAnnotations[feature] ? '#f0eef2' : undefined);
+
+  const annotated = Object.entries(STATE._bridgeAnnotations).filter(([,v]) => v);
+  const counter = document.getElementById('annotationCount');
+  if (counter) counter.textContent = `${annotated.length} feature${annotated.length !== 1 ? 's' : ''} annotated`;
+
+  setPhaseData('bridgeAnnotations', STATE._bridgeAnnotations);
+}
+
+function renderSARMap() {
+  const SECTORS = [
+    { id: 'trail_south', label: 'Trail Corridor (south)', cx: 200, cy: 180, rx: 70, ry: 40 },
+    { id: 'north_ridge', label: 'North Ridge', cx: 300, cy: 80,  rx: 80, ry: 35 },
+    { id: 'drainage_w',  label: 'West Drainage', cx: 100, cy: 130, rx: 55, ry: 50 },
+    { id: 'canopy_nw',   label: 'NW Canopy Zone', cx: 150, cy: 80,  rx: 60, ry: 40 },
+  ];
+  STATE._sarSectors = {};
+
+  return `<svg viewBox="0 0 420 260" xmlns="http://www.w3.org/2000/svg"
+    style="width:100%;max-width:420px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);display:block">
+
+    <!-- topo bands -->
+    <rect x="0" y="0"   width="420" height="260" fill="#071208"/>
+    <ellipse cx="210" cy="100" rx="180" ry="80" fill="#0a1a0a" opacity="0.6"/>
+    <ellipse cx="200" cy="90"  rx="130" ry="60" fill="#0d2210" opacity="0.6"/>
+    <ellipse cx="195" cy="80"  rx="90"  ry="45" fill="#122a14" opacity="0.7"/>
+
+    <!-- canopy zones -->
+    <ellipse cx="140" cy="75" rx="65" ry="45" fill="#0f2010" stroke="#1a3a1a" stroke-width="1" opacity="0.8"/>
+    <text x="140" y="78" text-anchor="middle" font-size="8" fill="#2a5a2a" font-family="DM Mono">CANOPY</text>
+
+    <!-- trail -->
+    <path d="M 360 240 Q 290 200 240 160 Q 200 130 180 100 Q 160 75 130 50" stroke="#4a3010" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+    <text x="310" y="235" font-size="8" fill="#4a3010" font-family="DM Mono" transform="rotate(-25,310,235)">RIDGELINE TRAIL</text>
+
+    <!-- drainage channels -->
+    <path d="M 0 150 Q 60 140 100 160 Q 130 175 160 190" stroke="#0a2a3a" stroke-width="3" fill="none"/>
+    <path d="M 0 200 Q 40 195 80 210" stroke="#0a2a3a" stroke-width="2" fill="none"/>
+
+    <!-- parking area -->
+    <rect x="330" y="210" width="50" height="36" fill="#1a1428" stroke="#3a2a50" stroke-width="1" rx="2"/>
+    <text x="355" y="232" text-anchor="middle" font-size="8" fill="#5a4a70" font-family="DM Mono">PARKING</text>
+    <circle cx="355" cy="218" r="5" fill="#d4a017" opacity="0.8"/>
+    <text x="355" y="205" text-anchor="middle" font-size="8" fill="#d4a017">LKP</text>
+
+    <!-- clickable sector zones -->
+    ${SECTORS.map(s => `
+      <ellipse id="sector_${s.id}" cx="${s.cx}" cy="${s.cy}" rx="${s.rx}" ry="${s.ry}"
+        fill="rgba(128,1,31,0.0)" stroke="rgba(128,1,31,0)" stroke-width="1.5"
+        style="cursor:pointer;transition:all .2s" onclick="toggleSARSector('${s.id}','${s.label}')"/>
+      <text x="${s.cx}" y="${s.cy + 4}" text-anchor="middle" font-size="8" fill="#3a2a3a" font-family="DM Mono" style="pointer-events:none">${s.label}</text>
+    `).join('')}
+
+    <!-- compass -->
+    <text x="395" y="255" text-anchor="end" fill="#2a2030" font-size="10" font-family="DM Mono">N↑</text>
+  </svg>`;
+}
+
+function toggleSARSector(id, label) {
+  if (!STATE._sarSectors) STATE._sarSectors = {};
+  STATE._sarSectors[id] = !STATE._sarSectors[id];
+  const el = document.getElementById('sector_' + id);
+  if (el) {
+    el.setAttribute('fill', STATE._sarSectors[id] ? 'rgba(128,1,31,0.18)' : 'rgba(128,1,31,0)');
+    el.setAttribute('stroke', STATE._sarSectors[id] ? '#c43050' : 'rgba(128,1,31,0)');
+  }
+  // Always persist sector state regardless of DOM availability
+  setPhaseData('sarSectors', STATE._sarSectors);
+
+  // Update sector list below map (DOM update only — data already written above)
+  const container = document.getElementById('sarSectors');
+  if (container) {
+    const selected = Object.entries(STATE._sarSectors).filter(([,v]) => v);
+    container.innerHTML = selected.length === 0
+      ? '<p style="font-size:12px;color:var(--dim)">No sectors selected — tap the map to select search areas.</p>'
+      : selected.map(([sid]) => {
+          const s = [
+            { id: 'trail_south', label: 'Trail Corridor (south)' },
+            { id: 'north_ridge', label: 'North Ridge' },
+            { id: 'drainage_w', label: 'West Drainage' },
+            { id: 'canopy_nw', label: 'NW Canopy Zone' },
+          ].find(x => x.id === sid);
+          return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text)">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--crimson);flex-shrink:0"></span>
+            ${s?.label ?? sid}
+          </div>`;
+        }).join('');
+  }
+}
+
+function renderFieldSVG() {
+  return `<svg id="fieldSVG" viewBox="0 0 480 260" xmlns="http://www.w3.org/2000/svg"
+    style="width:100%;max-width:480px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);display:block">
+
+    <!-- main field -->
+    <rect x="60" y="40" width="340" height="200" fill="#0a1a08" stroke="#1a3010" stroke-width="1.5" rx="2"/>
+    <text x="230" y="145" text-anchor="middle" font-size="10" fill="#1a4010" font-family="DM Mono">MAIN CROP FIELD</text>
+
+    <!-- windbreak north -->
+    <rect x="60" y="30" width="340" height="14" fill="#0d2a08" stroke="#1a4010" stroke-width="1"/>
+    <text x="230" y="41" text-anchor="middle" font-size="8" fill="#2a5a18" font-family="DM Mono">WINDBREAK</text>
+
+    <!-- pond SW -->
+    <ellipse cx="100" cy="210" rx="35" ry="25" fill="#071a24" stroke="#0a3040" stroke-width="1.5"/>
+    <text x="100" y="214" text-anchor="middle" font-size="8" fill="#0a3040" font-family="DM Mono">POND</text>
+
+    <!-- access road diagonal -->
+    <line x1="60" y1="240" x2="400" y2="60" stroke="#2a1828" stroke-width="8" opacity="0.5"/>
+    <text x="300" y="115" font-size="8" fill="#3a2838" font-family="DM Mono" transform="rotate(-25,300,115)">ACCESS ROAD</text>
+
+    <!-- outbuilding SE -->
+    <rect x="360" y="195" width="40" height="30" fill="#1a1428" stroke="#3a2a50" stroke-width="1" rx="2"/>
+    <text x="380" y="214" text-anchor="middle" font-size="8" fill="#4a3a60" font-family="DM Mono">BLDG</text>
+
+    <!-- flight lines (updated by JS) -->
+    <g id="flightLines"></g>
+
+    <text x="460" y="255" text-anchor="end" fill="#2a2030" font-size="10" font-family="DM Mono">N↑</text>
+  </svg>`;
+}
+
+STATE._flightConfig = { orientation: 'NS', overlap: 70, altitude: 30 };
+
+function setOrientation(o) {
+  STATE._flightConfig.orientation = o;
+  document.getElementById('togNS').className = 'toggle-btn' + (o === 'NS' ? ' active' : '');
+  document.getElementById('togEW').className = 'toggle-btn' + (o === 'EW' ? ' active' : '');
+  updateFlightPlan();
+}
+
+function setAltitude(a) {
+  STATE._flightConfig.altitude = a;
+  [30,60,90].forEach(v => {
+    const el = document.getElementById('alt'+v);
+    if (el) el.className = 'toggle-btn' + (v === a ? ' active' : '');
+  });
+  updateFlightPlan();
+}
+
+function updateFlightPlan() {
+  const ov = parseInt(document.getElementById('overlapSlider')?.value ?? 70);
+  STATE._flightConfig.overlap = ov;
+  document.getElementById('overlapVal').textContent = ov + '%';
+
+  const { orientation, altitude } = STATE._flightConfig;
+  const gsd = (altitude * 0.016).toFixed(1);
+  const lines = Math.round(10 + (100 - ov) / 10);
+  const time = Math.round(lines * 0.7 + 5);
+  const uncovered = (ov < 60 || altitude > 60) ? '2 zones (pond edge, road overlap)' : 'none';
+
+  const statsEl = document.getElementById('flightPlanStats');
+  if (statsEl) statsEl.textContent = `Est. coverage: ${ov >= 70 ? 98 : 94}%  |  Est. flight time: ${time} min  |  GSD: ~${gsd} cm/px  |  Uncovered zones: ${uncovered}`;
+
+  // Draw flight lines on SVG
+  const linesEl = document.getElementById('flightLines');
+  if (!linesEl) return;
+  const spacing = Math.round((100 - ov) * 2.4 + 8);
+  let svgLines = '';
+  if (orientation === 'NS') {
+    for (let x = 80; x < 390; x += spacing) {
+      svgLines += `<line x1="${x}" y1="42" x2="${x}" y2="238" stroke="rgba(128,1,31,0.35)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    }
+  } else {
+    for (let y = 55; y < 238; y += spacing) {
+      svgLines += `<line x1="62" y1="${y}" x2="398" y2="${y}" stroke="rgba(128,1,31,0.35)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    }
+  }
+  linesEl.innerHTML = svgLines;
+  setPhaseData('flightConfig', { ...STATE._flightConfig });
+}
+
+function captureFlightPlan() {
+  setPhaseData('flightConfig', { ...STATE._flightConfig });
+  advancePhase();
+}
+
+function renderThermalVisible() {
+  return `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#0d1208">
+    <rect x="0" y="0" width="200" height="160" fill="#0d1208"/>
+    <!-- HVAC units A-E -->
+    ${[
+      { id:'A', x:20,  y:20, w:28, h:28, col:'#1a2820' },
+      { id:'B', x:60,  y:20, w:28, h:28, col:'#1a2820' },
+      { id:'C', x:100, y:20, w:28, h:28, col:'#1a2820' },
+      { id:'D', x:20,  y:70, w:28, h:28, col:'#1a2820' },
+      { id:'E', x:60,  y:70, w:28, h:28, col:'#1a2820' },
+    ].map(u => `
+      <rect x="${u.x}" y="${u.y}" width="${u.w}" height="${u.h}" fill="${u.col}" stroke="#2a3828" stroke-width="1" rx="2"/>
+      <text x="${u.x+14}" y="${u.y+18}" text-anchor="middle" font-size="10" fill="#4a6848" font-weight="600">${u.id}</text>
+    `).join('')}
+    <text x="100" y="150" text-anchor="middle" font-size="8" fill="#2a3828" font-family="DM Mono">VISIBLE LIGHT</text>
+  </svg>`;
+}
+
+const THERMAL_UNITS = [
+  { id:'A', x:20,  y:20, w:28, h:28, delta:'+1.2°C', severity:'normal',   color:'#0a2a3a' },
+  { id:'B', x:60,  y:20, w:28, h:28, delta:'+2.1°C', severity:'normal',   color:'#0f3a20' },
+  { id:'C', x:100, y:20, w:28, h:28, delta:'+18.4°C', severity:'high',    color:'#5a0a08' },
+  { id:'D', x:20,  y:70, w:28, h:28, delta:'+0.8°C', severity:'normal',   color:'#081a28' },
+  { id:'E', x:60,  y:70, w:28, h:28, delta:'+11.2°C', severity:'elevated', color:'#3a1a08' },
+];
+STATE._thermalAnnotations = {};
+STATE._thermalRevealed = {};
+
+function renderThermalSVG() {
+  return `<svg id="thermalSVG" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#08080d">
+    <rect x="0" y="0" width="200" height="160" fill="#08080d"/>
+    ${THERMAL_UNITS.map(u => {
+      const cx = u.x + u.w / 2, cy = u.y + u.h / 2;
+      const hw = Math.max(u.w, 44) / 2, hh = Math.max(u.h, 44) / 2;
+      return `
+      <rect id="th_${u.id}" x="${u.x}" y="${u.y}" width="${u.w}" height="${u.h}" fill="#0a0a14" stroke="#1a1a24" stroke-width="1" rx="2" style="pointer-events:none;transition:fill .2s"/>
+      <text x="${cx}" y="${u.y+18}" text-anchor="middle" font-size="10" fill="#2a2a3a" font-weight="600" style="pointer-events:none">${u.id}</text>
+      <text id="thdelta_${u.id}" x="${cx}" y="${u.y+28}" text-anchor="middle" font-size="7" fill="transparent" font-family="DM Mono" style="pointer-events:none"></text>
+      <rect x="${cx-hw}" y="${cy-hh}" width="${hw*2}" height="${hh*2}" fill="transparent" style="cursor:pointer" onclick="revealThermal('${u.id}')"/>
+    `}).join('')}
+    <text x="100" y="150" text-anchor="middle" font-size="8" fill="#2a2a3a" font-family="DM Mono">THERMAL — click units</text>
+  </svg>`;
+}
+
+function revealThermal(id) {
+  const unit = THERMAL_UNITS.find(u => u.id === id);
+  if (!unit) return;
+  STATE._thermalRevealed[id] = true;
+  const el = document.getElementById('th_' + id);
+  if (el) el.setAttribute('fill', unit.color);
+  const deltaEl = document.getElementById('thdelta_' + id);
+  if (deltaEl) { deltaEl.setAttribute('fill', '#9490a0'); deltaEl.textContent = unit.delta; }
+
+  // Show annotation buttons for this unit
+  const container = document.getElementById('thermalAnnotations');
+  if (!container) return;
+  if (document.getElementById('anno_row_' + id)) return;
+  const row = document.createElement('div');
+  row.id = 'anno_row_' + id;
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;flex-wrap:wrap';
+  row.innerHTML = `
+    <span style="font-size:12px;font-weight:600;min-width:60px">Unit ${id}</span>
+    <span style="font-size:11px;color:var(--muted);flex:1">${unit.delta} above ambient</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="annotateThermal('${id}','document')" id="annobtn_${id}_doc"
+        style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">Document</button>
+      <button onclick="annotateThermal('${id}','flag')" id="annobtn_${id}_flag"
+        style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">Flag for review</button>
+      <button onclick="annotateThermal('${id}','normal')" id="annobtn_${id}_normal"
+        style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">Normal</button>
+    </div>
+  `;
+  container.appendChild(row);
+}
+
+function annotateThermal(id, type) {
+  STATE._thermalAnnotations[id] = type;
+  const colors = { document: 'var(--warn-bg)', flag: 'var(--crimson-glow)', normal: 'var(--go-bg)' };
+  const borders = { document: 'rgba(212,160,23,0.4)', flag: 'rgba(128,1,31,0.4)', normal: 'rgba(45,158,107,0.4)' };
+  const row = document.getElementById('anno_row_' + id);
+  if (row) { row.style.background = colors[type]; row.style.borderColor = borders[type]; }
+  ['doc','flag','normal'].forEach(t => {
+    const btn = document.getElementById(`annobtn_${id}_${t}`);
+    if (btn) btn.style.fontWeight = (t === type.slice(0,4)) ? '700' : '400';
+  });
+  setPhaseData('thermalAnnotations', { ...STATE._thermalAnnotations });
+}
+
+// ── Option selection ─────────────────────────────────────────────────────────
+function selectOption(el, multi = false) {
+  if (!multi) {
+    el.closest('.options-grid')?.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+}
+
+// ── Submit assessment ────────────────────────────────────────────────────────
+async function submitAssessment() {
+  showView('submitting');
+
+  const payload = {
+    sessionLog: STATE.sessionLog,
+    interactionResults: STATE.interactionResults,
+    participantContext: STATE.participantContext,
+    startedAt: STATE.startedAt,
+    submissionId: STATE.submissionId,
+    participantName: STATE.user,
+  };
+
+  try {
+    const res = await apiFetch('/acia/rpas/assessment/complete', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res) return;
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showError(body.error || 'Submission failed. Please try again.');
+      return;
+    }
+
+    const data = await res.json();
+    showCompletionScreen(data);
+
+  } catch (e) {
+    showError('A network error occurred during submission. Please try again.');
+  }
+}
+
+function showCompletionScreen(data) {
+  const badgeEl = document.getElementById('completeBadge');
+  const now = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+  badgeEl.innerHTML = `
+    <div class="badge-row"><span>Completed</span><span>${now}</span></div>
+    <div class="badge-row"><span>Experience</span><span>Bank 16 — RPAS Workforce Intelligence</span></div>
+    <div class="badge-row"><span>Badge ID</span><span>${(data.badgeId ?? '').slice(0,12).toUpperCase()}</span></div>
+    <div class="badge-row"><span>Profile status</span><span>Generating — report sent by email</span></div>
+  `;
+  showView('complete');
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  showView('error');
+}
+</script>
+</body>
+</html>
