@@ -166,25 +166,50 @@ export function ACIABadge({ data, onClose }: Props) {
 
   const verifyUrl = `https://aviationaerospacecompetency.com/badge/verify/${data.badgeId}`;
 
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   function downloadBadge() {
     setDownloading(true);
     try {
       const svg = svgRef.current;
-      if (!svg) return;
+      if (!svg) { setDownloading(false); return; }
       const svgData = new XMLSerializer().serializeToString(svg);
       const canvas = document.createElement('canvas');
       canvas.width = 680;
       canvas.height = 680;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) { setDownloading(false); return; }
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, 0, 0, 680, 680);
-        const link = document.createElement('a');
-        link.download = `ACIA-Badge-${data.badgeId.slice(0, 8)}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        setDownloading(false);
+        if (isIOS) {
+          // iOS Safari blocks <a download> on blob:/data: URIs — open in new tab instead
+          // so the participant can long-press → Save Image.
+          const dataUrl = canvas.toDataURL('image/png');
+          const w = window.open('', '_blank');
+          if (w) {
+            w.document.write(
+              '<!doctype html><html><body style="margin:0;background:#0a0a0c;display:flex;' +
+              'flex-direction:column;align-items:center;padding:24px;font-family:system-ui,sans-serif">' +
+              '<p style="color:#c8cdd4;font-size:15px;margin:0 0 20px;text-align:center;max-width:320px">' +
+              'Long-press the badge image below, then tap <strong>Save Image</strong> to save to your Photos.</p>' +
+              `<img src="${dataUrl}" style="max-width:340px;width:100%;border-radius:16px">` +
+              '</body></html>'
+            );
+          }
+          setDownloading(false);
+        } else {
+          canvas.toBlob((blob) => {
+            if (!blob) { setDownloading(false); return; }
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `ACIA-Badge-${data.badgeId.slice(0, 8)}.png`;
+            link.href = url;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setDownloading(false);
+          }, 'image/png');
+        }
       };
       img.onerror = () => setDownloading(false);
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
@@ -267,7 +292,7 @@ export function ACIABadge({ data, onClose }: Props) {
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={downloadBadge} disabled={downloading} style={btnStyle(true)}>
-          {downloading ? 'Preparing…' : 'Download Badge'}
+          {downloading ? 'Preparing…' : isIOS ? 'Save Badge' : 'Download Badge'}
         </button>
         <button onClick={copyVerifyLink} style={btnStyle()}>
           {copied ? '✓ Copied' : 'Copy Verify Link'}

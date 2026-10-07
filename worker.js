@@ -2567,7 +2567,7 @@ async function emailAciaCompleted(env, { name, email, pathwayType, badgeId, comp
       `<ul style="margin:0 0 16px;padding-left:20px;color:#374151;font-size:14px;line-height:1.8">
         <li>Career pathway alignments based on observed evidence</li>
         <li>Competency profile across six aviation intelligence domains</li>
-        <li>Downloadable ACIA Career Intelligence Report (PDF)</li>
+        <li>ACIA Career Intelligence Report (view and save as PDF from your dashboard)</li>
         <li>Digital completion badge for LinkedIn and professional profiles</li>
       </ul>` +
       eDivider() +
