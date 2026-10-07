@@ -1045,7 +1045,7 @@ async function runMigrations(db) {
   // DISTINCT from target_occupations (deliberate career targets).
   // Never automatically promoted to target_occupations.
   // Pre-check column existence before ALTER TABLE so unexpected DB errors are not silently swallowed.
-  const pccCols = await db.prepare(`PRAGMA table_info(participant_career_context)`).all();
+  const pccCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'participant_career_context'`).all();
   const hasExplorationInterests = (pccCols.results ?? []).some(r => r.name === 'exploration_interests');
   if (!hasExplorationInterests) {
     await db.prepare(`ALTER TABLE participant_career_context ADD COLUMN exploration_interests TEXT NOT NULL DEFAULT '[]'`).run();
@@ -1104,7 +1104,7 @@ async function runMigrations(db) {
 
   // P0C-A new columns — added safely using PRAGMA pre-check so this is
   // idempotent and cannot fail on a database that already has the columns.
-  const enrollCols = await db.prepare(`PRAGMA table_info(program_enrollments)`).all();
+  const enrollCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_enrollments'`).all();
   const enrollColNames = (enrollCols.results ?? []).map(r => r.name);
 
   if (!enrollColNames.includes('program_version')) {
@@ -1133,13 +1133,13 @@ async function runMigrations(db) {
   // completion_authority: curriculum governance. Who may legitimately confirm completion.
   // Values: 'participant' | 'facilitator' | 'system'
   // All existing templates get DEFAULT 'participant'; seedCompletionAuthority() corrects them.
-  const enrollCols2 = await db.prepare(`PRAGMA table_info(program_enrollments)`).all();
+  const enrollCols2 = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_enrollments'`).all();
   const enrollColNames2 = (enrollCols2.results ?? []).map(r => r.name);
   if (!enrollColNames2.includes('released_week')) {
     await db.prepare(`ALTER TABLE program_enrollments ADD COLUMN released_week INTEGER NOT NULL DEFAULT 0`).run();
   }
 
-  const patCols = await db.prepare(`PRAGMA table_info(program_activity_templates)`).all();
+  const patCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_activity_templates'`).all();
   const patColNames = (patCols.results ?? []).map(r => r.name);
   if (!patColNames.includes('completion_authority')) {
     await db.prepare(`ALTER TABLE program_activity_templates ADD COLUMN completion_authority TEXT NOT NULL DEFAULT 'participant'`).run();
@@ -1149,7 +1149,7 @@ async function runMigrations(db) {
   // organizations.handoff_authorized: explicit per-org authorization for handoff.
   // partner_status ≠ handoff_authorized — must be explicitly set by admin.
   // DEFAULT 0 keeps all existing org rows unauthorized until admin sets explicitly.
-  const orgColsHf = await db.prepare(`PRAGMA table_info(organizations)`).all();
+  const orgColsHf = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'organizations'`).all();
   const orgColNamesHf = (orgColsHf.results ?? []).map(r => r.name);
   if (!orgColNamesHf.includes('handoff_authorized')) {
     await db.prepare(`ALTER TABLE organizations ADD COLUMN handoff_authorized INTEGER NOT NULL DEFAULT 0`).run();
@@ -1380,9 +1380,9 @@ async function runMigrations(db) {
   // reopen expired or revoked sessions; completed submissions are excluded by status).
   await db.prepare(`
     UPDATE validation_sessions
-    SET expires_at = datetime(invited_at, '+14 days')
+    SET expires_at = (invited_at::timestamp + INTERVAL '14 days')::text
     WHERE status IN ('INVITED', 'IN_PROGRESS')
-      AND datetime(invited_at, '+14 days') > datetime('now')
+      AND (invited_at::timestamp + INTERVAL '14 days') > NOW()
   `).run().catch(() => {});
 
   await db.prepare(`
@@ -11163,7 +11163,7 @@ async function handleIntelligencePotentialDuplicates(request, user, env) {
         b.validation_status        AS status_b,
         a.created_at               AS created_a,
         b.created_at               AS created_b,
-        ROUND(ABS(julianday(a.created_at) - julianday(b.created_at)), 1) AS days_apart,
+        ROUND(ABS(EXTRACT(EPOCH FROM (a.created_at::timestamp - b.created_at::timestamp)) / 86400.0)::numeric, 1) AS days_apart,
         CASE
           WHEN a.proficiency_expectation = b.proficiency_expectation
             AND a.importance_level = b.importance_level
@@ -11176,7 +11176,7 @@ async function handleIntelligencePotentialDuplicates(request, user, env) {
         ON  a.id < b.id
         AND a.org_id    = b.org_id
         AND a.competency = b.competency
-        AND ABS(julianday(a.created_at) - julianday(b.created_at)) <= 30
+        AND ABS(EXTRACT(EPOCH FROM (a.created_at::timestamp - b.created_at::timestamp)) / 86400.0) <= 30
       ORDER BY duplicate_confidence DESC, a.org_id, a.competency, days_apart
       LIMIT 200
     `).all(),
