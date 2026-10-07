@@ -9748,7 +9748,7 @@ async function handleConnectorIntelligence(request, user, env) {
   const subsector = url.searchParams.get('subsector') ?? '';
   // Fetch both employer and IPS validated signals in a single query.
   // signal_source_type discriminates employer from industry_professional provenance.
-  let q = 'SELECT competency, importance_level, future_demand, occupation, region, industry_subsector, employer_name, signal_source_type, contributor_id FROM employer_signals WHERE validation_status="validated"';
+  let q = "SELECT competency, importance_level, future_demand, occupation, region, industry_subsector, employer_name, signal_source_type, contributor_id FROM employer_signals WHERE validation_status='validated'";
   const params = [];
   if (occupation) { q += ' AND occupation=?'; params.push(occupation); }
   if (region) { q += ' AND region=?'; params.push(region); }
@@ -9895,7 +9895,7 @@ async function handleEmployerSignalSubmit(request, user, env) {
 async function handleEmergingSkills(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin', 'postsecondary');
   if (guard) return guard;
-  const { results } = await env.DB.prepare(`SELECT competency, employer_name, signal_source_type, contributor_id, future_demand, collected_at FROM employer_signals WHERE validation_status="validated" AND emerging_requirement=1 ORDER BY collected_at DESC`).all();
+  const { results } = await env.DB.prepare(`SELECT competency, employer_name, signal_source_type, contributor_id, future_demand, collected_at FROM employer_signals WHERE validation_status='validated' AND emerging_requirement=1 ORDER BY collected_at DESC`).all();
 
   const empByComp = {};
   const ipsByComp = {};
@@ -11946,7 +11946,7 @@ async function handleCurriculumMappingCreate(request, user, env) {
 async function handleCompetencyGap(request, user, env) {
   const guard = requireRole(user, 'postsecondary', 'admin', 'super_admin');
   if (guard) return guard;
-  const { results: signals } = await env.DB.prepare('SELECT competency, importance_level FROM employer_signals WHERE validation_status="validated"').all();
+  const { results: signals } = await env.DB.prepare("SELECT competency, importance_level FROM employer_signals WHERE validation_status='validated'").all();
   let mappingQ = 'SELECT aacp_competency, alignment_level FROM curriculum_mappings WHERE 1=1';
   const mappingParams = [];
   if (user.role === 'postsecondary') { mappingQ += ' AND created_by=?'; mappingParams.push(user.sub); }
@@ -11959,7 +11959,7 @@ async function handleCompetencyGap(request, user, env) {
        GROUP BY competency_id, evidence_state`
     ).all().catch(() => ({ results: [] })),
     // Keep ACIA blob fallback for participants who completed before evidence ledger existed
-    env.DB.prepare('SELECT competency_profile FROM acia_assessments WHERE status="complete" AND competency_profile IS NOT NULL').all().catch(() => ({ results: [] })),
+    env.DB.prepare("SELECT competency_profile FROM acia_assessments WHERE status='complete' AND competency_profile IS NOT NULL").all().catch(() => ({ results: [] })),
   ]);
 
   const demand = {};
