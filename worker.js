@@ -1285,6 +1285,24 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE refresh_tokens ADD COLUMN token_hash TEXT`).run().catch(() => {});
   await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_rt_token_hash ON refresh_tokens(token_hash) WHERE token_hash IS NOT NULL`).run().catch(() => {});
 
+  // SEC-006b: refresh_tokens — the token column (legacy PRIMARY KEY) cannot be omitted on INSERT in
+  // PostgreSQL because PRIMARY KEY implies NOT NULL. INSERTs now write token_hash into both columns.
+  // This migration drops the primary-key constraint from token and adds a surrogate id column so
+  // future inserts do not need to supply token at all. Idempotent: each step is catch()-ed.
+  {
+    const rtCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'refresh_tokens'`).all().catch(() => ({ results: [] }));
+    const colNames = (rtCols.results ?? []).map(r => r.name);
+    if (!colNames.includes('id')) {
+      // Add surrogate primary key; migrate token PK to unique nullable column
+      await db.prepare(`ALTER TABLE refresh_tokens ADD COLUMN id TEXT`).run().catch(() => {});
+      await db.prepare(`UPDATE refresh_tokens SET id = token_hash WHERE id IS NULL`).run().catch(() => {});
+      await db.prepare(`ALTER TABLE refresh_tokens ALTER COLUMN id SET NOT NULL`).run().catch(() => {});
+      await db.prepare(`ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS refresh_tokens_pkey`).run().catch(() => {});
+      await db.prepare(`ALTER TABLE refresh_tokens ADD PRIMARY KEY (id)`).run().catch(() => {});
+      await db.prepare(`ALTER TABLE refresh_tokens ALTER COLUMN token DROP NOT NULL`).run().catch(() => {});
+    }
+  }
+
   // SEC-007: organization_memberships — authoritative employer→org authorization.
   // Replaces users.organization_name name-matching with an ID-keyed membership record.
   // An active membership is required for employer signal submission; no membership → reject.
@@ -3221,8 +3239,8 @@ async function handleLogin(request, env) {
   const expiresAt = Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC;
   const refreshTokenHash = await hashTokenForStorage(refreshToken);
   await env.DB.prepare(
-    `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
-  ).bind(refreshTokenHash, user.id, expiresAt, new Date().toISOString()).run();
+    `INSERT INTO refresh_tokens (token, token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, ?, 0, ?)`
+  ).bind(refreshTokenHash, refreshTokenHash, user.id, expiresAt, new Date().toISOString()).run();
 
   _step = 'done';
   await recordAttempt(env.DB, `login:${email}`, true);
@@ -3268,8 +3286,8 @@ async function handleRefresh(request, env) {
   const now2 = new Date().toISOString();
   await env.DB.prepare(`UPDATE refresh_tokens SET revoked = 1 WHERE token_hash = ?`).bind(tokenHash).run();
   await env.DB.prepare(
-    `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
-  ).bind(newRefreshHash, user.id, newExpiresAt, now2).run();
+    `INSERT INTO refresh_tokens (token, token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, ?, 0, ?)`
+  ).bind(newRefreshHash, newRefreshHash, user.id, newExpiresAt, now2).run();
 
   return json({ userId: user.id, role: user.role, accessToken, refreshToken: newRefreshToken, tokenType: 'Bearer' });
 }
@@ -12186,8 +12204,8 @@ async function handleAcceptCohortInvite(request, env) {
     const expiresAt = Math.floor(Date.now() / 1000) + REFRESH_EXPIRES_SEC;
     const refreshTokenHash = await hashTokenForStorage(refreshToken);
     await env.DB.prepare(
-      `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, 0, ?)`
-    ).bind(refreshTokenHash, id, expiresAt, now).run();
+      `INSERT INTO refresh_tokens (token, token_hash, user_id, expires_at, revoked, created_at) VALUES (?, ?, ?, ?, 0, ?)`
+    ).bind(refreshTokenHash, refreshTokenHash, id, expiresAt, now).run();
 
     await audit(env.DB, 'cohort_registration_completed', id, 'user', {
       invitationId: inv.id, role: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: 'rpas',
