@@ -10413,7 +10413,7 @@ async function handleAdminConsentRequest(request, user, env) {
   const invalid = information_categories.filter(c => !CONSENT_CATEGORY_ALLOWLIST.has(c));
   if (invalid.length) return err(`Unauthorized information categories: ${invalid.join(', ')}. Allowed: ${[...CONSENT_CATEGORY_ALLOWLIST].join(', ')}`);
   if (!consent_purpose || !String(consent_purpose).trim()) return err('consent_purpose is required');
-  const textVersion = consent_text_version || 'v1.0-DRAFT-REQUIRES-LEGAL-REVIEW';
+  if (!consent_text_version || !String(consent_text_version).trim()) return err('consent_text_version is required. Provide the approved consent text version identifier (e.g. "v1.0").');
   const now = new Date().toISOString();
   const cid = randomHex(16);
   // Cancel any prior pending consent for this handoff
