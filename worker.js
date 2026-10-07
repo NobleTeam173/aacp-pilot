@@ -8802,9 +8802,9 @@ async function handleAdminRpasParticipants(request, user, env) {
       rp.created_at AS createdAt,
       pe.created_at AS enrolledAt,
       (SELECT COUNT(*) FROM acia_assessments aa
-         WHERE aa.participant_id = u.id AND aa.stage = 'rpas_intake' AND aa.status = 'complete') AS aciaIntakeDone,
+         WHERE aa.user_id = u.id AND aa.assessment_stage = 'rpas_intake' AND aa.status = 'complete') AS aciaIntakeDone,
       (SELECT status FROM acia_assessments aa
-         WHERE aa.participant_id = u.id AND aa.stage = 'rpas_intake'
+         WHERE aa.user_id = u.id AND aa.assessment_stage = 'rpas_intake'
          ORDER BY aa.created_at DESC LIMIT 1) AS aciaIntakeStatus,
       CASE WHEN rp.tc_cert_status IS NOT NULL AND rp.experience_level IS NOT NULL THEN 1 ELSE 0 END AS intakeComplete
     FROM rpas_profiles rp
