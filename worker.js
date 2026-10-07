@@ -1574,8 +1574,9 @@ async function seedAdmin(db, env) {
   const now = new Date().toISOString();
   // password_change_required=1 so admin is forced to set a new password on first login
   await db.prepare(
-    `INSERT OR IGNORE INTO users (id, email, password_hash, name, role, phone, status, mfa_enabled, mfa_secret, password_change_required, created_at, updated_at)
-     VALUES (?, ?, ?, 'AACP Super Administrator', 'super_admin', '', 'active', 0, NULL, 1, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, name, role, phone, status, mfa_enabled, mfa_secret, password_change_required, created_at, updated_at)
+     VALUES (?, ?, ?, 'AACP Super Administrator', 'super_admin', '', 'active', 0, NULL, 1, ?, ?)
+     ON CONFLICT DO NOTHING`
   ).bind('admin-seed-0001', adminEmail, passwordHash, now, now).run();
 }
 
@@ -1731,12 +1732,13 @@ async function seedCurriculum(db) {
   ];
 
   const stmt = db.prepare(`
-    INSERT OR IGNORE INTO program_activity_templates
+    INSERT INTO program_activity_templates
       (id, program_version, week_number, activity_key, activity_label, sort_order,
        activity_purpose, mission_type, career_pathway, target_competencies,
        delivery_type, estimated_hours, methodology_version, observer_required,
        active, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '1.0', 0, 1, ?, ?)
+    ON CONFLICT DO NOTHING
   `);
 
   for (const [id, wk, so, key, label, purpose, delivery, hours, mission, pathway, comp] of ACTS) {
@@ -8452,9 +8454,10 @@ async function seedRpasProgram(db) {
   ];
   for (const a of activities) {
     await db.prepare(
-      `INSERT OR IGNORE INTO program_activity_templates
+      `INSERT INTO program_activity_templates
          (id, activity_key, title, week_number, activity_order, pathway_category, program_version, created_at)
-       VALUES (?, ?, ?, ?, ?, 'rpas', 'rpas-1.0', ?)`
+       VALUES (?, ?, ?, ?, ?, 'rpas', 'rpas-1.0', ?)
+       ON CONFLICT DO NOTHING`
     ).bind(a.id, a.key, a.title, a.day, a.order, new Date().toISOString()).run().catch(() => {});
   }
 }
