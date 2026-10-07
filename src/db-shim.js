@@ -20,17 +20,18 @@ function toPositional(sql) {
 
 function makeStmt(sql, args = []) {
   const pgSql = toPositional(sql);
+  const executor = (client) => client ? client.query(pgSql, args) : pool.query(pgSql, args);
   return {
-    async first() {
-      const { rows } = await pool.query(pgSql, args);
+    async first(opts = {}) {
+      const { rows } = await executor(opts._client);
       return rows[0] ?? null;
     },
-    async all() {
-      const { rows } = await pool.query(pgSql, args);
+    async all(opts = {}) {
+      const { rows } = await executor(opts._client);
       return { results: rows };
     },
-    async run() {
-      const result = await pool.query(pgSql, args);
+    async run(opts = {}) {
+      const result = await executor(opts._client);
       return { meta: { changes: result.rowCount } };
     },
   };
@@ -46,8 +47,25 @@ export const DB = {
       run()    { return makeStmt(sql).run(); },
     };
   },
-  // D1 batch: run multiple prepared statements in sequence
+  // D1 batch: atomic — runs all statements inside a single PostgreSQL transaction.
+  // D1 guarantees atomicity; this shim preserves that guarantee.
   async batch(stmts) {
-    return Promise.all(stmts.map(s => s.run()));
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const results = [];
+      for (const stmt of stmts) {
+        // Each stmt is a makeStmt object — call run() via its internal closure
+        const result = await stmt.run({ _client: client });
+        results.push(result);
+      }
+      await client.query('COMMIT');
+      return results;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   },
 };
