@@ -1836,16 +1836,6 @@ function PathwayDetail({ pathway, onBack, accentColor, sectorLabel }: { pathway:
         borderLeft: `4px solid ${accentColor}`,
         padding: '24px 28px',
       }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-            color: T.faint, borderRadius: 7, padding: '6px 12px',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 16,
-          }}
-        >
-          ← Back to Pathways
-        </button>
         <div style={{ fontSize: 10, fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
           Career Pathway Intelligence
         </div>
