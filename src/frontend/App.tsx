@@ -926,10 +926,13 @@ export function App() {
   const [adminPendingCount, setAdminPendingCount] = useState(0);
   const [isRpasHub, setIsRpasHub] = useState(() => localStorage.getItem('aacp_participant_type') === 'rpas_direct');
 
-  // Validator experience — path-based routing /validate/:token
-  const validateMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
-  if (validateMatch) {
-    return <ValidatorExperience token={validateMatch[1]} />;
+  // Validator experience — token arrives as ?validate=<token> (redirect from /validate/:token)
+  // or directly via path /validate/:token (kept for backwards compatibility)
+  const validateQueryToken = new URL(window.location.href).searchParams.get('validate');
+  const validatePathMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
+  const validateToken = validateQueryToken || (validatePathMatch ? validatePathMatch[1] : null);
+  if (validateToken) {
+    return <ValidatorExperience token={validateToken} />;
   }
 
   // Password reset — token arrives as ?reset=<token> in the URL
