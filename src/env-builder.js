@@ -18,5 +18,6 @@ export function buildEnv() {
     AACP_ACCESS_TOKEN_SECRET:     process.env.AACP_ACCESS_TOKEN_SECRET,
     AACP_REFRESH_TOKEN_SECRET:    process.env.AACP_REFRESH_TOKEN_SECRET,
     AACP_AUTH_TEST_MODE:          process.env.AACP_AUTH_TEST_MODE,
+    AACP_PUBLIC_ORIGIN:           process.env.AACP_PUBLIC_ORIGIN,
   };
 }
