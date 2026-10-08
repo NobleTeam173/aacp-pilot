@@ -3245,7 +3245,14 @@ async function handleLogin(request, env) {
   _step = 'done';
   await recordAttempt(env.DB, `login:${email}`, true);
   await audit(env.DB, 'login', user.id, 'session');
-  return json({ userId: user.id, name: user.name, role: user.role, emailVerified: user.emailVerified, careerStage: user.careerStage, accessToken, refreshToken, tokenType: 'Bearer', message: 'Login successful' });
+
+  // Restore participant type so RPAS Hub participants see the correct dashboard on any login
+  const careerCtxRow = user.role === 'youth'
+    ? await env.DB.prepare('SELECT participant_type FROM participant_career_context WHERE participant_id = ?').bind(user.id).first().catch(() => null)
+    : null;
+  const participantType = careerCtxRow?.participant_type ?? null;
+
+  return json({ userId: user.id, name: user.name, role: user.role, emailVerified: user.emailVerified, careerStage: user.careerStage, participantType, accessToken, refreshToken, tokenType: 'Bearer', message: 'Login successful' });
   } catch (e) {
     console.error(`[handleLogin crash]`, e?.message ?? String(e));
     return err('Authentication failed. Please try again or contact support.', 500);
@@ -8809,7 +8816,7 @@ async function handleAdminRpasParticipants(request, user, env) {
       CASE WHEN rp.tc_cert_status IS NOT NULL AND rp.experience_level IS NOT NULL THEN 1 ELSE 0 END AS intakeComplete
     FROM rpas_profiles rp
     JOIN users u ON u.id = rp.user_id
-    LEFT JOIN program_enrollments pe ON pe.participant_id = u.id AND pe.program_version = 'rpas-1.0'
+    LEFT JOIN program_enrollments pe ON pe.user_id = u.id AND pe.program_version = 'rpas-1.0'
     ORDER BY rp.created_at DESC
   `).all().catch(() => ({ results: [] }));
 

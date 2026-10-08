@@ -746,6 +746,7 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         accessToken?: string; refreshToken?: string;
         mfaRequired?: boolean; mfaSetupRequired?: boolean;
         passwordChangeRequired?: boolean;
+        participantType?: string | null;
         message?: string;
       }>('/auth/login', { method: 'POST', body: { email, password, otp: otp || undefined } });
 
@@ -774,6 +775,13 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         if (res.careerStage) localStorage.setItem('aacp_career_stage', res.careerStage);
         if (res.name) localStorage.setItem('aacp_name', res.name);
         localStorage.setItem('aacp_email_verified', res.emailVerified ? '1' : '0');
+        if (res.participantType === 'rpas_direct') {
+          localStorage.setItem('aacp_participant_type', 'rpas_direct');
+          setIsRpasHub(true);
+        } else {
+          localStorage.removeItem('aacp_participant_type');
+          setIsRpasHub(false);
+        }
         onLogin({ role: res.role, userId: res.userId });
       }
     } catch (e: unknown) {

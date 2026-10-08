@@ -142,7 +142,7 @@ export function RpasHubDashboard() {
         )}
 
         {/* ACIA RPAS intake assessment */}
-        {hubStatus === 'assessment' && !status?.aciaIntakeStatus && (
+        {hubStatus === 'assessment' && status?.aciaIntakeStatus?.status !== 'complete' && (
           <div>
             <div style={{ color: C.grey, fontSize: 13, marginBottom: 20 }}>
               Complete your ACIA™ RPAS career intelligence assessment to generate your workforce profile.
