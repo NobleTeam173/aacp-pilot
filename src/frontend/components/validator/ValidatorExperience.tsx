@@ -228,7 +228,7 @@ const REQUIRED_CHECKPOINTS: Record<string, string[]> = {
   C: ['overview', 'captain', 'featured_journey', 'cohort'],
   D: ['overview', 'captain', 'featured_journey', 'cohort', 'signal'],
   E: ['overview', 'captain', 'featured_journey', 'cohort', 'signal'],
-  F: [],
+  F: ['overview', 'captain', 'featured_journey', 'cohort', 'signal'],
 };
 
 const CHECKPOINT_LABELS: Record<string, string> = {
@@ -608,9 +608,9 @@ function SandboxSignalPanel({ token, instrument, onViewed }: { token: string; in
   );
 }
 
-// Signal config: A,E → IPS; D → ES; B,C,F → null
+// Signal config: A,E,F → IPS; D → ES; B,C → null
 function signalConfig(instrument: string): { show: boolean; label: string; description: string; signalType: string; buttonLabel: string } | null {
-  if (instrument === 'A' || instrument === 'E') {
+  if (instrument === 'A' || instrument === 'E' || instrument === 'F') {
     return {
       show: true,
       label: 'Industry Professional Signal — Sandbox',

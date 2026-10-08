@@ -12580,27 +12580,33 @@ const VALIDATION_INSTRUMENTS = {
     ]
   },
   F: {
-    title: 'AACP™ Regulatory Pathway Review',
-    level: 1,
-    description: 'The accuracy of AACP\'s representation of regulated aviation career pathways, regulatory terminology, and the boundary between career exploration and regulated qualification.',
-    opening: 'Where permitted by your organisation\u2019s policies, we would value your technical feedback on how AACP represents regulated aviation career pathways and regulatory boundaries. We are not requesting approval or endorsement of AACP as a product or programme.\n\nIf your organisation\u2019s policies do not permit formal participation in validation of a private-sector initiative, we would welcome any guidance you are able to provide on authoritative sources, appropriate terminology, or pathway accuracy \u2014 and we will record that guidance as contextual input only, not as formal regulatory validation.',
-    is_contextual_guidance_instrument: true,
+    title: 'ATC Industry Professional Validation',
+    level: 2,
+    description: 'ATC occupational reality, NAV CANADA recruitment and training pathway accuracy, relevance of ATC-related capability indicators, and the distinction between AACP career readiness and formal ATC screening and selection.',
     questions: [
-      { key: 'F1', type: 'supported_scale', id: 'F-1', label: 'Regulatory Pathway Accuracy',
-        text: 'Does AACP accurately represent the regulatory requirements, timeline, and process for obtaining an AME licence in Canada — specifically the information a prospective entrant would need to know when beginning to investigate this pathway?',
+      { key: 'F1', type: 'supported_scale', id: 'F-1', label: 'Occupational Reality',
+        text: 'Based on your direct experience, how accurately does AACP's representation of the Air Traffic Control working environment reflect the actual conditions, operational demands, and expectations of the role — including what prospective entrants most commonly underestimate?',
+        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What would you change?' },
+      { key: 'F2', type: 'relevance_scale', id: 'F-2', label: 'Capability Indicators (Relevance to ATC Work)',
+        text: 'We have shown you a set of capability descriptions that AACP uses in its career exploration experience. These describe tendencies and approaches — they are not predictive assessments of ATC aptitude or selection suitability. For each indicator shown, how relevant is it to the actual demands of ATC work?',
+        scale: SCALE_RELEVANCE, optional_text: 'What, if anything, is missing from this set? What should not be here?' },
+      { key: 'F3', type: 'supported_scale', id: 'F-3', label: 'NAV CANADA Pathway Accuracy',
+        text: 'Does AACP accurately describe the process by which people progress toward Air Traffic Control careers in Canada — including NAV CANADA's recruitment, screening, training pipeline, and the realities that prospective entrants most commonly misunderstand?',
         scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What is inaccurate or missing?' },
-      { key: 'F2', type: 'supported_scale', id: 'F-2', label: 'Terminology and Boundary',
-        text: 'Does AACP use terminology that appropriately distinguishes between regulated licensing or certification on one hand, and career-awareness or exploration activities on the other?',
-        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What terminology should be corrected?' },
-      { key: 'F3', type: 'supported_scale', id: 'F-3', label: 'Authoritative Sources',
-        text: 'Are the sources AACP points participants toward for regulatory pathway information appropriate and accurate? Are there additional authoritative sources, published guidance, or regulatory documents that AACP should reference?',
-        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'Please list sources or documents you would recommend.' },
-      { key: 'F4', type: 'supported_scale', id: 'F-4', label: 'Programme Scope Clarity',
-        text: 'From what you have seen, is it clear that AACP is a career-exploration programme — and not a certification body, licensing system, or occupational-competence-determination system?',
-        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What would need to be clarified?' },
+      { key: 'F4', type: 'supported_scale', id: 'F-4', label: 'Career Readiness vs. Formal ATC Screening',
+        text: 'Does AACP make clear that what it assesses — career-exploration readiness, workforce orientation, and capability tendencies — is distinct from the formal screening, cognitive testing, and simulator-based evaluation that NAV CANADA conducts as part of its selection and training process?',
+        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What blurs this distinction? What would need to change?' },
+      { key: 'F5', type: 'supported_scale', id: 'F-5', label: 'ATC Communication Experience',
+        text: 'AACP includes an ATC communication simulation in which participants compose radio transmissions using standard phraseology in a structured scenario exercise. This is presented as a sector-familiarisation activity — not an assessment of ATC proficiency, aptitude, or selection readiness. Does this framing accurately describe what the exercise can and cannot establish?',
+        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What needs to be corrected or made clearer?' },
+      { key: 'F6', type: 'open_text', id: 'F-6', label: 'After Career Awareness', discovery: true,
+        text: 'How does NAV CANADA, or the broader ATC sector, currently determine whether people reached through career-awareness activities subsequently progress toward an ATC career — and what outcomes do you currently track or find meaningful?' },
       { key: 'F_final1', type: 'open_text', label: 'Final F-1', final: true,
-        text: 'Is there anything AACP should clarify, correct, or stop claiming in how it represents the AME licensing pathway or regulatory process to people who are exploring aviation careers?' }
+        text: 'Overall — would you be comfortable with AACP being used with someone who is seriously exploring an ATC career? What is the single most important change that would increase your confidence in it?' },
+      { key: 'F_final2', type: 'open_text', label: 'Final F-2', final: true,
+        text: 'Is there anything AACP should stop claiming, stop doing, or make clearer about what it is and what it is not — specifically in the context of ATC career exploration?' }
     ]
+  }
   }
 };
 ;
@@ -12791,7 +12797,11 @@ const CAPTAIN_ACIA_SANDBOX_PROMPTS = {
     "Can you help me understand what I already bring versus what AME training and licensing would develop?",
     "What are the most important things I should investigate before committing to the AME pathway?"
   ],
-  F: [] // No Captain ACIA for Instrument F
+  F: [
+    "Tell me about the participant you've just seen — where is Marcus in terms of his ATC direction?",
+    "How does Captain ACIA distinguish what AACP establishes from what NAV CANADA's selection process determines?",
+    "What would you say to Marcus about the realistic picture for someone at his stage investigating ATC?"
+  ]
 };
 
 // Pre-authored contextual Captain ACIA responses — grounded in the fictional participant profiles.
@@ -12844,6 +12854,35 @@ What I'd want you to hold clearly: identifying an area worth investigating is di
 
 What's your current level of knowledge about any of these areas? And is there anything you already know — either drawn to or ruled out?`,
 
+  // Instrument F — Marcus Chen context (ATC pathway)
+  ATC_DISCOVERY: `Before I say anything about the ATC pathway, I want to understand your starting point more specifically.
+
+You've indicated an interest in Air Traffic Control. That's a direction worth taking seriously — and worth understanding clearly, because the pathway is more structured and more selective than most people expect before they investigate it.
+
+A few things help me calibrate what's actually useful to discuss: What draws you to ATC specifically — is it the operational environment, the consequence and precision of the work, or something else? And what does your current background look like — academic, professional, or otherwise?
+
+I ask because ATC through NAV CANADA is not a training pathway you enter directly. It begins with a competitive application process, includes cognitive and aptitude assessment, and — if you're offered a place — a structured training programme that not everyone completes. What you bring now matters for understanding whether this is a direction worth seriously pursuing. But it matters to understand it clearly, not optimistically.`,
+
+  ATC_BACKGROUND: `Based on what you've described — an analytical background and strong interest in precision, structured work, and consequential environments — let me be direct about what I can offer and what I can't.
+
+What your background may contribute: systematic, analytical thinking and comfort with structured, rule-bound environments are consistent with what ATC work demands. An ability to manage complex information under time pressure and maintain procedural discipline — these are real, observable starting points.
+
+What I can't tell you: whether your background predicts success in NAV CANADA's selection process or training programme. ATC selection involves cognitive and aptitude assessments that are outside AACP's scope to replicate or predict. Training attrition is real, and it's not a function of motivation or general intelligence alone.
+
+The honest position is: your profile suggests this pathway is worth seriously investigating. That's meaningful. But seriously investigating means understanding what the selection process actually involves, what the training commitment looks like, and what the realistic picture is for someone at your stage.
+
+What's still unclear for you at this point?`,
+
+  ATC_PATHWAY: `The ATC pathway through NAV CANADA is worth understanding in concrete terms — both what it involves and where you actually are in relation to it.
+
+Entry begins with a competitive application. NAV CANADA uses cognitive and aptitude testing as part of selection — not to determine occupational competence, but to identify candidates likely to complete training. The training programme itself is intensive and structured, and not everyone who is offered a place completes it. The timeline from application to operational controller is multi-year.
+
+What preparation makes sense now: understanding what the selection process involves and what NAV CANADA actually evaluates; getting a realistic picture of the timelines and commitment required; and, where possible, gaining some direct exposure to aviation operational environments before committing to an application.
+
+AACP's role is to help you understand your starting point — your career direction, what you bring, and what's still uncertain. It doesn't determine whether you're ready for selection, and it doesn't replicate NAV CANADA's assessment process. Those belong to NAV CANADA.
+
+What aspect of the pathway do you want to understand better?`,
+
   // General / fallback
   GENERAL: `Good question — and I want to give you a useful answer rather than a generic one, which means understanding your context a bit better first.
 
@@ -12877,6 +12916,19 @@ function _captainSandboxReply(instrument, message) {
       return CAPTAIN_ACIA_SANDBOX_RESPONSES.CROSS_PATHWAY;
     }
     return CAPTAIN_ACIA_SANDBOX_RESPONSES.CROSS_DISCOVERY;
+  }
+
+  if (instrument === 'F') {
+    if (msg.includes('start') || msg.includes('where') || msg.includes('interest') || msg.includes('draw') || msg.includes('what brings') || msg.includes('background')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.ATC_DISCOVERY;
+    }
+    if (msg.includes('background') || msg.includes('analytical') || msg.includes('profile') || msg.includes('offer') || msg.includes('selection') || msg.includes('what i bring')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.ATC_BACKGROUND;
+    }
+    if (msg.includes('pathway') || msg.includes('nav canada') || msg.includes('training') || msg.includes('process') || msg.includes('readiness') || msg.includes('distinguish') || msg.includes('preparation')) {
+      return CAPTAIN_ACIA_SANDBOX_RESPONSES.ATC_PATHWAY;
+    }
+    return CAPTAIN_ACIA_SANDBOX_RESPONSES.ATC_DISCOVERY;
   }
 
   return CAPTAIN_ACIA_SANDBOX_RESPONSES.GENERAL;
@@ -12935,6 +12987,7 @@ explain that you are operating in a bounded demonstration context.
 function _sandboxProfileKeyForInstrument(instrument) {
   if (instrument === 'A' || instrument === 'E') return 'AME_AMT';
   if (instrument === 'C') return 'AME_AMT'; // AME profile as primary demo vehicle for Instrument C
+  if (instrument === 'F') return 'ATC';     // ATC profile for Instrument F (ATC Industry Professional)
   return null; // B, D: no single primary profile; all four shown equally
 }
 
@@ -13082,8 +13135,8 @@ async function handleAdminValidationSessionCreate(request, user, env) {
   const { validator_name, validator_org, validator_email, instrument, aacp_version, scenario_id, allow_real_ips, allow_real_es } = body;
   if (!validator_name || !validator_email || !instrument) return err('validator_name, validator_email, instrument required', 400);
   if (!VALIDATION_INSTRUMENTS[instrument]) return err('Unknown instrument', 400);
-  // experience_mode is authority-derived: Instrument F is always STATIC, all others GUIDED
-  const experience_mode = instrument === 'F' ? 'STATIC' : 'GUIDED';
+  // experience_mode is authority-derived: all instruments use GUIDED experience
+  const experience_mode = 'GUIDED';
   const token = generateValidationToken();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
