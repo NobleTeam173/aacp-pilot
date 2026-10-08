@@ -4283,12 +4283,12 @@ export function RpasHubAdminPanel() {
                           style={{ background: `linear-gradient(135deg, ${C.green}, #16a34a)`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
                         >{accessTarget?.id === app.id && accessSaving ? 'Enabling…' : 'Enable Access →'}</button>
                       )}
-                      {app.participantAccess === 'enabled' && !app.invitedAt && (
+                      {app.participantAccess === 'enabled' && (
                         <button
                           onClick={() => handleInvite(app)}
                           disabled={inviting === app.id}
                           style={{ background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: inviting === app.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}
-                        >{inviting === app.id ? 'Issuing…' : 'Issue Invite →'}</button>
+                        >{inviting === app.id ? 'Issuing…' : (app.invitedAt ? 'Re-issue Invite →' : 'Issue Invite →')}</button>
                       )}
                     </div>
                   </div>
