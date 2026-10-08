@@ -3,7 +3,7 @@ import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
 import { RpasHubDashboard } from './components/rpas/RpasHubDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
-import { AdminDashboard, RpasHubAdminPanel } from './components/dashboard/AdminDashboard';
+import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
 import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
@@ -1085,7 +1085,7 @@ export function App() {
         {currentView === 'admin'          && <AdminDashboard />}
         {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && (isRpasHub ? <RpasHubDashboard /> : <YouthDashboard />)}
-        {currentView === 'rpas_hub'       && (auth.role === 'admin' || auth.role === 'super_admin' ? <RpasHubAdminPanel /> : <RpasHubDashboard />)}
+        {currentView === 'rpas_hub'       && <RpasHubDashboard isAdmin={auth.role === 'admin' || auth.role === 'super_admin'} />}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
