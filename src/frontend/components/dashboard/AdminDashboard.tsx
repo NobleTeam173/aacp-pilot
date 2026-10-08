@@ -2555,7 +2555,7 @@ const INSTRUMENTS: Record<string, {
   C: { perspective: 'Technical Recruiter / Talent Acquisition', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '20–28 min', captainAcia: true, showIps: false, showEs: false },
   D: { perspective: 'Airport / Aviation Employer', experienceMode: 'GUIDED', provenance: 'CROSS_PATHWAY', profile: 'Full cohort — 4 pathways, 13 participants', disclosureLevel: 'Level 2', estimatedTime: '20–30 min', captainAcia: true, showIps: false, showEs: true },
   E: { perspective: 'Technical Aviation Organisation', experienceMode: 'GUIDED', provenance: 'AME_AMT', profile: 'Jordan Morrow — AME/AMT career transitioner', disclosureLevel: 'Level 2', estimatedTime: '25–35 min', captainAcia: true, showIps: true, showEs: false },
-  F: { perspective: 'Regulatory / Public Authority', experienceMode: 'STATIC', provenance: 'CROSS_PATHWAY', profile: 'N/A — static regulatory/public-authority review (platform-level)', disclosureLevel: 'Level 1', estimatedTime: '15–20 min', captainAcia: false, showIps: false, showEs: false },
+  F: { perspective: 'ATC Industry Professional', experienceMode: 'STATIC', provenance: 'CROSS_PATHWAY', profile: 'Marcus Chen — ATC Industry Professional (NAV CANADA pathway)', disclosureLevel: 'Level 2', estimatedTime: '15–20 min', captainAcia: false, showIps: false, showEs: false },
 };
 
 const VSES_STATUS_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {

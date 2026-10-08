@@ -1159,7 +1159,7 @@ export function ValidatorExperience({ token }: { token: string }) {
               /* STATIC experience (Instrument F) */
               <>
                 <div style={S.card}>
-                  <h2 style={S.h2}>Regulatory and Public-Authority Review — Orientation</h2>
+                  <h2 style={S.h2}>ATC Industry Professional Validation — Orientation</h2>
                   {session?.instrument_opening && (
                     <div style={{ ...S.notice(C.grey, C.bgDeep, C.borderLight), fontStyle: 'italic', marginBottom: '1rem' }}>
                       {session.instrument_opening}
