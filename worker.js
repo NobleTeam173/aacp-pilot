@@ -12292,14 +12292,19 @@ async function handleListPilotAccounts(request, user, env) {
       pi.id AS invitation_id, pi.invited_first_name, pi.invited_last_name,
       pi.invited_organization, pi.pilot_role, pi.cohort_name, pi.accepted_at,
       pi.created_at AS invitation_created_at,
-      pf.submitted_at AS feedback_submitted_at,
-      aa.completed_at AS acia_completed_at
+      MAX(pf.submitted_at) AS feedback_submitted_at,
+      MAX(aa.completed_at) AS acia_completed_at
     FROM cohort_invitations pi
     JOIN users u ON u.invitation_id = pi.id
     LEFT JOIN pilot_feedback pf ON pf.user_id = u.id
     LEFT JOIN acia_assessments aa ON aa.user_id = u.id AND aa.status = 'complete'
     WHERE pi.accepted_at IS NOT NULL
-    GROUP BY u.id
+    GROUP BY u.id, u.name, u.email, u.role, u.status,
+             u.organization_name, u.pilot_account, u.pilot_cohort, u.pilot_status,
+             u.last_activity_at, u.created_at,
+             pi.id, pi.invited_first_name, pi.invited_last_name,
+             pi.invited_organization, pi.pilot_role, pi.cohort_name, pi.accepted_at,
+             pi.created_at
     ORDER BY pi.accepted_at DESC
   `).all();
 
