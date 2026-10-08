@@ -58,7 +58,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    request<InviteInfo>(`/pilot/invite/${token}`)
+    request<InviteInfo>(`/cohort/invite/${token}`)
       .then((data) => setInviteInfo(data))
       .catch((e: Error) => setLoadError(e.message || 'Invitation not found or has expired.'));
   }, [token]);
@@ -73,7 +73,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
     try {
       const data = await request<{
         accessToken: string; refreshToken: string; userId: string; name: string; role: string; hubType?: string | null;
-      }>(`/pilot/invite/${token}`, { method: 'POST', body: { password, email: inviteInfo!.email, careerStage: inviteInfo!.pilotRole === 'youth' ? careerStage : undefined } });
+      }>(`/cohort/invite/${token}`, { method: 'POST', body: { password, email: inviteInfo!.email, careerStage: inviteInfo!.pilotRole === 'youth' ? careerStage : undefined } });
       onComplete({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.userId, name: data.name, role: data.role, hubType: data.hubType ?? null });
     } catch (e: unknown) {
       setError((e as Error).message || 'Registration failed. Please try again.');
