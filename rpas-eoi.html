@@ -286,6 +286,24 @@
         <textarea id="motivation" name="motivation" rows="3" placeholder="Anything else you'd like us to know…"></textarea>
       </div>
 
+      <div class="field">
+        <label for="rpas-source">How did you hear about the RPAS Workforce Hub? <span class="opt">(optional)</span></label>
+        <select id="rpas-source" name="referralSourceKey">
+          <option value="">Select…</option>
+          <option value="city_of_calgary_yec">City of Calgary (YEC)</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="social_media">Social media</option>
+          <option value="aacp_website">AACP website</option>
+          <option value="word_of_mouth">Friend / colleague / word of mouth</option>
+          <option value="employer_referral">Employer referral</option>
+          <option value="post_secondary_institution">Post-secondary institution</option>
+          <option value="industry_association">Industry association</option>
+          <option value="job_board">Job board</option>
+          <option value="news_media">News / media</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
       <div class="fee-box">
         <strong>Program Fee: $1,200 CAD</strong><br>
         This is a paid program. Admission is subject to AACP review. Accepted participants will receive next-step instructions including payment arrangements. Your place is not confirmed until payment is received. Contact <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a> with questions.
@@ -356,8 +374,9 @@
       careerStage:     form.querySelector('[name="careerStage"]').value || undefined,
       rpasExperience:  form.querySelector('[name="rpasExperience"]').value || undefined,
       preferredCohort: form.querySelector('[name="preferredCohort"]').value || 'either',
-      motivation:      form.querySelector('[name="motivation"]').value.trim() || undefined,
-      feeAcknowledged: form.querySelector('[name="feeAcknowledged"]').checked,
+      motivation:        form.querySelector('[name="motivation"]').value.trim() || undefined,
+      referralSourceKey: form.querySelector('[name="referralSourceKey"]').value || undefined,
+      feeAcknowledged:   form.querySelector('[name="feeAcknowledged"]').checked,
     };
 
     fetch('/rpas/apply', {

@@ -3713,6 +3713,7 @@ interface RpasApplication {
   preferredCohort: string;
   assignedCohort: string;
   feeAcknowledged: boolean;
+  referralSourceKey: string | null;
   paymentStatus: string;
   participantAccess: string;
   status: string;
@@ -4104,6 +4105,7 @@ function RpasHubAdminPanel() {
                         {app.preferredCohort && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Preferred: </span><span style={{ color: C.greyD }}>{RPAS_COHORT_LABELS[app.preferredCohort] ?? app.preferredCohort}</span></div>}
                         {app.assignedCohort && app.assignedCohort !== 'not_assigned' && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Assigned: </span><span style={{ color: C.white }}>{RPAS_COHORT_LABELS[app.assignedCohort] ?? app.assignedCohort}</span></div>}
                         {app.careerStage && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Stage: </span><span style={{ color: C.greyD }}>{app.careerStage.replace(/_/g, ' ')}</span></div>}
+                        {app.referralSourceKey && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{REFERRAL_LABELS[app.referralSourceKey] ?? app.referralSourceKey.replace(/_/g, ' ')}</span></div>}
                         <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(app.createdAt)}</span></div>
                         <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Fee ack: </span><span style={{ color: app.feeAcknowledged ? C.green : C.red }}>{app.feeAcknowledged ? 'Yes' : 'No'}</span></div>
                       </div>
@@ -4213,7 +4215,7 @@ interface EoiIndividual {
   careerStage: string | null; areasOfInterest: string[];
   rpasExperience: string | null; background: string | null;
   willingnessToPay: string | null; fundingDependency: string | null;
-  referralSource: string | null; comment: string | null;
+  referralSourceKey: string | null; comment: string | null;
   utmSource: string | null; utmMedium: string | null; utmCampaign: string | null;
   status: string; followUpNotes: string | null; contactedAt: string | null;
   createdAt: string;
@@ -4223,7 +4225,7 @@ interface EoiPartner {
   id: string; firstName: string; lastName: string; jobTitle: string | null;
   email: string; phone: string | null; orgName: string; orgType: string | null;
   city: string | null; province: string | null; country: string; website: string | null;
-  partnershipInterests: string[]; comment: string | null; referralSource: string | null;
+  partnershipInterests: string[]; comment: string | null; referralSourceKey: string | null;
   utmSource: string | null; utmMedium: string | null; utmCampaign: string | null;
   status: string; followUpNotes: string | null; contactedAt: string | null;
   createdAt: string;
@@ -4240,6 +4242,20 @@ const EOI_STATUS_STYLES: Record<string, { label: string; color: string; bg: stri
 const EOI_INTEREST_LABELS: Record<string, string> = {
   workforce_readiness: 'Workforce Readiness', rpas_workforce_hub: 'RPAS Workforce Hub',
   future_aviation_aerospace: 'Future Aviation & Aerospace', not_sure: 'Not Sure Yet',
+};
+
+const REFERRAL_LABELS: Record<string, string> = {
+  city_of_calgary_yec:     'City of Calgary (YEC)',
+  aacp_website:            'AACP website',
+  social_media:            'Social media',
+  linkedin:                'LinkedIn',
+  word_of_mouth:           'Friend / colleague / word of mouth',
+  employer_referral:       'Employer referral',
+  post_secondary_institution: 'Post-secondary institution',
+  industry_association:    'Industry association',
+  job_board:               'Job board',
+  news_media:              'News / media',
+  other:                   'Other',
 };
 
 const EOI_PARTNER_INTEREST_LABELS: Record<string, string> = {
@@ -4441,7 +4457,7 @@ function EoiIndividualsPanel() {
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
                     {item.careerStage && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Stage: </span><span style={{ color: C.greyD }}>{item.careerStage.replace(/_/g, ' ')}</span></div>}
                     {item.willingnessToPay && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>WTP: </span><span style={{ color: C.greyD }}>{item.willingnessToPay.replace(/_/g, ' ')}</span></div>}
-                    {item.referralSource && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{item.referralSource.replace(/_/g, ' ')}</span></div>}
+                    {item.referralSourceKey && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{REFERRAL_LABELS[item.referralSourceKey] ?? item.referralSourceKey.replace(/_/g, ' ')}</span></div>}
                     <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(item.createdAt)}</span></div>
                   </div>
                 </div>
@@ -4552,7 +4568,7 @@ function EoiPartnersPanel() {
                   {(item.city || item.province) && <div style={{ color: C.grey, fontSize: 11, marginTop: 2 }}>{[item.city, item.province].filter(Boolean).join(', ')}</div>}
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
                     {item.orgType && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Type: </span><span style={{ color: C.greyD }}>{item.orgType.replace(/_/g, ' ')}</span></div>}
-                    {item.referralSource && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{item.referralSource.replace(/_/g, ' ')}</span></div>}
+                    {item.referralSourceKey && <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Source: </span><span style={{ color: C.greyD }}>{REFERRAL_LABELS[item.referralSourceKey] ?? item.referralSourceKey.replace(/_/g, ' ')}</span></div>}
                     <div style={{ fontSize: 11 }}><span style={{ color: C.grey }}>Submitted: </span><span style={{ color: C.greyD }}>{fmtDate(item.createdAt)}</span></div>
                   </div>
                 </div>

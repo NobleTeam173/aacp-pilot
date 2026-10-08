@@ -339,17 +339,18 @@
 
         <div class="field">
           <label for="ind-source">How did you hear about AACP™? <span class="opt">(optional)</span></label>
-          <select id="ind-source" name="referralSource">
+          <select id="ind-source" name="referralSourceKey">
             <option value="">Select…</option>
+            <option value="city_of_calgary_yec">City of Calgary (YEC)</option>
             <option value="linkedin">LinkedIn</option>
-            <option value="employer">Employer</option>
-            <option value="postsecondary">Post-secondary institution</option>
-            <option value="community_workforce">Community / workforce organization</option>
+            <option value="social_media">Social media</option>
+            <option value="aacp_website">AACP website</option>
+            <option value="word_of_mouth">Friend / colleague / word of mouth</option>
+            <option value="employer_referral">Employer referral</option>
+            <option value="post_secondary_institution">Post-secondary institution</option>
             <option value="industry_association">Industry association</option>
-            <option value="event_presentation">Event or presentation</option>
-            <option value="referral">Friend / colleague / referral</option>
-            <option value="online_search">Online search</option>
-            <option value="aacp_noble_outreach">AACP / Noble Consulting outreach</option>
+            <option value="job_board">Job board</option>
+            <option value="news_media">News / media</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -476,14 +477,16 @@
 
         <div class="field">
           <label for="prt-source">How did you hear about AACP™? <span class="opt">(optional)</span></label>
-          <select id="prt-source" name="referralSource">
+          <select id="prt-source" name="referralSourceKey">
             <option value="">Select…</option>
+            <option value="city_of_calgary_yec">City of Calgary (YEC)</option>
             <option value="linkedin">LinkedIn</option>
+            <option value="social_media">Social media</option>
+            <option value="aacp_website">AACP website</option>
+            <option value="word_of_mouth">Colleague / word of mouth</option>
+            <option value="employer_referral">Employer referral</option>
             <option value="industry_association">Industry association</option>
-            <option value="event_presentation">Event or presentation</option>
-            <option value="referral">Colleague / referral</option>
-            <option value="online_search">Online search</option>
-            <option value="aacp_noble_outreach">AACP / Noble Consulting outreach</option>
+            <option value="news_media">News / media</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -587,7 +590,7 @@
       rpasExperience:    indForm.querySelector('[name="rpasExperience"]') ? indForm.querySelector('[name="rpasExperience"]').value || undefined : undefined,
       willingnessToPay:  indForm.querySelector('[name="willingnessToPay"]').value || undefined,
       fundingDependency: indForm.querySelector('[name="fundingDependency"]').value || undefined,
-      referralSource:    indForm.querySelector('[name="referralSource"]').value || undefined,
+      referralSourceKey: indForm.querySelector('[name="referralSourceKey"]').value || undefined,
       comment:           indForm.querySelector('[name="comment"]').value.trim() || undefined,
       utmSource:         utm.utmSource,
       utmMedium:         utm.utmMedium,
@@ -633,7 +636,7 @@
       country:              prtForm.querySelector('[name="country"]').value.trim() || 'Canada',
       website:              prtForm.querySelector('[name="website"]').value.trim() || undefined,
       partnershipInterests: getChecked('prt-interests'),
-      referralSource:       prtForm.querySelector('[name="referralSource"]').value || undefined,
+      referralSourceKey:    prtForm.querySelector('[name="referralSourceKey"]').value || undefined,
       comment:              prtForm.querySelector('[name="comment"]').value.trim() || undefined,
       utmSource:            utm.utmSource,
       utmMedium:            utm.utmMedium,
