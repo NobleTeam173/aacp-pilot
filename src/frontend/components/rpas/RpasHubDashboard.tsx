@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { request } from '../../services/apiClient';
+import { request, ApiError } from '../../services/apiClient';
 import { ACIA } from '../acia/ACIA';
 import { RpasIntakeForm } from './RpasIntakeForm';
 import { RpasCareerProfile } from './RpasCareerProfile';
@@ -31,7 +31,11 @@ export function RpasHubDashboard() {
   async function loadData() {
     try {
       const [p, s] = await Promise.all([
-        request<RpasProfile>('/rpas/profile'),
+        request<RpasProfile>('/rpas/profile').catch((e: unknown) => {
+          // 404 means the profile row hasn't been created yet — not an error
+          if (e instanceof ApiError && e.status === 404) return null;
+          throw e;
+        }),
         request<RpasHubStatus>('/rpas/status'),
       ]);
       setProfile(p);

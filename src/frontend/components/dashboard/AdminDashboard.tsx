@@ -3927,7 +3927,7 @@ const HUB_STATUS_LABELS: Record<string, string> = {
 
 type RpasAppFilter = 'all' | 'new' | 'under_review' | 'accepted' | 'waitlisted' | 'not_selected' | 'enrolled';
 
-function RpasHubAdminPanel() {
+export function RpasHubAdminPanel() {
   const [applications, setApplications] = useState<RpasApplication[]>([]);
   const [participants, setParticipants] = useState<RpasParticipant[]>([]);
   const [loading, setLoading] = useState(true);

@@ -8869,8 +8869,17 @@ async function handleRpasProfileGet(request, user, env) {
 async function handleRpasProfileSave(request, user, env) {
   const guard = requireRole(user, 'youth'); if (guard) return guard;
 
-  const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
-  if (!profile) return err('RPAS profile not found — ensure account was created via RPAS Hub invite', 404);
+  let profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+  if (!profile) {
+    // Profile row missing (e.g. INSERT was silently dropped during registration) — create it now
+    const now = new Date().toISOString();
+    const rpId = randomHex(8);
+    await env.DB.prepare(
+      `INSERT INTO rpas_profiles (id, user_id, hub_status, created_at, updated_at) VALUES (?, ?, 'intake', ?, ?)`
+    ).bind(rpId, user.sub, now, now).run();
+    profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+    if (!profile) return err('Unable to initialize RPAS profile. Please contact support.', 500);
+  }
 
   const body = await request.json().catch(() => ({}));
   const now = new Date().toISOString();
