@@ -10,8 +10,12 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        app: resolve(__dirname, 'app.html'),
+        main:         resolve(__dirname, 'index.html'),
+        app:          resolve(__dirname, 'app.html'),
+        eoi:          resolve(__dirname, 'eoi.html'),
+        aciaRegister: resolve(__dirname, 'acia-register.html'),
+        rpasEoi:      resolve(__dirname, 'rpas-eoi.html'),
+        privacy:      resolve(__dirname, 'privacy.html'),
       },
     },
   },
