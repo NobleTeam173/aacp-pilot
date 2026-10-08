@@ -847,10 +847,10 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
 
 // ── Role → dashboard views ────────────────────────────────────────────────────
 
-type DashboardView = 'admin' | 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector' | 'industry';
+type DashboardView = 'admin' | 'youth' | 'rpas_hub' | 'coach' | 'employer' | 'postsecondary' | 'connector' | 'industry';
 
 function viewsForRole(role: Role): DashboardView[] {
-  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary', 'industry'];
+  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'rpas_hub', 'coach', 'employer', 'postsecondary', 'industry'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   if (role === 'coach') return ['coach'];
@@ -861,6 +861,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
   admin: 'Approvals',
   connector: 'AACP Connector',
   youth: 'Participant',
+  rpas_hub: 'RPAS Hub',
   coach: 'Career Advisor',
   employer: 'Employer',
   postsecondary: 'Post-Secondary',
@@ -1084,6 +1085,7 @@ export function App() {
         {currentView === 'admin'          && <AdminDashboard />}
         {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && (isRpasHub ? <RpasHubDashboard /> : <YouthDashboard />)}
+        {currentView === 'rpas_hub'       && <RpasHubDashboard />}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
