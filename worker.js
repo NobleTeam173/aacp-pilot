@@ -7172,6 +7172,11 @@ Respond with valid JSON only, no markdown fences, no explanation outside the JSO
       }
     }
 
+    // [E] rpas_profiles — advance hub_status to profile_ready
+    batchStmts.push(env.DB.prepare(
+      `UPDATE rpas_profiles SET hub_status = 'profile_ready', updated_at = ? WHERE user_id = ? AND hub_status = 'assessment'`
+    ).bind(now, user.sub));
+
     await env.DB.batch(batchStmts);
 
     // ── Post-commit: store session log for audit + re-analysis ────────────────
