@@ -13291,30 +13291,13 @@ async function handleValidationExperience(request, env) {
   if (session.status === 'SUBMITTED') return err('This validation has already been submitted', 409);
   if (new Date(session.expires_at) < new Date()) return err('This invitation has expired', 410);
 
-  // Instrument F uses STATIC experience mode — regulatory content only, no platform experience
   const instrument = session.instrument;
-  if (instrument === 'F') {
-    return json({
-      experience_mode: 'STATIC',
-      validator_name: session.validator_name,
-      instrument,
-      provenance: VALIDATOR_PROVENANCE[instrument] || 'CROSS_PATHWAY',
-      representative_data_label: 'Representative Data — This view uses fictional data to demonstrate how AACP workforce intelligence is presented. No real participant information is displayed.',
-      steps: ['orientation', 'regulatory_content', 'formal_validation'],
-      four_pathways: [
-        { code: 'ATC',     label: 'Air Traffic Control',                 description: 'Roles in the management and safety of aircraft movement. Regulatory requirements, specific aptitude profile, and structured licensing pathway.' },
-        { code: 'PILOT',   label: 'Flight & Pilot Pathways',             description: 'Commercial and private flight pathways. Licensing tiers, medical requirements, training programme entry.' },
-        { code: 'AME_AMT', label: 'Aircraft Maintenance & Technical',    description: 'Licensed and unlicensed aircraft maintenance roles. AME licensing, apprenticeship, and technical entry pathways.' },
-        { code: 'STEM',    label: 'STEM Roles in Aviation & Aerospace',  description: 'Engineering, technology, data, and science roles across aviation, airports, aerospace, and related industries.' }
-      ],
-      captain_acia: null,
-    });
-  }
 
   // Guided experience — select primary profile for this instrument
   const profileKey = (instrument === 'A' || instrument === 'E') ? 'AME_AMT'
                    : (instrument === 'B' || instrument === 'D') ? null   // all four shown equally
                    : (instrument === 'C') ? 'AME_AMT'                    // AME profile as demo vehicle
+                   : (instrument === 'F') ? 'ATC'                        // ATC profile for ATC professional
                    : null;
 
   const primaryProfile = profileKey ? VALIDATOR_SANDBOX_PROFILES[profileKey] : null;
@@ -13355,7 +13338,7 @@ async function handleValidationExperience(request, env) {
     all_profiles: allProfiles,
     cohort_summary: cohortSummary,
     // Captain ACIA sandbox context — prompts for this instrument type
-    captain_acia: instrument === 'F' ? null : {
+    captain_acia: {
       sandbox_mode: true,
       fictional_participant: primaryProfile ? primaryProfile.name : (instrument === 'B' || instrument === 'D') ? 'Priya Nair' : 'Jordan Morrow',
       suggested_prompts: captainPrompts,
@@ -13380,7 +13363,6 @@ async function handleValidationCaptainSandbox(request, env) {
   if (session.status === 'REVOKED') return err('This invitation has been revoked', 410);
   if (session.status === 'SUBMITTED') return err('Validation already submitted', 409);
   if (new Date(session.expires_at) < new Date()) return err('Invitation expired', 410);
-  if (session.instrument === 'F') return err('Captain ACIA is not available for this instrument', 403);
 
   let body;
   try { body = await request.json(); } catch { return err('Invalid JSON', 400); }

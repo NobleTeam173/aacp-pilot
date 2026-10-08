@@ -1156,29 +1156,17 @@ export function ValidatorExperience({ token }: { token: string }) {
                 </div>
               </>
             ) : (
-              /* STATIC experience (Instrument F) */
+              /* STATIC experience — orientation-only mode */
               <>
                 <div style={S.card}>
-                  <h2 style={S.h2}>ATC Industry Professional Validation — Orientation</h2>
+                  <h2 style={S.h2}>{session?.instrument_title} — Orientation</h2>
                   {session?.instrument_opening && (
                     <div style={{ ...S.notice(C.grey, C.bgDeep, C.borderLight), fontStyle: 'italic', marginBottom: '1rem' }}>
                       {session.instrument_opening}
                     </div>
                   )}
-                  <p style={S.p}>
-                    You are being asked to review AACP as a career and workforce intelligence platform — across its aviation and
-                    aerospace pathways — from a regulatory and public-authority perspective. Your assessment covers how AACP
-                    represents career pathways, what it claims, what boundaries it maintains, and whether the platform is
-                    appropriately scoped relative to regulated systems such as licensing, certification, and occupational assessment.
-                  </p>
-                  <p style={S.p}>
-                    AACP spans multiple aviation and aerospace pathways — including Air Traffic Control, Pilot, Aircraft Maintenance
-                    (AME/AMT), and STEM roles across aviation and aerospace. The questions that follow invite your perspective on
-                    the platform as a whole, with the freedom to draw on any of these pathways as examples where relevant.
-                  </p>
                   <p style={{ ...S.p, marginBottom: 0 }}>
-                    This is not a request for approval or endorsement of AACP. Your perspective on regulatory boundary language,
-                    platform-level claim scope, and public-interest considerations is what is being sought.
+                    {session?.instrument_description}
                   </p>
                 </div>
                 <hr style={S.divider} />
@@ -1395,12 +1383,13 @@ const INSTRUMENT_QUESTIONS: Record<string, Question[]> = {
     { key: 'E_final2', type: 'open_text', label: 'Final Perspective E-2', text: 'What, if anything, should AACP stop claiming or make more explicit about its scope and limits?', final: true },
   ],
   F: [
-    { key: 'F1', type: 'supported_scale', label: 'Regulatory Boundary Clarity', text: 'Does AACP make sufficiently clear that it is a career and workforce intelligence platform — and not a licensing authority, certification body, accredited training organisation, or system for determining occupational eligibility or regulatory readiness?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What language or framing should be corrected or clarified?' },
-    { key: 'F2', type: 'supported_scale', label: 'Pathway Representation — Scope and Accuracy', text: 'Across the aviation and aerospace pathways AACP represents — including Air Traffic Control, Pilot, Aircraft Maintenance, and STEM roles — does AACP represent the nature of these careers and their associated entry, licensing, or certification requirements in a way that is broadly accurate and appropriately framed for a career-exploration audience?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'Which pathways, if any, contain inaccurate or misleading information? What should change?' },
-    { key: 'F3', type: 'supported_scale', label: 'Claim Proportionality and Suitability Boundaries', text: 'Does AACP avoid making unsupported claims about occupational suitability, licensing eligibility, employability, regulatory readiness, or the likelihood of success in regulated aviation roles? Are the conclusions AACP draws proportionate to what it actually assesses?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What specifically overreaches or should be qualified differently?' },
-    { key: 'F4', type: 'supported_scale', label: 'Referrals and Next-Step Pathway Representation', text: 'Where AACP directs participants toward next steps — including education and training organisations, ATOs, FTUs, employers, or regulatory bodies — are those referrals represented responsibly and without implying endorsement, guarantee, or regulatory validation?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What should be corrected or qualified in how AACP represents next-step pathways?' },
-    { key: 'F5', type: 'open_text', label: 'Public-Interest and Governance Concerns', text: 'From a public-authority or regulatory perspective, are there terminology, representation, governance, or public-interest concerns that Noble should address before deploying AACP more broadly? This may include concerns about how AACP positions itself relative to regulated systems, how pathway information could be misread by participants, or how the programme boundaries are communicated to the public.', discovery: true },
-    { key: 'F_final1', type: 'open_text', label: 'Final Perspective F-1', text: 'What, if anything, should AACP clarify, correct, or stop claiming — in terms of its relationship to regulated aviation and aerospace systems, licensing processes, or occupational qualification — before broader public deployment?', final: true },
-    { key: 'F_final2', type: 'open_text', label: 'Final Perspective F-2', text: 'From your regulatory or public-authority vantage point, does AACP\'s overall career and workforce intelligence model appear credible and appropriately scoped? What concerns, if any, should Noble prioritise before AACP is presented to a wider aviation and aerospace audience?', final: true },
+    { key: 'F1', type: 'supported_scale', label: 'Occupational Reality', text: 'Based on your direct experience, how accurately does AACP’s representation of the Air Traffic Control working environment reflect the actual conditions, operational demands, and expectations of the role — including what prospective entrants most commonly underestimate?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What would you change?' },
+    { key: 'F2', type: 'relevance_scale', label: 'Capability Indicators (Relevance to ATC Work)', text: 'We have shown you a set of capability descriptions that AACP uses in its career exploration experience. These describe tendencies and approaches — they are not predictive assessments of ATC aptitude or selection suitability. For each indicator shown, how relevant is it to the actual demands of ATC work?', scale: SCALE_RELEVANCE, optional_text: 'What, if anything, is missing from this set? What should not be here?' },
+    { key: 'F3', type: 'supported_scale', label: 'NAV CANADA Pathway Accuracy', text: 'Does AACP accurately describe the process by which people progress toward Air Traffic Control careers in Canada — including NAV CANADA’s recruitment, screening, training pipeline, and the realities that prospective entrants most commonly misunderstand?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What is inaccurate or missing?' },
+    { key: 'F4', type: 'supported_scale', label: 'Career Readiness vs. Formal ATC Screening', text: 'Does AACP make clear that what it assesses — career-exploration readiness, workforce orientation, and capability tendencies — is distinct from the formal screening, cognitive testing, and simulator-based evaluation that NAV CANADA conducts as part of its selection and training process?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What blurs this distinction? What would need to change?' },
+    { key: 'F5', type: 'supported_scale', label: 'ATC Communication Experience', text: 'AACP includes an ATC communication simulation in which participants compose radio transmissions using standard phraseology in a structured scenario exercise. This is presented as a sector-familiarisation activity — not an assessment of ATC proficiency, aptitude, or selection readiness. Does this framing accurately describe what the exercise can and cannot establish?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What needs to be corrected or made clearer?' },
+    { key: 'F6', type: 'open_text', label: 'After Career Awareness', text: 'How does NAV CANADA, or the broader ATC sector, currently determine whether people reached through career-awareness activities subsequently progress toward an ATC career — and what outcomes do you currently track or find meaningful?', discovery: true },
+    { key: 'F_final1', type: 'open_text', label: 'Final Perspective F-1', text: 'Overall — would you be comfortable with AACP being used with someone who is seriously exploring an ATC career? What is the single most important change that would increase your confidence in it?', final: true },
+    { key: 'F_final2', type: 'open_text', label: 'Final Perspective F-2', text: 'Is there anything AACP should stop claiming, stop doing, or make clearer about what it is and what it is not — specifically in the context of ATC career exploration?', final: true },
   ],
 };
