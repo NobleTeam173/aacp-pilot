@@ -21,7 +21,7 @@ const C = {
   amberBg:  'rgba(251,191,36,0.08)',
 };
 
-export function RpasHubDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
+export function RpasHubDashboard() {
   const [profile, setProfile] = useState<RpasProfile | null>(null);
   const [status, setStatus] = useState<RpasHubStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,24 +137,12 @@ export function RpasHubDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
 
         {/* Intake */}
         {hubStatus === 'intake' && (
-          isAdmin ? (
-            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
-              <div style={{ color: C.amber, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Admin Preview</div>
-              <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.6 }}>
-                This is the participant intake stage. An RPAS participant would complete their background profile here to begin the intelligence assessment.
-              </div>
-              <div style={{ color: C.grey, fontSize: 12, marginTop: 12 }}>
-                To manage RPAS applications and issue Hub invitations, go to <strong style={{ color: C.greyD }}>Approvals → Pilot Access → RPAS Workforce Hub</strong>.
-              </div>
+          <div>
+            <div style={{ color: C.grey, fontSize: 13, marginBottom: 20 }}>
+              Complete your RPAS background profile to begin your intelligence assessment.
             </div>
-          ) : (
-            <div>
-              <div style={{ color: C.grey, fontSize: 13, marginBottom: 20 }}>
-                Complete your RPAS background profile to begin your intelligence assessment.
-              </div>
-              <RpasIntakeForm onComplete={loadData} />
-            </div>
-          )
+            <RpasIntakeForm onComplete={loadData} />
+          </div>
         )}
 
         {/* ACIA RPAS intake assessment */}

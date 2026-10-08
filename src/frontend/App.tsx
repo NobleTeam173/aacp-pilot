@@ -1085,7 +1085,7 @@ export function App() {
         {currentView === 'admin'          && <AdminDashboard />}
         {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && (isRpasHub ? <RpasHubDashboard /> : <YouthDashboard />)}
-        {currentView === 'rpas_hub'       && <RpasHubDashboard isAdmin={auth.role === 'admin' || auth.role === 'super_admin'} />}
+        {currentView === 'rpas_hub'       && <RpasHubDashboard />}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
