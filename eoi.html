@@ -601,8 +601,10 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (res.ok) {
-          indForm.hidden = true;
+          indForm.style.display = 'none';
+          indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
           showMsg(indMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. We\'ll use the information you provided to understand interest in upcoming AACP opportunities and may contact you when a relevant opportunity becomes available.', 'success');
+          indMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           showMsg(indMsg, res.data.error || 'Submission failed. Please try again.', 'error');
           indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
@@ -647,8 +649,10 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (res.ok) {
-          prtForm.hidden = true;
+          prtForm.style.display = 'none';
+          prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';
           showMsg(prtMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. A member of the AACP team may contact you to explore potential alignment and next steps.', 'success');
+          prtMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           showMsg(prtMsg, res.data.error || 'Submission failed. Please try again.', 'error');
           prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';
