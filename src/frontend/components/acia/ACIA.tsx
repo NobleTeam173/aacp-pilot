@@ -140,7 +140,7 @@ Help them reflect on:
 
 Be thoughtful, draw out genuine reflection, and acknowledge the real growth represented by completing this journey. Keep responses warm, grounded in their experience, and forward-looking. 2–3 paragraphs max per response. Do not reveal specific competency scores or rankings.`;
 
-export type AssessmentStage = 'baseline' | 'completion' | 'followup';
+export type AssessmentStage = 'baseline' | 'completion' | 'followup' | 'rpas_intake';
 
 type ViewState = 'welcome' | 'preamble' | 'mission' | 'adaptive' | 'transition' | 'saving' | 'profile';
 
@@ -638,7 +638,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
   }, [stage]);
 
   if (view === 'welcome') {
-    return <WelcomeScreen stage={stage} onStart={startAssessment} savedSessionData={savedSessionData} />;
+    return <WelcomeScreen stage={stage} pathwayType={pathwayType} onStart={startAssessment} savedSessionData={savedSessionData} />;
   }
 
   if (view === 'preamble' && session) {
@@ -1017,17 +1017,21 @@ const STAGE_LABELS: Record<AssessmentStage, string> = {
   baseline: 'Baseline ACIA',
   completion: 'AACP Completion ACIA',
   followup: '90-Day Employment Follow-Up ACIA',
+  rpas_intake: 'RPAS Career Intelligence',
 };
 
 function WelcomeScreen({
   stage,
+  pathwayType,
   onStart,
   savedSessionData,
 }: {
   stage: AssessmentStage;
+  pathwayType?: string;
   onStart: (resume?: boolean) => void;
   savedSessionData: { session: ACIASession; stage: AssessmentStage } | null;
 }) {
+  const isRpas = pathwayType === 'rpas' || stage === 'rpas_intake';
   const isFirstCareer = (() => {
     const cs = localStorage.getItem('aacp_career_stage') ?? '';
     return cs !== 'student' && cs !== 'transition' &&
@@ -1088,7 +1092,7 @@ function WelcomeScreen({
               fontFamily: 'Fraunces, serif', fontSize: '1.2rem',
               fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3,
             }}>
-              ACIA™ — Career Discovery Flight
+              {isRpas ? 'ACIA™ — RPAS Career Intelligence Assessment' : 'ACIA™ — Career Discovery Flight'}
             </h2>
           </div>
           {hasProgress && (
@@ -1115,9 +1119,15 @@ function WelcomeScreen({
           {/* Purpose statement */}
           <div>
             <p style={{ fontSize: 15, color: '#1e293b', fontWeight: 500, lineHeight: 1.65, margin: '0 0 10px' }}>
-              Explore how you naturally approach aviation and aerospace situations.
+              {isRpas
+                ? 'Explore your readiness and aptitude for RPAS (drone) operations careers.'
+                : 'Explore how you naturally approach aviation and aerospace situations.'}
             </p>
-            {isFirstCareer ? (
+            {isRpas ? (
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                This assessment uses realistic RPAS mission scenarios to build evidence around your operational judgment, safety awareness, regulatory knowledge, and technical aptitude. There are no pass or fail results — your responses generate a personalised RPAS workforce intelligence profile.
+              </p>
+            ) : isFirstCareer ? (
               <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
                 No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.
               </p>
@@ -1210,14 +1220,19 @@ function WelcomeScreen({
                 fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.09em', color: '#94a3b8',
               }}>
-                Your Career Intelligence Report will include
+                Your {isRpas ? 'RPAS Workforce Intelligence' : 'Career Intelligence'} Report will include
               </div>
-              {[
+              {(isRpas ? [
+                { label: 'RPAS Career Pathway Alignment', sub: 'Your alignment across 6 RPAS workforce pathways: Operator, Inspector, SAR, Geomatics, Engineering, and Data' },
+                { label: 'Operational Competency Profile', sub: 'Evidence-based observations across RPAS-specific competency dimensions' },
+                { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from realistic RPAS mission scenarios and interactions' },
+                { label: 'Recommended RPAS Pathways', sub: 'Personalised guidance for your strongest RPAS career entry points' },
+              ] : [
                 { label: 'Aviation Career Alignment', sub: 'Your alignment across 13 aviation and aerospace pathways' },
                 { label: 'Competency Evidence Profile', sub: 'Evidence-based observations across 13 competency dimensions' },
                 { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from multiple interactions across the assessment' },
                 { label: 'Recommended Next Steps', sub: 'Personalised guidance for your strongest career pathways' },
-              ].map(({ label, sub }) => (
+              ]).map(({ label, sub }) => (
                 <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <div style={{
                     width: 3, flexShrink: 0, alignSelf: 'stretch',
@@ -1256,7 +1271,7 @@ function WelcomeScreen({
                 boxShadow: '0 2px 8px rgba(143,9,9,0.18)',
               }}
             >
-              {hasProgress ? 'Resume Assessment' : 'Begin Career Discovery Flight'}
+              {hasProgress ? 'Resume Assessment' : isRpas ? 'Begin RPAS Assessment' : 'Begin Career Discovery Flight'}
             </button>
           </div>
         </div>
