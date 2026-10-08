@@ -1077,29 +1077,75 @@ export function ValidatorExperience({ token }: { token: string }) {
                       </>
                     )}
 
-                    {/* ── Section 2: Marcus Chen Profile ── */}
-                    {fSection === 1 && (
-                      <>
-                        <div style={S.card}>
-                          <p style={{ ...S.p, marginBottom: 0, fontSize: '0.85rem' }}>
-                            Marcus Chen is a fictional participant in the ATC pathway. His profile illustrates the depth of intelligence
-                            AACP develops — career direction, capability indicators, and what AACP explicitly does <em>not</em> establish
-                            about readiness for formal ATC selection.
-                          </p>
-                        </div>
-                        {primaryProfile && (
-                          <FeaturedProfileCard
-                            profile={primaryProfile}
-                            onExpanded={() => markCheckpoint('featured_journey')}
-                          />
-                        )}
-                        {!primaryProfile && (
+                    {/* ── Section 2: Marcus Chen — Career Intelligence ── */}
+                    {fSection === 1 && (() => {
+                      // Mark checkpoint on render — content is always fully visible
+                      if (!checkpoints.has('featured_journey')) markCheckpoint('featured_journey');
+                      if (!primaryProfile) return (
+                        <div style={S.card}><p style={{ ...S.p, color: C.greyD }}>Profile data not available in this session.</p></div>
+                      );
+                      return (
+                        <>
+                          {/* Participant context */}
                           <div style={S.card}>
-                            <p style={{ ...S.p, color: C.greyD }}>Profile data not available in this session.</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' as const }}>
+                              <div>
+                                <div style={{ fontSize: '0.7rem', color: C.greyD, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 600, marginBottom: '0.375rem' }}>Fictional Participant — ATC Pathway</div>
+                                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: C.white }}>{primaryProfile.name}</div>
+                                <div style={{ fontSize: '0.82rem', color: C.grey, marginTop: 3 }}>{primaryProfile.background_type} · {primaryProfile.location}</div>
+                              </div>
+                              <span style={{ ...S.pathwayChip('ATC'), alignSelf: 'flex-start' }}>ATC</span>
+                            </div>
+                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${C.borderLight}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                              <div style={{ fontSize: '0.8rem', color: C.grey }}><strong style={{ color: C.white }}>Education:</strong><br />{primaryProfile.education}</div>
+                              <div style={{ fontSize: '0.8rem', color: C.grey }}><strong style={{ color: C.white }}>Background:</strong><br />{primaryProfile.work_history}</div>
+                            </div>
                           </div>
-                        )}
-                      </>
-                    )}
+
+                          {/* Observed strengths */}
+                          <div style={S.card}>
+                            <div style={{ fontSize: '0.7rem', color: C.greyD, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 600, marginBottom: '0.75rem' }}>Observed Strengths — As Identified by AACP</div>
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                              {primaryProfile.capability_indicators.map((ci, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '0.625rem', alignItems: 'flex-start', padding: '0.625rem 0.75rem', background: C.bgDeep, borderRadius: 8, borderLeft: `3px solid ${C.crimson}44` }}>
+                                  <span style={{ color: C.crimson, fontWeight: 700, flexShrink: 0, marginTop: '0.1rem' }}>›</span>
+                                  <span style={{ fontSize: '0.85rem', color: C.grey }}>{ci}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Career intelligence conclusion */}
+                          <div style={{ ...S.card, borderLeft: `3px solid ${C.crimson}` }}>
+                            <div style={{ fontSize: '0.7rem', color: C.crimson, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 700, marginBottom: '0.5rem' }}>Career Intelligence — Recommended Pathway</div>
+                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: C.white, marginBottom: '0.625rem' }}>Air Traffic Control</div>
+                            <p style={{ ...S.p, marginBottom: '0.75rem', fontSize: '0.875rem' }}>{primaryProfile.career_direction_narrative}</p>
+                            <div style={{ fontSize: '0.78rem', color: C.grey, background: C.bgDeep, borderRadius: 6, padding: '0.625rem 0.75rem', fontStyle: 'italic' }}>
+                              {primaryProfile.realistic_note}
+                            </div>
+                          </div>
+
+                          {/* Boundaries */}
+                          <div style={{ ...S.card, borderLeft: `3px solid ${C.red}` }}>
+                            <div style={{ fontSize: '0.7rem', color: C.red, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 700, marginBottom: '0.625rem' }}>AACP Does Not Establish</div>
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.375rem' }}>
+                              {primaryProfile.aacp_does_not_establish.map((d, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.825rem', color: C.grey }}>
+                                  <span style={{ color: C.red, fontWeight: 700, flexShrink: 0 }}>✕</span>
+                                  {d}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{ ...S.notice(C.grey, C.bgDeep, C.borderLight), fontSize: '0.8rem' }}>
+                            This is the career intelligence AACP produces for a participant in this position. Your role is to assess
+                            whether that conclusion — and the capability observations that support it — accurately reflects what
+                            someone at Marcus's stage should be told about ATC as a career direction.
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     {/* ── Section 3: ATC Cohort ── */}
                     {fSection === 2 && (() => {
