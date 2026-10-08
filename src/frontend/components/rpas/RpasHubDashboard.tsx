@@ -89,6 +89,28 @@ export function RpasHubDashboard() {
           </p>
         </div>
 
+        {/* Program info */}
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 24 }}>
+          <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+            Applied RPAS Workforce Program
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Inaugural Cohorts</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>November 23, 2026</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>December 14, 2026</div>
+            </div>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Investment</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>$1,200 CAD</div>
+            </div>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Duration</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>1 Week</div>
+            </div>
+          </div>
+        </div>
+
         {/* Journey progress */}
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 24 }}>
           <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14 }}>

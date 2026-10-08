@@ -3911,7 +3911,7 @@ const RPAS_ACCESS_STYLES: Record<string, { label: string; color: string }> = {
 };
 
 const RPAS_COHORT_LABELS: Record<string, string> = {
-  nov_16_2026:  'Nov 16, 2026',
+  nov_16_2026:  'Nov 23, 2026',
   dec_14_2026:  'Dec 14, 2026',
   either:       'Either',
   not_assigned: '—',
@@ -4117,7 +4117,7 @@ export function RpasHubAdminPanel() {
               <label style={labelStyle}>Assign Cohort</label>
               <select value={reviewCohort} onChange={e => setReviewCohort(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="not_assigned">Not Assigned</option>
-                <option value="nov_16_2026">November 16, 2026</option>
+                <option value="nov_16_2026">November 23, 2026</option>
                 <option value="dec_14_2026">December 14, 2026</option>
               </select>
             </div>
