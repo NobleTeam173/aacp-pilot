@@ -13762,6 +13762,11 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/cohort/invitations'                                           && request.method === 'POST') return handleCreateCohortInvitation(request, user, env);
     if (path.startsWith('/cohort/invitations/') && path.endsWith('/revoke')      && request.method === 'PUT')  return handleRevokeCohortInvitation(request, user, env);
     if (path.startsWith('/cohort/invitations/') && path.endsWith('/extend')      && request.method === 'PUT')  return handleExtendCohortInvitation(request, user, env);
+    // /pilot/invitations aliases — frontend uses this prefix
+    if (path === '/pilot/invitations'                                            && request.method === 'GET')  return handleListCohortInvitations(request, user, env);
+    if (path === '/pilot/invitations'                                            && request.method === 'POST') return handleCreateCohortInvitation(request, user, env);
+    if (path.startsWith('/pilot/invitations/') && path.endsWith('/revoke')       && request.method === 'PUT')  return handleRevokeCohortInvitation(request, user, env);
+    if (path.startsWith('/pilot/invitations/') && path.endsWith('/extend')       && request.method === 'PUT')  return handleExtendCohortInvitation(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/deactivate')  && request.method === 'PUT')  return handleDeactivatePilotAccount(request, user, env);
     if (path === '/pilot/accounts'                                              && request.method === 'GET')  return handleListPilotAccounts(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/revoke')     && request.method === 'PUT')  return handleRevokePilotAccess(request, user, env);
