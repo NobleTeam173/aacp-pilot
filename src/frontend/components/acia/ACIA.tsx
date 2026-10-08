@@ -26,9 +26,30 @@ const C = {
   grey: '#94a3b8',
 };
 
-function makeInitialSession(): ACIASession {
+function makeInitialSession(isRpas = false): ACIASession {
   const now = new Date().toISOString();
   const newSessionId = Math.random().toString(36).slice(2);
+  const missions = isRpas ? [
+    { id: 'm1', title: 'RPAS Background Interview', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
+    { id: 'm2', title: 'RPAS Pre-flight Inspection', subtitle: 'Drone systems walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
+    { id: 'm3', title: 'RPAS Fault Diagnosis', subtitle: 'Drone system fault scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
+    { id: 'm4', title: 'RPAS Systems Classification', subtitle: 'Identify RPAS components', type: 'puzzle', estimatedMinutes: 3, completed: false },
+    { id: 'm5', title: 'Telemetry & Data Reading', subtitle: 'Interpret RPAS flight data', type: 'graph', estimatedMinutes: 4, completed: false },
+    { id: 'm6', title: 'RPAS Operational Decision', subtitle: 'High-stakes RPAS scenario', type: 'decision', estimatedMinutes: 4, completed: false },
+    { id: 'm7', title: 'Airspace & Regulatory', subtitle: 'RPAS communication and compliance', type: 'atc', estimatedMinutes: 4, completed: false },
+    { id: 'm8', title: 'Mission Workload Management', subtitle: 'RPAS priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
+    { id: 'm9', title: 'RPAS Assessment Debrief', subtitle: 'Reflect on your RPAS career intelligence', type: 'reflection', estimatedMinutes: 4, completed: false },
+  ] : [
+    { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
+    { id: 'm2', title: 'Aircraft Inspection', subtitle: 'Pre-flight walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
+    { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
+    { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
+    { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
+    { id: 'm6', title: 'Operational Decision', subtitle: 'High-stakes scenario choices', type: 'decision', estimatedMinutes: 4, completed: false },
+    { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
+    { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
+    { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
+  ];
   return {
     sessionId: newSessionId,
     startedAt: now,
@@ -45,17 +66,7 @@ function makeInitialSession(): ACIASession {
       missionIndexAtStart: 0,
     }],
     interruptionCount: 0,
-    missions: [
-      { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
-      { id: 'm2', title: 'Aircraft Inspection', subtitle: 'Pre-flight walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
-      { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
-      { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
-      { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
-      { id: 'm6', title: 'Operational Decision', subtitle: 'High-stakes scenario choices', type: 'decision', estimatedMinutes: 4, completed: false },
-      { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
-      { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
-      { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
-    ],
+    missions,
   };
 }
 
@@ -493,7 +504,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       }
     }
     clearSessionStorage();
-    const newSession = makeInitialSession();
+    const newSession = makeInitialSession(isRpas);
     setSession(newSession);
     saveSessionToStorage(newSession, stage);
     // Mission 1 starts immediately — the welcome screen already briefed the participant.
@@ -835,6 +846,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
             chatHistory={session.chatHistory}
             stage={stage}
             chatEndpoint={chatEndpoint}
+            isRpas={isRpas}
             onComplete={completeMission}
           />
         </div>
@@ -848,10 +860,11 @@ interface MissionRendererProps {
   chatHistory: ACIASession['chatHistory'];
   stage: AssessmentStage;
   chatEndpoint: string;
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory?: ChatMessage[]) => void;
 }
 
-function MissionRenderer({ mission, stage, chatEndpoint, onComplete }: MissionRendererProps) {
+function MissionRenderer({ mission, stage, chatEndpoint, isRpas, onComplete }: MissionRendererProps) {
   const isFollowup = stage === 'followup';
   switch (mission.type) {
     case 'ai_chat':
@@ -859,7 +872,9 @@ function MissionRenderer({ mission, stage, chatEndpoint, onComplete }: MissionRe
         <AIMentorChat
           missionId={mission.id as MissionId}
           systemPrompt={isFollowup ? MISSION_1_FOLLOWUP_SYSTEM : MISSION_1_SYSTEM}
-          welcomeMessage={isFollowup
+          welcomeMessage={isRpas
+            ? "Good to have you with us. I'm Captain ACIA — I'll be guiding you through the RPAS Career Intelligence Assessment. Before we move into the scenario-based missions, I'd like to start with a brief conversation about your background in RPAS and drone operations. Please go ahead and introduce yourself."
+            : isFollowup
             ? "Welcome back. It's good to reconnect with you at this stage of your journey. You've completed the 8-week AACP, and now you've had real exposure to the workplace — whether through employment, a placement, mentorship, or work-integrated learning. Before we run through today's assessment, I want to hear directly from you: what has your experience looked like since the program? What have you actually been doing out there?"
             : "Good to have you with us. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: When did aviation first get its hooks into you? It could be a memory, a moment, something you saw — or even something you still can't quite explain. Take your time."
           }
