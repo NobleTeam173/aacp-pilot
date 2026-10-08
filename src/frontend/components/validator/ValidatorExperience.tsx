@@ -972,7 +972,7 @@ export function ValidatorExperience({ token }: { token: string }) {
                 const F_SECTIONS = [
                   { id: 'overview',         title: 'ATC Career Intelligence',             subtitle: 'What AACP establishes — and what it does not' },
                   { id: 'featured_journey', title: 'Marcus Chen — Participant Profile',   subtitle: 'Featured ATC pathway participant' },
-                  { id: 'cohort',           title: 'ATC Cohort & Capability Indicators',  subtitle: 'Representative ATC participants and relevant capabilities' },
+                  { id: 'cohort',           title: 'ATC Cohort',                          subtitle: 'Representative ATC participants across the cohort' },
                   { id: 'signal',           title: 'NAV CANADA Pathway & Industry Signal',subtitle: 'Selection process, training pipeline, and IPS signal' },
                   { id: 'captain',          title: 'Captain ACIA — ATC Career Guidance',  subtitle: 'Review Captain ACIA\'s responses to ATC-specific prompts' },
                 ];
@@ -1101,56 +1101,35 @@ export function ValidatorExperience({ token }: { token: string }) {
                       </>
                     )}
 
-                    {/* ── Section 3: ATC Cohort & Capability Indicators ── */}
+                    {/* ── Section 3: ATC Cohort ── */}
                     {fSection === 2 && (() => {
                       const atcMembers = COHORT_MEMBERS.filter(m => m.pathway === 'ATC');
-                      const atcCapabilities = [
-                        { name: 'Systematic Reasoning', description: 'Approaches problems through structured analysis; applies rules and procedures with consistency and precision.' },
-                        { name: 'Attention to Detail', description: 'Sustains accuracy across complex, fast-moving information streams; detects anomalies under time pressure.' },
-                        { name: 'Situational Awareness', description: 'Maintains an accurate mental model of dynamic environments; anticipates how current conditions will evolve.' },
-                        { name: 'Communication Precision', description: 'Expresses information clearly and unambiguously; adapts communication style to the needs of the recipient.' },
-                        { name: 'Decision Under Pressure', description: 'Commits to decisions under time constraint and uncertainty; escalates appropriately when limits are reached.' },
-                        { name: 'Collaborative Reliability', description: 'Fulfils commitments to team members; supports handover quality and shared situational understanding.' },
-                      ];
                       return (
-                        <>
-                          <div style={S.card}>
-                            <h3 style={S.h2}>ATC Pathway — Representative Participants</h3>
-                            <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
-                              {atcMembers.length} fictional participants are in the ATC pathway within this representative cohort.
-                              Their backgrounds span {[...new Set(atcMembers.map(m => m.backgroundType))].join(', ')}.
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.625rem' }}>
-                              {atcMembers.map(m => (
-                                <div key={m.name} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
-                                  <span style={{ ...S.pathwayChip('ATC'), flexShrink: 0 }}>ATC</span>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: C.white, marginBottom: 2 }}>{m.name}</div>
-                                    <div style={{ fontSize: '0.78rem', color: C.grey, marginBottom: 3 }}>{m.backgroundType}</div>
-                                    <div style={{ fontSize: '0.75rem', color: C.greyD }}>{m.stateDescription}</div>
-                                  </div>
-                                  <div style={{ fontSize: '0.7rem', color: C.grey, whiteSpace: 'nowrap' as const, background: C.bgCard, padding: '0.2rem 0.45rem', borderRadius: 4, border: `1px solid ${C.border}` }}>{m.journeyState}</div>
+                        <div style={S.card}>
+                          <h3 style={S.h2}>ATC Pathway — Representative Participants</h3>
+                          <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
+                            {atcMembers.length} fictional participants are in the ATC pathway within this representative cohort.
+                            Marcus Chen's profile — which you reviewed in detail in the previous section — is one of these.
+                            The cohort illustrates the range of backgrounds, stages, and journey states AACP tracks.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.625rem' }}>
+                            {atcMembers.map(m => (
+                              <div key={m.name} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
+                                <span style={{ ...S.pathwayChip('ATC'), flexShrink: 0 }}>ATC</span>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: C.white, marginBottom: 2 }}>{m.name}</div>
+                                  <div style={{ fontSize: '0.78rem', color: C.grey, marginBottom: 3 }}>{m.backgroundType}</div>
+                                  <div style={{ fontSize: '0.75rem', color: C.greyD }}>{m.stateDescription}</div>
                                 </div>
-                              ))}
-                            </div>
+                                <div style={{ fontSize: '0.7rem', color: C.grey, whiteSpace: 'nowrap' as const, background: C.bgCard, padding: '0.2rem 0.45rem', borderRadius: 4, border: `1px solid ${C.border}` }}>{m.journeyState}</div>
+                              </div>
+                            ))}
                           </div>
-                          <div style={S.card}>
-                            <h3 style={S.h2}>ATC Capability Indicators — As Used by AACP</h3>
-                            <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
-                              These capability descriptions are used in AACP's career-exploration experience. They describe tendencies and
-                              approaches observed across the programme — they are <strong>not</strong> predictive assessments of ATC aptitude
-                              or selection suitability, and they are not derived from or endorsed by NAV CANADA's selection methodology.
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
-                              {atcCapabilities.map(cap => (
-                                <div key={cap.name} style={{ padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
-                                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: C.white, marginBottom: '0.25rem' }}>{cap.name}</div>
-                                  <div style={{ fontSize: '0.8rem', color: C.grey }}>{cap.description}</div>
-                                </div>
-                              ))}
-                            </div>
+                          <div style={{ ...S.notice(C.grey, C.bgDeep, C.borderLight), marginTop: '1rem', marginBottom: 0, fontSize: '0.8rem' }}>
+                            Capability indicators associated with each participant's profile are visible in the featured journey cards.
+                            They describe tendencies and approaches — they are <strong>not</strong> predictive assessments of ATC aptitude or selection suitability.
                           </div>
-                        </>
+                        </div>
                       );
                     })()}
 
