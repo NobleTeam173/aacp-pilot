@@ -8852,6 +8852,22 @@ async function handleAdminRpasParticipants(request, user, env) {
   return json({ participants });
 }
 
+// PATCH /admin/rpas/participants/:userId/hub-status — admin patch for stuck hub_status
+async function handleAdminRpasParticipantHubStatus(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const userId = new URL(request.url).pathname.split('/')[4];
+  if (!userId) return err('userId required');
+  const body = await request.json().catch(() => null);
+  const allowed = ['intake', 'assessment', 'profile_ready', 'enrolled', 'complete'];
+  if (!body?.hubStatus || !allowed.includes(body.hubStatus)) return err('valid hubStatus required');
+  const now = new Date().toISOString();
+  const r = await env.DB.prepare(
+    `UPDATE rpas_profiles SET hub_status = ?, updated_at = ? WHERE user_id = ? RETURNING user_id, hub_status`
+  ).bind(body.hubStatus, now, userId).first().catch(() => null);
+  if (!r) return err('Profile not found or update failed', 404);
+  return json({ userId: r.user_id, hubStatus: r.hub_status });
+}
+
 // GET /rpas/profile — participant gets their RPAS profile
 async function handleRpasProfileGet(request, user, env) {
   const guard = requireRole(user, 'youth', 'admin', 'super_admin'); if (guard) return guard;
@@ -13719,6 +13735,7 @@ async function _routeRequest(request, env, ctx) {
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/access$/)                     && request.method === 'PATCH') return handleAdminRpasApplicationAccess(request, user, env);
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env);
     if (path === '/admin/rpas/participants'                                             && request.method === 'GET')   return handleAdminRpasParticipants(request, user, env);
+    if (path.match(/^\/admin\/rpas\/participants\/[^/]+\/hub-status$/)                  && request.method === 'PATCH') return handleAdminRpasParticipantHubStatus(request, user, env);
 
     // ── EOI admin routes ──────────────────────────────────────────────────────
     if (path === '/admin/eoi/individuals'                                              && request.method === 'GET')  return handleAdminEoiIndividuals(request, user, env);
