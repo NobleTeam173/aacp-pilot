@@ -8750,10 +8750,29 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
   if (!app) return err('Application not found', 404);
   if (app.status !== 'accepted')                  return err('EOI must be accepted before issuing an invite', 400);
   if (app.payment_status !== 'payment_confirmed') return err('Payment must be confirmed before issuing an invite', 400);
-  if (app.invitation_id) return err('An invitation has already been issued for this application', 400);
 
-  // Delegate to existing pilot invitation handler by constructing equivalent request
   const body = await request.json().catch(() => ({}));
+  const now2 = new Date().toISOString();
+
+  // If a previous invitation exists (unused), revoke it so a fresh one can be issued
+  if (app.invitation_id) {
+    await env.DB.prepare(
+      `UPDATE cohort_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ? AND accepted_at IS NULL`
+    ).bind(now2, user.sub, app.invitation_id).run();
+    await env.DB.prepare(
+      `UPDATE rpas_applications SET invitation_id = NULL, invited_at = NULL, updated_at = ? WHERE id = ?`
+    ).bind(now2, id).run();
+  }
+
+  // Also revoke any other active invitation for this email (e.g. issued via the manual cohort panel)
+  const existing = await env.DB.prepare(
+    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
+  ).bind(app.email, now2).first();
+  if (existing) {
+    await env.DB.prepare(`UPDATE cohort_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ?`)
+      .bind(now2, user.sub, existing.id).run();
+  }
+
   const inviteBody = {
     email: app.email,
     firstName: app.first_name,
@@ -8766,16 +8785,10 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
     rpasApplicationId: id,
   };
 
-  // Create invite directly (same logic as handleCreateCohortInvitation)
-  const existing = await env.DB.prepare(
-    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
-  ).bind(app.email, new Date().toISOString()).first();
-  if (existing) return err('An active invitation already exists for this email address. Revoke it first.', 409);
-
   const rawToken = randomHex(32);
   const tokenHash = await sha256hex(rawToken);
   const invId = randomHex(8);
-  const now = new Date().toISOString();
+  const now = now2;
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 days for RPAS Hub
 
   await env.DB.prepare(
