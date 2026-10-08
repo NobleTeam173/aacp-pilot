@@ -850,6 +850,160 @@ interface AciaSaveFailure {
 }
 
 
+// ── Commercial ACIA Registrations Panel ──────────────────────────────────────
+
+interface CommercialAciaUser {
+  id: string;
+  name: string;
+  email: string;
+  aciaPackage: string;
+  aciaPaymentStatus: string | null;
+  aciaAccessEnabled: boolean;
+  createdAt: string;
+}
+
+function CommercialAciaPanel() {
+  const [users, setUsers] = useState<CommercialAciaUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ users: any[] }>('/admin/users/all');
+      setUsers((res.users ?? []).filter((u: any) => u.aciaPackage));
+    } catch (e) {
+      setToast({ msg: e instanceof Error ? e.message : 'Failed to load', ok: false });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function confirmPayment(userId: string) {
+    setActing(userId);
+    try {
+      const res = await apiFetch<{ message: string }>(`/admin/users/${userId}/acia-payment`, { method: 'PATCH', body: '{}' });
+      setToast({ msg: res.message, ok: true });
+      await load();
+    } catch (e) {
+      setToast({ msg: e instanceof Error ? e.message : 'Action failed', ok: false });
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function toggleAccess(userId: string, enable: boolean) {
+    setActing(userId);
+    try {
+      const res = await apiFetch<{ message: string }>(`/admin/users/${userId}/acia-access`, { method: 'PATCH', body: JSON.stringify({ enabled: enable }) });
+      setToast({ msg: res.message, ok: true });
+      await load();
+    } catch (e) {
+      setToast({ msg: e instanceof Error ? e.message : 'Action failed', ok: false });
+    } finally {
+      setActing(null);
+    }
+  }
+
+  const PACKAGE_LABELS: Record<string, string> = {
+    individual_199: 'Individual – $199',
+    individual_399: 'Individual – $399',
+  };
+
+  const TD: React.CSSProperties = { padding: '10px 12px', fontSize: 12, color: C.white, borderBottom: `1px solid ${C.border}`, verticalAlign: 'middle' };
+  const TH: React.CSSProperties = { ...TD, color: C.greyD, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, background: C.bgCard };
+
+  return (
+    <div>
+      {toast && (
+        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, background: toast.ok ? C.greenBg : C.redBg, color: toast.ok ? C.green : C.red, border: `1px solid ${toast.ok ? C.greenBorder : C.redBorder}` }}>
+          {toast.msg}
+          <button onClick={() => setToast(null)} style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontFamily: 'Fraunces, serif', color: C.white, margin: '0 0 4px', fontSize: 'clamp(1.1rem,2.5vw,1.4rem)', fontWeight: 700 }}>Commercial ACIA Registrations</h2>
+          <div style={{ color: C.grey, fontSize: 13 }}>Individual paid registrants ($199 / $399). Confirm off-platform payment to enable ACIA access.</div>
+        </div>
+        <button onClick={load} style={{ background: C.bgCard, color: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Refresh</button>
+      </div>
+
+      {loading ? (
+        <p style={{ color: C.greyD, fontSize: 13 }}>Loading…</p>
+      ) : users.length === 0 ? (
+        <p style={{ color: C.greyD, fontSize: 13 }}>No commercial ACIA registrants found.</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: C.bgCard, borderRadius: 10, fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={TH}>Name</th>
+                <th style={TH}>Email</th>
+                <th style={TH}>Package</th>
+                <th style={TH}>Payment</th>
+                <th style={TH}>Access</th>
+                <th style={TH}>Registered</th>
+                <th style={TH}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => {
+                const isPending = !u.aciaPaymentStatus || u.aciaPaymentStatus === 'pending';
+                const isConfirmed = u.aciaPaymentStatus === 'payment_confirmed';
+                const isWorking = acting === u.id;
+                return (
+                  <tr key={u.id}>
+                    <td style={TD}>{u.name}</td>
+                    <td style={{ ...TD, color: C.greyD }}>{u.email}</td>
+                    <td style={TD}><span style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 5, padding: '2px 8px', fontSize: 11 }}>{PACKAGE_LABELS[u.aciaPackage] ?? u.aciaPackage}</span></td>
+                    <td style={TD}>
+                      {isPending && <span style={{ color: C.amber, fontWeight: 600 }}>Pending</span>}
+                      {isConfirmed && <span style={{ color: C.green, fontWeight: 600 }}>Confirmed</span>}
+                    </td>
+                    <td style={TD}>
+                      {u.aciaAccessEnabled
+                        ? <span style={{ color: C.green, fontWeight: 600 }}>Enabled</span>
+                        : <span style={{ color: C.greyD }}>Disabled</span>}
+                    </td>
+                    <td style={{ ...TD, color: C.greyD }}>{new Date(u.createdAt).toLocaleDateString('en-CA')}</td>
+                    <td style={{ ...TD }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {!isConfirmed && (
+                          <button
+                            onClick={() => confirmPayment(u.id)}
+                            disabled={isWorking}
+                            style={{ background: C.crimson, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 11px', fontSize: 11, fontWeight: 700, cursor: isWorking ? 'default' : 'pointer', opacity: isWorking ? 0.6 : 1 }}
+                          >
+                            {isWorking ? '…' : 'Confirm Payment'}
+                          </button>
+                        )}
+                        {isConfirmed && (
+                          <button
+                            onClick={() => toggleAccess(u.id, !u.aciaAccessEnabled)}
+                            disabled={isWorking}
+                            style={{ background: u.aciaAccessEnabled ? C.bgDeep : C.green, color: u.aciaAccessEnabled ? C.red : '#fff', border: `1px solid ${u.aciaAccessEnabled ? C.redBorder : C.green}`, borderRadius: 6, padding: '5px 11px', fontSize: 11, fontWeight: 700, cursor: isWorking ? 'default' : 'pointer', opacity: isWorking ? 0.6 : 1 }}
+                          >
+                            {isWorking ? '…' : (u.aciaAccessEnabled ? 'Disable Access' : 'Enable Access')}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p style={{ color: C.greyD, fontSize: 11, textAlign: 'right', marginTop: 8 }}>{users.length} registrant{users.length !== 1 ? 's' : ''}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ACIAIntegrityPanel() {
   const [report, setReport] = useState<AciaIntegrityReport | null>(null);
   const [failures, setFailures] = useState<AciaSaveFailure[]>([]);
@@ -1281,7 +1435,7 @@ function AdminManagementPanel() {
   );
 }
 
-type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'handoffs' | 'eoi';
+type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'acia_commercial' | 'handoffs' | 'eoi';
 
 // ── AACP Waitlist Panel (Admin view) ──────────────────────────────────────────
 
@@ -3508,6 +3662,7 @@ export function AdminDashboard() {
           { key: 'participants', label: 'Participant Overrides' },
           { key: 'handoffs', label: 'Handoffs' },
           { key: 'acia_integrity', label: 'ACIA Integrity' },
+          { key: 'acia_commercial', label: 'Commercial ACIA' },
           { key: 'eoi', label: 'Expressions of Interest' },
           { key: 'pilot', label: 'Pilot Access' },
           { key: 'audit', label: 'Audit Log' },
@@ -3537,8 +3692,9 @@ export function AdminDashboard() {
       {adminTab === 'organizations'  && <OrganizationsPanel />}
       {adminTab === 'coaches'        && <CoachInvitationsPanel />}
       {adminTab === 'participants'   && <ParticipantOverridePanel />}
-      {adminTab === 'acia_integrity' && <ACIAIntegrityPanel />}
-      {adminTab === 'eoi'            && <EoiAdminPanel />}
+      {adminTab === 'acia_integrity'  && <ACIAIntegrityPanel />}
+      {adminTab === 'acia_commercial' && <CommercialAciaPanel />}
+      {adminTab === 'eoi'             && <EoiAdminPanel />}
       {adminTab === 'pilot'          && <PilotAccessPanel />}
       {adminTab === 'audit'          && <AuditLogPanel />}
       {adminTab === 'admins'         && isSuperAdmin && <AdminManagementPanel />}
