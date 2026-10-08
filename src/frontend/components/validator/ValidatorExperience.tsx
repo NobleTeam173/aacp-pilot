@@ -717,6 +717,8 @@ export function ValidatorExperience({ token }: { token: string }) {
   // Experience sections & checkpoints
   const [activeSectionId, setActiveSectionId] = useState<string>('overview');
   const [checkpoints, setCheckpoints] = useState<Set<string>>(new Set());
+  // Instrument F sequential section index (0–4)
+  const [fSection, setFSection] = useState(0);
 
   // Missing-response UX
   const [missingQKeys, setMissingQKeys] = useState<string[]>([]);
@@ -964,7 +966,284 @@ export function ValidatorExperience({ token }: { token: string }) {
           <>
             <DisclosureBanner label={experience.representative_data_label ?? 'Representative Data — This view uses fictional data to demonstrate how AACP workforce intelligence is presented. No real participant information is displayed.'} />
 
-            {isGuided ? (
+            {isGuided && currentInstrument === 'F' ? (
+              /* ── Instrument F: Sequential 5-section flow ── */
+              (() => {
+                const F_SECTIONS = [
+                  { id: 'overview',         title: 'ATC Career Intelligence',             subtitle: 'What AACP establishes — and what it does not' },
+                  { id: 'featured_journey', title: 'Marcus Chen — Participant Profile',   subtitle: 'Featured ATC pathway participant' },
+                  { id: 'cohort',           title: 'ATC Cohort & Capability Indicators',  subtitle: 'Representative ATC participants and relevant capabilities' },
+                  { id: 'signal',           title: 'NAV CANADA Pathway & Industry Signal',subtitle: 'Selection process, training pipeline, and IPS signal' },
+                  { id: 'captain',          title: 'Captain ACIA — ATC Career Guidance',  subtitle: 'Review Captain ACIA\'s responses to ATC-specific prompts' },
+                ];
+                const sec = F_SECTIONS[fSection];
+                const isLast = fSection === F_SECTIONS.length - 1;
+                const advanceSection = () => {
+                  if (sec) markCheckpoint(sec.id);
+                  if (!isLast) setFSection(prev => prev + 1);
+                };
+                const atcProfiles = (experience.all_profiles ?? (experience.primary_profile ? [experience.primary_profile] : [])).filter(p => p.pathway === 'ATC' || p.id?.includes('atc'));
+                const primaryProfile = experience.primary_profile ?? atcProfiles[0];
+                return (
+                  <>
+                    {/* Progress indicator */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' as const }}>
+                      {F_SECTIONS.map((s, i) => {
+                        const done = checkpoints.has(s.id);
+                        const active = i === fSection;
+                        const past = i < fSection;
+                        return (
+                          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <div style={{
+                              width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '0.7rem', fontWeight: 700,
+                              background: done ? C.green : active ? C.crimson : C.bgDeep,
+                              color: (done || active) ? '#fff' : C.greyD,
+                              border: `2px solid ${done ? C.green : active ? C.crimson : C.border}`,
+                              flexShrink: 0,
+                            }}>{done ? '✓' : i + 1}</div>
+                            {i < F_SECTIONS.length - 1 && (
+                              <div style={{ width: 20, height: 2, background: past || done ? C.green : C.border, borderRadius: 1 }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                      <span style={{ fontSize: '0.75rem', color: C.grey, marginLeft: '0.25rem' }}>Section {fSection + 1} of {F_SECTIONS.length}</span>
+                    </div>
+
+                    {/* Section header */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.7rem', color: C.greyD, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 600, marginBottom: '0.25rem' }}>
+                        {sec?.subtitle}
+                      </div>
+                      <h2 style={{ ...S.h1, fontSize: '1.3rem', marginBottom: 0 }}>{sec?.title}</h2>
+                    </div>
+
+                    {/* ── Section 1: ATC Career Intelligence Overview ── */}
+                    {fSection === 0 && (
+                      <>
+                        <div style={S.card}>
+                          <h3 style={S.h2}>What AACP Establishes About ATC</h3>
+                          <p style={S.p}>
+                            AACP is a career-exploration and workforce-intelligence programme. For participants in the ATC pathway,
+                            it establishes <strong>career-exploration readiness</strong>, <strong>workforce orientation</strong>, and a
+                            profile of <strong>capability tendencies</strong> that are relevant to — but not predictive of — performance
+                            in ATC work.
+                          </p>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                            {[
+                              { label: 'AACP Establishes', color: C.green, items: ['Career direction and exploration commitment', 'Capability tendencies relevant to ATC work', 'Workforce readiness and sector orientation', 'Understanding of ATC role demands and pathway'] },
+                              { label: 'AACP Does Not Establish', color: C.crimson, items: ['ATC aptitude or cognitive screening results', 'Suitability for NAV CANADA selection', 'Likelihood of passing simulator evaluations', 'Formal ATC competence or proficiency'] },
+                            ].map(col => (
+                              <div key={col.label} style={{ background: C.bgDeep, borderRadius: 8, padding: '0.875rem' }}>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: col.color, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: '0.625rem' }}>{col.label}</div>
+                                {col.items.map(item => (
+                                  <div key={item} style={{ fontSize: '0.8rem', color: C.grey, marginBottom: '0.375rem', paddingLeft: '0.5rem', borderLeft: `2px solid ${col.color}33` }}>{item}</div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={S.card}>
+                          <h3 style={S.h2}>The ATC Role — Occupational Reality</h3>
+                          <p style={{ ...S.p, marginBottom: '0.875rem' }}>
+                            Air traffic controllers are responsible for the safe and efficient movement of aircraft through Canadian airspace —
+                            18 million square kilometres, 24 hours a day. They work from one of seven Area Control Centres or 42 tower locations
+                            across Canada, using advanced radar, flight tracking systems, and strict protocols.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                            {[
+                              'No prior aviation experience is required by NAV CANADA — the role is open to candidates from any background.',
+                              'Controllers earn up to $207,450 annually once certified; a training salary of up to $61,337 is paid from day one.',
+                              'Training combines intensive classroom instruction, high-fidelity simulators, and on-the-job experience under supervision.',
+                              'The selection process is multi-stage and highly competitive — cognitive, spatial, and communication assessments are applied.',
+                              'Willingness to relocate is required; positions are offered based on operational need by Flight Information Region.',
+                            ].map(fact => (
+                              <div key={fact} style={{ display: 'flex', gap: '0.625rem', alignItems: 'flex-start', fontSize: '0.825rem', color: C.grey }}>
+                                <span style={{ color: C.crimson, flexShrink: 0, fontWeight: 700, marginTop: '0.1rem' }}>›</span>
+                                {fact}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ ...S.card, background: C.bgDeep }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: C.grey, marginBottom: '0.375rem' }}>Coming up in this validation experience</div>
+                          <p style={{ ...S.p, marginBottom: 0, fontSize: '0.85rem' }}>
+                            You will review Marcus Chen's fictional participant profile, the ATC capability indicators AACP uses, the
+                            NAV CANADA selection and training pathway as AACP presents it, and then engage with Captain ACIA on
+                            ATC-specific career guidance questions.
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {/* ── Section 2: Marcus Chen Profile ── */}
+                    {fSection === 1 && (
+                      <>
+                        <div style={S.card}>
+                          <p style={{ ...S.p, marginBottom: 0, fontSize: '0.85rem' }}>
+                            Marcus Chen is a fictional participant in the ATC pathway. His profile illustrates the depth of intelligence
+                            AACP develops — career direction, capability indicators, and what AACP explicitly does <em>not</em> establish
+                            about readiness for formal ATC selection.
+                          </p>
+                        </div>
+                        {primaryProfile && (
+                          <FeaturedProfileCard
+                            profile={primaryProfile}
+                            onExpanded={() => markCheckpoint('featured_journey')}
+                          />
+                        )}
+                        {!primaryProfile && (
+                          <div style={S.card}>
+                            <p style={{ ...S.p, color: C.greyD }}>Profile data not available in this session.</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* ── Section 3: ATC Cohort & Capability Indicators ── */}
+                    {fSection === 2 && (() => {
+                      const atcMembers = COHORT_MEMBERS.filter(m => m.pathway === 'ATC');
+                      const atcCapabilities = [
+                        { name: 'Systematic Reasoning', description: 'Approaches problems through structured analysis; applies rules and procedures with consistency and precision.' },
+                        { name: 'Attention to Detail', description: 'Sustains accuracy across complex, fast-moving information streams; detects anomalies under time pressure.' },
+                        { name: 'Situational Awareness', description: 'Maintains an accurate mental model of dynamic environments; anticipates how current conditions will evolve.' },
+                        { name: 'Communication Precision', description: 'Expresses information clearly and unambiguously; adapts communication style to the needs of the recipient.' },
+                        { name: 'Decision Under Pressure', description: 'Commits to decisions under time constraint and uncertainty; escalates appropriately when limits are reached.' },
+                        { name: 'Collaborative Reliability', description: 'Fulfils commitments to team members; supports handover quality and shared situational understanding.' },
+                      ];
+                      return (
+                        <>
+                          <div style={S.card}>
+                            <h3 style={S.h2}>ATC Pathway — Representative Participants</h3>
+                            <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
+                              {atcMembers.length} fictional participants are in the ATC pathway within this representative cohort.
+                              Their backgrounds span {[...new Set(atcMembers.map(m => m.backgroundType))].join(', ')}.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.625rem' }}>
+                              {atcMembers.map(m => (
+                                <div key={m.name} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
+                                  <span style={{ ...S.pathwayChip('ATC'), flexShrink: 0 }}>ATC</span>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: C.white, marginBottom: 2 }}>{m.name}</div>
+                                    <div style={{ fontSize: '0.78rem', color: C.grey, marginBottom: 3 }}>{m.backgroundType}</div>
+                                    <div style={{ fontSize: '0.75rem', color: C.greyD }}>{m.stateDescription}</div>
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: C.grey, whiteSpace: 'nowrap' as const, background: C.bgCard, padding: '0.2rem 0.45rem', borderRadius: 4, border: `1px solid ${C.border}` }}>{m.journeyState}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={S.card}>
+                            <h3 style={S.h2}>ATC Capability Indicators — As Used by AACP</h3>
+                            <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
+                              These capability descriptions are used in AACP's career-exploration experience. They describe tendencies and
+                              approaches observed across the programme — they are <strong>not</strong> predictive assessments of ATC aptitude
+                              or selection suitability, and they are not derived from or endorsed by NAV CANADA's selection methodology.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                              {atcCapabilities.map(cap => (
+                                <div key={cap.name} style={{ padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
+                                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: C.white, marginBottom: '0.25rem' }}>{cap.name}</div>
+                                  <div style={{ fontSize: '0.8rem', color: C.grey }}>{cap.description}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    {/* ── Section 4: NAV CANADA Pathway & IPS Signal ── */}
+                    {fSection === 3 && (
+                      <>
+                        <div style={S.card}>
+                          <h3 style={S.h2}>NAV CANADA — Selection & Training Pipeline</h3>
+                          <p style={{ ...S.p, marginBottom: '1rem', fontSize: '0.85rem' }}>
+                            AACP presents the NAV CANADA pathway to participants in the ATC stream. The following represents how AACP
+                            describes this process. Your assessment of its accuracy and completeness is part of this validation.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                            {[
+                              { stage: '1. Application', detail: 'Apply via NAV CANADA\'s Workday careers portal. Basic requirements: age 18+, high school diploma, Canadian citizen or permanent resident, willingness to relocate, availability to start training within 18 months. No aviation experience required.' },
+                              { stage: '2. Online Assessment', detail: 'Eligible applicants receive an online testing link. Assessments include cognitive, spatial, and situational components. Passing the online assessment is required before advancing. If unsuccessful, reapplication is permitted after one year.' },
+                              { stage: '3. In-Person Assessment', detail: 'Candidates advance to computer-based in-person testing. Includes simulation-style exercises. Unsuccessful candidates must wait two years before reapplying.' },
+                              { stage: '4. Assessment Centre', detail: 'Selected candidates attend a structured assessment centre with NAV CANADA HR and operational managers. Unsuccessful candidates must wait three years before reapplying.' },
+                              { stage: '5. Offer & Pre-Employment', detail: 'Candidates offered training positions must complete background checks, medical licensing, criminal record verification, education verification, and drug testing (including cannabis). A training salary is paid from day one.' },
+                              { stage: '6. Training', detail: 'Intensive full-time programme combining classroom instruction, high-fidelity simulator work, and on-the-job training under supervision. Training salary: up to $61,337. Certified salary: up to $207,450. Location is assigned based on operational need.' },
+                            ].map((step, i) => (
+                              <div key={step.stage} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: C.bgDeep, borderRadius: 8 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.crimson + '22', border: `1px solid ${C.crimson}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: C.crimson, flexShrink: 0 }}>{i + 1}</div>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: C.white, marginBottom: '0.25rem' }}>{step.stage.split('. ')[1]}</div>
+                                  <div style={{ fontSize: '0.8rem', color: C.grey }}>{step.detail}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ ...S.notice(C.grey, C.bgDeep, C.borderLight), marginTop: '1rem', marginBottom: 0, fontSize: '0.8rem' }}>
+                            <strong>Note:</strong> AACP prepares participants for the transition toward ATC as a career direction.
+                            It does not prepare participants for NAV CANADA's selection process, predict selection outcomes, or provide
+                            any advantage in NAV CANADA's cognitive or simulator-based assessments.
+                          </div>
+                        </div>
+                        {hasSig && (
+                          <SandboxSignalPanel
+                            token={token}
+                            instrument={currentInstrument}
+                            onViewed={() => markCheckpoint('signal')}
+                          />
+                        )}
+                      </>
+                    )}
+
+                    {/* ── Section 5: Captain ACIA ── */}
+                    {fSection === 4 && hasCapAcia && experience.captain_acia && (
+                      <CaptainCheckpointPanel
+                        token={token}
+                        config={experience.captain_acia}
+                        isComplete={checkpoints.has('captain')}
+                        onComplete={() => markCheckpoint('captain')}
+                      />
+                    )}
+
+                    {/* Section navigation */}
+                    <hr style={S.divider} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        {fSection > 0 && (
+                          <button onClick={() => setFSection(prev => prev - 1)} style={{ ...S.btn('ghost'), fontSize: '0.875rem' }}>
+                            ← Back
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        {isLast ? (
+                          <>
+                            {!allCheckpointsMet && (
+                              <span style={{ fontSize: '0.78rem', color: C.greyD }}>
+                                Complete all sections to proceed
+                              </span>
+                            )}
+                            <button
+                              onClick={() => { markCheckpoint('captain'); handleBeginQuestions(); }}
+                              disabled={!allCheckpointsMet}
+                              style={{ ...S.btn('primary'), opacity: allCheckpointsMet ? 1 : 0.4, cursor: allCheckpointsMet ? 'pointer' : 'not-allowed' }}
+                            >
+                              Proceed to Validation Questions
+                            </button>
+                          </>
+                        ) : (
+                          <button onClick={advanceSection} style={S.btn('primary')}>
+                            Continue to {F_SECTIONS[fSection + 1]?.title} →
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()
+            ) : isGuided ? (
               <>
                 {/* Section tabs with checkpoint indicators */}
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' as const }}>
@@ -1387,7 +1666,7 @@ const INSTRUMENT_QUESTIONS: Record<string, Question[]> = {
     { key: 'F2', type: 'relevance_scale', label: 'Capability Indicators (Relevance to ATC Work)', text: 'We have shown you a set of capability descriptions that AACP uses in its career exploration experience. These describe tendencies and approaches — they are not predictive assessments of ATC aptitude or selection suitability. For each indicator shown, how relevant is it to the actual demands of ATC work?', scale: SCALE_RELEVANCE, optional_text: 'What, if anything, is missing from this set? What should not be here?' },
     { key: 'F3', type: 'supported_scale', label: 'NAV CANADA Pathway Accuracy', text: 'Does AACP accurately describe the process by which people progress toward Air Traffic Control careers in Canada — including NAV CANADA’s recruitment, screening, training pipeline, and the realities that prospective entrants most commonly misunderstand?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What is inaccurate or missing?' },
     { key: 'F4', type: 'supported_scale', label: 'Career Readiness vs. Formal ATC Screening', text: 'Does AACP make clear that what it assesses — career-exploration readiness, workforce orientation, and capability tendencies — is distinct from the formal screening, cognitive testing, and simulator-based evaluation that NAV CANADA conducts as part of its selection and training process?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What blurs this distinction? What would need to change?' },
-    { key: 'F5', type: 'supported_scale', label: 'ATC Communication Experience', text: 'AACP includes an ATC communication simulation in which participants compose radio transmissions using standard phraseology in a structured scenario exercise. This is presented as a sector-familiarisation activity — not an assessment of ATC proficiency, aptitude, or selection readiness. Does this framing accurately describe what the exercise can and cannot establish?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What needs to be corrected or made clearer?' },
+    { key: 'F5', type: 'supported_scale', label: 'Captain ACIA — ATC Career Guidance', text: 'Based on your interaction with Captain ACIA and the guidance it provided about Marcus Chen’s ATC direction, does Captain ACIA appropriately support ATC career exploration without overstating what AACP can establish about a person’s suitability for formal ATC work, selection, or training?', scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What guidance would you change or remove?' },
     { key: 'F6', type: 'open_text', label: 'After Career Awareness', text: 'How does NAV CANADA, or the broader ATC sector, currently determine whether people reached through career-awareness activities subsequently progress toward an ATC career — and what outcomes do you currently track or find meaningful?', discovery: true },
     { key: 'F_final1', type: 'open_text', label: 'Final Perspective F-1', text: 'Overall — would you be comfortable with AACP being used with someone who is seriously exploring an ATC career? What is the single most important change that would increase your confidence in it?', final: true },
     { key: 'F_final2', type: 'open_text', label: 'Final Perspective F-2', text: 'Is there anything AACP should stop claiming, stop doing, or make clearer about what it is and what it is not — specifically in the context of ATC career exploration?', final: true },
