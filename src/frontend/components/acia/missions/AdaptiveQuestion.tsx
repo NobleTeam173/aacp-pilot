@@ -19,10 +19,11 @@ interface Props {
   question: QuestionRecord;
   variantText: string;
   expectedCorrect?: string;
+  chatEndpoint?: string;
   onComplete: (response: QuestionResponse) => void;
 }
 
-export function AdaptiveQuestion({ question, variantText, expectedCorrect, onComplete }: Props) {
+export function AdaptiveQuestion({ question, variantText, expectedCorrect, chatEndpoint = '/acia/chat', onComplete }: Props) {
   const [response, setResponse] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -46,7 +47,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
 
       // Step 1: Classify response against rubric using AI
       const classifyPrompt = buildClassificationPrompt(question, variantText, response.trim(), expectedCorrect);
-      const classifyRes = await fetch('/acia/chat', {
+      const classifyRes = await fetch(chatEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

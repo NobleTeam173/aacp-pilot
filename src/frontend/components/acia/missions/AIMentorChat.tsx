@@ -18,10 +18,11 @@ interface Props {
   systemPrompt: string;
   welcomeMessage: string;
   minMessages: number;
+  chatEndpoint?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory: ChatMessage[]) => void;
 }
 
-export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessages, onComplete }: Props) {
+export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessages, chatEndpoint = '/acia/chat', onComplete }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: welcomeMessage },
   ]);
@@ -53,7 +54,7 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
 
     try {
       const token = localStorage.getItem('aacp_access_token');
-      const res = await fetch('/acia/chat', {
+      const res = await fetch(chatEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

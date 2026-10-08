@@ -232,6 +232,9 @@ function generateSubmissionId(): string {
 }
 
 export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete }: { stage?: AssessmentStage; pathwayType?: string; onComplete?: () => void }) {
+  const isRpas = pathwayType === 'rpas';
+  const chatEndpoint = isRpas ? '/acia/rpas/chat' : '/acia/chat';
+  const saveEndpoint = isRpas ? '/acia/rpas/assessment/complete' : '/acia/assessment/complete';
   const [view, setView] = useState<ViewState>('welcome');
   const [session, setSession] = useState<ACIASession | null>(null);
   const [transitionMsg, setTransitionMsg] = useState('');
@@ -279,6 +282,46 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
 
   // Build completion payload from current session (memoized to avoid stale closure issues)
   const buildPayload = useCallback((sess: ACIASession) => {
+    const participantName = sess.participantName ?? localStorage.getItem('aacp_name') ?? undefined;
+
+    if (isRpas) {
+      // RPAS handler: server interprets evidence from session log + interaction results.
+      // Flatten all chat turns across all missions into a single chronological log.
+      const sessionLog: { role: string; content: string; mission?: string }[] = [];
+      for (const mission of sess.missions) {
+        const history = sess.chatHistory[mission.id] ?? [];
+        for (const msg of history) {
+          sessionLog.push({ role: msg.role, content: msg.content, mission: mission.id });
+        }
+      }
+      // Adaptive question responses as interaction results
+      const interactionResults: Record<string, unknown> = {};
+      sess.responses.forEach((r, i) => {
+        interactionResults[`q${i + 1}_${r.questionId}`] = {
+          questionId: r.questionId,
+          response: r.response,
+          classified: r.classified,
+          indicators: r.indicators,
+          responseTimeMs: r.responseTimeMs,
+        };
+      });
+      // Evidence summary from visual missions
+      const missionEvidence: Record<string, unknown[]> = {};
+      for (const ev of sess.evidence) {
+        if (!missionEvidence[ev.mission]) missionEvidence[ev.mission] = [];
+        missionEvidence[ev.mission].push({ indicator: ev.indicator, value: ev.value, positive: ev.positive });
+      }
+      return {
+        submissionId: submissionId.current,
+        startedAt: sess.startedAt,
+        participantName,
+        sessionLog,
+        interactionResults: { ...interactionResults, missionEvidence },
+        participantContext: { pathwayType: 'rpas', assessmentStage: 'rpas_intake' },
+      };
+    }
+
+    // General ACIA payload
     const alignments = computeAlignments(sess.evidence, sess.responses);
     const competencyProfile: Record<string, { state: string; evidenceLevel: string; confidence: string }> = {};
     for (const [compId, obs] of Object.entries(sess.competencies)) {
@@ -293,16 +336,36 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       careerAlignment: alignments.map(a => ({ pathway: a.pathwayId, alignment: a.alignment, label: a.label ?? a.pathwayId })),
       recommendedPathways: alignments.slice(0, 3).map(a => a.pathwayId),
       startedAt: sess.startedAt,
-      participantName: sess.participantName ?? localStorage.getItem('aacp_name') ?? undefined,
+      participantName,
     };
-  }, [stage]);
+  }, [stage, isRpas]);
 
   // Core save function — returns true on success, false on failure
   const performSave = useCallback(async (payload: Record<string, unknown>, attemptNum: number): Promise<boolean> => {
-    const token = localStorage.getItem('aacp_access_token');
+    let token = localStorage.getItem('aacp_access_token');
     if (!token) { console.error('[ACIA] No auth token'); return false; }
+    // Attempt token refresh before save to avoid 401 on long sessions
+    if (attemptNum > 1) {
+      const refreshToken = localStorage.getItem('aacp_refresh_token');
+      if (refreshToken) {
+        try {
+          const rr = await fetch('/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (rr.ok) {
+            const rd = await rr.json() as { accessToken?: string };
+            if (rd.accessToken) {
+              token = rd.accessToken;
+              localStorage.setItem('aacp_access_token', token);
+            }
+          }
+        } catch { /* non-fatal — proceed with existing token */ }
+      }
+    }
     try {
-      const r = await fetch('/acia/assessment/complete', {
+      const r = await fetch(saveEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
@@ -368,7 +431,10 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       for (const entry of pending) {
         // First verify the server doesn't already have this (idempotent check)
         try {
-          const r = await fetch('/acia/assessment/complete', {
+          const endpoint = (entry.payload as Record<string, unknown>)?.participantContext
+            ? '/acia/rpas/assessment/complete'
+            : '/acia/assessment/complete';
+          const r = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify(entry.payload),
@@ -690,6 +756,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
               question={question}
               variantText={variant}
               expectedCorrect={expectedCorrect}
+              chatEndpoint={chatEndpoint}
               onComplete={completeAdaptiveQuestion}
             />
           </div>
@@ -767,6 +834,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
             mission={currentMission}
             chatHistory={session.chatHistory}
             stage={stage}
+            chatEndpoint={chatEndpoint}
             onComplete={completeMission}
           />
         </div>
@@ -779,10 +847,11 @@ interface MissionRendererProps {
   mission: ACIASession['missions'][0];
   chatHistory: ACIASession['chatHistory'];
   stage: AssessmentStage;
+  chatEndpoint: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory?: ChatMessage[]) => void;
 }
 
-function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
+function MissionRenderer({ mission, stage, chatEndpoint, onComplete }: MissionRendererProps) {
   const isFollowup = stage === 'followup';
   switch (mission.type) {
     case 'ai_chat':
@@ -795,6 +864,7 @@ function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
             : "Good to have you with us. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: When did aviation first get its hooks into you? It could be a memory, a moment, something you saw — or even something you still can't quite explain. Take your time."
           }
           minMessages={3}
+          chatEndpoint={chatEndpoint}
           onComplete={(evidence, chat) => onComplete(evidence, chat)}
         />
       );
@@ -822,6 +892,7 @@ function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
             : "You've completed the full assessment — that takes commitment. Before we reveal your Career Intelligence Profile, I'd like to debrief with you for a moment. What stood out most during the assessment? Were there any challenges that felt surprisingly natural, or any that pushed you in unexpected ways?"
           }
           minMessages={3}
+          chatEndpoint={chatEndpoint}
           onComplete={(evidence, chat) => onComplete(evidence, chat)}
         />
       );
