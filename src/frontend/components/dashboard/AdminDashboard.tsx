@@ -2268,7 +2268,7 @@ function PilotTestingInner() {
           hubType: form.hubType || undefined,
         }),
       });
-      const link = `${window.location.origin}/app?pilot=${data.token}`;
+      const link = `${window.location.origin}/app.html?pilot=${data.token}`;
       setCreatedLink(link);
       setForm({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '', hubType: '' });
       loadInvitations();
@@ -4047,7 +4047,7 @@ export function RpasHubAdminPanel() {
     setInviting(app.id); setActionError(null); setInviteLink(null);
     try {
       const data = await apiFetch<{ token: string; invitationId: string }>(`/admin/rpas/applications/${app.id}/invite`, { method: 'POST' });
-      const link = `${window.location.origin}/app?pilot=${data.token}`;
+      const link = `${window.location.origin}/app.html?pilot=${data.token}`;
       setInviteLink({ appId: app.id, link });
       loadApplications();
     } catch (e: unknown) {
