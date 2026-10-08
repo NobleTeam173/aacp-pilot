@@ -12592,13 +12592,13 @@ const VALIDATION_INSTRUMENTS = {
     description: 'ATC occupational reality, NAV CANADA recruitment and training pathway accuracy, relevance of ATC-related capability indicators, and the distinction between AACP career readiness and formal ATC screening and selection.',
     questions: [
       { key: 'F1', type: 'supported_scale', id: 'F-1', label: 'Occupational Reality',
-        text: 'Based on your direct experience, how accurately does AACP's representation of the Air Traffic Control working environment reflect the actual conditions, operational demands, and expectations of the role — including what prospective entrants most commonly underestimate?',
+        text: 'Based on your direct experience, how accurately does AACP’s representation of the Air Traffic Control working environment reflect the actual conditions, operational demands, and expectations of the role — including what prospective entrants most commonly underestimate?',
         scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What would you change?' },
       { key: 'F2', type: 'relevance_scale', id: 'F-2', label: 'Capability Indicators (Relevance to ATC Work)',
         text: 'We have shown you a set of capability descriptions that AACP uses in its career exploration experience. These describe tendencies and approaches — they are not predictive assessments of ATC aptitude or selection suitability. For each indicator shown, how relevant is it to the actual demands of ATC work?',
         scale: SCALE_RELEVANCE, optional_text: 'What, if anything, is missing from this set? What should not be here?' },
       { key: 'F3', type: 'supported_scale', id: 'F-3', label: 'NAV CANADA Pathway Accuracy',
-        text: 'Does AACP accurately describe the process by which people progress toward Air Traffic Control careers in Canada — including NAV CANADA's recruitment, screening, training pipeline, and the realities that prospective entrants most commonly misunderstand?',
+        text: 'Does AACP accurately describe the process by which people progress toward Air Traffic Control careers in Canada — including NAV CANADA’s recruitment, screening, training pipeline, and the realities that prospective entrants most commonly misunderstand?',
         scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What is inaccurate or missing?' },
       { key: 'F4', type: 'supported_scale', id: 'F-4', label: 'Career Readiness vs. Formal ATC Screening',
         text: 'Does AACP make clear that what it assesses — career-exploration readiness, workforce orientation, and capability tendencies — is distinct from the formal screening, cognitive testing, and simulator-based evaluation that NAV CANADA conducts as part of its selection and training process?',
@@ -12613,7 +12613,6 @@ const VALIDATION_INSTRUMENTS = {
       { key: 'F_final2', type: 'open_text', label: 'Final F-2', final: true,
         text: 'Is there anything AACP should stop claiming, stop doing, or make clearer about what it is and what it is not — specifically in the context of ATC career exploration?' }
     ]
-  }
   }
 };
 ;
