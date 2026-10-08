@@ -13902,8 +13902,13 @@ async function _routeRequest(request, env, ctx) {
       const accept = request.headers.get('Accept') || '';
       if (accept.includes('text/html')) {
         // Browser request — redirect to SPA with token as query param (same pattern as ?reset=, ?pilot=, ?invite=)
+        // Use X-Forwarded-Host (set by CloudFront to the viewer's original host) so the redirect
+        // targets the public CloudFront domain rather than the internal ALB hostname.
         const validatorToken = path.split('/')[2];
-        return Response.redirect(new URL(`/app.html?validate=${validatorToken}`, request.url).toString(), 302);
+        // env.AACP_PUBLIC_ORIGIN must be set to the CloudFront origin (e.g. https://dcthj58xklr8p.cloudfront.net)
+        // so the redirect targets the correct public domain rather than the internal ALB hostname.
+        const publicOrigin = (env.AACP_PUBLIC_ORIGIN || new URL(request.url).origin).replace(/\/$/, '');
+        return Response.redirect(`${publicOrigin}/app.html?validate=${validatorToken}`, 302);
       }
       return handleValidationWelcome(request, env);
     }
