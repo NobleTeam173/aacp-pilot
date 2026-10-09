@@ -5,3 +5,5 @@ dist/worker.js
 src/**/*.js
 src/**/*.map
 *.DS_Store
+.wrangler/state/
+.wrangler/tmp/
