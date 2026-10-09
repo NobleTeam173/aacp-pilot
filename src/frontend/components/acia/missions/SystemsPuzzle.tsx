@@ -46,14 +46,51 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Electrical Systems': '#966000',
 };
 
+const RPAS_ITEMS: Item[] = [
+  { id: 'esc', label: 'Electronic Speed Controller (ESC)', category: 'Propulsion Systems', hint: 'Converts flight controller signals into motor speed commands' },
+  { id: 'bldc', label: 'Brushless DC Motor', category: 'Propulsion Systems', hint: 'Converts electrical energy into rotor thrust' },
+  { id: 'prop', label: 'Propeller / Rotor Blade', category: 'Propulsion Systems', hint: 'Translates motor rotation into lift and thrust' },
+  { id: 'power_dist', label: 'Power Distribution Board', category: 'Propulsion Systems', hint: 'Routes battery power to ESCs and other components' },
+  { id: 'imu', label: 'IMU (Inertial Measurement Unit)', category: 'Flight Control & Navigation', hint: 'Measures acceleration and rotation rate for attitude estimation' },
+  { id: 'fc', label: 'Flight Controller', category: 'Flight Control & Navigation', hint: 'Central processor running stabilisation algorithms' },
+  { id: 'gps', label: 'GNSS Receiver', category: 'Flight Control & Navigation', hint: 'Satellite positioning for hold, RTH and waypoint flight' },
+  { id: 'baro', label: 'Barometric Altimeter', category: 'Flight Control & Navigation', hint: 'Measures altitude via atmospheric pressure' },
+  { id: 'rc_rx', label: 'RC Receiver', category: 'Communication & Data Links', hint: 'Receives pilot commands from the remote controller' },
+  { id: 'telemetry', label: 'Telemetry Radio', category: 'Communication & Data Links', hint: 'Sends live flight data to the ground station' },
+  { id: 'datalink', label: 'C2 Datalink', category: 'Communication & Data Links', hint: 'Command-and-control link between RPAS and ground' },
+  { id: 'video_tx', label: 'Video Transmitter (FPV)', category: 'Communication & Data Links', hint: 'Streams camera feed to the pilot or ground station' },
+  { id: 'lipo', label: 'LiPo Battery', category: 'Power & Energy Systems', hint: 'Primary energy storage for RPAS flight' },
+  { id: 'bms', label: 'Battery Management System', category: 'Power & Energy Systems', hint: 'Monitors cell voltage, temperature and charge balance' },
+  { id: 'reg', label: 'Voltage Regulator / BEC', category: 'Power & Energy Systems', hint: 'Steps down main battery voltage to logic-level voltage' },
+  { id: 'charger', label: 'Balance Charger', category: 'Power & Energy Systems', hint: 'Charges LiPo cells individually to prevent imbalance' },
+];
+
+const RPAS_CATEGORIES = ['Propulsion Systems', 'Flight Control & Navigation', 'Communication & Data Links', 'Power & Energy Systems'];
+
+const RPAS_CATEGORY_COLORS: Record<string, string> = {
+  'Propulsion Systems': '#8F0909',
+  'Flight Control & Navigation': '#2563ab',
+  'Communication & Data Links': '#0a7060',
+  'Power & Energy Systems': '#966000',
+};
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function SystemsPuzzle({ onComplete }: Props) {
-  const [shuffled] = useState(() => [...ITEMS].sort(() => Math.random() - 0.5));
+export function SystemsPuzzle({ isRpas, onComplete }: Props) {
+  if (isRpas) return <SystemsPuzzleCore items={RPAS_ITEMS} categories={RPAS_CATEGORIES} categoryColors={RPAS_CATEGORY_COLORS} onComplete={onComplete} />;
+  return <SystemsPuzzleCore items={ITEMS} categories={CATEGORIES} categoryColors={CATEGORY_COLORS} onComplete={onComplete} />;
+}
+
+function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComplete }: {
+  items: Item[]; categories: string[]; categoryColors: Record<string, string>;
+  onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
+}) {
+  const [shuffled] = useState(() => [...allItems].sort(() => Math.random() - 0.5));
   const [placements, setPlacements] = useState<Record<string, string[]>>(
-    Object.fromEntries(CATEGORIES.map(c => [c, []])),
+    Object.fromEntries(categories.map(c => [c, []])),
   );
   const [dragging, setDragging] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null); // tap-to-place selection
@@ -68,7 +105,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
   function moveItem(itemId: string, toCategory: string | null) {
     setPlacements(prev => {
       const next = { ...prev };
-      for (const cat of CATEGORIES) {
+      for (const cat of categories) {
         next[cat] = next[cat].filter(id => id !== itemId);
       }
       if (toCategory) next[toCategory] = [...next[toCategory], itemId];
@@ -123,13 +160,13 @@ export function SystemsPuzzle({ onComplete }: Props) {
     for (const [cat, ids] of Object.entries(placements)) {
       for (const id of ids) {
         total++;
-        const item = ITEMS.find(i => i.id === id);
+        const item = allItems.find(i => i.id === id);
         if (item?.category === cat) correct++;
       }
     }
     const accuracy = total > 0 ? correct / total : 0;
-    const completion = placed.size / ITEMS.length;
-    const fullyComplete = placed.size === ITEMS.length;
+    const completion = placed.size / allItems.length;
+    const fullyComplete = placed.size === allItems.length;
 
     const evidence: Omit<EvidenceItem, 'mission'>[] = [
       { key: 'mechanical_reasoning', delta: accuracy * 0.85 + completion * 0.15 },
@@ -149,7 +186,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
     for (const [cat, ids] of Object.entries(placements)) {
       for (const id of ids) {
         total++;
-        const item = ITEMS.find(i => i.id === id);
+        const item = allItems.find(i => i.id === id);
         if (item?.category === cat) correct++;
       }
     }
@@ -165,8 +202,8 @@ export function SystemsPuzzle({ onComplete }: Props) {
     );
   }
 
-  const hintItem = hoveredItem ? ITEMS.find(i => i.id === hoveredItem) : null;
-  const selectedItem = selected ? ITEMS.find(i => i.id === selected) : null;
+  const hintItem = hoveredItem ? allItems.find(i => i.id === hoveredItem) : null;
+  const selectedItem = selected ? allItems.find(i => i.id === selected) : null;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -251,8 +288,8 @@ export function SystemsPuzzle({ onComplete }: Props) {
 
       {/* Category drop zones */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        {CATEGORIES.map(cat => {
-          const catColor = CATEGORY_COLORS[cat];
+        {categories.map(cat => {
+          const catColor = categoryColors[cat];
           const isTarget = !!selected; // highlight zones when something is selected
           return (
             <div
@@ -283,7 +320,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {placements[cat].map(id => {
-                  const item = ITEMS.find(i => i.id === id)!;
+                  const item = allItems.find(i => i.id === id)!;
                   const correct = item.category === cat;
                   return (
                     <div
@@ -337,7 +374,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
           touchAction: 'manipulation',
         }}
       >
-        Submit Classification → ({placed.size}/{ITEMS.length} placed)
+        Submit Classification → ({placed.size}/{allItems.length} placed)
       </button>
     </div>
   );

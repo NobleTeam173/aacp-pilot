@@ -47,10 +47,186 @@ const ZONES: InspectionZone[] = [
 const DEFECTS = ZONES.filter(z => z.severity !== 'ok');
 
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function AircraftInspection({ onComplete }: Props) {
+export function AircraftInspection({ isRpas, onComplete }: Props) {
+  if (isRpas) return <RpasPreflightInspection onComplete={onComplete} />;
+  return <AircraftInspectionGeneral onComplete={onComplete} />;
+}
+
+// ── RPAS Pre-flight Inspection ────────────────────────────────────────────────
+
+const RPAS_ZONES: InspectionZone[] = [
+  { id: 'motor_fl', label: 'Motor — Front Left', x: 105, y: 75, r: 16, issue: null, severity: 'ok', found: false },
+  { id: 'motor_fr', label: 'Motor — Front Right', x: 220, y: 75, r: 16, issue: 'Prop blade cracked — must not fly', severity: 'defect', found: false },
+  { id: 'motor_rl', label: 'Motor — Rear Left', x: 105, y: 185, r: 16, issue: 'Motor mount loose', severity: 'defect', found: false },
+  { id: 'motor_rr', label: 'Motor — Rear Right', x: 220, y: 185, r: 16, issue: null, severity: 'ok', found: false },
+  { id: 'battery', label: 'Battery Pack', x: 163, y: 130, r: 18, issue: 'Battery swelling detected — do not use', severity: 'defect', found: false },
+  { id: 'camera', label: 'Camera / Gimbal', x: 163, y: 165, r: 14, issue: null, severity: 'ok', found: false },
+  { id: 'gps_ant', label: 'GPS Antenna', x: 163, y: 95, r: 13, issue: 'GPS antenna cover missing — exposed to moisture', severity: 'caution', found: false },
+  { id: 'sd_card', label: 'SD Card / Storage', x: 185, y: 148, r: 11, issue: null, severity: 'ok', found: false },
+  { id: 'body_fl', label: 'Arm — Front Left', x: 130, y: 100, r: 12, issue: null, severity: 'ok', found: false },
+  { id: 'body_fr', label: 'Arm — Front Right', x: 196, y: 100, r: 12, issue: null, severity: 'ok', found: false },
+  { id: 'body_rl', label: 'Arm — Rear Left', x: 130, y: 160, r: 12, issue: null, severity: 'ok', found: false },
+  { id: 'body_rr', label: 'Arm — Rear Right', x: 196, y: 160, r: 12, issue: null, severity: 'ok', found: false },
+  { id: 'rc_link', label: 'RC Link Indicator', x: 80, y: 130, r: 13, issue: null, severity: 'ok', found: false },
+  { id: 'landing_gear', label: 'Landing Gear', x: 163, y: 210, r: 14, issue: 'Landing leg cracked — shock absorption compromised', severity: 'caution', found: false },
+  { id: 'obstacle', label: 'Obstacle Sensors', x: 245, y: 130, r: 13, issue: null, severity: 'ok', found: false },
+];
+
+function RpasPreflightInspection({ onComplete }: { onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [zones, setZones] = useState<InspectionZone[]>(RPAS_ZONES);
+  const [selected, setSelected] = useState<InspectionZone | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const [startTime] = useState(Date.now());
+
+  const inspected = zones.filter(z => z.found);
+  const defectsFound = zones.filter(z => z.found && z.severity !== 'ok');
+  const RPAS_DEFECTS = RPAS_ZONES.filter(z => z.severity !== 'ok');
+  const allInspected = inspected.length === zones.length;
+  const batteryFound = defectsFound.some(z => z.id === 'battery');
+  const propFound = defectsFound.some(z => z.id === 'motor_fr');
+
+  function handleClick(zone: InspectionZone) {
+    if (completed) return;
+    setZones(prev => prev.map(z => z.id === zone.id ? { ...z, found: true } : z));
+    setSelected({ ...zone, found: true });
+  }
+
+  function handleComplete() {
+    setCompleted(true);
+    const elapsed = (Date.now() - startTime) / 1000;
+    const coverage = inspected.length / zones.length;
+    const defectRate = defectsFound.length / RPAS_DEFECTS.length;
+    const criticalCaught = (batteryFound ? 1 : 0) + (propFound ? 1 : 0);
+    const safetyDelta = Math.min(1, defectRate * 0.6 + criticalCaught * 0.2);
+
+    const evidence: Omit<EvidenceItem, 'mission'>[] = [
+      { key: 'attention_to_detail', delta: coverage * 0.8 + defectRate * 0.2 },
+      { key: 'systematic_reasoning', delta: coverage > 0.8 ? 0.75 : coverage > 0.5 ? 0.4 : 0.15 },
+      { key: 'safety_mindset', delta: safetyDelta },
+      { key: 'procedural_compliance', delta: allInspected ? 0.85 : coverage },
+      { key: 'mechanical_reasoning', delta: defectRate * 0.75 },
+    ];
+    if (elapsed < 90) evidence.push({ key: 'multitasking_ability', delta: 0.5 });
+    onComplete(evidence);
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 20 }}>
+      <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: '10px 16px', color: '#86efac', fontSize: 13 }}>
+        You are preparing a quadcopter for a commercial infrastructure inspection mission. Tap each zone to inspect it. Report all findings before takeoff — a single missed defect can cause a mission loss or injury.
+      </div>
+      <style>{`@keyframes inspPulse { 0%,100%{opacity:0.6} 50%{opacity:1} } .insp-zone:hover circle { filter: brightness(1.4); }`}</style>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <svg width={330} height={270} viewBox="0 0 330 270"
+            style={{ background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)', borderRadius: 16, border: `1px solid ${C.border}`, display: 'block' }}>
+            {/* Central body */}
+            <rect x={138} y={108} width={50} height={50} rx={8} fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
+            {/* Arms */}
+            <line x1={163} y1={130} x2={110} y2={85} stroke="#253646" strokeWidth={10} strokeLinecap="round" />
+            <line x1={163} y1={130} x2={216} y2={85} stroke="#253646" strokeWidth={10} strokeLinecap="round" />
+            <line x1={163} y1={140} x2={110} y2={185} stroke="#253646" strokeWidth={10} strokeLinecap="round" />
+            <line x1={163} y1={140} x2={216} y2={185} stroke="#253646" strokeWidth={10} strokeLinecap="round" />
+            {/* Motors */}
+            {[[105,75],[220,75],[105,185],[220,185]].map(([mx,my],i) => (
+              <ellipse key={i} cx={mx} cy={my} rx={18} ry={10} fill="#172230" stroke="#2d4a6a" strokeWidth={1.5} />
+            ))}
+            {/* Props */}
+            {[[105,75],[220,75],[105,185],[220,185]].map(([mx,my],i) => (
+              <g key={`p${i}`}>
+                <ellipse cx={mx} cy={my} rx={22} ry={4} fill="none" stroke="#3d4a5c" strokeWidth={1} transform={`rotate(${i*45} ${mx} ${my})`} />
+              </g>
+            ))}
+            {/* Camera gimbal */}
+            <ellipse cx={163} cy={168} rx={12} ry={8} fill="#172230" stroke="#4a7aaa" strokeWidth={1.5} />
+            <circle cx={163} cy={168} r={5} fill="#0a1520" stroke="#60a5fa" strokeWidth={1} />
+            {/* Battery slot */}
+            <rect x={145} y={112} width={36} height={16} rx={4} fill="#1a2030" stroke="#334155" strokeWidth={1} />
+            {/* GPS dome */}
+            <ellipse cx={163} cy={95} rx={10} ry={7} fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
+            {/* Landing gear */}
+            {[[148,210],[178,210]].map(([lx,ly],i) => (
+              <g key={`l${i}`}>
+                <line x1={lx} y1={165} x2={lx} y2={ly} stroke="#374151" strokeWidth={3} />
+                <ellipse cx={lx} cy={ly} rx={8} ry={3} fill="#1f2937" stroke="#374151" strokeWidth={1} />
+              </g>
+            ))}
+            {/* Inspection zones */}
+            {zones.map(zone => {
+              const color = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
+              return (
+                <g key={zone.id} className="insp-zone" onClick={() => handleClick(zone)} style={{ cursor: completed ? 'default' : 'pointer' }}>
+                  {!zone.found && !completed && (
+                    <circle cx={zone.x} cy={zone.y} r={zone.r + 4} fill="none" stroke="#60a5fa" strokeWidth={1.5} opacity={0.4}>
+                      <animate attributeName="r" values={`${zone.r+2};${zone.r+8};${zone.r+2}`} dur="2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  {zone.found && zone.severity !== 'ok' && (
+                    <circle cx={zone.x} cy={zone.y} r={zone.r + 6} fill={color} opacity={0.15}>
+                      <animate attributeName="opacity" values="0.15;0.3;0.15" dur="1.2s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  <circle cx={zone.x} cy={zone.y} r={zone.r} fill={color} fillOpacity={zone.found ? 0.25 : 0.15} stroke={color} strokeWidth={zone.found ? 2 : 1.5} />
+                  {zone.found && zone.severity !== 'ok' && <text x={zone.x} y={zone.y+5} textAnchor="middle" fill={color} fontSize={13} fontWeight="bold">!</text>}
+                  {zone.found && zone.severity === 'ok' && <text x={zone.x} y={zone.y+5} textAnchor="middle" fill={C.green} fontSize={11} fontWeight="bold">✓</text>}
+                  {!zone.found && <text x={zone.x} y={zone.y+4} textAnchor="middle" fill="#93c5fd" fontSize={10}>?</text>}
+                </g>
+              );
+            })}
+          </svg>
+          <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+            {[{ color: C.green, label: 'OK' }, { color: C.amber, label: 'Caution' }, { color: C.red, label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.grey }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} /> {label}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+            <div style={{ color: C.grey, fontSize: 12, marginBottom: 8 }}>Pre-flight Progress</div>
+            <div style={{ color: C.white, fontSize: 22, fontWeight: 700 }}>{inspected.length}/{zones.length}</div>
+            <div style={{ color: C.grey, fontSize: 12 }}>zones checked</div>
+            <div style={{ height: 4, background: C.border, borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${(inspected.length / zones.length) * 100}%`, background: C.crimson, borderRadius: 4, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+          {selected && (
+            <div style={{ background: selected.severity === 'ok' ? '#0f1a0f' : selected.severity === 'caution' ? '#1a1400' : '#1a0505', border: `1px solid ${selected.severity === 'ok' ? '#1a3a1a' : selected.severity === 'caution' ? '#3a2a00' : '#3a0505'}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Last Inspected</div>
+              <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>{selected.label}</div>
+              <div style={{ color: selected.severity === 'ok' ? C.green : selected.severity === 'caution' ? C.amber : C.red, fontSize: 13, marginTop: 6 }}>
+                {selected.severity === 'ok' ? '✓ No issues found' : `⚠ ${selected.issue}`}
+              </div>
+            </div>
+          )}
+          {defectsFound.length > 0 && (
+            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 8 }}>Findings Log</div>
+              {defectsFound.map(z => (
+                <div key={z.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                  <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 12, flexShrink: 0 }}>●</span>
+                  <span style={{ color: C.white, fontSize: 12 }}>{z.label}: {z.issue}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <button onClick={handleComplete} disabled={completed || inspected.length < 8} style={{ background: completed || inspected.length < 8 ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: completed || inspected.length < 8 ? C.grey : 'white', border: 'none', borderRadius: 12, padding: '13px', cursor: completed || inspected.length < 8 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
+        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Pre-flight Report → (${inspected.length}/${zones.length} zones checked)`}
+      </button>
+    </div>
+  );
+}
+
+// ── General aviation inspection ───────────────────────────────────────────────
+function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [zones, setZones] = useState<InspectionZone[]>(ZONES);
   const [selected, setSelected] = useState<InspectionZone | null>(null);
   const [completed, setCompleted] = useState(false);

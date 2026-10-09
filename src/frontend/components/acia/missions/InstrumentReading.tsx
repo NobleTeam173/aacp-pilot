@@ -101,19 +101,99 @@ const QUESTIONS: Question[] = [
   },
 ];
 
+const RPAS_QUESTIONS: Question[] = [
+  {
+    id: 'rq1',
+    instrument: 'Battery Level',
+    reading: 22,
+    unit: '%',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Your RPAS shows 22% battery remaining. You are 400 m from your launch point at 60 m altitude. Your flight controller estimates 4 minutes of flight remaining. What is the correct action?',
+    options: [
+      'Continue — 22% is above the 20% warning threshold so there is still a safety margin',
+      'Begin returning to home immediately — 4 minutes may not be enough to return and land safely with reserve',
+      'Land immediately wherever you are — battery is critically low',
+      'Continue and monitor — land when the low battery alarm sounds at 15%',
+    ],
+    correctIndex: 1,
+    explanation: 'At 22% with 4 minutes estimated remaining and 400 m to travel, initiating RTH now is the correct call. RPAS battery consumption increases with wind, cold temperatures, and climb. Waiting for the 15% alarm at this distance risks loss of the aircraft. The safety margin for RPAS battery management is always the worst-case return, not the best-case.',
+    dangerBelow: 25,
+  },
+  {
+    id: 'rq2',
+    instrument: 'GNSS Satellites',
+    reading: 4,
+    unit: 'sats',
+    normalMin: 0,
+    normalMax: 25,
+    question: 'Your RPAS telemetry shows GPS lock on 4 satellites. Normal position hold requires a minimum of 6. Your flight controller has switched from GPS mode to ATTI (attitude) mode — the drone will no longer hold position automatically. What does this mean for your flight?',
+    options: [
+      'Nothing significant — ATTI mode is equally safe; the aircraft will maintain heading automatically',
+      'Return to home is now unavailable; you must fly manually without position hold — land at the nearest safe area if you cannot manage manual flight',
+      'Cut power and land immediately — 4 satellites means navigation is completely unreliable',
+      'Increase altitude — GPS signal improves significantly above 100 m AGL',
+    ],
+    correctIndex: 1,
+    explanation: 'ATTI mode removes position hold, meaning the aircraft will drift with any wind. RTH is unavailable without GPS. If you are not proficient in manual flight, land at the nearest safe area without delay. Increasing altitude does not reliably improve GPS acquisition and may reduce your recovery options.',
+    dangerBelow: 6,
+  },
+  {
+    id: 'rq3',
+    instrument: 'Signal Strength',
+    reading: 35,
+    unit: '%',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Your RC link signal strength has dropped to 35%. Normal operational range is above 60%. You are 1.8 km from your ground station flying a linear infrastructure inspection. What is the appropriate response?',
+    options: [
+      'Continue — 35% still provides a data connection; only act if signal drops to 0%',
+      'Turn the aircraft to reduce distance, move the ground station if possible, and begin returning if signal continues to drop',
+      'Immediately activate RTH — the aircraft will navigate back safely on autopilot',
+      'Switch to FPV camera only and continue with visual reference',
+    ],
+    correctIndex: 1,
+    explanation: 'A 35% signal at 1.8 km is a warning sign of impending link loss. RTH requires adequate signal to initiate — do not wait until 0%. The correct response is to reduce the geometry (turn the aircraft toward you, reposition the controller antenna) and begin a controlled return while you still have reliable link. Never rely on RTH if signal is already marginal.',
+    dangerBelow: 60,
+  },
+  {
+    id: 'rq4',
+    instrument: 'Motor Temperature',
+    reading: 88,
+    unit: '°C',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Mid-mission, Motor 3 temperature reads 88°C. Your manufacturer\'s maximum operating temperature is 85°C. The other three motors read 62–68°C. You have 6 minutes of mission remaining. What is the correct action?',
+    options: [
+      'Continue — 88°C is only 3°C over limit; one motor will not cause an immediate failure',
+      'Land immediately — continuing above manufacturer maximum risks winding insulation failure and motor seizure in-flight',
+      'Reduce throttle to 70% and monitor — lower power should bring the motor temperature down',
+      'Switch to three-motor flight mode to remove load from Motor 3',
+    ],
+    correctIndex: 1,
+    explanation: 'Operating above the manufacturer\'s maximum motor temperature risks winding failure, which can be catastrophic in flight. The 3-degree margin may seem small, but motor temperatures can spike rapidly under load. Reducing throttle may not bring it under limit in time, and three-motor mode on a quadcopter is uncontrollable. Land immediately, inspect Motor 3, and investigate the cause (bearing failure, prop imbalance, blocked cooling) before redeployment.',
+    dangerBelow: 85,
+  },
+];
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function InstrumentReading({ onComplete }: Props) {
+export function InstrumentReading({ isRpas, onComplete }: Props) {
+  return <InstrumentReadingCore questions={isRpas ? RPAS_QUESTIONS : QUESTIONS} onComplete={onComplete} />;
+}
+
+function InstrumentReadingCore({ questions, onComplete }: { questions: Question[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [startTime] = useState(Date.now());
 
-  const q = QUESTIONS[current];
-  const isLast = current === QUESTIONS.length - 1;
+  const q = questions[current];
+  const isLast = current === questions.length - 1;
 
   function selectAnswer(idx: number) {
     if (revealed) return;
@@ -128,13 +208,13 @@ export function InstrumentReading({ onComplete }: Props) {
   function next() {
     const newAnswers = [...answers, selected!];
     if (isLast) {
-      const correct = newAnswers.filter((a, i) => a === QUESTIONS[i].correctIndex).length;
-      const accuracy = correct / QUESTIONS.length;
+      const correct = newAnswers.filter((a, i) => a === questions[i].correctIndex).length;
+      const accuracy = correct / questions.length;
       const elapsed = (Date.now() - startTime) / 1000;
 
-      // Q2 (oil pressure) and Q4 (hydraulic) are the safety-critical reads
-      const oilCorrect = newAnswers[1] === QUESTIONS[1].correctIndex;
-      const hydCorrect = newAnswers[3] === QUESTIONS[3].correctIndex;
+      // Q2 and Q4 are the safety-critical reads
+      const oilCorrect = newAnswers[1] === questions[1]?.correctIndex;
+      const hydCorrect = newAnswers[3] === questions[3]?.correctIndex;
       const safetyScore = ((oilCorrect ? 1 : 0) + (hydCorrect ? 1 : 0)) / 2;
 
       const evidence: Omit<EvidenceItem, 'mission'>[] = [
@@ -255,14 +335,14 @@ export function InstrumentReading({ onComplete }: Props) {
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {QUESTIONS.map((_, i) => (
+        {questions.map((_, i) => (
           <div key={i} style={{
             width: i === current ? 24 : 8, height: 8, borderRadius: 4,
             background: i < current ? C.green : i === current ? C.crimson : C.border,
             transition: 'all 0.2s',
           }} />
         ))}
-        <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>Instrument {current + 1}/{QUESTIONS.length}</span>
+        <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>Instrument {current + 1}/{questions.length}</span>
       </div>
 
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>

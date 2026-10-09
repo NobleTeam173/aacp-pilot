@@ -70,20 +70,67 @@ const ROUNDS: Round[] = [
   },
 ];
 
+// RPAS Round 1 — in-mission emergency priorities
+const RPAS_INFLIGHT_TASKS: Task[] = [
+  { id: 'lost_link', label: 'C2 Link Lost', description: 'Telemetry zero — no RC input, RTH may activate in 8s', urgency: 'immediate', priority: 1 },
+  { id: 'low_batt', label: 'Critical Battery Warning', description: 'Battery 18% — estimated 3 min flight remaining', urgency: 'immediate', priority: 2 },
+  { id: 'airspace_conflict', label: 'Manned Aircraft in Area', description: 'Visual observer reports helicopter 600 m, closing at low altitude', urgency: 'immediate', priority: 3 },
+  { id: 'motor_alarm', label: 'Motor Overheat Alarm', description: 'Motor 2 temperature exceeded max — system alert active', urgency: 'soon', priority: 4 },
+  { id: 'payload_fault', label: 'Payload Camera Fault', description: 'Camera gimbal unresponsive — live feed lost', urgency: 'soon', priority: 5 },
+  { id: 'gps_degrade', label: 'GPS Degraded — 5 Satellites', description: 'Position accuracy reduced, ATTI mode warning', urgency: 'soon', priority: 6 },
+  { id: 'flight_log', label: 'Update Flight Log', description: 'Manual flight log entry not yet recorded for this segment', urgency: 'defer', priority: 7 },
+  { id: 'client_call', label: 'Client Requesting Status Update', description: 'Client texted asking for ETA on deliverables', urgency: 'defer', priority: 8 },
+];
+
+// RPAS Round 2 — pre-flight readiness priorities
+const RPAS_PREFLIGHT_TASKS: Task[] = [
+  { id: 'notam_check', label: 'NOTAM and TFR Check', description: 'NOTAMs not yet reviewed for today\'s operation site', urgency: 'immediate', priority: 1 },
+  { id: 'battery_charge', label: 'Flight Battery Status', description: 'Two of four batteries show 61% charge — flight requires 80% minimum per SOP', urgency: 'immediate', priority: 2 },
+  { id: 'weather_brief', label: 'Weather Briefing', description: 'Forecast wind 28 km/h by 11:00 — aircraft limit 36 km/h; launch window closing', urgency: 'immediate', priority: 3 },
+  { id: 'firmware_update', label: 'Firmware Update Notification', description: 'Flight controller firmware update available — not mandatory', urgency: 'soon', priority: 4 },
+  { id: 'insurance_doc', label: 'Liability Insurance Document', description: 'Client requesting copy of current drone insurance certificate', urgency: 'soon', priority: 5 },
+  { id: 'prop_inspect', label: 'Propeller Visual Inspection', description: 'Pre-flight propeller inspection not yet completed', urgency: 'soon', priority: 6 },
+  { id: 'equip_clean', label: 'Clean Lens and Gimbal', description: 'Camera lens has dust spots from yesterday — cosmetic quality issue only', urgency: 'defer', priority: 7 },
+  { id: 'data_backup', label: 'Back Up Previous Flight Data', description: 'SD card from last flight not yet archived to client folder', urgency: 'defer', priority: 8 },
+];
+
+const RPAS_INFLIGHT_ORDER = [...RPAS_INFLIGHT_TASKS].sort((a, b) => a.priority - b.priority).map(t => t.id);
+const RPAS_PREFLIGHT_ORDER = [...RPAS_PREFLIGHT_TASKS].sort((a, b) => a.priority - b.priority).map(t => t.id);
+
+const RPAS_ROUNDS: Round[] = [
+  {
+    tasks: RPAS_INFLIGHT_TASKS,
+    correctOrder: RPAS_INFLIGHT_ORDER,
+    label: 'In-Mission Emergency Priorities',
+    context: 'You are operating an RPAS on a commercial inspection. Eight demands arrive at once. Drag to rank them from most urgent (top) to least urgent (bottom). No RPAS experience required — think about what affects safety right now.',
+  },
+  {
+    tasks: RPAS_PREFLIGHT_TASKS,
+    correctOrder: RPAS_PREFLIGHT_ORDER,
+    label: 'Pre-Flight Readiness Priorities',
+    context: 'Your RPAS team is preparing for a morning operation. Eight items need attention before launch. Rank them by priority — what must be resolved before you can fly safely?',
+  },
+];
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function WorkloadPriority({ onComplete }: Props) {
+export function WorkloadPriority({ isRpas, onComplete }: Props) {
+  return <WorkloadPriorityCore rounds={isRpas ? RPAS_ROUNDS : ROUNDS} onComplete={onComplete} />;
+}
+
+function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [round, setRound] = useState(0);
-  const [items, setItems] = useState(() => [...ROUNDS[0].tasks].sort(() => Math.random() - 0.5));
+  const [items, setItems] = useState(() => [...rounds[0].tasks].sort(() => Math.random() - 0.5));
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [startTime] = useState(Date.now());
   const [round1Score, setRound1Score] = useState<{ normalised: number; top3Correct: number } | null>(null);
 
-  const currentRound = ROUNDS[round];
+  const currentRound = rounds[round];
 
   function handleDragStart(id: string) { setDragging(id); }
   function handleDragEnd() { setDragging(null); setDragOver(null); }
@@ -139,7 +186,7 @@ export function WorkloadPriority({ onComplete }: Props) {
         { key: 'decision_quality', delta: combinedNorm * 0.75 },
         { key: 'stress_response', delta: elapsed < 210 ? 0.75 : 0.45 },
         { key: 'safety_mindset', delta: combinedTop3 >= 2.5 ? 0.9 : combinedTop3 >= 1 ? 0.6 : 0.2 },
-        { key: 'systematic_reasoning', delta: r2.normalised > 0.65 ? 0.7 : 0.35 }, // maintenance round tests AME reasoning
+        { key: 'systematic_reasoning', delta: r2.normalised > 0.65 ? 0.7 : 0.35 },
       ];
 
       setTimeout(() => onComplete(evidence), 3200);
@@ -148,7 +195,7 @@ export function WorkloadPriority({ onComplete }: Props) {
 
   function startNextRound() {
     setRound(1);
-    setItems([...ROUNDS[1].tasks].sort(() => Math.random() - 0.5));
+    setItems([...rounds[1].tasks].sort(() => Math.random() - 0.5));
     setSubmitted(false);
     setDragging(null);
     setDragOver(null);
@@ -162,7 +209,7 @@ export function WorkloadPriority({ onComplete }: Props) {
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Round indicator */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {ROUNDS.map((r, i) => (
+        {rounds.map((r, i) => (
           <div key={i} style={{
             width: i === round ? 28 : 8, height: 8, borderRadius: 4,
             background: i < round ? C.green : i === round ? C.crimson : C.border,
@@ -170,7 +217,7 @@ export function WorkloadPriority({ onComplete }: Props) {
           }} />
         ))}
         <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>
-          Round {round + 1}/{ROUNDS.length} — {currentRound.label}
+          Round {round + 1}/{rounds.length} — {currentRound.label}
         </span>
       </div>
 
@@ -243,7 +290,7 @@ export function WorkloadPriority({ onComplete }: Props) {
               </div>
             );
           })}
-          {round < ROUNDS.length - 1 ? (
+          {round < rounds.length - 1 ? (
             <button
               onClick={startNextRound}
               style={{
@@ -253,7 +300,7 @@ export function WorkloadPriority({ onComplete }: Props) {
                 cursor: 'pointer', fontWeight: 700, fontSize: 13, width: '100%',
               }}
             >
-              Next Round — Maintenance Priorities →
+              Next Round — {rounds[round + 1]?.label ?? 'Round 2'} →
             </button>
           ) : (
             <div style={{ color: C.grey, fontSize: 12, marginTop: 10 }}>Advancing to next mission…</div>

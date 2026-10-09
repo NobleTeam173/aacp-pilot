@@ -126,19 +126,130 @@ const EXERCISES: CommunicationExercise[] = [
   },
 ];
 
+const RPAS_EXERCISES: CommunicationExercise[] = [
+  {
+    id: 're1',
+    title: 'Flight Authorization Request',
+    guide: 'Before flying your RPAS near a controlled airport in Canada, you must obtain authorization using Nav Canada\'s digital tools or file an RPAS NOTAM. A flight authorization request must include specific details so ATC can assess it. Find each piece of information in the scenario briefing and fill in the request.',
+    scenarioBriefing: [
+      { label: 'Operator', value: 'TechVision Aerial Inc. (Transport Canada RPAS Pilot Certificate, Advanced)' },
+      { label: 'Operation Area', value: '250 m radius, Richmond Road & Baseline Road, Ottawa (CYOW 9 NM northwest)' },
+      { label: 'Altitude', value: '60 m AGL maximum' },
+      { label: 'Date / Time', value: '2025-08-14, 09:00–12:00 local (1300–1600Z)' },
+      { label: 'Aircraft', value: 'DJI Matrice 350 RTK, 9.2 kg MTOW' },
+    ],
+    atcTransmission: 'Nav Canada RPAS authorization request form: complete the required fields.',
+    callsign: 'TechVision Aerial Inc.',
+    template: 'RPAS authorization request: [OPERATOR_CERT], operating within [AREA_RADIUS] of [LOCATION], max [ALT] AGL, [DATE_TIME], aircraft [AIRCRAFT_DESC].',
+    blanks: ['Advanced certificate', '250 m radius', 'Richmond & Baseline, Ottawa', '60 m', '2025-08-14 1300–1600Z', 'DJI Matrice 350 RTK 9.2 kg'],
+    hints: ['Pilot certification level', 'Operation radius', 'Operation location', 'Maximum altitude', 'Date and UTC time window', 'Aircraft type and MTOW'],
+    sourceHints: [
+      'Scenario: "Operator" — what certificate level?',
+      'Scenario: "Operation Area" — what radius?',
+      'Scenario: "Operation Area" — what intersection?',
+      'Scenario: "Altitude" — what AGL limit?',
+      'Scenario: "Date / Time" — convert to UTC (Zulu)',
+      'Scenario: "Aircraft" — type and MTOW',
+    ],
+    explanation: 'RPAS authorization requests near controlled airspace must include the pilot\'s certification level, exact location, maximum altitude, operational window (in UTC/Zulu), and aircraft MTOW. Incomplete requests are rejected. MTOW determines whether an Advanced or Basic certificate is required and which rules apply.',
+  },
+  {
+    id: 're2',
+    title: 'Lost-Link Incident Report',
+    guide: 'After a lost-link event, you are required to submit an occurrence report to Transport Canada. Accurate, complete reporting is a regulatory requirement and helps improve RPAS safety. Use the scenario briefing to compose the incident notification.',
+    scenarioBriefing: [
+      { label: 'Operator', value: 'Clearview Surveys Ltd.' },
+      { label: 'Date / Location', value: '2025-06-03, Pemberton, BC (CYPB 4 NM south)' },
+      { label: 'Aircraft', value: 'DJI Phantom 4 RTK, registration C-XXCL' },
+      { label: 'What Happened', value: 'Complete C2 link loss at 1.4 km from operator, duration 42 seconds. Aircraft executed pre-programmed RTH. No damage, no injuries.' },
+      { label: 'Probable Cause', value: 'Suspected interference from a temporary cellular relay installed near the launch site' },
+    ],
+    atcTransmission: 'Compose a Transport Canada RPAS occurrence notification.',
+    callsign: 'Clearview Surveys Ltd.',
+    template: '[OPERATOR] reports RPAS occurrence: [DATE_LOCATION], aircraft [REG], [INCIDENT_DESC], duration [DURATION], outcome [OUTCOME], probable cause [CAUSE].',
+    blanks: ['Clearview Surveys Ltd.', '2025-06-03 Pemberton BC', 'C-XXCL', 'complete C2 link loss at 1.4 km', '42 seconds', 'RTH executed, no damage or injuries', 'suspected cellular interference'],
+    hints: ['Operator name', 'Date and location', 'Aircraft registration', 'Incident description', 'Duration', 'Outcome', 'Probable cause'],
+    sourceHints: [
+      'Scenario: "Operator"',
+      'Scenario: "Date / Location"',
+      'Scenario: "Aircraft" — registration code only',
+      'Scenario: "What Happened" — brief description of the link loss',
+      'Scenario: "What Happened" — how long was the link lost?',
+      'Scenario: "What Happened" — what was the result?',
+      'Scenario: "Probable Cause"',
+    ],
+    explanation: 'RPAS operators in Canada are required to report occurrences including: lost link lasting more than a defined threshold, unintended landings, airspace incursions, and aircraft damage. Accurate reporting provides the safety intelligence that improves RPAS regulations over time.',
+  },
+  {
+    id: 're3',
+    title: 'Pre-Flight Airspace Communication',
+    guide: 'Before flying near an aerodrome, you may need to contact the aerodrome\'s mandatory frequency (MF) or use UNICOM to advise manned aircraft of your presence. This is not ATC clearance — it is traffic awareness communication. Use the scenario briefing to compose your advisory.',
+    scenarioBriefing: [
+      { label: 'Aerodrome', value: 'Springbank Airport (CYBW) mandatory frequency 122.8 MHz' },
+      { label: 'Your Operation', value: 'RPAS pipeline inspection, 800 m northwest of threshold, 50 m AGL' },
+      { label: 'Duration', value: '09:30–11:00 local' },
+      { label: 'Aircraft in area', value: 'Cessna training circuit is active' },
+    ],
+    atcTransmission: 'Compose your RPAS presence advisory on Springbank mandatory frequency.',
+    callsign: 'RPAS Operator',
+    template: '[AERODROME] traffic, RPAS operations [LOCATION], [ALT] AGL, [TIME_WINDOW], [OPERATOR_ID], [AERODROME] traffic.',
+    blanks: ['Springbank', '800 m northwest of runway threshold', '50 m', '09:30 to 11:00 local', 'RPAS operator', 'Springbank'],
+    hints: ['Aerodrome name (start)', 'Operation location description', 'Maximum altitude AGL', 'Time window', 'Who you are', 'Aerodrome name (end — standard traffic advisory format)'],
+    sourceHints: [
+      'Scenario: "Aerodrome" — name only',
+      'Scenario: "Your Operation" — location description',
+      'Scenario: "Your Operation" — altitude',
+      'Scenario: "Duration"',
+      'Identify yourself generically',
+      'Standard advisory format ends with the aerodrome name again',
+    ],
+    explanation: 'On a mandatory frequency or UNICOM, RPAS operators are expected to advise manned aircraft of their presence, location, altitude, and operational window. The advisory follows the same format as a standard traffic advisory: aerodrome name, traffic info, and aerodrome name again. This is not a clearance — it is safety information for other pilots.',
+  },
+  {
+    id: 're4',
+    title: 'RPAS Operations Handover',
+    guide: 'Your replacement operator is arriving to take over mid-mission. Give them a complete situation awareness transfer. Every answer is in the scenario briefing — no RPAS background needed, just accurate information transfer.',
+    scenarioBriefing: [
+      { label: 'Current Aircraft Status', value: 'Airborne, 55 m AGL, 620 m northeast of GCS, battery 54%' },
+      { label: 'Active Mission', value: 'Linear infrastructure inspection, segment 3 of 5 complete' },
+      { label: 'Known Hazard', value: 'Power line crossing 300 m north of current position — marked on flight plan' },
+      { label: 'Weather', value: 'Wind 12 km/h southwest, cloud base 800 m, deteriorating — recheck in 30 min' },
+      { label: 'Next Action', value: 'Complete segment 4, then RTH to recharge before segment 5' },
+    ],
+    atcTransmission: 'Incoming operator: "I\'m here to take over. What\'s the situation?"',
+    callsign: 'Outgoing RPAS Operator',
+    template: 'Aircraft [STATUS]. Mission [MISSION_PROGRESS]. Hazard: [HAZARD]. Weather: [WX]. Next: [NEXT_ACTION].',
+    blanks: ['airborne 55 m 620 m northeast battery 54%', 'segment 3 of 5 complete', 'power line 300 m north marked on plan', 'wind 12 km/h SW cloud 800 m deteriorating recheck 30 min', 'complete segment 4 then RTH to recharge'],
+    hints: ['Aircraft current status', 'Mission progress', 'Known hazard', 'Weather and trend', 'Next planned action'],
+    sourceHints: [
+      'Scenario: "Current Aircraft Status"',
+      'Scenario: "Active Mission" — what segment are you on?',
+      'Scenario: "Known Hazard"',
+      'Scenario: "Weather"',
+      'Scenario: "Next Action"',
+    ],
+    explanation: 'RPAS operator handovers must transfer: aircraft status (position, altitude, battery), mission progress, known hazards, current weather and trend, and the next planned action. An incomplete handover creates a safety gap — the incoming operator may fly into a hazard or make a wrong planning decision without full situational awareness.',
+  },
+];
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function ATCCommunication({ onComplete }: Props) {
+export function ATCCommunication({ isRpas, onComplete }: Props) {
+  return <ATCCommunicationCore exercises={isRpas ? RPAS_EXERCISES : EXERCISES} onComplete={onComplete} />;
+}
+
+function ATCCommunicationCore({ exercises, onComplete }: { exercises: CommunicationExercise[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [exIdx, setExIdx] = useState(0);
   const [inputs, setInputs] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [showSourceHints, setShowSourceHints] = useState(false);
   const [allScores, setAllScores] = useState<number[]>([]);
 
-  const ex = EXERCISES[exIdx];
-  const isLast = exIdx === EXERCISES.length - 1;
+  const ex = exercises[exIdx];
+  const isLast = exIdx === exercises.length - 1;
 
   function init() {
     setInputs(new Array(ex.blanks.length).fill(''));
@@ -197,7 +308,7 @@ export function ATCCommunication({ onComplete }: Props) {
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Progress dots */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {EXERCISES.map((_, i) => (
+        {exercises.map((_, i) => (
           <div key={i} style={{
             width: i === exIdx ? 24 : 8, height: 8, borderRadius: 4,
             background: i < exIdx ? C.green : i === exIdx ? C.crimson : C.border,
@@ -205,7 +316,7 @@ export function ATCCommunication({ onComplete }: Props) {
           }} />
         ))}
         <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>
-          Exercise {exIdx + 1}/{EXERCISES.length} — {ex.title}
+          Exercise {exIdx + 1}/{exercises.length} — {ex.title}
         </span>
       </div>
 

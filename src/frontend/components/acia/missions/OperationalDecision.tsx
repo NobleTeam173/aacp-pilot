@@ -118,18 +118,113 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
+const RPAS_SCENARIOS: Scenario[] = [
+  {
+    id: 'rs1',
+    domain: 'RPAS Operations — Lost Link',
+    context: 'You are conducting a BVLOS (Beyond Visual Line of Sight) pipeline inspection in a rural corridor. Your RPAS has been pre-programmed with a lost-link contingency: RTH (Return to Home) at 60 m AGL if C2 link is lost for more than 10 seconds. Mid-mission, your telemetry drops to zero. The aircraft is 2.1 km out at 55 m AGL. You have no visual contact. It has been 8 seconds since last telemetry.',
+    situation: 'The link has not re-established. You have 2 seconds before the automatic RTH triggers. A highway runs between the aircraft\'s current position and your launch point. What do you do?',
+    options: [
+      {
+        label: 'Do nothing — trust the pre-programmed RTH to execute; it was designed for this',
+        rationale: 'Correct. The pre-programmed contingency was approved as part of your SFOC/authorization precisely because it handles this scenario. Interfering with an automated safety procedure in progress — especially when you lack the information to improve on it — increases risk, not decreases it.',
+        safetyScore: 1.0, decisionScore: 0.9, sitAware: 0.9, assertScore: 0.8,
+      },
+      {
+        label: 'Attempt to manually re-engage control and take over before RTH activates',
+        rationale: 'You have no telemetry and are BVLOS. Manual re-engagement without situational awareness of the aircraft\'s current state increases risk of incorrect inputs. Trust the contingency procedure.',
+        safetyScore: 0.3, decisionScore: 0.3, sitAware: 0.4, assertScore: 0.5,
+      },
+      {
+        label: 'Immediately notify ATC/FISE of the lost-link event and stand by',
+        rationale: 'Notification is important — but it is not your immediate action. Let the automated contingency run. Notification is a parallel or follow-up action after the aircraft is safe, not a substitute for it.',
+        safetyScore: 0.5, decisionScore: 0.5, sitAware: 0.6, assertScore: 0.6,
+      },
+      {
+        label: 'Drive toward the aircraft\'s last known position to reestablish visual contact',
+        rationale: 'Abandoning your ground station removes your ability to regain control if the link re-establishes. Stay at your control position. Chasing BVLOS aircraft on foot or by vehicle is not an approved contingency.',
+        safetyScore: 0.1, decisionScore: 0.1, sitAware: 0.2, assertScore: 0.2,
+      },
+    ],
+    bestIndex: 0,
+  },
+  {
+    id: 'rs2',
+    domain: 'RPAS Operations — Client Pressure',
+    context: 'You are contracted to fly a rooftop inspection for a property developer in downtown Toronto. Before launch, you check the Nav Canada flight planning tools and identify that the site sits within a 5.6 km radius of Billy Bishop Airport (CYTZ), requiring a RPAS Special Flight Operations Certificate or digital flight authorization. You have neither for this site.',
+    situation: 'The client has paid for today\'s shoot and says: "I\'ve already cleared it with the building owner. Just fly lower — no one will know. We need these images today." What do you do?',
+    options: [
+      {
+        label: 'Decline to fly — you do not have the required authorization and cannot obtain it in time today',
+        rationale: 'Correct. Operating an RPAS in controlled airspace without authorization is a regulatory violation regardless of client pressure, building owner consent, or altitude flown. The client\'s commercial urgency does not create an exception. Decline clearly, explain the requirement, and offer to rebook with proper authorization in place.',
+        safetyScore: 1.0, decisionScore: 1.0, sitAware: 0.9, assertScore: 1.0,
+      },
+      {
+        label: 'Fly at 30 m AGL — below the controlled airspace floor and below RPAS registration requirements',
+        rationale: 'This is incorrect. Controlled airspace around CYTZ extends from the surface. Flying at any altitude in this airspace without authorization violates the Canadian Aviation Regulations regardless of altitude or aircraft weight.',
+        safetyScore: 0.0, decisionScore: 0.1, sitAware: 0.2, assertScore: 0.2,
+      },
+      {
+        label: 'Try to obtain a digital Nav Canada authorization on-site before flying',
+        rationale: 'RPAS flight authorizations near controlled airports cannot always be obtained on-demand, and some locations require an SFOC regardless of authorization portals. If the digital portal grants authorization for the specific location and time, this is acceptable — but only if authorization is confirmed before flight, not as a justification to fly while attempting it.',
+        safetyScore: 0.7, decisionScore: 0.7, sitAware: 0.7, assertScore: 0.7,
+      },
+      {
+        label: 'Fly — building owner consent is equivalent to airspace authorization',
+        rationale: 'Building owner consent has no bearing on airspace authorization. Airspace is regulated by Transport Canada, not property owners. Consent from a property owner does not permit flight in controlled airspace.',
+        safetyScore: 0.0, decisionScore: 0.0, sitAware: 0.1, assertScore: 0.1,
+      },
+    ],
+    bestIndex: 0,
+  },
+  {
+    id: 'rs3',
+    domain: 'RPAS Operations — Authority & Team Dynamics',
+    context: 'You are a junior RPAS operator on a two-person team conducting a search and rescue support mission in a remote area. Your team lead — who holds the SFOC and is the designated PIC — directs you to deploy into a gully where weather conditions have deteriorated. Winds in the gully are gusting to 38 km/h; your aircraft is rated to 36 km/h sustained. Ground visibility is reducing.',
+    situation: 'Your team lead says: "We\'re running out of daylight. Launch now — I need eyes in that gully." What do you do?',
+    options: [
+      {
+        label: 'Launch as directed — the team lead is the PIC and has authority over deployment decisions',
+        rationale: 'PIC authority does not override aircraft operating limits. Deploying into conditions that exceed the aircraft\'s wind rating risks loss of the aircraft and adds a recovery problem to the search operation. Compliance is not a defence for operating outside limits.',
+        safetyScore: 0.1, decisionScore: 0.1, sitAware: 0.2, assertScore: 0.1,
+      },
+      {
+        label: 'Decline to operate — state clearly that current wind conditions exceed the aircraft\'s operating limit and explain the risk',
+        rationale: 'Correct. You are the operator. Declining to operate in conditions outside the aircraft\'s envelope is both your right and your professional obligation. State it factually: "Winds are at 38, aircraft rated to 36 — deploying risks loss of the aircraft." Offer alternatives: reposition to a sheltered launch, wait for conditions to improve, or advise the incident commander of the limitation.',
+        safetyScore: 1.0, decisionScore: 1.0, sitAware: 0.9, assertScore: 1.0,
+      },
+      {
+        label: 'Launch but fly slowly and avoid the most exposed areas of the gully',
+        rationale: 'Operating outside the aircraft\'s wind rating is a binary limit, not a guideline to work around with technique. Gusts to 38 km/h in an enclosed gully will be higher in turbulent pockets. This approach accepts the risk without justification.',
+        safetyScore: 0.2, decisionScore: 0.2, sitAware: 0.3, assertScore: 0.3,
+      },
+      {
+        label: 'Ask the team lead to reduce their request — accept only if they ask for a shorter flight',
+        rationale: 'The issue is the wind limit, not the mission duration. Shortening the flight does not change the conditions. The correct intervention is to identify the specific limiting factor and offer a safe alternative or an honest "not tonight" if none exists.',
+        safetyScore: 0.4, decisionScore: 0.4, sitAware: 0.4, assertScore: 0.4,
+      },
+    ],
+    bestIndex: 1,
+  },
+];
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function OperationalDecision({ onComplete }: Props) {
+export function OperationalDecision({ isRpas, onComplete }: Props) {
+  return <OperationalDecisionCore scenarios={isRpas ? RPAS_SCENARIOS : SCENARIOS} onComplete={onComplete} />;
+}
+
+function OperationalDecisionCore({ scenarios, onComplete }: { scenarios: Scenario[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [scores, setScores] = useState({ safety: 0, decision: 0, sitAware: 0, assert: 0, count: 0 });
 
-  const scenario = SCENARIOS[scenarioIdx];
-  const isLast = scenarioIdx === SCENARIOS.length - 1;
+  const scenario = scenarios[scenarioIdx];
+  const isLast = scenarioIdx === scenarios.length - 1;
 
   function confirm() {
     if (selected === null) return;
@@ -183,7 +278,7 @@ export function OperationalDecision({ onComplete }: Props) {
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Progress */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {SCENARIOS.map((_, i) => (
+        {scenarios.map((_, i) => (
           <div key={i} style={{
             width: i === scenarioIdx ? 24 : 8, height: 8, borderRadius: 4,
             background: i < scenarioIdx ? C.green : i === scenarioIdx ? C.crimson : C.border,
@@ -191,7 +286,7 @@ export function OperationalDecision({ onComplete }: Props) {
           }} />
         ))}
         <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>
-          Scenario {scenarioIdx + 1}/{SCENARIOS.length} — {scenario.domain}
+          Scenario {scenarioIdx + 1}/{scenarios.length} — {scenario.domain}
         </span>
       </div>
 

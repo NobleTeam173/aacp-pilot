@@ -884,19 +884,19 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, onComplete }: M
         />
       );
     case 'inspection':
-      return <AircraftInspection onComplete={evidence => onComplete(evidence)} />;
+      return <AircraftInspection isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'diagnosis':
-      return <SystemDiagnosis onComplete={evidence => onComplete(evidence)} />;
+      return <SystemDiagnosis isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'puzzle':
-      return <SystemsPuzzle onComplete={evidence => onComplete(evidence)} />;
+      return <SystemsPuzzle isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'graph':
-      return <InstrumentReading onComplete={evidence => onComplete(evidence)} />;
+      return <InstrumentReading isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'decision':
-      return <OperationalDecision onComplete={evidence => onComplete(evidence)} />;
+      return <OperationalDecision isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'atc':
-      return <ATCCommunication onComplete={evidence => onComplete(evidence)} />;
+      return <ATCCommunication isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'workload':
-      return <WorkloadPriority onComplete={evidence => onComplete(evidence)} />;
+      return <WorkloadPriority isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'reflection':
       return (
         <AIMentorChat
