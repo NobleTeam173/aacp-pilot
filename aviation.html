@@ -58,7 +58,8 @@
     .pathway-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 56px; }
     .pathway-card { border-radius: 20px; overflow: hidden; position: relative; background: var(--surface); border: 1px solid rgba(46,16,53,0.5); transition: transform .25s, box-shadow .25s; }
     .pathway-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(0,0,0,0.45); }
-    .pathway-card-img { width: 100%; height: 300px; object-fit: cover; display: block; filter: brightness(0.55) saturate(0.9); transition: filter .4s; }
+    .pathway-card-img { width: 100%; height: 300px; object-fit: cover; object-position: center; display: block; filter: brightness(0.55) saturate(0.9); transition: filter .4s; }
+    .pathway-card-img.pos-top { object-position: center top; }
     .pathway-card:hover .pathway-card-img { filter: brightness(0.75) saturate(1.1); }
     .pathway-card-body { padding: 24px 28px 30px; }
     .pathway-card-tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--crimson); margin-bottom: 8px; }
@@ -170,7 +171,7 @@
     <div class="pathway-grid">
 
       <div class="pathway-card">
-        <img class="pathway-card-img" src="/images/atc-tower.jpg" alt="Air traffic control tower" />
+        <img class="pathway-card-img pos-top" src="/images/atc-tower.jpg" alt="Air traffic control tower" />
         <div class="pathway-card-body">
           <div class="pathway-card-tag">Pathway 01</div>
           <h3>Air Traffic Control</h3>
@@ -197,7 +198,7 @@
       </div>
 
       <div class="pathway-card">
-        <img class="pathway-card-img" src="https://images.unsplash.com/photo-1517976547714-720226b864c1?w=900&q=80" alt="Aerospace engineering and STEM" loading="lazy" />
+        <img class="pathway-card-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=900&q=80" alt="Avionics and aerospace engineering components" loading="lazy" />
         <div class="pathway-card-body">
           <div class="pathway-card-tag">Pathway 04</div>
           <h3>Aerospace STEM</h3>
@@ -209,23 +210,6 @@
   </div>
 </section>
 
-<!-- ATC / AME PHOTO STRIP -->
-<div class="photo-strip">
-  <div class="photo-strip-panel">
-    <img src="/images/atc-tower.jpg" alt="Air traffic control tower" />
-    <div class="photo-strip-label">
-      <h3>Air Traffic Control</h3>
-      <p>Precision, radar and real-time decision-making in Canada's busiest airspace.</p>
-    </div>
-  </div>
-  <div class="photo-strip-panel">
-    <img src="/images/ame-hangar.jpg" alt="Aircraft maintenance engineer working in a hangar" loading="lazy" />
-    <div class="photo-strip-label">
-      <h3>Aircraft Maintenance Engineering</h3>
-      <p>Technical expertise keeping Canada's fleet airworthy, safe and certified.</p>
-    </div>
-  </div>
-</div>
 
 <!-- PROGRAM JOURNEY -->
 <section class="journey-section">
