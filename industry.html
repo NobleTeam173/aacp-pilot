@@ -30,85 +30,94 @@
     @media (max-width:960px) { .nav-links { display:none; } }
 
     /* PAGE HEADER */
-    .page-header { padding:140px 6vw 80px; text-align:center; position:relative; overflow:hidden; background:var(--surface); }
+    .page-header { padding:140px 6vw 72px; text-align:center; position:relative; overflow:hidden; background:var(--surface); }
     .page-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 70% 60% at 50% 0%, rgba(128,1,31,0.15) 0%, transparent 70%); }
     .page-header-content { position:relative; z-index:1; max-width:720px; margin:0 auto; }
     .eyebrow { display:inline-block; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--crimson-text); margin-bottom:16px; border:1px solid rgba(224,85,117,0.35); background:rgba(224,85,117,0.08); border-radius:20px; padding:5px 14px; }
-    .page-header h1 { font-family:'Fraunces',serif; font-size:clamp(2.4rem,5vw,4rem); font-weight:900; letter-spacing:-2px; line-height:1.08; margin-bottom:20px; }
-    .page-header h1 em { font-style:italic; background:linear-gradient(130deg,#f07090,#e05575,#c0374f); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .page-header p { font-size:1.05rem; color:var(--muted); line-height:1.8; max-width:580px; margin:0 auto; }
+    .page-header h1 { font-family:'Fraunces',serif; font-size:clamp(2.2rem,5vw,3.8rem); font-weight:900; letter-spacing:-2px; line-height:1.08; margin-bottom:20px; }
+    .page-header h1 em { font-style:italic; background:linear-gradient(130deg,#f07090,#e05575,#e05575); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-header p { font-size:1rem; color:var(--muted); line-height:1.8; max-width:560px; margin:0 auto 32px; }
+    .header-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .btn-hero { display:inline-flex; align-items:center; background:var(--crimson); color:#fff; text-decoration:none; padding:13px 28px; border-radius:10px; font-size:14px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; transition:all .2s; box-shadow:0 0 32px rgba(128,1,31,0.3); }
+    .btn-hero:hover { background:var(--crimson-dim); transform:translateY(-1px); }
+    .btn-hero-outline { display:inline-flex; align-items:center; background:transparent; color:var(--text); text-decoration:none; padding:13px 28px; border-radius:10px; font-size:14px; font-weight:600; border:1px solid rgba(255,255,255,0.18); transition:all .2s; }
+    .btn-hero-outline:hover { border-color:rgba(255,255,255,0.32); background:rgba(255,255,255,0.05); }
 
     /* SECTIONS */
-    section { padding:88px 6vw; }
+    section { padding:72px 6vw; }
     .section-eyebrow { font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--crimson-text); margin-bottom:14px; display:block; }
     .section-title { font-family:'Fraunces',serif; font-size:clamp(1.8rem,3vw,2.6rem); font-weight:800; letter-spacing:-1.2px; line-height:1.1; margin-bottom:14px; }
-    .section-sub { font-size:1rem; color:var(--muted); line-height:1.8; max-width:580px; }
+    .section-sub { font-size:0.95rem; color:var(--muted); line-height:1.8; max-width:580px; }
     .divider { width:40px; height:2px; background:var(--crimson); border-radius:2px; margin:16px 0; }
     .grid-max { max-width:1200px; margin:0 auto; }
     .center { text-align:center; }
     .center .section-sub { margin:0 auto; }
     .center .divider { margin:16px auto; }
 
-    /* PARTNERSHIP TYPES */
-    .partners-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-top:52px; }
-    .partner-card { border-radius:16px; padding:36px 32px; border:1px solid rgba(46,16,53,0.5); background:var(--surface); position:relative; overflow:hidden; transition:border-color .2s; }
-    .partner-card:hover { border-color:rgba(128,1,31,0.3); }
-    .partner-icon { width:48px; height:48px; border-radius:12px; margin-bottom:20px; display:flex; align-items:center; justify-content:center; background:rgba(128,1,31,0.1); border:1px solid rgba(128,1,31,0.2); }
-    .partner-icon svg { width:24px; height:24px; stroke:var(--crimson); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
-    .partner-card h3 { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:800; margin-bottom:10px; letter-spacing:-0.3px; }
-    .partner-card p { font-size:0.85rem; color:var(--muted); line-height:1.75; margin-bottom:18px; }
-    .partner-list { list-style:none; display:flex; flex-direction:column; gap:7px; }
-    .partner-list li { font-size:0.82rem; color:var(--dim); padding-left:18px; position:relative; line-height:1.6; }
-    .partner-list li::before { content:''; position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); opacity:0.5; }
+    /* PARTNER CARDS */
+    .partners-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-top:44px; }
+    .partner-card { border-radius:16px; padding:28px 26px; border:1px solid rgba(46,16,53,0.5); background:var(--surface); transition:border-color .2s; }
+    .partner-card:hover { border-color:rgba(128,1,31,0.35); }
+    .partner-icon { width:44px; height:44px; border-radius:11px; margin-bottom:16px; display:flex; align-items:center; justify-content:center; background:rgba(224,85,117,0.08); border:1px solid rgba(224,85,117,0.2); }
+    .partner-icon svg { width:22px; height:22px; stroke:var(--crimson-text); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    .partner-card h3 { font-family:'Fraunces',serif; font-size:1.05rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.3px; }
+    .partner-card p { font-size:0.84rem; color:var(--muted); line-height:1.7; margin-bottom:16px; }
+    .partner-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
+    .partner-list li { font-size:0.81rem; color:var(--dim); padding-left:16px; position:relative; line-height:1.55; }
+    .partner-list li::before { content:''; position:absolute; left:0; top:7px; width:4px; height:4px; border-radius:50%; background:var(--crimson-text); opacity:0.6; }
 
-    /* WORKFORCE PIPELINE VISUAL */
+    /* PIPELINE */
     .pipeline-section { background:var(--surface); }
-    .pipeline-visual { margin-top:52px; display:flex; flex-wrap:wrap; gap:0; }
-    .pipeline-step { flex:1; min-width:160px; text-align:center; position:relative; padding:32px 20px; }
-    .pipeline-step:not(:last-child)::after { content:''; position:absolute; right:-1px; top:20%; bottom:20%; width:1px; background:rgba(128,1,31,0.25); z-index:1; }
-    .pipeline-step-num { width:44px; height:44px; border-radius:50%; background:rgba(128,1,31,0.12); border:1px solid rgba(128,1,31,0.25); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-family:'Fraunces',serif; font-size:1rem; font-weight:800; color:var(--crimson); }
-    .pipeline-step h4 { font-size:0.88rem; font-weight:700; margin-bottom:6px; }
+    .pipeline-visual { margin-top:44px; display:flex; flex-wrap:wrap; gap:0; }
+    .pipeline-step { flex:1; min-width:150px; text-align:center; position:relative; padding:28px 18px; }
+    .pipeline-step:not(:last-child)::after { content:''; position:absolute; right:-1px; top:20%; bottom:20%; width:1px; background:rgba(128,1,31,0.2); z-index:1; }
+    .pipeline-step-num { width:40px; height:40px; border-radius:50%; background:rgba(224,85,117,0.08); border:1px solid rgba(224,85,117,0.25); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-family:'Fraunces',serif; font-size:0.95rem; font-weight:800; color:var(--crimson-text); }
+    .pipeline-step h4 { font-size:0.87rem; font-weight:700; margin-bottom:6px; }
     .pipeline-step p { font-size:0.78rem; color:var(--muted); line-height:1.6; }
     @media (max-width:700px) { .pipeline-step:not(:last-child)::after { display:none; } }
 
-    /* WHAT WE BRING */
-    .value-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:52px; }
-    .value-card { padding:28px 22px; border-radius:12px; background:var(--surface); border:1px solid rgba(46,16,53,0.4); }
-    .value-num { font-family:'Fraunces',serif; font-size:2.2rem; font-weight:900; color:rgba(128,1,31,0.3); line-height:1; margin-bottom:10px; }
-    .value-card h4 { font-size:0.88rem; font-weight:700; margin-bottom:8px; }
-    .value-card p { font-size:0.8rem; color:var(--muted); line-height:1.7; }
-
-    /* PARTNERSHIP INQUIRY */
+    /* INQUIRY */
     .inquiry-section { background:var(--bg); }
-    .inquiry-layout { display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:start; }
-    .inquiry-info h2 { font-family:'Fraunces',serif; font-size:clamp(1.6rem,2.5vw,2.2rem); font-weight:800; letter-spacing:-0.8px; margin-bottom:14px; }
-    .inquiry-info p { font-size:0.9rem; color:var(--muted); line-height:1.8; margin-bottom:18px; }
-    .contact-rows { display:flex; flex-direction:column; gap:16px; margin-top:28px; }
-    .contact-row { display:flex; align-items:flex-start; gap:14px; }
-    .contact-row-icon { width:36px; height:36px; flex-shrink:0; border-radius:9px; background:rgba(128,1,31,0.1); border:1px solid rgba(128,1,31,0.2); display:flex; align-items:center; justify-content:center; margin-top:2px; }
-    .contact-row-icon svg { width:16px; height:16px; stroke:var(--crimson); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
-    .contact-row-text label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); display:block; margin-bottom:3px; }
-    .contact-row-text span { font-size:0.85rem; color:var(--muted); }
-    .inquiry-card { background:var(--surface); border:1px solid rgba(46,16,53,0.4); border-radius:18px; padding:40px 36px; position:relative; overflow:hidden; }
-    .inquiry-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(128,1,31,0.4),transparent); }
-    .inquiry-card h3 { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.2px; }
-    .inquiry-card p { font-size:0.85rem; color:var(--muted); line-height:1.75; margin-bottom:28px; }
-    .inquiry-options { display:flex; flex-direction:column; gap:10px; }
-    .inquiry-option { display:flex; align-items:center; gap:14px; padding:14px 18px; border-radius:10px; background:var(--bg); border:1px solid rgba(46,16,53,0.4); text-decoration:none; color:var(--text); transition:border-color .2s; }
-    .inquiry-option:hover { border-color:rgba(128,1,31,0.3); }
-    .inquiry-option-dot { width:8px; height:8px; border-radius:50%; background:var(--crimson); flex-shrink:0; }
-    .inquiry-option-label { font-size:0.85rem; font-weight:600; flex:1; }
-    .inquiry-option-arrow { display:none; }
+    .inquiry-layout { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
+    .inquiry-info h2 { font-family:'Fraunces',serif; font-size:clamp(1.5rem,2.5vw,2.1rem); font-weight:800; letter-spacing:-0.8px; margin-bottom:14px; }
+    .inquiry-info p { font-size:0.88rem; color:var(--muted); line-height:1.8; margin-bottom:14px; }
+    .contact-rows { display:flex; flex-direction:column; gap:14px; margin-top:24px; }
+    .contact-row { display:flex; align-items:flex-start; gap:12px; }
+    .contact-row-icon { width:34px; height:34px; flex-shrink:0; border-radius:9px; background:rgba(224,85,117,0.08); border:1px solid rgba(224,85,117,0.2); display:flex; align-items:center; justify-content:center; margin-top:2px; }
+    .contact-row-icon svg { width:15px; height:15px; stroke:var(--crimson-text); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    .contact-row-text label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); display:block; margin-bottom:2px; }
+    .contact-row-text span, .contact-row-text a { font-size:0.84rem; color:var(--muted); text-decoration:none; }
+    .contact-row-text a:hover { color:var(--text); }
+
+    /* FORM CARD */
+    .inquiry-card { background:var(--surface); border:1px solid rgba(46,16,53,0.4); border-radius:18px; padding:36px 32px; position:relative; overflow:hidden; }
+    .inquiry-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(224,85,117,0.3),transparent); }
+    .inquiry-card h3 { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:800; margin-bottom:8px; }
+    .inquiry-card > p { font-size:0.84rem; color:var(--muted); line-height:1.7; margin-bottom:24px; }
+    .form-field { margin-bottom:16px; }
+    .form-field label { display:block; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
+    .form-field input, .form-field select, .form-field textarea { width:100%; background:var(--bg); border:1px solid rgba(46,16,53,0.6); border-radius:8px; padding:10px 14px; font-size:0.84rem; font-family:'DM Sans',sans-serif; color:var(--text); outline:none; transition:border-color .2s; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:rgba(224,85,117,0.4); }
+    .form-field select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a7582' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; cursor:pointer; }
+    .form-field select option { background:#100614; }
+    .form-field textarea { resize:vertical; min-height:80px; }
+    .form-field input::placeholder, .form-field textarea::placeholder { color:var(--dim); }
+    .form-submit { width:100%; background:var(--crimson); color:#fff; border:none; border-radius:9px; padding:12px 20px; font-size:14px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer; transition:background .2s; margin-top:4px; font-family:'DM Sans',sans-serif; }
+    .form-submit:hover { background:var(--crimson-dim); }
+    .form-note { font-size:11px; color:var(--dim); line-height:1.6; margin-top:12px; }
+    .form-success { display:none; text-align:center; padding:32px 16px; }
+    .form-success h4 { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:800; margin-bottom:8px; }
+    .form-success p { font-size:0.84rem; color:var(--muted); line-height:1.7; }
 
     /* CTA */
     .cta-band { border-top:1px solid rgba(46,16,53,0.4); }
-    .cta-band-inner { max-width:1200px; margin:0 auto; padding:72px 6vw; text-align:center; }
-    .cta-band h2 { font-family:'Fraunces',serif; font-size:clamp(1.5rem,2.5vw,2.1rem); font-weight:800; letter-spacing:-0.8px; margin-bottom:14px; }
-    .cta-band p { font-size:0.95rem; color:var(--muted); margin-bottom:32px; max-width:520px; margin-left:auto; margin-right:auto; line-height:1.75; }
+    .cta-band-inner { max-width:1200px; margin:0 auto; padding:64px 6vw; text-align:center; }
+    .cta-band h2 { font-family:'Fraunces',serif; font-size:clamp(1.5rem,2.5vw,2rem); font-weight:800; letter-spacing:-0.8px; margin-bottom:14px; }
+    .cta-band p { font-size:0.95rem; color:var(--muted); margin-bottom:28px; max-width:500px; margin-left:auto; margin-right:auto; line-height:1.75; }
     .btn-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    .btn-primary { display:inline-flex; align-items:center; background:var(--crimson); color:#fff; text-decoration:none; padding:14px 32px; border-radius:10px; font-size:14px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; transition:all .2s; box-shadow:0 0 32px rgba(128,1,31,0.3); }
+    .btn-primary { display:inline-flex; align-items:center; background:var(--crimson); color:#fff; text-decoration:none; padding:13px 30px; border-radius:10px; font-size:14px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; transition:all .2s; box-shadow:0 0 28px rgba(128,1,31,0.3); }
     .btn-primary:hover { background:var(--crimson-dim); transform:translateY(-1px); }
-    .btn-secondary { display:inline-flex; align-items:center; background:transparent; color:var(--text); text-decoration:none; padding:14px 32px; border-radius:10px; font-size:14px; font-weight:600; border:1px solid rgba(255,255,255,0.14); transition:all .2s; }
+    .btn-secondary { display:inline-flex; align-items:center; background:transparent; color:var(--text); text-decoration:none; padding:13px 30px; border-radius:10px; font-size:14px; font-weight:600; border:1px solid rgba(255,255,255,0.14); transition:all .2s; }
     .btn-secondary:hover { border-color:rgba(255,255,255,0.28); background:rgba(255,255,255,0.05); }
 
     /* FOOTER */
@@ -122,14 +131,14 @@
     .footer-links a:hover { color:var(--muted); }
     .footer-copy { font-size:11px; color:var(--dim); margin-top:8px; text-align:center; }
     .footer-contact { text-align:right; }
-    .footer-contact-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:6px; }
+    .footer-contact-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson-text); margin-bottom:6px; }
     .footer-contact a { font-size:13px; color:var(--muted); text-decoration:none; }
     .footer-contact a:hover { color:var(--text); }
     @media (max-width:960px) { footer { flex-direction:column; text-align:center; } .footer-contact { text-align:center; } }
 
     /* RESPONSIVE */
-    @media (max-width:900px) { .partners-grid,.inquiry-layout { grid-template-columns:1fr; } .value-grid { grid-template-columns:1fr 1fr; } }
-    @media (max-width:580px) { .value-grid { grid-template-columns:1fr; } }
+    @media (max-width:900px) { .partners-grid, .inquiry-layout { grid-template-columns:1fr; } }
+    @media (max-width:600px) { .pipeline-visual { flex-direction:column; } .pipeline-step { min-width:unset; } }
   </style>
 </head>
 <body>
@@ -158,19 +167,23 @@
 <div class="page-header">
   <div class="page-header-content">
     <div class="eyebrow">Industry &amp; Partnerships</div>
-    <h1>Power Your Workforce<br/><em>Strategy with Aviation</em><br/>Intelligence</h1>
-    <p>AACP™ delivers structured workforce intelligence to employers, educational institutions, industry organizations and communities — giving you actionable data on the talent pipeline entering Canada's aviation and aerospace sector.</p>
+    <h1>Workforce Intelligence<br/>for <em>Partners Who Build</em><br/>Aviation Futures</h1>
+    <p>AACP™ gives employers, institutions, associations and communities structured insight into aviation and aerospace workforce trends — so you can plan, recruit and develop with confidence.</p>
+    <div class="header-actions">
+      <a href="#partnership-inquiry" class="btn-hero">Discuss a Partnership</a>
+      <a href="/aviation.html" class="btn-hero-outline">Explore Programs</a>
+    </div>
   </div>
 </div>
 
 <!-- PARTNERSHIP TYPES -->
-<section>
+<section id="partners">
   <div class="grid-max">
     <div class="center">
       <span class="section-eyebrow">Partnership Opportunities</span>
       <h2 class="section-title">Who We Partner With</h2>
       <div class="divider"></div>
-      <p class="section-sub">AACP™ serves employers, institutions, associations and communities with commercial workforce intelligence — giving each partner type actionable data and pipeline access built for their specific needs.</p>
+      <p class="section-sub">AACP™ serves employers, institutions, associations and communities — each with workforce intelligence built for their specific planning and development needs.</p>
     </div>
     <div class="partners-grid">
       <div class="partner-card">
@@ -178,13 +191,13 @@
           <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         </div>
         <h3>Employers &amp; Aviation Operators</h3>
-        <p>Access aggregated workforce intelligence on the talent pipeline entering aviation and aerospace. Understand cohort-level capability trends, emerging workforce characteristics and development needs.</p>
+        <p>Understand the profile of the talent entering aviation and aerospace. AACP™ provides aggregated, cohort-level workforce intelligence — not individual records — to help you plan hiring and onboarding with real data.</p>
         <ul class="partner-list">
           <li>Aggregated, anonymized cohort workforce intelligence</li>
-          <li>Cohort-level capability trend data</li>
+          <li>Cohort-level trend data across participating programs</li>
           <li>Alignment with your workforce planning needs</li>
-          <li>Participation in workforce development curriculum and programming</li>
-          <li>Connection to participants who have expressed interest in industry engagement</li>
+          <li>Participation in workforce development programming</li>
+          <li>Connection to participants who have explicitly consented to industry engagement</li>
         </ul>
       </div>
       <div class="partner-card">
@@ -192,13 +205,13 @@
           <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </div>
         <h3>Educational Institutions</h3>
-        <p>Strengthen the transition between aviation education and workforce readiness. AACP™ workforce intelligence complements technical training with structured capability assessment and career direction.</p>
+        <p>Strengthen the link between aviation education and workforce readiness. AACP™ intelligence helps institutions understand how graduates are positioning and where support has the greatest impact.</p>
         <ul class="partner-list">
-          <li>Structured workforce intelligence for graduates and students</li>
-          <li>Transition support from education to workforce readiness</li>
+          <li>Workforce readiness data for graduates and students</li>
           <li>ACIA™ integration pathways for existing programs</li>
-          <li>Employer connection and placement intelligence</li>
-          <li>Curriculum alignment with workforce capability requirements</li>
+          <li>Transition support from education to workforce entry</li>
+          <li>Curriculum alignment with employer needs</li>
+          <li>Aggregated outcome data for program development</li>
         </ul>
       </div>
       <div class="partner-card">
@@ -206,13 +219,13 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
         </div>
         <h3>Industry Organizations &amp; Associations</h3>
-        <p>Aviation and aerospace associations play a critical role in defining workforce standards and advocating for workforce development investment. AACP™ provides the data and intelligence infrastructure to support that work.</p>
+        <p>Aviation and aerospace associations shape workforce standards and advocate for development investment. AACP™ provides the sector intelligence to ground that work in data.</p>
         <ul class="partner-list">
-          <li>Sector-level workforce intelligence and capability data</li>
+          <li>Sector-level workforce intelligence across cohorts</li>
           <li>Data foundation for workforce development advocacy</li>
           <li>Alignment with national and provincial workforce strategies</li>
-          <li>Pilot program opportunities for workforce development initiatives</li>
           <li>Research and reporting collaboration</li>
+          <li>Pilot program opportunities</li>
         </ul>
       </div>
       <div class="partner-card">
@@ -220,12 +233,12 @@
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <h3>Communities &amp; Workforce Development Organizations</h3>
-        <p>Aviation and aerospace careers are increasingly accessible to underrepresented communities. AACP™ partners with workforce development organizations to bring structured workforce intelligence to communities building their aviation future.</p>
+        <p>Aviation and aerospace careers are increasingly accessible to underrepresented communities. AACP™ partners with organizations building workforce pathways in their communities.</p>
         <ul class="partner-list">
           <li>Community-based workforce intelligence programs</li>
           <li>Accessible pathways into aviation and aerospace careers</li>
-          <li>RPAS Workforce Hub as a community workforce entry point</li>
-          <li>Cohort-based programs for community groups and organizations</li>
+          <li>Drone-enabled career exploration through the RPAS Workforce Hub</li>
+          <li>Cohort-based programs for community groups</li>
           <li>Collaboration with Indigenous and rural communities</li>
         </ul>
       </div>
@@ -233,94 +246,50 @@
   </div>
 </section>
 
-<!-- WORKFORCE PIPELINE -->
+<!-- DECISIONS -->
 <section class="pipeline-section">
   <div class="grid-max">
     <div class="center">
-      <span class="section-eyebrow">How It Works</span>
+      <span class="section-eyebrow">How It Works for Partners</span>
       <h2 class="section-title">The Decisions AACP™ Helps You Make</h2>
       <div class="divider"></div>
-      <p class="section-sub">AACP™ delivers structured workforce intelligence that informs the decisions that matter most — from hiring strategy to program design to sector planning.</p>
+      <p class="section-sub">AACP™ workforce intelligence informs the decisions that matter — from hiring to program design to sector planning.</p>
     </div>
     <div class="pipeline-visual">
       <div class="pipeline-step">
         <div class="pipeline-step-num">01</div>
         <h4>Workforce Planning</h4>
-        <p>Understand the capability profile of the talent entering your sector — and plan hiring, onboarding and development with real data.</p>
+        <p>Understand the capability profile of incoming talent and plan hiring, onboarding and development with real data.</p>
       </div>
       <div class="pipeline-step">
         <div class="pipeline-step-num">02</div>
         <h4>Development Priorities</h4>
-        <p>Identify where cohort-level gaps exist and where targeted training investment would have the greatest workforce impact.</p>
+        <p>Identify where cohort-level gaps exist and where training investment would have the greatest impact.</p>
       </div>
       <div class="pipeline-step">
         <div class="pipeline-step-num">03</div>
         <h4>Education-to-Industry Alignment</h4>
-        <p>Align program design, curriculum and career pathways to what employers in aviation and aerospace actually need from new entrants.</p>
+        <p>Align programs and career pathways to what employers in aviation and aerospace actually need from new entrants.</p>
       </div>
       <div class="pipeline-step">
         <div class="pipeline-step-num">04</div>
         <h4>Sector Intelligence</h4>
-        <p>Access aggregated, anonymized workforce intelligence across cohorts — giving your organization a clearer view of the talent landscape.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT WE BRING -->
-<section>
-  <div class="grid-max">
-    <div class="center">
-      <span class="section-eyebrow">What AACP™ Brings</span>
-      <h2 class="section-title">Workforce Intelligence Infrastructure</h2>
-      <div class="divider"></div>
-      <p class="section-sub">AACP™ is designed to build shared workforce intelligence capacity — not just individual career guidance. Here is what partners gain access to.</p>
-    </div>
-    <div class="value-grid">
-      <div class="value-card">
-        <div class="value-num">01</div>
-        <h4>Structured Workforce Intelligence Data</h4>
-        <p>ACIA™ generates structured Workforce Profiles across a range of career-relevant capability areas — providing a consistent framework for understanding participant strengths and development areas at the cohort level.</p>
-      </div>
-      <div class="value-card">
-        <div class="value-num">02</div>
-        <h4>Pipeline Visibility</h4>
-        <p>Understand who is entering the aviation and aerospace workforce — their backgrounds, capability strengths, development needs and career direction — before they reach your recruitment process.</p>
-      </div>
-      <div class="value-card">
-        <div class="value-num">03</div>
-        <h4>Workforce Readiness Programs</h4>
-        <p>AACP™ delivers structured 8-week cohort programs and the RPAS Workforce Hub — purpose-built programming grounded in career intelligence and real aviation and aerospace industry context.</p>
-      </div>
-      <div class="value-card">
-        <div class="value-num">04</div>
-        <h4>Sector-Level Intelligence</h4>
-        <p>Beyond individual participants, AACP™ builds aggregated workforce intelligence across cohorts and programs — supporting workforce planning, policy development and sector strategy.</p>
-      </div>
-      <div class="value-card">
-        <div class="value-num">05</div>
-        <h4>RPAS Industry Applications</h4>
-        <p>The RPAS Workforce Hub addresses the growing demand for RPAS-capable workforce across infrastructure inspection, environmental monitoring, mapping and emergency management.</p>
-      </div>
-      <div class="value-card">
-        <div class="value-num">06</div>
-        <h4>Canadian Aviation Focus</h4>
-        <p>AACP™ is purpose-built for the Canadian aviation and aerospace sector — informed by Canadian aviation industry standards and grounded in Alberta's growing aerospace and RPAS ecosystem.</p>
+        <p>Access aggregated, anonymized workforce data across cohorts — a clearer view of Canada's aviation talent landscape.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- PARTNERSHIP INQUIRY -->
-<section class="inquiry-section">
+<section class="inquiry-section" id="partnership-inquiry">
   <div class="grid-max">
     <div class="inquiry-layout">
       <div class="inquiry-info">
         <span class="section-eyebrow">Get in Touch</span>
         <h2>Start a Partnership Conversation</h2>
         <div class="divider"></div>
-        <p>Whether you are an employer looking to understand your talent pipeline, an educational institution exploring ACIA™ integration, or an organization building aviation workforce capacity in your community — we want to hear from you.</p>
-        <p>AACP™ partnership conversations are exploratory. We start by understanding your workforce intelligence needs and how AACP™ can best support them.</p>
+        <p>Whether you are an employer, an educational institution, an industry association or a community organization — we want to hear from you.</p>
+        <p>Partnership conversations are exploratory. We start by understanding your workforce intelligence needs and how AACP™ can best support them.</p>
         <div class="contact-rows">
           <div class="contact-row">
             <div class="contact-row-icon">
@@ -328,7 +297,7 @@
             </div>
             <div class="contact-row-text">
               <label>Email</label>
-              <span>info@aviationaerospacecompetency.com</span>
+              <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
             </div>
           </div>
           <div class="contact-row">
@@ -340,48 +309,48 @@
               <span>Alberta, Canada — serving the Canadian aviation and aerospace sector</span>
             </div>
           </div>
-          <div class="contact-row">
-            <div class="contact-row-icon">
-              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <div class="contact-row-text">
-              <label>Platform</label>
-              <span>aviationaerospacecompetency.com</span>
-            </div>
-          </div>
         </div>
       </div>
       <div class="inquiry-card">
-        <h3>What type of partnership are you exploring?</h3>
-        <p>Select the option that best describes your organization's interest. We will be in touch to discuss how AACP™ can support your workforce intelligence goals.</p>
-        <div class="inquiry-options">
-          <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry%20—%20Employer" class="inquiry-option">
-            <div class="inquiry-option-dot"></div>
-            <span class="inquiry-option-label">Employer or Aviation Operator</span>
-            <span class="inquiry-option-arrow">→</span>
-          </a>
-          <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry%20—%20Educational%20Institution" class="inquiry-option">
-            <div class="inquiry-option-dot"></div>
-            <span class="inquiry-option-label">Educational Institution</span>
-            <span class="inquiry-option-arrow">→</span>
-          </a>
-          <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry%20—%20Industry%20Organization" class="inquiry-option">
-            <div class="inquiry-option-dot"></div>
-            <span class="inquiry-option-label">Industry Organization or Association</span>
-            <span class="inquiry-option-arrow">→</span>
-          </a>
-          <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry%20—%20Community%20Organization" class="inquiry-option">
-            <div class="inquiry-option-dot"></div>
-            <span class="inquiry-option-label">Community or Workforce Development Organization</span>
-            <span class="inquiry-option-arrow">→</span>
-          </a>
-          <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry%20—%20General" class="inquiry-option">
-            <div class="inquiry-option-dot"></div>
-            <span class="inquiry-option-label">Other — General Inquiry</span>
-            <span class="inquiry-option-arrow">→</span>
-          </a>
+        <h3>Discuss a Partnership</h3>
+        <p>Tell us about your organization and what you are looking to accomplish. We will follow up to start the conversation.</p>
+        <div id="inquiry-form-wrap">
+          <form id="inquiry-form" novalidate>
+            <div class="form-field">
+              <label for="inq-name">Your Name</label>
+              <input id="inq-name" name="name" type="text" required placeholder="First and last name" autocomplete="name" />
+            </div>
+            <div class="form-field">
+              <label for="inq-org">Organization</label>
+              <input id="inq-org" name="organization" type="text" required placeholder="Your organization or institution" />
+            </div>
+            <div class="form-field">
+              <label for="inq-email">Email</label>
+              <input id="inq-email" name="email" type="email" required placeholder="you@organization.com" autocomplete="email" />
+            </div>
+            <div class="form-field">
+              <label for="inq-type">Partnership Type</label>
+              <select id="inq-type" name="partnerType" required>
+                <option value="" disabled selected>Select your organization type</option>
+                <option value="employer">Employer or Aviation Operator</option>
+                <option value="education">Educational Institution</option>
+                <option value="association">Industry Organization or Association</option>
+                <option value="community">Community or Workforce Development Organization</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="inq-message">What would you like to discuss? <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+              <textarea id="inq-message" name="message" placeholder="Briefly describe your workforce intelligence needs or goals." maxlength="500"></textarea>
+            </div>
+            <button type="submit" class="form-submit">Send Inquiry</button>
+            <p class="form-note">Your information will be used to follow up on your partnership inquiry only. See our <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">Privacy Policy</a>. If the form does not submit, email us directly at info@aviationaerospacecompetency.com.</p>
+          </form>
         </div>
-        <p style="margin-top:16px;font-size:11px;color:var(--dim);line-height:1.6;">Selecting an option will open your email client. The email address is info@aviationaerospacecompetency.com. If your email client does not open, please copy the address directly.</p>
+        <div class="form-success" id="inquiry-success">
+          <h4>Thank you — we'll be in touch.</h4>
+          <p>Your inquiry has been received. A member of the AACP™ team will follow up at the email address you provided.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -391,9 +360,9 @@
 <div class="cta-band">
   <div class="cta-band-inner">
     <h2>Ready to Build Workforce Intelligence Together?</h2>
-    <p>AACP™ is actively building partnerships with organizations committed to growing Canada's aviation and aerospace workforce. Let's start the conversation.</p>
+    <p>AACP™ is actively building partnerships with organizations committed to growing Canada's aviation and aerospace workforce.</p>
     <div class="btn-row">
-      <a href="mailto:info@aviationaerospacecompetency.com?subject=Partnership%20Inquiry" class="btn-primary">Contact AACP™</a>
+      <a href="#partnership-inquiry" class="btn-primary">Discuss a Partnership</a>
       <a href="/aviation.html" class="btn-secondary">Explore Programs</a>
     </div>
   </div>
@@ -425,6 +394,56 @@
     <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
   </div>
 </footer>
+
+<script>
+(function () {
+  var form = document.getElementById('inquiry-form');
+  var wrap = document.getElementById('inquiry-form-wrap');
+  var success = document.getElementById('inquiry-success');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = document.getElementById('inq-name').value.trim();
+    var org  = document.getElementById('inq-org').value.trim();
+    var email = document.getElementById('inq-email').value.trim();
+    var type  = document.getElementById('inq-type').value;
+    if (!name || !org || !email || !type) return;
+
+    var btn = form.querySelector('.form-submit');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    var body = {
+      name: name,
+      organization: org,
+      email: email,
+      partnerType: type,
+      partnershipInterests: [type],
+      comment: document.getElementById('inq-message').value.trim(),
+      source: 'industry-page'
+    };
+
+    fetch('/eoi/partner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    .then(function (r) {
+      if (r.ok) {
+        wrap.style.display = 'none';
+        success.style.display = 'block';
+      } else {
+        throw new Error('non-ok');
+      }
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Send Inquiry';
+      alert('There was a problem submitting the form. Please email us directly at info@aviationaerospacecompetency.com.');
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
