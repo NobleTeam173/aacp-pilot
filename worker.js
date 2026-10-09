@@ -8545,7 +8545,7 @@ async function handleRpasApply(request, env, ctx) {
     `SELECT id, status FROM rpas_applications WHERE email = ? AND status NOT IN ('not_selected') ORDER BY created_at DESC LIMIT 1`
   ).bind(email).first().catch(() => null);
   if (existing) {
-    return json({ applied: true, message: 'An expression of interest for this email address already exists.', status: existing.status });
+    return json({ applied: true, message: 'An expression of interest for this email address already exists.' });
   }
 
   const VALID_COHORTS = ['nov_23_2026', 'dec_14_2026', 'either'];
