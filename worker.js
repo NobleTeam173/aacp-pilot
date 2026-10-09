@@ -8593,22 +8593,41 @@ async function handleRpasApply(request, env, ctx) {
   return json({ applied: true, applicationId: id, message: 'Your application has been received. We will be in touch shortly.' });
 }
 
-// GET /rpas/apply/status?email=... — public application status check
-async function handleRpasApplicationStatus(request, env) {
+// POST /rpas/apply/status-request — secure: sends status email if record found; always returns neutral response
+async function handleRpasApplicationStatusRequest(request, env) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const ipKey = `rpas_status_ip:${clientIp}`;
   const ipCount = await countAllAttempts(env.DB, ipKey, 60 * 60 * 1000);
-  if (ipCount >= 20) return err('Too many requests. Please try again later.', 429);
+  if (ipCount >= 10) return err('Too many requests. Please try again later.', 429);
   await recordAttempt(env.DB, ipKey, true);
 
-  const url = new URL(request.url);
-  const email = url.searchParams.get('email')?.trim().toLowerCase();
-  if (!email) return err('email query parameter required', 400);
+  const body = await request.json().catch(() => ({}));
+  const email = (body.email ?? '').trim().toLowerCase();
+  if (!email) return err('email is required', 400);
+
+  const STATUS_MESSAGES = {
+    new:          'Your application has been received and is under review. You will hear from us within 5 business days.',
+    under_review: 'Your application is currently under review. You will hear from us shortly.',
+    accepted:     'Your application has been accepted. Please follow the payment instructions sent by AACP™ to confirm your place. Contact info@aviationaerospacecompetency.com if you have not received them.',
+    waitlisted:   'Your application has been placed on our waitlist. We will contact you directly if a place becomes available.',
+    not_selected: 'Thank you for your interest. We were not able to offer you a place in the current cohort. We encourage you to apply for a future cohort.',
+    enrolled:     'You are enrolled in the RPAS Workforce Hub. Check your email for access instructions.',
+  };
+
   const app = await env.DB.prepare(
-    `SELECT status FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`
+    `SELECT first_name, last_name, status FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`
   ).bind(email).first().catch(() => null);
-  if (!app) return json({ found: false });
-  return json({ found: true, status: app.status });
+
+  if (app) {
+    const name = [app.first_name, app.last_name].filter(Boolean).join(' ') || 'Applicant';
+    const statusMsg = STATUS_MESSAGES[app.status] ?? 'Your application is on file. Contact info@aviationaerospacecompetency.com for details.';
+    const text = `Hi ${name},\n\nYou requested a status update for your AACP™ RPAS Workforce Hub application.\n\n${statusMsg}\n\nIf you have questions, contact: info@aviationaerospacecompetency.com\n\nAACP™ Team`;
+    const html = `<p>Hi ${name},</p><p>You requested a status update for your <strong>AACP™ RPAS Workforce Hub</strong> application.</p><p>${statusMsg}</p><p>Questions? <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></p><p>AACP™ Team</p>`;
+    await sendEmail(env, { event: 'rpas_status_request', to: email, subject: 'AACP™ RPAS Workforce Hub — Application Status', text, html }).catch(() => {});
+  }
+
+  // Always return identical response — never reveal whether a record exists
+  return json({ sent: true, message: 'If we have an application on file for that email address, a status update has been sent.' });
 }
 
 // GET /admin/rpas/applications — admin list
@@ -13634,7 +13653,7 @@ async function _routeRequest(request, env, ctx) {
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
-    if (path === '/rpas/apply/status'   && request.method === 'GET')  return handleRpasApplicationStatus(request, env);
+    if (path === '/rpas/apply/status-request' && request.method === 'POST') return handleRpasApplicationStatusRequest(request, env);
 
     // ── EOI public routes ─────────────────────────────────────────────────────
     if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env);

@@ -325,12 +325,13 @@
 
     <div class="status-section">
       <button class="status-toggle" id="status-toggle" type="button" aria-expanded="false">
-        <span>▸</span> Already submitted? Check your application status
+        <span>▸</span> Already submitted? Request a status update
       </button>
       <div id="status-panel" hidden>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">Enter the email address you used when applying. If we have an application on file, we will send a status update to that address.</p>
         <div class="status-row">
-          <input class="status-input" id="status-email" type="email" placeholder="Enter the email you applied with" />
-          <button class="status-btn" id="status-check-btn" type="button">Check Status</button>
+          <input class="status-input" id="status-email" type="email" placeholder="Email address you applied with" />
+          <button class="status-btn" id="status-check-btn" type="button">Send Update</button>
         </div>
         <div id="status-result" class="status-result"></div>
       </div>
@@ -411,21 +412,12 @@
       });
   });
 
-  // Status check
+  // Status update request
   var toggleBtn   = document.getElementById('status-toggle');
   var statusPanel = document.getElementById('status-panel');
   var statusEmail = document.getElementById('status-email');
   var checkBtn    = document.getElementById('status-check-btn');
   var resultEl    = document.getElementById('status-result');
-
-  var STATUS_LABELS = {
-    new:          'Received: your expression of interest is under review.',
-    under_review: 'Under review: AACP is assessing your expression of interest.',
-    accepted:     'Accepted: your expression of interest has been accepted. Please follow the payment instructions provided by AACP. Your participant access will be enabled once payment is confirmed.',
-    waitlisted:   'Waitlisted: you will be contacted if a space becomes available.',
-    not_selected: 'Not selected for this cohort.',
-    enrolled:     'Enrolled in the RPAS Workforce Hub.',
-  };
 
   toggleBtn.addEventListener('click', function () {
     var open = statusPanel.hidden;
@@ -436,27 +428,27 @@
 
   checkBtn.addEventListener('click', function () {
     var email = statusEmail.value.trim();
-    if (!email) { resultEl.textContent = 'Please enter your email address.'; resultEl.style.color = 'var(--muted)'; return; }
+    if (!email || !email.includes('@')) { resultEl.textContent = 'Please enter a valid email address.'; resultEl.style.color = 'var(--muted)'; return; }
     checkBtn.disabled = true;
-    resultEl.textContent = 'Checking…';
+    resultEl.textContent = 'Sending…';
     resultEl.style.color = 'var(--muted)';
 
-    fetch('/rpas/apply/status?email=' + encodeURIComponent(email))
+    fetch('/rpas/apply/status-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
       .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d.status) {
-          resultEl.textContent = STATUS_LABELS[d.status] || ('Status: ' + d.status);
-          resultEl.style.color = 'var(--text)';
-        } else {
-          resultEl.textContent = d.error || 'No application found for that email.';
-          resultEl.style.color = 'var(--muted)';
-        }
+      .then(function () {
+        resultEl.textContent = 'If we have an application on file for that address, a status update has been sent. Please check your inbox.';
+        resultEl.style.color = 'var(--text)';
+        checkBtn.disabled = false;
       })
       .catch(function () {
-        resultEl.textContent = 'Could not check status. Please try again.';
+        resultEl.textContent = 'Could not send the request. Please try again or contact info@aviationaerospacecompetency.com.';
         resultEl.style.color = 'var(--muted)';
-      })
-      .finally(function () { checkBtn.disabled = false; });
+        checkBtn.disabled = false;
+      });
   });
 })();
 </script>
