@@ -1585,9 +1585,15 @@ async function runMigrations(db) {
 async function seedAdmin(db, env) {
   // Bootstrap the initial Super Admin using Wrangler secrets.
   // Set AACP_SUPER_ADMIN_EMAIL and AACP_SUPER_ADMIN_PASSWORD as wrangler secrets.
-  // Falls back to AACP_ADMIN_EMAIL env var with a placeholder password that forces a reset.
+  // If the password secret is absent, skip seeding rather than creating an account
+  // with a known placeholder credential. The account will be created on the next
+  // cold start once the secrets are configured.
+  const adminPassword = env?.AACP_SUPER_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.error('[seedAdmin] AACP_SUPER_ADMIN_PASSWORD secret is not set — skipping super_admin seed. Configure the secret via: npx wrangler secret put AACP_SUPER_ADMIN_PASSWORD');
+    return;
+  }
   const adminEmail = (env?.AACP_SUPER_ADMIN_EMAIL ?? env?.AACP_ADMIN_EMAIL ?? 'admin@aviationaerospacecompetency.com').toLowerCase().trim();
-  const adminPassword = env?.AACP_SUPER_ADMIN_PASSWORD ?? 'AACP@Admin2024!ChangeMe';
   const passwordHash = await hashPassword(adminPassword);
   const now = new Date().toISOString();
   // password_change_required=1 so admin is forced to set a new password on first login
@@ -13652,8 +13658,7 @@ async function _routeRequest(request, env, ctx) {
       await seedRpasProgram(env.DB);
     }
 
-    if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
-    if (path === '/ping')   return new Response('pong');
+    if (path === '/health') return json({ status: 'ok' });
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
