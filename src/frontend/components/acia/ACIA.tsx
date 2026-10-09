@@ -310,9 +310,9 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       sess.responses.forEach((r, i) => {
         interactionResults[`q${i + 1}_${r.questionId}`] = {
           questionId: r.questionId,
-          response: r.response,
-          classified: r.classified,
-          indicators: r.indicators,
+          response: r.responseText,
+          classified: r.observedIndicators,
+          indicators: r.observedIndicators,
           responseTimeMs: r.responseTimeMs,
         };
       });
@@ -320,7 +320,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const missionEvidence: Record<string, unknown[]> = {};
       for (const ev of sess.evidence) {
         if (!missionEvidence[ev.mission]) missionEvidence[ev.mission] = [];
-        missionEvidence[ev.mission].push({ indicator: ev.indicator, value: ev.value, positive: ev.positive });
+        missionEvidence[ev.mission].push({ key: ev.key, delta: ev.delta, note: ev.note });
       }
       return {
         submissionId: submissionId.current,
@@ -657,6 +657,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       <MissionPreamble
         session={session}
         stage={stage}
+        isRpas={isRpas}
         onBegin={() => {
           setSession(prev => {
             if (!prev) return prev;
@@ -916,19 +917,78 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, onComplete }: M
   }
 }
 
+const RPAS_MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
+  'm1': {
+    what: 'You will have a conversation with Captain ACIA — an RPAS career mentor. Share your background and what draws you to remotely piloted aviation.',
+    interactions: '3 or more exchanges',
+    time: '~ 5 minutes',
+    note: 'There are no right or wrong answers. Respond naturally.',
+  },
+  'm2': {
+    what: 'You will conduct a pre-flight walkaround inspection of a remotely piloted aircraft (RPA) by tapping zones on a diagram. Document any findings you observe.',
+    interactions: 'Up to 15 zones to inspect',
+    time: '~ 4 minutes',
+    note: 'Once submitted, your inspection report cannot be changed.',
+  },
+  'm3': {
+    what: 'You will work through a diagnostic scenario involving an in-flight RPAS anomaly. You will review telemetry and answer a series of decision questions.',
+    interactions: '4 – 6 decision points',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed.',
+  },
+  'm4': {
+    what: 'You will classify a set of RPAS components by dragging them into the correct system categories.',
+    interactions: '16 components to classify',
+    time: '~ 3 minutes',
+    note: 'Hover over any component to see a description.',
+  },
+  'm5': {
+    what: 'You will interpret four telemetry readings from an RPAS ground-control station and answer questions about each reading.',
+    interactions: '4 telemetry readings',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed. All information needed is provided with each question.',
+  },
+  'm6': {
+    what: 'You will work through a series of RPAS operational situations and make decisions using the information provided.',
+    interactions: '3 scenarios',
+    time: '~ 4 minutes',
+    note: 'Each decision is locked once confirmed.',
+  },
+  'm7': {
+    what: 'You will compose flight-authorization requests, lost-link reports, and operator handover messages using scenario information provided to you.',
+    interactions: '4 exercises',
+    time: '~ 4 minutes',
+    note: 'Each exercise is locked once submitted. All information needed is provided in the scenario briefing.',
+  },
+  'm8': {
+    what: 'You will rank a set of RPAS operational tasks in order of priority based on the situation described.',
+    interactions: '2 rounds',
+    time: '~ 3 minutes',
+    note: 'Rankings are locked once submitted.',
+  },
+  'm9': {
+    what: 'You will have a closing conversation with Captain ACIA to reflect on your RPAS assessment experience.',
+    interactions: '3 or more exchanges',
+    time: '~ 4 minutes',
+    note: 'This is a reflective conversation — there are no correct or incorrect answers.',
+  },
+};
+
 // ── Mission Preamble Screen ───────────────────────────────────────────────────
 function MissionPreamble({
   session,
   stage,
+  isRpas,
   onBegin,
 }: {
   session: ACIASession;
   stage: AssessmentStage;
+  isRpas: boolean;
   onBegin: () => void;
 }) {
   const [oneSittingConfirmed, setOneSittingConfirmed] = useState(false);
   const currentMission = session.missions[session.currentMissionIndex];
-  const preamble = MISSION_PREAMBLES[currentMission.id];
+  const preamble = (isRpas ? RPAS_MISSION_PREAMBLES : MISSION_PREAMBLES)[currentMission.id];
   const needsConfirmation = currentMission.oneSitting && !oneSittingConfirmed;
 
   return (
