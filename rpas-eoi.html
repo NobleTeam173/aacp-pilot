@@ -186,7 +186,7 @@
       <div class="nav-logo-sub">Workforce Intelligence</div>
     </div>
   </a>
-  <a href="/#rpas-workforce-hub" class="nav-back">&#8592; RPAS Workforce Hub</a>
+  <a href="rpas.html" class="nav-back">&#8592; RPAS Workforce Hub</a>
 </nav>
 
 <div class="page-wrap">
@@ -351,6 +351,15 @@
   var form    = document.getElementById('rpas-form');
   var msgEl   = document.getElementById('form-msg');
   var btnEl   = document.getElementById('submit-btn');
+
+  // Pre-select cohort from URL param ?cohort=nov_23_2026 etc.
+  var params = new URLSearchParams(window.location.search);
+  var cohortParam = params.get('cohort');
+  var validCohorts = ['nov_23_2026', 'dec_14_2026', 'either'];
+  if (cohortParam && validCohorts.includes(cohortParam)) {
+    var sel = form.querySelector('[name="preferredCohort"]');
+    if (sel) sel.value = cohortParam;
+  }
 
   function showMsg(text, type) {
     msgEl.textContent = text;
