@@ -65,7 +65,7 @@
     .pipeline-section { background:var(--surface); }
     .pipeline-visual { margin-top:52px; display:flex; flex-wrap:wrap; gap:0; }
     .pipeline-step { flex:1; min-width:160px; text-align:center; position:relative; padding:32px 20px; }
-    .pipeline-step:not(:last-child)::after { content:'→'; position:absolute; right:-12px; top:50%; transform:translateY(-50%); font-size:18px; color:var(--crimson); opacity:0.5; z-index:1; }
+    .pipeline-step:not(:last-child)::after { content:''; position:absolute; right:-1px; top:20%; bottom:20%; width:1px; background:rgba(128,1,31,0.25); z-index:1; }
     .pipeline-step-num { width:44px; height:44px; border-radius:50%; background:rgba(128,1,31,0.12); border:1px solid rgba(128,1,31,0.25); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-family:'Fraunces',serif; font-size:1rem; font-weight:800; color:var(--crimson); }
     .pipeline-step h4 { font-size:0.88rem; font-weight:700; margin-bottom:6px; }
     .pipeline-step p { font-size:0.78rem; color:var(--muted); line-height:1.6; }
@@ -98,7 +98,7 @@
     .inquiry-option:hover { border-color:rgba(128,1,31,0.3); }
     .inquiry-option-dot { width:8px; height:8px; border-radius:50%; background:var(--crimson); flex-shrink:0; }
     .inquiry-option-label { font-size:0.85rem; font-weight:600; flex:1; }
-    .inquiry-option-arrow { font-size:12px; color:var(--dim); }
+    .inquiry-option-arrow { display:none; }
 
     /* CTA */
     .cta-band { border-top:1px solid rgba(46,16,53,0.4); }
@@ -181,7 +181,7 @@
         <p>Access structured workforce intelligence on the talent pipeline entering aviation and aerospace. Understand capability profiles, emerging workforce characteristics and development needs — before candidates arrive at your door.</p>
         <ul class="partner-list">
           <li>Workforce pipeline visibility and intelligence</li>
-          <li>Competency profile data across candidate cohorts</li>
+          <li>Capability profile data across candidate cohorts</li>
           <li>Alignment with your specific workforce requirements</li>
           <li>Early access to workforce-ready participants</li>
           <li>Contribution to workforce development curriculum and programming</li>
@@ -208,8 +208,8 @@
         <h3>Industry Organizations &amp; Associations</h3>
         <p>Aviation and aerospace associations play a critical role in defining workforce standards and advocating for workforce development investment. AACP™ provides the data and intelligence infrastructure to support that work.</p>
         <ul class="partner-list">
-          <li>Sector-level workforce intelligence and competency data</li>
-          <li>Evidence base for workforce development advocacy</li>
+          <li>Sector-level workforce intelligence and capability data</li>
+          <li>Data foundation for workforce development advocacy</li>
           <li>Alignment with national and provincial workforce strategies</li>
           <li>Pilot program opportunities for workforce development initiatives</li>
           <li>Research and reporting collaboration</li>
@@ -251,7 +251,7 @@
       <div class="pipeline-step">
         <div class="pipeline-step-num">02</div>
         <h4>ACIA™ Assessment</h4>
-        <p>ACIA™ Career Intelligence generates structured, evidence-based Workforce Profiles through nine capability missions.</p>
+        <p>ACIA™ Career Intelligence generates structured Workforce Profiles through a series of scenario-based career intelligence activities.</p>
       </div>
       <div class="pipeline-step">
         <div class="pipeline-step-num">03</div>
@@ -279,8 +279,8 @@
     <div class="value-grid">
       <div class="value-card">
         <div class="value-num">01</div>
-        <h4>Structured Competency Data</h4>
-        <p>ACIA™ generates structured, evidence-based competency profiles across 13 workforce-relevant capability dimensions — data that is consistent, comparable and actionable.</p>
+        <h4>Structured Workforce Intelligence Data</h4>
+        <p>ACIA™ generates structured Workforce Profiles across a range of career-relevant capability areas — data that is consistent, comparable and actionable across cohorts.</p>
       </div>
       <div class="value-card">
         <div class="value-num">02</div>
@@ -300,12 +300,12 @@
       <div class="value-card">
         <div class="value-num">05</div>
         <h4>RPAS Industry Applications</h4>
-        <p>The RPAS Workforce Hub addresses the growing demand for RPAS-competent workforce across infrastructure inspection, environmental monitoring, mapping and emergency management.</p>
+        <p>The RPAS Workforce Hub addresses the growing demand for RPAS-capable workforce across infrastructure inspection, environmental monitoring, mapping and emergency management.</p>
       </div>
       <div class="value-card">
         <div class="value-num">06</div>
         <h4>Canadian Aviation Focus</h4>
-        <p>AACP™ is purpose-built for the Canadian aviation and aerospace sector — aligned with Transport Canada regulatory frameworks, Canadian workforce standards and Alberta's aerospace industry.</p>
+        <p>AACP™ is purpose-built for the Canadian aviation and aerospace sector — informed by Canadian aviation industry standards and grounded in Alberta's growing aerospace and RPAS ecosystem.</p>
       </div>
     </div>
   </div>
