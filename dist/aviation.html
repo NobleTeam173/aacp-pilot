@@ -35,8 +35,8 @@
 
     /* PAGE HEADER */
     .page-header { padding: 140px 6vw 80px; text-align: center; position: relative; overflow: hidden; }
-    .page-header-bg { position: absolute; inset: 0; background: url('/images/atc-tower.jpg') center/cover no-repeat; }
-    .page-header-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,2,10,0.82) 0%, rgba(8,2,10,0.6) 40%, rgba(8,2,10,0.95) 100%); }
+    .page-header-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% -10%, rgba(128,1,31,0.22) 0%, transparent 65%), var(--surface); }
+    .page-header-bg::after { display: none; }
     .page-header-content { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; }
     .eyebrow { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--crimson-text); margin-bottom: 16px; border: 1px solid rgba(224,85,117,0.35); background: rgba(224,85,117,0.08); border-radius: 20px; padding: 5px 14px; }
     .page-header h1 { font-family: 'Fraunces', serif; font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -2px; line-height: 1.08; margin-bottom: 20px; }
@@ -189,7 +189,7 @@
       </div>
 
       <div class="pathway-card">
-        <img class="pathway-card-img" src="https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?w=900&q=80" alt="Commercial aircraft cockpit and flight crew" loading="lazy" />
+        <img class="pathway-card-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80" alt="Commercial aircraft in flight operations" loading="lazy" />
         <div class="pathway-card-body">
           <div class="pathway-card-tag">Pathway 03</div>
           <h3>Pilot — Flight Operations</h3>
