@@ -1,4 +1,4 @@
-import { normalizeVrTelemetry, summarizeVrTelemetry, VrTelemetryEvent } from '../telemetry/vrTelemetry';
+import { summarizeVrTelemetry, VrTelemetryEvent } from '../telemetry/vrTelemetry';
 
 export interface CompetencyIndexInput {
   assessmentId: string;
@@ -7,7 +7,7 @@ export interface CompetencyIndexInput {
   competencyRubric: Array<{ level: string; criteria: string; weight?: number }>;
   vrTelemetryEvents?: VrTelemetryEvent[];
   evidenceItems?: Array<{ id: string; type: string; summary: string; quality?: number }>;
-  assessmentHistory?: Array<{ assessmentId: string; result: string; competencyIndex: number }>;
+  assessmentHistory?: Array<{ assessmentId: string; result: string; competencyIndex?: number }>;
   context?: string;
 }
 
@@ -82,8 +82,9 @@ export function calculateCompetencyIndex(input: CompetencyIndexInput): Competenc
   const rawIndex = telemetryIndex * 0.55 + evidenceIndex * 0.25 + rubricAlignment * 0.2;
   const baseIndex = clamp(rawIndex, 0, 100);
 
-  const historyAdjustment = input.assessmentHistory && input.assessmentHistory.length > 0
-    ? clamp(input.assessmentHistory[input.assessmentHistory.length - 1].competencyIndex / 10, -5, 5)
+  const lastHistoryIndex = input.assessmentHistory?.[input.assessmentHistory.length - 1]?.competencyIndex;
+  const historyAdjustment = lastHistoryIndex !== undefined
+    ? clamp(lastHistoryIndex / 10, -5, 5)
     : 0;
 
   const competencyIndex = clamp(Math.round(baseIndex + historyAdjustment), 0, 100);

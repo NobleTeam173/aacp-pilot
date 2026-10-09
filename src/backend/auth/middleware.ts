@@ -3,7 +3,7 @@ import { verifyJwtToken } from './jwt';
 import type { Role } from './store';
 
 export interface AuthenticatedRequest {
-  headers?: Record<string, string | undefined>;
+  headers?: Record<string, string | string[] | undefined>;
   body?: any;
   params?: Record<string, string>;
   user?: JwtPayload;
@@ -17,7 +17,7 @@ export interface ResponseLike {
 
 export type NextFunction = () => void;
 
-export function getBearerToken(headers?: Record<string, string | undefined>): string | null {
+export function getBearerToken(headers?: Record<string, string | string[] | undefined>): string | null {
   const authHeader = headers?.authorization || headers?.Authorization;
   if (!authHeader || typeof authHeader !== 'string') {
     return null;

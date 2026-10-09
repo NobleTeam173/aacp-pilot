@@ -8,9 +8,9 @@ const router = express.Router();
 const authSecret = process.env.AACP_ACCESS_TOKEN_SECRET;
 if (!authSecret) throw new Error('AACP_ACCESS_TOKEN_SECRET environment variable is required');
 
-router.use(authenticateToken(authSecret));
+router.use(authenticateToken(authSecret) as express.RequestHandler);
 
-router.post('/validate', authorizeRoles('youth', 'coach', 'employer', 'admin'), (req, res, next) => {
+router.post('/validate', authorizeRoles('youth', 'coach', 'employer', 'admin') as express.RequestHandler, (req, res, next) => {
   try {
     const events = req.body.events;
     const isValid = validateVrTelemetry(events);
@@ -29,7 +29,7 @@ router.post('/validate', authorizeRoles('youth', 'coach', 'employer', 'admin'), 
   }
 });
 
-router.post('/summarize', authorizeRoles('youth', 'coach', 'employer', 'admin'), (req, res, next) => {
+router.post('/summarize', authorizeRoles('youth', 'coach', 'employer', 'admin') as express.RequestHandler, (req, res, next) => {
   try {
     const events = req.body.events;
     const summary = summarizeVrTelemetry(events);
@@ -48,7 +48,7 @@ router.post('/summarize', authorizeRoles('youth', 'coach', 'employer', 'admin'),
   }
 });
 
-router.post('/competency/evaluate', authorizeRoles('youth', 'coach', 'employer', 'admin'), async (req, res, next) => {
+router.post('/competency/evaluate', authorizeRoles('youth', 'coach', 'employer', 'admin') as express.RequestHandler, async (req, res, next) => {
   try {
     const evaluator = new CompetencyEvaluatorServiceImpl();
     const result = await evaluator.evaluate(req.body);

@@ -17,9 +17,9 @@ const competencyEvaluatorService = new CompetencyEvaluatorServiceImpl();
 const workforceAnalystService = new WorkforceAnalystServiceImpl();
 const matchingEngineService = new MatchingEngineServiceImpl();
 
-router.use(authenticateToken(authSecret));
+router.use(authenticateToken(authSecret) as express.RequestHandler);
 
-router.post('/career', authorizeRoles('youth', 'coach', 'employer', 'admin'), async (req: AuthRequest, res, next) => {
+router.post('/career', authorizeRoles('youth', 'coach', 'employer', 'admin') as express.RequestHandler, async (req: AuthRequest, res, next) => {
   try {
     const userId = req.user?.sub ?? req.body.userId;
     const result = await careerCoachService.generateRecommendations({
@@ -42,7 +42,7 @@ router.post('/career', authorizeRoles('youth', 'coach', 'employer', 'admin'), as
   }
 });
 
-router.post('/evaluate', authorizeRoles('youth', 'coach', 'employer', 'admin'), async (req: AuthRequest, res, next) => {
+router.post('/evaluate', authorizeRoles('youth', 'coach', 'employer', 'admin') as express.RequestHandler, async (req: AuthRequest, res, next) => {
   try {
     const userId = req.user?.sub ?? req.body.userId;
     const result = await competencyEvaluatorService.evaluate({
@@ -65,7 +65,7 @@ router.post('/evaluate', authorizeRoles('youth', 'coach', 'employer', 'admin'), 
   }
 });
 
-router.post('/analyze', authorizeRoles('coach', 'employer', 'admin'), async (req: AuthRequest, res, next) => {
+router.post('/analyze', authorizeRoles('coach', 'employer', 'admin') as express.RequestHandler, async (req: AuthRequest, res, next) => {
   try {
     const result = await workforceAnalystService.analyze(req.body);
 
@@ -84,7 +84,7 @@ router.post('/analyze', authorizeRoles('coach', 'employer', 'admin'), async (req
   }
 });
 
-router.post('/match', authorizeRoles('coach', 'employer', 'admin'), async (req: AuthRequest, res, next) => {
+router.post('/match', authorizeRoles('coach', 'employer', 'admin') as express.RequestHandler, async (req: AuthRequest, res, next) => {
   try {
     const userId = req.user?.sub ?? req.body.userId;
     const result = await matchingEngineService.match({
