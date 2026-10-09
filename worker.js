@@ -8467,7 +8467,7 @@ async function handleProgramInterest(request, user, env, ctx) {
 
 const RPAS_APPLICATION_STATUSES = new Set(['new', 'under_review', 'accepted', 'waitlisted', 'not_selected', 'enrolled']);
 const RPAS_PAYMENT_STATUSES     = new Set(['not_requested', 'payment_pending', 'payment_confirmed']);
-const RPAS_COHORTS              = new Set(['nov_16_2026', 'dec_14_2026', 'either', 'not_assigned']);
+const RPAS_COHORTS              = new Set(['nov_23_2026', 'dec_14_2026', 'either', 'not_assigned']);
 
 const RPAS_APPLICATION_DOMAINS = [
   'infrastructure_monitoring', 'search_and_rescue', 'geospatial_mapping',
@@ -8548,7 +8548,11 @@ async function handleRpasApply(request, env, ctx) {
     return json({ applied: true, message: 'An expression of interest for this email address already exists.', status: existing.status });
   }
 
-  const preferredCohort     = ['nov_16_2026', 'dec_14_2026', 'either'].includes(body.preferredCohort) ? body.preferredCohort : 'either';
+  const VALID_COHORTS = ['nov_23_2026', 'dec_14_2026', 'either'];
+  if (body.preferredCohort && !VALID_COHORTS.includes(body.preferredCohort)) {
+    return json({ error: 'Invalid cohort selection.' }, 400);
+  }
+  const preferredCohort     = VALID_COHORTS.includes(body.preferredCohort) ? body.preferredCohort : 'either';
   const feeAcknowledged     = body.feeAcknowledged === true ? 1 : 0;
   const referralSourceKey   = REFERRAL_SOURCE_KEYS.has(body.referralSourceKey) ? body.referralSourceKey : null;
   const referralSourceOther = referralSourceKey === 'other' ? sanitizeText(body.referralSourceOther, 300) ?? null : null;

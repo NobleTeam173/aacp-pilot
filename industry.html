@@ -292,33 +292,40 @@
         <p>Tell us about your organization and what you are looking to accomplish. We will follow up to start the conversation.</p>
         <div id="inquiry-form-wrap">
           <form id="inquiry-form" novalidate>
-            <div class="form-field">
-              <label for="inq-name">Your Name</label>
-              <input id="inq-name" name="name" type="text" required placeholder="First and last name" autocomplete="name" />
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-field">
+                <label for="inq-first">First Name *</label>
+                <input id="inq-first" name="firstName" type="text" required placeholder="First name" autocomplete="given-name" />
+              </div>
+              <div class="form-field">
+                <label for="inq-last">Last Name *</label>
+                <input id="inq-last" name="lastName" type="text" required placeholder="Last name" autocomplete="family-name" />
+              </div>
             </div>
             <div class="form-field">
-              <label for="inq-org">Organization</label>
-              <input id="inq-org" name="organization" type="text" required placeholder="Your organization or institution" />
+              <label for="inq-org">Organization *</label>
+              <input id="inq-org" name="orgName" type="text" required placeholder="Your organization or institution" />
             </div>
             <div class="form-field">
-              <label for="inq-email">Email</label>
+              <label for="inq-email">Work Email *</label>
               <input id="inq-email" name="email" type="email" required placeholder="you@organization.com" autocomplete="email" />
             </div>
             <div class="form-field">
-              <label for="inq-type">Partnership Type</label>
-              <select id="inq-type" name="partnerType" required>
+              <label for="inq-type">Organization Type *</label>
+              <select id="inq-type" name="orgType" required>
                 <option value="" disabled selected>Select your organization type</option>
-                <option value="employer">Employer or Aviation Operator</option>
-                <option value="education">Educational Institution</option>
-                <option value="association">Industry Organization or Association</option>
-                <option value="community">Community or Workforce Development Organization</option>
-                <option value="other">Other</option>
+                <option value="Employer or Aviation Operator">Employer or Aviation Operator</option>
+                <option value="Educational Institution">Educational Institution</option>
+                <option value="Industry Organization or Association">Industry Organization or Association</option>
+                <option value="Community or Workforce Development Organization">Community or Workforce Development Organization</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div class="form-field">
               <label for="inq-message">What would you like to discuss? <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
-              <textarea id="inq-message" name="message" placeholder="Briefly describe your workforce intelligence needs or goals." maxlength="500"></textarea>
+              <textarea id="inq-message" name="comment" placeholder="Briefly describe your workforce intelligence needs or goals." maxlength="500"></textarea>
             </div>
+            <div id="inquiry-error" style="display:none;color:#e05575;font-size:0.82rem;margin-bottom:12px;"></div>
             <button type="submit" class="form-submit">Send Inquiry</button>
             <p class="form-note">Your information will be used to follow up on your partnership inquiry only. See our <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">Privacy Policy</a>. If the form does not submit, email us directly at info@aviationaerospacecompetency.com.</p>
           </form>
@@ -377,26 +384,41 @@
   var wrap = document.getElementById('inquiry-form-wrap');
   var success = document.getElementById('inquiry-success');
 
+  var errEl = document.getElementById('inquiry-error');
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+  function hideErr() { errEl.style.display = 'none'; }
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var name = document.getElementById('inq-name').value.trim();
-    var org  = document.getElementById('inq-org').value.trim();
-    var email = document.getElementById('inq-email').value.trim();
-    var type  = document.getElementById('inq-type').value;
-    if (!name || !org || !email || !type) return;
+    hideErr();
+    var firstName = form.querySelector('[name="firstName"]').value.trim();
+    var lastName  = form.querySelector('[name="lastName"]').value.trim();
+    var orgName   = form.querySelector('[name="orgName"]').value.trim();
+    var email     = form.querySelector('[name="email"]').value.trim();
+    var orgType   = form.querySelector('[name="orgType"]').value;
+
+    if (!firstName) { showErr('First name is required.'); return; }
+    if (!lastName)  { showErr('Last name is required.'); return; }
+    if (!orgName)   { showErr('Organization name is required.'); return; }
+    if (!email || !email.includes('@')) { showErr('A valid work email address is required.'); return; }
+    if (!orgType)   { showErr('Please select your organization type.'); return; }
 
     var btn = form.querySelector('.form-submit');
     btn.disabled = true;
     btn.textContent = 'Sending…';
 
     var body = {
-      name: name,
-      organization: org,
-      email: email,
-      partnerType: type,
-      partnershipInterests: [type],
-      comment: document.getElementById('inq-message').value.trim(),
-      source: 'industry-page'
+      firstName:            firstName,
+      lastName:             lastName,
+      orgName:              orgName,
+      email:                email,
+      orgType:              orgType,
+      partnershipInterests: ['workforce_intelligence'],
+      comment:              form.querySelector('[name="comment"]').value.trim() || undefined
     };
 
     fetch('/eoi/partner', {
@@ -404,18 +426,21 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
-    .then(function (r) {
-      if (r.ok) {
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (res) {
+      if (res.ok) {
         wrap.style.display = 'none';
         success.style.display = 'block';
       } else {
-        throw new Error('non-ok');
+        btn.disabled = false;
+        btn.textContent = 'Send Inquiry';
+        showErr(res.data.error || 'Submission failed. Please try again or email us directly.');
       }
     })
     .catch(function () {
       btn.disabled = false;
       btn.textContent = 'Send Inquiry';
-      alert('There was a problem submitting the form. Please email us directly at info@aviationaerospacecompetency.com.');
+      showErr('Could not reach the server. Please try again or email info@aviationaerospacecompetency.com.');
     });
   });
 })();
