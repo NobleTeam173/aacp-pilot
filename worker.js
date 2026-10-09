@@ -3323,7 +3323,8 @@ async function handleMfaSetup(request, env) {
     await env.DB.prepare('UPDATE users SET mfa_secret = ?, mfa_enabled = 0 WHERE id = ?').bind(secretHex, user.id).run();
     return json({ secret: secretBase32, otpauthUri, message: 'MFA secret generated. Confirm with a TOTP token.' });
   } catch (e) {
-    return err('MFA setup failed: ' + (e?.message ?? String(e)), 500);
+    console.error('[handleMfaSetup]', e?.message ?? String(e));
+    return err('MFA setup failed. Please try again.', 500);
   }
 }
 
@@ -3341,7 +3342,8 @@ async function handleMfaConfirm(request, env) {
     await env.DB.prepare('UPDATE users SET mfa_enabled = 1 WHERE id = ?').bind(user.id).run();
     return json({ success: true, message: 'MFA enabled' });
   } catch (e) {
-    return err('MFA confirmation failed: ' + (e?.message ?? String(e)), 500);
+    console.error('[handleMfaConfirm]', e?.message ?? String(e));
+    return err('MFA confirmation failed. Please try again.', 500);
   }
 }
 
@@ -11354,7 +11356,8 @@ async function handleIntelligenceAlignmentRun(request, user, env) {
   try {
     result = await runShadowAlignment(env.DB, body.demand_profile_id, body.participant_id, user.sub);
   } catch (e) {
-    return err(`Shadow alignment failed: ${e.message}`, 500);
+    console.error('[shadow alignment]', e?.message ?? String(e));
+    return err('Alignment processing failed. Please try again.', 500);
   }
 
   await audit(env.DB, 'shadow_alignment_run', user.sub, 'competency_alignment_result', {
@@ -13225,7 +13228,8 @@ async function handleAdminValidationSessionCreate(request, user, env) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'INVITED', ?, ?, ?, ?, ?, ?)
     `).bind(id, token, validator_name, validator_org || '', validator_email, instrument, aacp_version || '1.0', scenario_id || null, user.sub, now, expires_at, experience_mode, allow_real_ips ? 1 : 0, allow_real_es ? 1 : 0).run();
   } catch (e) {
-    return err('DB error: ' + (e && e.message ? e.message : String(e)), 500);
+    console.error('[validation_session create]', e && e.message ? e.message : String(e));
+    return err('Could not create validation session. Please try again.', 500);
   }
   return json({ id, token, experience_mode, expires_at }, 201);
 }
