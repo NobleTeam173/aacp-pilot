@@ -2516,7 +2516,7 @@ async function emailAciaPaymentInstructions(env, { name, email, aciaPackage }) {
       eP('Once your payment has been received and confirmed by our team, you will receive a follow-up email with instructions to sign in and begin your ACIA™ Career Intelligence assessment.') +
       eBtn(`Contact AACP — ${CONTACT_EMAIL}`, `mailto:${CONTACT_EMAIL}`) +
       eDivider() +
-      eNote('If you have any questions, reply to this email or contact us directly. We look forward to supporting your aviation career journey.'),
+      eNote('If you have any questions, reply to this email or contact us directly. We look forward to supporting your aviation and aerospace career journey.'),
   });
   const text = `Hi ${name},\n\nYour AACP registration has been approved.\n\nPackage: ${packageLabel}\n\nTo complete your enrolment, please contact us at ${CONTACT_EMAIL} to arrange payment. Once payment is confirmed, you will receive instructions to sign in and begin your ACIA™ Career Intelligence assessment.\n\n— The AACP Team`;
   return sendEmail(env, { event: 'acia_payment_instructions', to: email, subject: 'AACP Registration Approved — Payment Instructions', text, html });
