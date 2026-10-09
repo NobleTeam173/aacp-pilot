@@ -16,9 +16,10 @@
       --border:        #2e1035;
       --crimson:       #80011f;
       --crimson-dim:   #5c0116;
+      --crimson-text:  #e05575;
       --text:          #f0eef2;
       --muted:         #9490a0;
-      --dim:           #4a4752;
+      --dim:           #7a7582;
       --grey:          #6B7074;
     }
 
@@ -55,11 +56,11 @@
     .nav-links a:hover { color: var(--text); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
     .nav-join {
-      color: var(--crimson); text-decoration: none;
+      color: #fff; text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      border: 1.5px solid var(--crimson); transition: all .2s;
+      border: 1.5px solid rgba(255,255,255,0.28); transition: all .2s;
     }
-    .nav-join:hover { background: rgba(128,1,31,0.1); }
+    .nav-join:hover { background: rgba(255,255,255,0.08); }
     .nav-signin {
       background: var(--crimson); color: #fff; text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
@@ -94,7 +95,7 @@
     }
     .hero h1 em {
       font-style: italic;
-      background: linear-gradient(130deg, #c0374f 0%, #80011f 50%, #6B7074 100%);
+      background: linear-gradient(130deg, #f07090 0%, #e05575 50%, #c0374f 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .hero-sub {
@@ -126,7 +127,7 @@
     section { padding: 108px 6vw; }
     .section-eyebrow {
       display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--crimson); margin-bottom: 16px;
+      text-transform: uppercase; color: var(--crimson-text); margin-bottom: 16px;
     }
     .section-title {
       font-family: 'Fraunces', serif;
@@ -602,6 +603,41 @@
       .roles-grid { grid-template-columns: 1fr; }
     }
 
+    /* ── JOURNEY INFOGRAPHIC ── */
+    .journey-section { background: var(--bg); padding: 88px 6vw 72px; }
+    .journey-inner { max-width: 1200px; margin: 0 auto; }
+    .journey-header { text-align: center; margin-bottom: 56px; }
+    .journey-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; position: relative; }
+    .journey-steps::before { content:''; position:absolute; top:28px; left:12.5%; right:12.5%; height:1px; background:linear-gradient(90deg,rgba(128,1,31,0.4),rgba(128,1,31,0.6),rgba(128,1,31,0.4)); z-index:0; }
+    .journey-step { display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 12px; position:relative; z-index:1; }
+    .journey-step-icon { width:56px; height:56px; border-radius:50%; background:var(--surface); border:2px solid rgba(128,1,31,0.4); display:flex; align-items:center; justify-content:center; margin-bottom:18px; position:relative; }
+    .journey-step-icon svg { width:22px; height:22px; stroke:var(--crimson); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-step-word { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--crimson); margin-bottom:8px; }
+    .journey-step h4 { font-family:'Fraunces',serif; font-size:1rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.2px; }
+    .journey-step p { font-size:0.8rem; color:var(--muted); line-height:1.7; }
+    @media (max-width:700px) { .journey-steps { grid-template-columns:1fr 1fr; gap:32px; } .journey-steps::before { display:none; } }
+    @media (max-width:440px) { .journey-steps { grid-template-columns:1fr; } }
+
+    /* ── PATHWAY CARDS ── */
+    .pathways-section { background: var(--surface); padding: 88px 6vw; }
+    .pathways-inner { max-width: 1200px; margin: 0 auto; }
+    .pathways-header { text-align:center; margin-bottom:52px; }
+    .pathways-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .pathway-card { border-radius:18px; padding:36px 32px; border:1px solid rgba(46,16,53,0.4); background:var(--bg); text-decoration:none; color:var(--text); display:block; transition:all .25s; position:relative; overflow:hidden; }
+    .pathway-card:hover { border-color:rgba(128,1,31,0.35); transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,0.4); }
+    .pathway-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .pathway-card.av::before { background:linear-gradient(90deg,#6B7074,#9ca3a8); }
+    .pathway-card.rp::before { background:linear-gradient(90deg,var(--crimson),var(--crimson-dim)); }
+    .pathway-badge { display:inline-block; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:20px; margin-bottom:18px; }
+    .pathway-card.av .pathway-badge { background:rgba(107,112,116,0.15); color:#c4c8cc; border:1px solid rgba(107,112,116,0.3); }
+    .pathway-card.rp .pathway-badge { background:rgba(128,1,31,0.12); color:#dea8b2; border:1px solid rgba(128,1,31,0.25); }
+    .pathway-card h3 { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:800; margin-bottom:10px; letter-spacing:-0.3px; line-height:1.2; }
+    .pathway-card p { font-size:0.85rem; color:var(--muted); line-height:1.75; margin-bottom:20px; }
+    .pathway-tags { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:20px; }
+    .pathway-tag { font-size:10px; font-weight:600; letter-spacing:0.5px; padding:3px 10px; border-radius:20px; background:rgba(46,16,53,0.4); color:var(--dim); border:1px solid rgba(46,16,53,0.5); }
+    .pathway-arrow { font-size:13px; color:var(--crimson); font-weight:700; }
+    @media (max-width:700px) { .pathways-grid { grid-template-columns:1fr; } }
+
     /* Commercial ACIA section */
     .acia-commercial { padding: 80px 24px; background: var(--surface); }
     .acia-commercial-inner { max-width: 1100px; margin: 0 auto; }
@@ -644,13 +680,13 @@
     </div>
   </a>
   <div class="nav-links">
-    <a href="#participant">Participants</a>
-    <a href="#acia">ACIA</a>
-    <a href="#intelligence">Workforce Intelligence</a>
-    <a href="#roles">Who It Serves</a>
+    <a href="/aviation.html">Aviation &amp; Aerospace</a>
+    <a href="/rpas.html">RPAS Workforce Hub</a>
+    <a href="/acia.html">ACIA™</a>
+    <a href="/industry.html">Industry &amp; Partners</a>
   </div>
   <div class="nav-right">
-    <a href="#participant" class="nav-join">Explore Opportunities</a>
+    <a href="eoi.html?path=individual" class="nav-join">Express Interest</a>
     <a href="/app.html" class="nav-signin">Sign In</a>
   </div>
 </nav>
@@ -662,7 +698,7 @@
     <div class="hero-badge"><span class="pulse-live"></span>Workforce Intelligence Platform</div>
     <h1>Find Your Place in<br/><em>Aviation &amp; Aerospace</em></h1>
     <p class="hero-sub">
-      AACP™ helps talent, employers, post-secondary institutions and industry partners across Canada engage with aviation and aerospace workforce intelligence and opportunity.
+      Career intelligence and workforce programs for talent entering Canada's aviation and aerospace sector.
     </p>
     <div class="hero-actions">
       <a href="#participant" class="btn-primary">Explore Opportunities</a>
@@ -676,19 +712,101 @@
 <div class="imagery">
   <div class="img-grid">
     <div class="img-panel">
-      <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=85" alt="Aviation operations" loading="lazy" />
-      <div class="img-panel-label">Aviation Operations</div>
+      <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=85" alt="Air traffic control operations" loading="lazy" />
+      <div class="img-panel-label">Air Traffic Control</div>
     </div>
     <div class="img-panel">
-      <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=85" alt="Aerospace" loading="lazy" />
-      <div class="img-panel-label">Aerospace</div>
+      <img src="https://images.unsplash.com/photo-1474302771737-df858574f98b?w=600&q=85" alt="Aircraft maintenance engineering" loading="lazy" />
+      <div class="img-panel-label">Aircraft Maintenance</div>
     </div>
     <div class="img-panel">
-      <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600&q=85" alt="Workforce development" loading="lazy" />
-      <div class="img-panel-label">Workforce Development</div>
+      <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=85" alt="Pilot flight deck" loading="lazy" />
+      <div class="img-panel-label">Flight Operations</div>
     </div>
   </div>
 </div>
+
+<!-- JOURNEY INFOGRAPHIC -->
+<section class="journey-section">
+  <div class="journey-inner">
+    <div class="journey-header">
+      <span class="section-eyebrow">How AACP™ Works</span>
+      <h2 class="section-title" style="font-family:'Fraunces',serif;font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:12px;">Your Workforce Intelligence Journey</h2>
+      <p style="font-size:0.95rem;color:var(--muted);line-height:1.8;max-width:520px;margin:0 auto;">From initial exploration to a structured Workforce Profile — AACP™ builds your aviation and aerospace workforce intelligence in four stages.</p>
+    </div>
+    <div class="journey-steps">
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="journey-step-word">Discover</div>
+        <h4>Explore the Sector</h4>
+        <p>Understand aviation and aerospace pathways — from Air Traffic Control and AME to RPAS operations and aerospace STEM.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div class="journey-step-word">Explore</div>
+        <h4>Build Workforce Intelligence</h4>
+        <p>ACIA™ Career Intelligence observes your capabilities through scenarios grounded in real aviation and aerospace environments.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="journey-step-word">Prepare</div>
+        <h4>Receive Your Workforce Profile</h4>
+        <p>Your personalized Workforce Profile identifies capability strengths, development areas and career pathway alignment.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        </div>
+        <div class="journey-step-word">Progress</div>
+        <h4>Take Informed Next Steps</h4>
+        <p>Use your Workforce Profile to make more informed decisions about training, career direction and workforce readiness.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PATHWAY CARDS -->
+<section class="pathways-section">
+  <div class="pathways-inner">
+    <div class="pathways-header">
+      <span class="section-eyebrow">Workforce Intelligence Programs</span>
+      <h2 class="section-title" style="font-family:'Fraunces',serif;font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:12px;">Two Workforce Intelligence Pathways</h2>
+      <p style="font-size:0.95rem;color:var(--muted);line-height:1.8;max-width:540px;margin:0 auto;">Whether you are exploring aviation and aerospace broadly, or building RPAS workforce intelligence specifically — AACP™ has a structured pathway for you.</p>
+    </div>
+    <div class="pathways-grid">
+      <a href="/aviation.html" class="pathway-card av">
+        <div class="pathway-badge">Aviation &amp; Aerospace</div>
+        <h3>Aviation &amp; Aerospace<br/>Workforce Readiness</h3>
+        <p>An 8-week workforce intelligence experience for talent exploring aviation and aerospace careers — including Air Traffic Control, AME, Pilot and Aerospace STEM pathways.</p>
+        <div class="pathway-tags">
+          <span class="pathway-tag">8 Weeks</span>
+          <span class="pathway-tag">ACIA™ Included</span>
+          <span class="pathway-tag">Career Intelligence</span>
+          <span class="pathway-tag">Workforce Profile</span>
+        </div>
+        <div class="pathway-arrow">Explore Aviation &amp; Aerospace Pathways</div>
+      </a>
+      <a href="/rpas.html" class="pathway-card rp">
+        <div class="pathway-badge">RPAS Workforce Hub</div>
+        <h3>RPAS Workforce<br/>Intelligence Hub</h3>
+        <p>A focused 1-week workforce intelligence program for the RPAS sector — delivering career intelligence, applied learning and a Workforce Profile grounded in remotely piloted aviation.</p>
+        <div class="pathway-tags">
+          <span class="pathway-tag">1 Week</span>
+          <span class="pathway-tag">$1,200 CAD</span>
+          <span class="pathway-tag">RPAS ACIA™</span>
+          <span class="pathway-tag">Ages 18+</span>
+        </div>
+        <div class="pathway-arrow">Explore the RPAS Workforce Hub</div>
+      </a>
+    </div>
+  </div>
+</section>
 
 <!-- PLATFORM STATS -->
 <div class="platform-stats">
@@ -748,8 +866,8 @@
   <div class="acia-commercial-inner">
     <div class="acia-commercial-header">
       <div class="section-eyebrow">Individual Access</div>
-      <h2>Not sure where you fit in aviation and aerospace?</h2>
-      <p>Whether you're exploring the industry for the first time, bringing existing education or experience, or considering a career change, ACIA™ Career Intelligence helps you better understand your strengths, potential direction and next steps.</p>
+      <h2>Career Intelligence That Drives Real Decisions</h2>
+      <p>ACIA™ surfaces your transferable capabilities, maps your strengths to aviation and aerospace pathways, and delivers a Workforce Profile and Career Intelligence Report you can act on — whether you're entering the industry or making your next move.</p>
     </div>
     <div class="pricing-grid">
 
@@ -792,13 +910,16 @@
 <div class="imagery">
   <div class="img-grid" style="grid-template-columns:1fr 1fr 2fr">
     <div class="img-panel">
-      <img src="/images/engine.jpg" alt="Aircraft maintenance" loading="lazy"/>
+      <img src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=85" alt="Aircraft maintenance engineering" loading="lazy"/>
+      <div class="img-panel-label">AME</div>
     </div>
     <div class="img-panel">
-      <img src="/images/cockpit.jpg" alt="Pilot flight deck" loading="lazy"/>
+      <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=85" alt="Pilot flight deck" loading="lazy"/>
+      <div class="img-panel-label">Pilot</div>
     </div>
     <div class="img-panel">
       <img src="https://images.unsplash.com/photo-1517976547714-720226b864c1?w=1200&q=85" alt="Aerospace engineering" loading="lazy"/>
+      <div class="img-panel-label">Aerospace STEM</div>
     </div>
   </div>
 </div>
@@ -1023,6 +1144,73 @@
   </div>
 </section>
 
+<!-- WORKFORCE OUTCOMES -->
+<section style="padding:88px 6vw; background:var(--surface);">
+  <div style="max-width:1200px; margin:0 auto;">
+    <div style="text-align:center; margin-bottom:52px;">
+      <span style="font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--crimson); display:block; margin-bottom:14px;">Program Outcomes</span>
+      <h2 style="font-family:'Fraunces',serif; font-size:clamp(1.8rem,3vw,2.6rem); font-weight:800; letter-spacing:-1.2px; line-height:1.1; margin-bottom:14px;">What Participants Walk Away With</h2>
+      <div style="width:40px; height:2px; background:var(--crimson); border-radius:2px; margin:16px auto;"></div>
+      <p style="font-size:1rem; color:var(--muted); line-height:1.8; max-width:580px; margin:0 auto;">Every AACP™ program delivers structured career intelligence deliverables — not just exposure, but outputs participants can use immediately in their aviation and aerospace career journey.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;">
+
+      <!-- AACP 8-Week -->
+      <div style="border-radius:18px; background:var(--bg); border:1px solid rgba(46,16,53,0.5); padding:36px 32px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
+        <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:10px;">8-Week Cohort</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.3px;">AACP™ Workforce Readiness</h3>
+        <p style="font-size:0.82rem; color:var(--muted); line-height:1.75; margin-bottom:22px;">A complete career intelligence program for participants entering aviation and aerospace pathways — ATC, AME, Pilot and Aerospace STEM.</p>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:28px;">
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Personalized Workforce Profile</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Career Intelligence Report</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Pathway Alignment Insights</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Industry Context &amp; Exposure</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Next-Step Career Planning</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Digital Credential</li>
+        </ul>
+        <a href="/aviation.html" style="display:inline-flex; align-items:center; font-size:13px; font-weight:700; color:var(--crimson); text-decoration:none; letter-spacing:0.3px;">Explore the Cohort</a>
+      </div>
+
+      <!-- RPAS Workforce Hub -->
+      <div style="border-radius:18px; background:rgba(128,1,31,0.06); border:1px solid rgba(128,1,31,0.25); padding:36px 32px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
+        <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:10px;">1-Week Intensive · $1,200 CAD</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.3px;">RPAS Workforce Hub</h3>
+        <p style="font-size:0.82rem; color:var(--muted); line-height:1.75; margin-bottom:22px;">Career intelligence, applied RPAS learning and industry direction — purpose-built for the fast-growing remotely piloted aviation sector.</p>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:28px;">
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>RPAS ACIA™ Career Intelligence</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>RPAS Workforce Profile</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Applied RPAS Learning</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Industry &amp; Regulatory Context</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Career Direction Planning</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:var(--crimson); display:block; opacity:0.7;"></span>Digital Credential</li>
+        </ul>
+        <a href="/rpas.html" style="display:inline-flex; align-items:center; font-size:13px; font-weight:700; color:var(--crimson); text-decoration:none; letter-spacing:0.3px;">Explore RPAS Hub</a>
+      </div>
+
+      <!-- ACIA Standalone -->
+      <div style="border-radius:18px; background:var(--bg); border:1px solid rgba(46,16,53,0.5); padding:36px 32px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#6B7074,#9ca3a8);"></div>
+        <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#9ca3a8; margin-bottom:10px;">Standalone · From $199 CAD</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.3px;">ACIA™ Career Intelligence</h3>
+        <p style="font-size:0.82rem; color:var(--muted); line-height:1.75; margin-bottom:22px;">Access the ACIA™ career intelligence experience on its own — surfacing your transferable capabilities and delivering a Workforce Profile with your aviation and aerospace direction.</p>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:28px;">
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>ACIA™ Career Intelligence Experience</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>Personalized Workforce Profile</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>Career Intelligence Report</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>Pathway Alignment Insights</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>Digital Credential</li>
+          <li style="font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6;"><span style="position:absolute; left:0; top:8px; width:5px; height:5px; border-radius:50%; background:#9ca3a8; display:block; opacity:0.7;"></span>Optional: 1-on-1 Career Strategy Session</li>
+        </ul>
+        <a href="/acia.html" style="display:inline-flex; align-items:center; font-size:13px; font-weight:700; color:#9ca3a8; text-decoration:none; letter-spacing:0.3px;">Access ACIA™</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- EXPRESS INTEREST -->
 <section class="eoi-section" id="express-interest">
   <div class="eoi-section-inner">
@@ -1059,10 +1247,10 @@
   </a>
   <div class="footer-center">
     <div class="footer-links">
-      <a href="#participant">Explore Opportunities</a>
-      <a href="#acia">ACIA</a>
-      <a href="#intelligence">Workforce Intelligence</a>
-      <a href="#roles">Who It Serves</a>
+      <a href="/aviation.html">Aviation &amp; Aerospace</a>
+      <a href="/rpas.html">RPAS Workforce Hub</a>
+      <a href="/acia.html">ACIA™</a>
+      <a href="/industry.html">Industry &amp; Partners</a>
       <a href="/app.html">Sign In</a>
       <a href="privacy.html">Privacy Policy</a>
     </div>

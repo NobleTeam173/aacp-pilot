@@ -16,9 +16,10 @@
       --border:        #2e1035;
       --crimson:       #80011f;
       --crimson-dim:   #5c0116;
+      --crimson-text:  #e05575;
       --text:          #f0eef2;
       --muted:         #9490a0;
-      --dim:           #4a4752;
+      --dim:           #7a7582;
       --grey:          #6B7074;
     }
 
@@ -55,11 +56,11 @@
     .nav-links a:hover { color: var(--text); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
     .nav-join {
-      color: var(--crimson); text-decoration: none;
+      color: #fff; text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      border: 1.5px solid var(--crimson); transition: all .2s;
+      border: 1.5px solid rgba(255,255,255,0.28); transition: all .2s;
     }
-    .nav-join:hover { background: rgba(128,1,31,0.1); }
+    .nav-join:hover { background: rgba(255,255,255,0.08); }
     .nav-signin {
       background: var(--crimson); color: #fff; text-decoration: none;
       padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
@@ -94,7 +95,7 @@
     }
     .hero h1 em {
       font-style: italic;
-      background: linear-gradient(130deg, #c0374f 0%, #80011f 50%, #6B7074 100%);
+      background: linear-gradient(130deg, #f07090 0%, #e05575 50%, #c0374f 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .hero-sub {
@@ -126,7 +127,7 @@
     section { padding: 108px 6vw; }
     .section-eyebrow {
       display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--crimson); margin-bottom: 16px;
+      text-transform: uppercase; color: var(--crimson-text); margin-bottom: 16px;
     }
     .section-title {
       font-family: 'Fraunces', serif;
