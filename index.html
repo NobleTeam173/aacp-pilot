@@ -602,6 +602,41 @@
       .roles-grid { grid-template-columns: 1fr; }
     }
 
+    /* ── JOURNEY INFOGRAPHIC ── */
+    .journey-section { background: var(--bg); padding: 88px 6vw 72px; }
+    .journey-inner { max-width: 1200px; margin: 0 auto; }
+    .journey-header { text-align: center; margin-bottom: 56px; }
+    .journey-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; position: relative; }
+    .journey-steps::before { content:''; position:absolute; top:28px; left:12.5%; right:12.5%; height:1px; background:linear-gradient(90deg,rgba(128,1,31,0.4),rgba(128,1,31,0.6),rgba(128,1,31,0.4)); z-index:0; }
+    .journey-step { display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 12px; position:relative; z-index:1; }
+    .journey-step-icon { width:56px; height:56px; border-radius:50%; background:var(--surface); border:2px solid rgba(128,1,31,0.4); display:flex; align-items:center; justify-content:center; margin-bottom:18px; position:relative; }
+    .journey-step-icon svg { width:22px; height:22px; stroke:var(--crimson); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-step-word { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--crimson); margin-bottom:8px; }
+    .journey-step h4 { font-family:'Fraunces',serif; font-size:1rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.2px; }
+    .journey-step p { font-size:0.8rem; color:var(--muted); line-height:1.7; }
+    @media (max-width:700px) { .journey-steps { grid-template-columns:1fr 1fr; gap:32px; } .journey-steps::before { display:none; } }
+    @media (max-width:440px) { .journey-steps { grid-template-columns:1fr; } }
+
+    /* ── PATHWAY CARDS ── */
+    .pathways-section { background: var(--surface); padding: 88px 6vw; }
+    .pathways-inner { max-width: 1200px; margin: 0 auto; }
+    .pathways-header { text-align:center; margin-bottom:52px; }
+    .pathways-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .pathway-card { border-radius:18px; padding:36px 32px; border:1px solid rgba(46,16,53,0.4); background:var(--bg); text-decoration:none; color:var(--text); display:block; transition:all .25s; position:relative; overflow:hidden; }
+    .pathway-card:hover { border-color:rgba(128,1,31,0.35); transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,0.4); }
+    .pathway-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .pathway-card.av::before { background:linear-gradient(90deg,#6B7074,#9ca3a8); }
+    .pathway-card.rp::before { background:linear-gradient(90deg,var(--crimson),var(--crimson-dim)); }
+    .pathway-badge { display:inline-block; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:20px; margin-bottom:18px; }
+    .pathway-card.av .pathway-badge { background:rgba(107,112,116,0.15); color:#c4c8cc; border:1px solid rgba(107,112,116,0.3); }
+    .pathway-card.rp .pathway-badge { background:rgba(128,1,31,0.12); color:#dea8b2; border:1px solid rgba(128,1,31,0.25); }
+    .pathway-card h3 { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:800; margin-bottom:10px; letter-spacing:-0.3px; line-height:1.2; }
+    .pathway-card p { font-size:0.85rem; color:var(--muted); line-height:1.75; margin-bottom:20px; }
+    .pathway-tags { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:20px; }
+    .pathway-tag { font-size:10px; font-weight:600; letter-spacing:0.5px; padding:3px 10px; border-radius:20px; background:rgba(46,16,53,0.4); color:var(--dim); border:1px solid rgba(46,16,53,0.5); }
+    .pathway-arrow { font-size:13px; color:var(--crimson); font-weight:700; }
+    @media (max-width:700px) { .pathways-grid { grid-template-columns:1fr; } }
+
     /* Commercial ACIA section */
     .acia-commercial { padding: 80px 24px; background: var(--surface); }
     .acia-commercial-inner { max-width: 1100px; margin: 0 auto; }
@@ -644,13 +679,13 @@
     </div>
   </a>
   <div class="nav-links">
-    <a href="#participant">Participants</a>
-    <a href="#acia">ACIA</a>
-    <a href="#intelligence">Workforce Intelligence</a>
-    <a href="#roles">Who It Serves</a>
+    <a href="/aviation.html">Aviation &amp; Aerospace</a>
+    <a href="/rpas.html">RPAS Workforce Hub</a>
+    <a href="/acia.html">ACIA™</a>
+    <a href="/industry.html">Industry &amp; Partners</a>
   </div>
   <div class="nav-right">
-    <a href="#participant" class="nav-join">Explore Opportunities</a>
+    <a href="eoi.html?path=individual" class="nav-join">Express Interest</a>
     <a href="/app.html" class="nav-signin">Sign In</a>
   </div>
 </nav>
@@ -689,6 +724,88 @@
     </div>
   </div>
 </div>
+
+<!-- JOURNEY INFOGRAPHIC -->
+<section class="journey-section">
+  <div class="journey-inner">
+    <div class="journey-header">
+      <span class="section-eyebrow">How AACP™ Works</span>
+      <h2 class="section-title" style="font-family:'Fraunces',serif;font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:12px;">Your Workforce Intelligence Journey</h2>
+      <p style="font-size:0.95rem;color:var(--muted);line-height:1.8;max-width:520px;margin:0 auto;">From initial exploration to a structured Workforce Profile — AACP™ builds your aviation and aerospace workforce intelligence in four stages.</p>
+    </div>
+    <div class="journey-steps">
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="journey-step-word">Discover</div>
+        <h4>Explore the Sector</h4>
+        <p>Understand aviation and aerospace pathways — from Air Traffic Control and AME to RPAS operations and aerospace STEM.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div class="journey-step-word">Explore</div>
+        <h4>Build Workforce Intelligence</h4>
+        <p>ACIA™ Career Intelligence missions observe your capabilities across nine structured scenarios grounded in real aviation contexts.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="journey-step-word">Prepare</div>
+        <h4>Receive Your Workforce Profile</h4>
+        <p>Your personalized Workforce Profile identifies capability strengths, development areas and career pathway alignment.</p>
+      </div>
+      <div class="journey-step">
+        <div class="journey-step-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        </div>
+        <div class="journey-step-word">Progress</div>
+        <h4>Take Informed Next Steps</h4>
+        <p>Use your Workforce Profile to make more informed decisions about training, career direction and workforce readiness.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PATHWAY CARDS -->
+<section class="pathways-section">
+  <div class="pathways-inner">
+    <div class="pathways-header">
+      <span class="section-eyebrow">Workforce Intelligence Programs</span>
+      <h2 class="section-title" style="font-family:'Fraunces',serif;font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:12px;">Two Workforce Intelligence Pathways</h2>
+      <p style="font-size:0.95rem;color:var(--muted);line-height:1.8;max-width:540px;margin:0 auto;">Whether you are exploring aviation and aerospace broadly, or building RPAS workforce intelligence specifically — AACP™ has a structured pathway for you.</p>
+    </div>
+    <div class="pathways-grid">
+      <a href="/aviation.html" class="pathway-card av">
+        <div class="pathway-badge">Aviation &amp; Aerospace</div>
+        <h3>Aviation &amp; Aerospace<br/>Workforce Readiness</h3>
+        <p>An 8-week workforce intelligence experience for talent exploring aviation and aerospace careers — including Air Traffic Control, AME, Pilot and Aerospace STEM pathways.</p>
+        <div class="pathway-tags">
+          <span class="pathway-tag">8 Weeks</span>
+          <span class="pathway-tag">ACIA™ Included</span>
+          <span class="pathway-tag">Career Intelligence</span>
+          <span class="pathway-tag">Workforce Profile</span>
+        </div>
+        <div class="pathway-arrow">Explore Aviation &amp; Aerospace Pathways →</div>
+      </a>
+      <a href="/rpas.html" class="pathway-card rp">
+        <div class="pathway-badge">RPAS Workforce Hub</div>
+        <h3>RPAS Workforce<br/>Intelligence Hub</h3>
+        <p>A focused 1-week workforce intelligence program for the RPAS sector — delivering career intelligence, applied learning and a Workforce Profile grounded in remotely piloted aviation.</p>
+        <div class="pathway-tags">
+          <span class="pathway-tag">1 Week</span>
+          <span class="pathway-tag">$1,200 CAD</span>
+          <span class="pathway-tag">RPAS ACIA™</span>
+          <span class="pathway-tag">Ages 18+</span>
+        </div>
+        <div class="pathway-arrow">Explore the RPAS Workforce Hub →</div>
+      </a>
+    </div>
+  </div>
+</section>
 
 <!-- PLATFORM STATS -->
 <div class="platform-stats">
@@ -1059,10 +1176,10 @@
   </a>
   <div class="footer-center">
     <div class="footer-links">
-      <a href="#participant">Explore Opportunities</a>
-      <a href="#acia">ACIA</a>
-      <a href="#intelligence">Workforce Intelligence</a>
-      <a href="#roles">Who It Serves</a>
+      <a href="/aviation.html">Aviation &amp; Aerospace</a>
+      <a href="/rpas.html">RPAS Workforce Hub</a>
+      <a href="/acia.html">ACIA™</a>
+      <a href="/industry.html">Industry &amp; Partners</a>
       <a href="/app.html">Sign In</a>
       <a href="privacy.html">Privacy Policy</a>
     </div>
