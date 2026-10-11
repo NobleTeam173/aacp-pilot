@@ -216,11 +216,16 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, chatE
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSubmit();
           }}
         />
+        {response.trim().length < minLength && response.trim().length > 0 && (
+          <div style={{ background: 'rgba(128,1,31,0.08)', border: '1px solid rgba(128,1,31,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 12, color: '#d4506a', marginBottom: 4 }}>
+            Keep going — add {minLength - response.trim().length} more character{minLength - response.trim().length !== 1 ? 's' : ''} to continue
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ color: C.greyD, fontSize: 11 }}>
+          <span style={{ color: response.trim().length >= minLength ? '#4ade80' : C.greyD, fontSize: 11 }}>
             {response.trim().length < minLength
-              ? `${minLength - response.trim().length} more characters to continue`
-              : 'Ready to submit'}
+              ? `${response.trim().length} / ${minLength} characters`
+              : '✓ Ready to submit'}
           </span>
           {error && <span style={{ color: '#f87171', fontSize: 12 }}>{error}</span>}
           <button
@@ -240,7 +245,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, chatE
               whiteSpace: 'nowrap',
             }}
           >
-            {submitting ? 'Processing…' : 'Continue'}
+            {submitting ? 'Processing…' : canSubmit ? 'Continue' : `Continue (${Math.max(0, minLength - response.trim().length)} left)`}
           </button>
         </div>
       </div>
