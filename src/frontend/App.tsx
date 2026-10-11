@@ -488,7 +488,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
   );
 }
 
-// ── MFA setup (first time for admin/super_admin) ──────────────────────────────
+// ── MFA setup (first time for MFA-enforced roles: admin, super_admin, employer, postsecondary) ──
 
 function MfaSetupForm({ email, password, otp, onSetupComplete }: {
   email: string;
@@ -536,7 +536,7 @@ function MfaSetupForm({ email, password, otp, onSetupComplete }: {
           Set Up Two-Factor Authentication
         </div>
         <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
-          MFA is required for administrator accounts. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter the key below.
+          Two-factor authentication is required for your account. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter the key below.
         </p>
         {setupMsg && <p className="login-msg" style={{ color: '#f87171' }}>{setupMsg}</p>}
         {secret ? (
