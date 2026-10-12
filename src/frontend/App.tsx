@@ -979,8 +979,8 @@ export function App() {
   useEffect(() => {
     const token = getStoredToken();
     const role = localStorage.getItem('aacp_role') as Role | null;
-    const userId = localStorage.getItem('aacp_user_id') ?? 'restored';
-    if (token && role) {
+    const userId = localStorage.getItem('aacp_user_id');
+    if (token && role && userId) {
       setAuth({ role, userId });
       const views = viewsForRole(role);
       const hash = window.location.hash.replace('#', '') as DashboardView;

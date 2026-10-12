@@ -2743,6 +2743,33 @@ async function emailCoachInvite(env, { name, email, token, organizationType, org
   });
 }
 
+// ── RPAS Hub invite email ─────────────────────────────────────────────────────
+async function emailRpasHubInvite(env, { name, email, token, expiresAt }) {
+  const inviteUrl = `${PLATFORM_URL}?rpas_invite=${token}`;
+  const expiry = new Date(expiresAt).toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'short' });
+  const html = emailLayout({
+    preheader: 'Your RPAS Hub invitation from AACP is ready.',
+    body: eH1("You've been invited to the AACP RPAS Hub") +
+      eP(`Hello ${name},`) +
+      eP('You have been accepted into the <strong>AACP RPAS Workforce Hub</strong>. Use the link below to set up your account and begin your RPAS career intelligence journey.') +
+      eBtn('Accept Invitation & Set Up Account', inviteUrl) +
+      eTable(
+        eInfoRow('Invited Email:', email) +
+        eInfoRow('Link expires:', expiry)
+      ) +
+      eDivider() +
+      eNote(`This invitation is single-use and tied to ${email}. If you did not apply for the RPAS Hub, please ignore this email or contact <a href="mailto:${CONTACT_EMAIL}" style="color:#80011f">${CONTACT_EMAIL}</a>.`) +
+      eNote(`If the button above doesn't work, copy and paste this link into your browser:<br><a href="${inviteUrl}" style="color:#80011f">${inviteUrl}</a>`),
+  });
+  return sendEmail(env, {
+    event: 'rpas_hub_invite',
+    to: email,
+    subject: 'AACP — RPAS Hub Invitation',
+    text: `Hello ${name},\n\nYou have been accepted into the AACP RPAS Workforce Hub.\n\nSet up your account here: ${inviteUrl}\n\nThis link expires: ${expiry}\n\nIf you did not apply, contact ${CONTACT_EMAIL}.`,
+    html,
+  });
+}
+
 // ── Coach invite management ───────────────────────────────────────────────────
 
 const VALID_COACH_ORG_TYPES = new Set(['employer', 'educational_institution', 'industry_association', 'aacp_direct']);
@@ -7500,7 +7527,7 @@ async function handleEmployerTalentPipeline(request, user, env) {
     env.DB.prepare(`SELECT id,name,province FROM users WHERE id IN (${ph})`).bind(...uids).all(),
     env.DB.prepare(`SELECT participant_user_id,status FROM talent_connections WHERE employer_user_id=?`).bind(user.sub).all(),
     // Multi-source evidence — only talent_summary-scoped records exposed to employers
-    env.DB.prepare(`SELECT participant_id,competency_id,evidence_source,evidence_state FROM competency_evidence WHERE participant_id IN (${ph}) AND visibility_scope='talent_summary' AND invalidated_at IS NULL`).bind(...uids).all().catch(() => ({ results: [] })),
+    env.DB.prepare(`SELECT participant_id,competency_id,evidence_source,evidence_state FROM competency_evidence WHERE participant_id IN (${ph}) AND visibility_scope='talent_summary' AND verification_status='verified' AND invalidated_at IS NULL`).bind(...uids).all().catch(() => ({ results: [] })),
   ]);
 
   const profMap = Object.fromEntries((profRows??[]).map(r => [r.user_id, r]));
@@ -7769,7 +7796,7 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
           randomHex(16), user.sub, key, 'acia', 'acia_system',
           assessmentId, 'acia_assessment',
           state, body.evidenceConfidence ?? 'moderate',
-          now, now, 'talent_summary', 'verified',
+          now, now, 'talent_summary', 'unverified',
         ));
       }
     }
@@ -8825,7 +8852,7 @@ async function handleAdminRpasApplicationAccess(request, user, env) {
 }
 
 // POST /admin/rpas/applications/:id/invite — issue pilot invite from pre-accepted application
-async function handleAdminRpasApplicationInvite(request, user, env) {
+async function handleAdminRpasApplicationInvite(request, user, env, ctx) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const parts = new URL(request.url).pathname.split('/');
   const id = parts[parts.length - 2];
@@ -8890,6 +8917,9 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
 
   await audit(env.DB, 'rpas_hub_invite_issued', user.sub, 'rpas_application', { applicationId: id, invitationId: invId, email: app.email });
 
+  const participantName = `${app.first_name ?? ''} ${app.last_name ?? ''}`.trim() || app.email;
+  fireEmail(ctx, emailRpasHubInvite(env, { name: participantName, email: app.email, token: rawToken, expiresAt }), 'rpas_hub_invite');
+
   return json({ success: true, invitationId: invId, token: rawToken, expiresAt });
 }
 
@@ -8944,6 +8974,7 @@ async function handleAdminRpasParticipantHubStatus(request, user, env) {
     `UPDATE rpas_profiles SET hub_status = ?, updated_at = ? WHERE user_id = ? RETURNING user_id, hub_status`
   ).bind(body.hubStatus, now, userId).first().catch(() => null);
   if (!r) return err('Profile not found or update failed', 404);
+  await audit(env.DB, 'rpas_hub_status_overridden', user.sub, 'rpas_profile', { targetUserId: userId, hubStatus: body.hubStatus });
   return json({ userId: r.user_id, hubStatus: r.hub_status });
 }
 
@@ -13813,7 +13844,7 @@ async function _routeRequest(request, env, ctx) {
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+$/)                             && request.method === 'PATCH') return handleAdminRpasApplicationReview(request, user, env, ctx);
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/payment$/)                    && request.method === 'PATCH') return handleAdminRpasApplicationPayment(request, user, env);
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/access$/)                     && request.method === 'PATCH') return handleAdminRpasApplicationAccess(request, user, env);
-    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env, ctx);
     if (path === '/admin/rpas/participants'                                             && request.method === 'GET')   return handleAdminRpasParticipants(request, user, env);
     if (path.match(/^\/admin\/rpas\/participants\/[^/]+\/hub-status$/)                  && request.method === 'PATCH') return handleAdminRpasParticipantHubStatus(request, user, env);
 
