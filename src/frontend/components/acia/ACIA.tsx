@@ -28,7 +28,7 @@ const C = {
 
 function makeInitialSession(isRpas = false): ACIASession {
   const now = new Date().toISOString();
-  const newSessionId = Math.random().toString(36).slice(2);
+  const newSessionId = crypto.randomUUID();
   const missions = isRpas ? [
     { id: 'm1', title: 'RPAS Background Interview', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
     { id: 'm2', title: 'RPAS Pre-flight Inspection', subtitle: 'Drone systems walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
@@ -484,7 +484,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const saved = loadSessionFromStorage();
       if (saved && saved.stage === stage) {
         const now = new Date().toISOString();
-        const newBrowserSessionId = Math.random().toString(36).slice(2);
+        const newBrowserSessionId = crypto.randomUUID();
         const resumedSession: ACIASession = {
           ...saved.session,
           sessionRecords: [

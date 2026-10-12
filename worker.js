@@ -3111,7 +3111,7 @@ async function handleAdminAllUsers(request, user, env) {
     params.push(statusFilter);
   }
   // Exclude admin accounts from participant management list
-  query += statusFilter ? ` AND role != 'admin'` : ` WHERE role != 'admin'`;
+  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin')` : ` WHERE role NOT IN ('admin', 'super_admin')`;
   query += ` ORDER BY created_at DESC`;
   const { results } = params.length
     ? await env.DB.prepare(query).bind(...params).all()
@@ -3228,7 +3228,11 @@ async function handleLogin(request, env) {
   _step = 'totp';
   if (user.mfaEnabled && !testMode && !isPilotAccount) {
     if (!body.otp) return json({ userId: user.id, role: user.role, mfaRequired: true, message: 'MFA token required' });
-    if (!(await verifyTotp(user.mfaSecret, body.otp))) return err('Invalid MFA token', 401);
+    if (!(await verifyTotp(user.mfaSecret, body.otp))) {
+      await recordAttempt(env.DB, `login:${email}`, false);
+      await recordAttempt(env.DB, `login_ip:${clientIp}`, false);
+      return err('Invalid MFA token', 401);
+    }
   }
 
   _step = 'jwt-access';
@@ -3282,6 +3286,7 @@ async function handleRefresh(request, env) {
 
   const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(payload.sub).first());
   if (!user) return err('User not found', 401);
+  if (user.status !== 'active') return err('Account is not active', 403);
   if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Pilot access revoked', 403);
 
   const accessSecret   = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
@@ -3320,6 +3325,9 @@ async function handleMfaSetup(request, env) {
     const body = await request.json().catch(() => null);
     if (!body?.email || !body?.password) return err('email and password required');
     const email = body.email.trim().toLowerCase();
+    const setupAttempts = await countRecentAttempts(env.DB, `mfa_setup:${email}`, 60 * 60 * 1000);
+    if (setupAttempts >= 3) return err('Too many MFA setup attempts. Please try again later.', 429);
+    await recordAttempt(env.DB, `mfa_setup:${email}`, false);
     const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
     if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid) return err('Invalid credentials', 401);
     const rawBytes = crypto.getRandomValues(new Uint8Array(20));
@@ -3339,12 +3347,17 @@ async function handleMfaConfirm(request, env) {
     const body = await request.json().catch(() => null);
     if (!body?.email || !body?.password || !body?.token) return err('email, password, and token required');
     const email = body.email.trim().toLowerCase();
+    const confirmAttempts = await countRecentAttempts(env.DB, `mfa_confirm:${email}`, 15 * 60 * 1000);
+    if (confirmAttempts >= 5) return err('Too many verification attempts. Please wait 15 minutes and try again.', 429);
     const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
     if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid || !user.mfaSecret) {
       return err('Invalid credentials or MFA not initiated', 401);
     }
     const token = String(body.token).replace(/\s/g, '');
-    if (!(await verifyTotp(user.mfaSecret, token))) return err('Invalid TOTP token. Check your authenticator app and try again.');
+    if (!(await verifyTotp(user.mfaSecret, token))) {
+      await recordAttempt(env.DB, `mfa_confirm:${email}`, false);
+      return err('Invalid TOTP token. Check your authenticator app and try again.');
+    }
     await env.DB.prepare('UPDATE users SET mfa_enabled = 1 WHERE id = ?').bind(user.id).run();
     return json({ success: true, message: 'MFA enabled' });
   } catch (e) {
@@ -3357,9 +3370,17 @@ async function handleMfaDisable(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.password) return err('email and password required');
   const email = body.email.trim().toLowerCase();
+  const disableAttempts = await countRecentAttempts(env.DB, `mfa_disable:${email}`, 60 * 60 * 1000);
+  if (disableAttempts >= 3) return err('Too many MFA disable attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, `mfa_disable:${email}`, false);
   const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid) return err('Invalid credentials', 401);
+  if (user.mfaEnabled) {
+    if (!body.otp) return err('Current authenticator code required to disable MFA', 400);
+    if (!(await verifyTotp(user.mfaSecret, String(body.otp).replace(/\s/g, '')))) return err('Invalid authenticator code', 401);
+  }
   await env.DB.prepare('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?').bind(user.id).run();
+  await audit(env.DB, 'mfa_disabled', user.id, 'user', {});
   return json({ success: true, message: 'MFA disabled' });
 }
 
@@ -3523,6 +3544,14 @@ async function handleCoachEvidenceSubmit(request, user, env) {
 
   const participantGuard = await requireValidEvidenceParticipant(env.DB, body.participantId);
   if (participantGuard) return participantGuard;
+
+  // Coaches may only submit evidence for participants they have a coaching relationship with
+  if (user.role === 'coach') {
+    const relationship = await env.DB.prepare(
+      `SELECT id FROM coaching_sessions WHERE coach_id = ? AND participant_id = ? LIMIT 1`
+    ).bind(user.sub, body.participantId).first().catch(() => null);
+    if (!relationship) return err('No coaching relationship found with this participant', 403);
+  }
 
   const now = new Date().toISOString();
   const id = randomHex(16);
@@ -6808,7 +6837,7 @@ async function completeProgramActivity({ db, participantId, activityKey, source,
 
 async function handleAciaChat(request, env) {
   const user = await authenticate(request, env);
-  const guard = requireAuth(user);
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
 
   // SEC-010: rate limit Captain ACIA to prevent API cost abuse
@@ -7280,10 +7309,10 @@ async function handleAciaRpasReport(request, env) {
 
     // Badge
     const badge = await env.DB.prepare(`
-      SELECT id, issued_at, badge_type, status
+      SELECT id, issue_date AS issued_at, pathway_type AS badge_type, status
       FROM acia_badges
-      WHERE participant_id = ? AND badge_type = 'rpas'
-      ORDER BY issued_at DESC LIMIT 1
+      WHERE user_id = ? AND pathway_type = 'rpas'
+      ORDER BY issue_date DESC LIMIT 1
     `).bind(user.sub).first().catch(() => null);
 
     const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -7458,7 +7487,7 @@ async function handleEmployerTalentPipeline(request, user, env) {
 
   const { results: netRows } = await env.DB.prepare(
     `SELECT user_id, opportunity_status, geographic_mobility, preferred_occupations, preferred_regions, enrolled_at
-     FROM talent_network WHERE enrolled = 1`
+     FROM talent_network WHERE enrolled = 1 AND contact_permission = 1`
   ).all();
   if (!netRows?.length) return json({ participants: [], total: 0, summary: { discoverable: 0, openToOpportunities: 0, aciaCompleted: 0 } });
 
@@ -7640,6 +7669,20 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
     }
   }
 
+  // ── Stage prerequisite enforcement ──
+  if (stage === 'program_completion' || stage === 'followup_90_day') {
+    const baselineExists = await env.DB.prepare(
+      `SELECT id FROM acia_assessments WHERE user_id = ? AND assessment_stage = 'baseline' AND status = 'complete'`
+    ).bind(user.sub).first().catch(() => null);
+    if (!baselineExists) return err('Baseline ACIA must be completed before this stage.', 400);
+  }
+  if (stage === 'followup_90_day') {
+    const programExists = await env.DB.prepare(
+      `SELECT id FROM acia_assessments WHERE user_id = ? AND assessment_stage = 'program_completion' AND status = 'complete'`
+    ).bind(user.sub).first().catch(() => null);
+    if (!programExists) return err('Program completion ACIA must be completed before the 90-day follow-up.', 400);
+  }
+
   // ── Stage locking — each stage can only be completed once (superseded records don't block) ──
   const existing = await env.DB.prepare(
     `SELECT id, badge_id, completed_at FROM acia_assessments WHERE user_id = ? AND status = 'complete' AND (assessment_stage = ? OR (assessment_stage IS NULL AND ? = 'baseline'))`
@@ -7670,7 +7713,8 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
 
   const assessmentId = randomHex(16);
   const badgeId = randomHex(24);
-  const participantName = body.participantName ?? user.email;
+  const nameRow = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  const participantName = nameRow?.name ?? user.email;
 
   try {
     // ── Build atomic D1 batch — ALL required ACIA completion writes ──
@@ -7958,7 +8002,7 @@ async function handleAdminAciaSaveFailures(request, user, env) {
 }
 
 async function handleAciaAssessmentsGet(request, user, env) {
-  const guard = requireRole(user, 'youth', 'admin');
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
   const { results } = await env.DB.prepare(
     `SELECT id, pathway_type, acia_version, assessment_stage, completed_at, top_pathway, career_alignment, evidence_confidence,
@@ -8256,16 +8300,20 @@ async function handleConfirmEmailVerification(request, user, env) {
 // ── Password reset ─────────────────────────────────────────────────────────────
 
 async function handleForgotPassword(request, env, ctx) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const body = await request.json().catch(() => null);
   if (!body?.email) return err('email is required');
 
   const email = body.email.trim().toLowerCase();
 
+  const ipAttempts = await countRecentAttempts(env.DB, `pwreset_ip:${clientIp}`, 60 * 60 * 1000);
+  if (ipAttempts >= 10) return err('Too many reset requests from this network. Please try again in 1 hour.', 429);
   const attempts = await countRecentAttempts(env.DB, `pwreset:${email}`, 60 * 60 * 1000);
   if (attempts >= 3) return err('Too many reset requests. Please try again in 1 hour.', 429);
 
   const userRow = await env.DB.prepare(`SELECT id, name, email FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
   await recordAttempt(env.DB, `pwreset:${email}`, false);
+  await recordAttempt(env.DB, `pwreset_ip:${clientIp}`, false);
 
   if (userRow) {
     const token = randomHex(32);
@@ -8449,7 +8497,7 @@ async function handleBadgeVerify(badgeId, env) {
 }
 
 async function handleProgramInterest(request, user, env, ctx) {
-  const guard = requireRole(user, 'youth', 'admin');
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
   const body = await request.json().catch(() => ({}));
   const id = randomHex(16);
@@ -9009,7 +9057,7 @@ async function handleRpasEnroll(request, user, env) {
 
   const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
   if (!profile) return err('RPAS profile not found', 404);
-  if (!['assessment', 'profile_ready'].includes(profile.hub_status)) {
+  if (profile.hub_status !== 'profile_ready') {
     return err('Complete the RPAS intake and ACIA assessment before enrolling', 400);
   }
 
@@ -13642,7 +13690,7 @@ async function _routeRequest(request, env, ctx) {
     const path = url.pathname;
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return _applyResponsePolicies(request, new Response(null, { status: 204, headers: CORS_HEADERS }));
     }
 
     if (!adminSeedDone) {

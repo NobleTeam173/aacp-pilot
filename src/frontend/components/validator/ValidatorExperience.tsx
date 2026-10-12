@@ -870,6 +870,7 @@ export function ValidatorExperience({ token }: { token: string }) {
           <div style={{ ...S.card, marginTop: '3rem', textAlign: 'center' as const }}>
             <div style={{ fontSize: '1.1rem', fontWeight: 600, color: C.green, marginBottom: '0.75rem' }}>✓ Validation Already Submitted</div>
             <p style={S.p}>This validation has already been completed. Thank you for your contribution to AACP.</p>
+            <a href="https://aviationaerospacecompetency.com" style={{ fontSize: '0.875rem', color: '#60a5fa', textDecoration: 'underline' }}>Return to AACP</a>
           </div>
         </div>
       </div>

@@ -24,8 +24,14 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
         if (rr.ok) {
           const rd = await rr.json();
           if (rd.accessToken) { setStoredToken(rd.accessToken); res = await doFetch(rd.accessToken); }
+        } else {
+          window.dispatchEvent(new CustomEvent('aacp:session-expired'));
         }
-      } catch { /* fall through */ }
+      } catch {
+        window.dispatchEvent(new CustomEvent('aacp:session-expired'));
+      }
+    } else {
+      window.dispatchEvent(new CustomEvent('aacp:session-expired'));
     }
   }
 

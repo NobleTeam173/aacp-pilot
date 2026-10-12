@@ -448,7 +448,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
     try {
       await request('/auth/first-password-change', {
         method: 'POST',
-        body: { userId, email, currentPassword, newPassword: password },
+        body: { email, currentPassword, newPassword: password },
       });
       onDone();
     } catch (e: unknown) {
