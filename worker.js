@@ -1580,6 +1580,21 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_email  ON eoi_partners(email)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_status ON eoi_partners(status)`).run().catch(() => {});
+
+  // cookie_consent_log — append-only audit log for analytics consent decisions.
+  // No PII stored: session_hash is a client-generated random hex value, non-reversible.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS cookie_consent_log (
+      id               TEXT PRIMARY KEY,
+      session_hash     TEXT NOT NULL,
+      decision         TEXT NOT NULL CHECK(decision IN ('accepted','declined')),
+      page             TEXT NOT NULL,
+      consent_version  TEXT NOT NULL DEFAULT '1.0',
+      ts               INTEGER NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_ts       ON cookie_consent_log(ts)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_decision ON cookie_consent_log(decision)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -2232,6 +2247,45 @@ function rowToUser(row) {
 }
 
 // ── Audit helper ─────────────────────────────────────────────────────────────
+
+// ── Cookie / Analytics Consent Audit Log ─────────────────────────────────────
+// Append-only. No IP, no user agent, no cookies stored.
+// session_hash is a client-generated cryptographically random hex value.
+async function handleConsentRecord(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid request' }, 400); }
+
+  const { sessionHash, decision, page } = body ?? {};
+
+  // Strict whitelist validation
+  if (typeof sessionHash !== 'string' || !/^[0-9a-f]{64}$/.test(sessionHash)) {
+    return json({ error: 'Invalid sessionHash' }, 400);
+  }
+  if (decision !== 'accepted' && decision !== 'declined') {
+    return json({ error: 'Invalid decision' }, 400);
+  }
+
+  // page: accept pathname only, strip query/hash, cap length
+  let safePage = '/';
+  try {
+    safePage = new URL(String(page ?? '/').slice(0, 500), 'https://x').pathname.slice(0, 200);
+  } catch { safePage = '/'; }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  // Idempotent: one record per session_hash per hour — prevents duplicate entries
+  const existing = await env.DB.prepare(
+    `SELECT id FROM cookie_consent_log WHERE session_hash = ? AND ts > ? LIMIT 1`
+  ).bind(sessionHash, now - 3600).first();
+  if (existing) return json({ logged: false, reason: 'duplicate' });
+
+  await env.DB.prepare(
+    `INSERT INTO cookie_consent_log (id, session_hash, decision, page, consent_version, ts)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), sessionHash, decision, safePage, '1.0', now).run();
+
+  return json({ logged: true });
+}
 
 async function audit(db, action, userId, entityType, details = {}) {
   await db.prepare(
@@ -13738,6 +13792,9 @@ async function _routeRequest(request, env, ctx) {
     }
 
     if (path === '/health') return json({ status: 'ok' });
+
+    // ── Consent audit log (no auth, no PII) ───────────────────────────────────
+    if (path === '/consent/record' && request.method === 'POST') return handleConsentRecord(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
