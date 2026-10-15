@@ -1595,6 +1595,9 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_ts       ON cookie_consent_log(ts)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_decision ON cookie_consent_log(decision)`).run().catch(() => {});
+
+  // Clear temporary pilot_account bypass set during emergency admin MFA reset (2026-10-15).
+  await db.prepare(`UPDATE users SET pilot_account = 0 WHERE email = 'admin@aviationaerospacecompetency.com' AND pilot_account = 1`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -8436,6 +8439,7 @@ async function handleResetPassword(request, env) {
   return json({ success: true, message: 'Password reset successfully. Please sign in.' });
 }
 
+// ── TEMPORARY: Emergency admin password reset (remove after use) ──────────────
 // ── Organization directory ────────────────────────────────────────────────────
 
 async function handleOrganizationsGet(request, user, env) {

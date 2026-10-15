@@ -785,17 +785,15 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         onLogin({ role: res.role, userId: res.userId });
       }
     } catch (e: unknown) {
-      if (e instanceof NetworkError || e instanceof ServerError) {
-        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
-      } else if (e instanceof ApiError) {
-        const msg = e.message.toLowerCase();
-        if (msg.includes('mfa') || msg.includes('token') || msg.includes('authenticator') || msg.includes('invalid') || msg.includes('credentials')) {
-          setErrorMsg('Unable to sign in. Please verify your credentials and authentication code.');
-        } else {
-          setErrorMsg(e.message);
-        }
+      if (e instanceof NetworkError) {
+        setErrorMsg("We’re unable to connect to the authentication service. Please try again shortly.");
+      } else if (e instanceof ApiError && e.status === 401) {
+        setErrorMsg('Unable to sign in. Please verify your credentials and authentication code.');
+      } else if (e instanceof ApiError || e instanceof ServerError) {
+        const msg = (e as ApiError).message;
+        setErrorMsg(msg || 'Sign in failed. Please try again.');
       } else {
-        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
+        setErrorMsg("We’re unable to connect to the authentication service. Please try again shortly.");
       }
     } finally {
       setLoading(false);
