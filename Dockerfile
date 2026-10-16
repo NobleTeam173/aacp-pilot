@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install production deps only
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copy source
 COPY worker.js ./
