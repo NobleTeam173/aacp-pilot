@@ -777,10 +777,8 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         localStorage.setItem('aacp_email_verified', res.emailVerified ? '1' : '0');
         if (res.participantType === 'rpas_direct') {
           localStorage.setItem('aacp_participant_type', 'rpas_direct');
-          setIsRpasHub(true);
         } else {
           localStorage.removeItem('aacp_participant_type');
-          setIsRpasHub(false);
         }
         onLogin({ role: res.role, userId: res.userId });
       }
@@ -1011,6 +1009,7 @@ export function App() {
 
   function handleLogin(a: AuthState) {
     localStorage.setItem('aacp_user_id', a.userId);
+    setIsRpasHub(localStorage.getItem('aacp_participant_type') === 'rpas_direct');
     setAuth(a);
     setCurrentView(viewsForRole(a.role)[0]);
   }
