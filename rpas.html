@@ -127,7 +127,8 @@
     @media (max-width:960px) { footer { flex-direction:column; text-align:center; } .footer-contact { text-align:center; } }
 
     /* RESPONSIVE */
-    @media (max-width:900px) { .receive-grid { grid-template-columns:1fr; } .app-grid { grid-template-columns:1fr 1fr; } .dates-grid { grid-template-columns:1fr; } .eoi-layout { grid-template-columns:1fr; gap:40px; } }
+    .process-layout { display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:start; }
+    @media (max-width:900px) { .receive-grid { grid-template-columns:1fr; } .app-grid { grid-template-columns:1fr 1fr; } .dates-grid { grid-template-columns:1fr; } .eoi-layout { grid-template-columns:1fr; gap:40px; } .process-layout { grid-template-columns:1fr; gap:40px; } }
     @media (max-width:580px) { .app-grid { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -247,7 +248,7 @@
 <!-- HOW IT WORKS -->
 <section class="process-section">
   <div class="grid-max">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start;">
+    <div class="process-layout">
       <div>
         <span class="section-eyebrow">How to Join</span>
         <h2 class="section-title">Your Path into the RPAS Workforce Hub</h2>
