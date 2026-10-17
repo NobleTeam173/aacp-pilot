@@ -27,7 +27,16 @@
     .nav-join:hover { background:rgba(255,255,255,0.08); }
     .nav-signin { background:var(--crimson); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; transition:background .2s; }
     .nav-signin:hover { background:var(--crimson-dim); }
-    @media (max-width:960px) { .nav-links { display:none; } }
+    .nav-burger { display:none; background:none; border:none; cursor:pointer; padding:6px; color:var(--text); }
+    .nav-burger svg { display:block; }
+    .nav-mobile-menu { display:none; position:fixed; top:68px; left:0; right:0; z-index:99; background:rgba(8,2,10,0.97); backdrop-filter:blur(20px); border-bottom:1px solid rgba(46,16,53,0.5); padding:16px 6vw 20px; flex-direction:column; gap:0; }
+    .nav-mobile-menu a { color:var(--muted); text-decoration:none; font-size:15px; font-weight:500; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.06); display:block; transition:color .2s; }
+    .nav-mobile-menu a:last-child { border-bottom:none; }
+    .nav-mobile-menu a:hover { color:var(--text); }
+    .nav-mobile-menu .mob-join { color:#fff; font-weight:700; margin-top:12px; border-bottom:none; }
+    .nav-mobile-menu .mob-signin { color:var(--crimson-text); font-weight:700; border-bottom:none; }
+    @media (max-width:960px) { .nav-links { display:none; } .nav-right .nav-join, .nav-right .nav-signin { display:none; } .nav-burger { display:block; } }
+    .nav-mobile-menu.open { display:flex; }
 
     /* PAGE HEADER */
     .page-header { padding:140px 6vw 80px; text-align:center; position:relative; overflow:hidden; }
@@ -141,8 +150,19 @@
   <div class="nav-right">
     <a href="rpas-eoi.html" class="nav-join">Express Interest</a>
     <a href="/app.html" class="nav-signin">Sign In</a>
+    <button class="nav-burger" aria-label="Open menu" aria-expanded="false" onclick="var m=document.getElementById('navMob');var open=m.classList.toggle('open');this.setAttribute('aria-expanded',open);">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect y="4" width="22" height="2" rx="1" fill="currentColor"/><rect y="10" width="22" height="2" rx="1" fill="currentColor"/><rect y="16" width="22" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
   </div>
 </nav>
+<div class="nav-mobile-menu" id="navMob">
+  <a href="/aviation.html">Aviation &amp; Aerospace</a>
+  <a href="/rpas.html" class="active">RPAS Workforce Hub</a>
+  <a href="/acia.html">ACIA™</a>
+  <a href="/industry.html">Industry &amp; Partners</a>
+  <a href="rpas-eoi.html" class="mob-join">Express Interest</a>
+  <a href="/app.html" class="mob-signin">Sign In</a>
+</div>
 
 <!-- PAGE HEADER -->
 <div class="page-header">
