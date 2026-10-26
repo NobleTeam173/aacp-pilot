@@ -442,6 +442,24 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE users ADD COLUMN acia_payment_status TEXT DEFAULT NULL`).run().catch(() => {});
   await db.prepare(`ALTER TABLE users ADD COLUMN acia_access_enabled INTEGER DEFAULT 0`).run().catch(() => {});
 
+  // Intelligent program routing
+  await db.prepare(`ALTER TABLE users ADD COLUMN recommended_program TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN recommended_specialization TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN routing_data TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS program_routing_reviews (
+      id                     TEXT PRIMARY KEY,
+      user_id                TEXT NOT NULL REFERENCES users(id),
+      original_program       TEXT NOT NULL,
+      original_specialization TEXT,
+      admin_program          TEXT NOT NULL,
+      admin_specialization   TEXT,
+      admin_id               TEXT NOT NULL REFERENCES users(id),
+      reason                 TEXT,
+      reviewed_at            TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
   // Talent Pipeline Intelligence — professional profiles, talent network, employer connections
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS professional_profiles (
@@ -2296,6 +2314,66 @@ async function audit(db, action, userId, entityType, details = {}) {
   ).bind(randomHex(8), action, userId ?? null, entityType ?? null, JSON.stringify(details), new Date().toISOString()).run().catch(() => {});
 }
 
+// ── Intelligent Program Routing (server-side) ─────────────────────────────────
+
+function computeRoutingServer(answers) {
+  const { careerStage, aviationBackground, occupationalInterest, rpasObjective } = answers;
+
+  const aviationProfStages = new Set(['aviation_professional', 'intl_aviation_professional']);
+  const hasAviationBg =
+    aviationBackground === 'yes' ||
+    aviationBackground === 'in_progress' ||
+    aviationProfStages.has(careerStage);
+  const rpas = occupationalInterest === 'rpas_drones';
+  const rpasExploring = rpas && (!rpasObjective || rpasObjective === 'exploring');
+  const rpasTransition = rpas && rpasObjective === 'transition';
+  const atcInterest = occupationalInterest === 'atc';
+
+  if (atcInterest) {
+    return { recommendedProgram: 'cdr', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'ATC career exploration is supported through the eight-week Aviation Career Discovery & Readiness Program.',
+      requiresHumanReview: false, alternativePrograms: [] };
+  }
+
+  if (aviationProfStages.has(careerStage)) {
+    if (rpasExploring) return { recommendedProgram: 'rpas_hub', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'Based on your aviation background and interest in exploring RPAS, the one-week RPAS Workforce Hub is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['awtp'] };
+    if (rpasTransition) return { recommendedProgram: 'awtp', recommendedSpecialization: 'rpas', confidence: 'high',
+      rationale: 'Based on your aviation background and RPAS transition goals, the two-week AWTP — RPAS / Autonomous Systems specialization is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['rpas_hub'] };
+    const spec = serverResolveSpec(occupationalInterest);
+    return { recommendedProgram: 'awtp', recommendedSpecialization: spec, confidence: spec ? 'high' : 'medium',
+      rationale: `Based on your aviation background, the two-week Aviation Workforce Transition Program is recommended.`,
+      requiresHumanReview: !spec, alternativePrograms: [] };
+  }
+
+  if (rpas) {
+    if (!rpasTransition || !hasAviationBg) return { recommendedProgram: 'rpas_hub', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'The one-week RPAS Workforce Hub is open to all backgrounds and is recommended for your RPAS interest.',
+      requiresHumanReview: false, alternativePrograms: hasAviationBg ? ['awtp'] : ['cdr'] };
+    return { recommendedProgram: 'awtp', recommendedSpecialization: 'rpas', confidence: 'high',
+      rationale: 'Based on your aviation background and RPAS transition goals, the two-week AWTP — RPAS / Autonomous Systems specialization is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['rpas_hub'] };
+  }
+
+  if (!hasAviationBg) {
+    return { recommendedProgram: 'cdr', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'The eight-week Aviation Career Discovery & Readiness Program is recommended. Relevant aviation education, training, or professional experience is required for the two-week Workforce Transition Program.',
+      requiresHumanReview: false, alternativePrograms: [] };
+  }
+
+  const spec = serverResolveSpec(occupationalInterest);
+  return { recommendedProgram: 'awtp', recommendedSpecialization: spec, confidence: spec ? 'high' : 'medium',
+    rationale: `Based on your aviation background, the two-week Aviation Workforce Transition Program is recommended.`,
+    requiresHumanReview: !spec, alternativePrograms: [] };
+}
+
+function serverResolveSpec(interest) {
+  const map = { engine_maintenance: 'engine_maintenance', ame_airframe: 'ame', pilot_flight_ops: 'pilot', rpas_drones: 'rpas' };
+  return map[interest] ?? null;
+}
+
 // ── Auth handlers ─────────────────────────────────────────────────────────────
 
 async function handleRegister(request, env, ctx) {
@@ -3188,7 +3266,7 @@ async function handleAdminAllUsers(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status'); // pending | active | rejected | null (all)
-  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at, acia_package, acia_payment_status, acia_access_enabled FROM users`;
+  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at, acia_package, acia_payment_status, acia_access_enabled, career_stage, recommended_program, recommended_specialization, routing_data FROM users`;
   const params = [];
   if (statusFilter && ['pending', 'active', 'rejected'].includes(statusFilter)) {
     query += ` WHERE status = ?`;
@@ -3207,8 +3285,82 @@ async function handleAdminAllUsers(request, user, env) {
     aciaPackage: r.acia_package ?? null,
     aciaPaymentStatus: r.acia_payment_status ?? null,
     aciaAccessEnabled: !!r.acia_access_enabled,
+    careerStage: r.career_stage ?? null,
+    recommendedProgram: r.recommended_program ?? null,
+    recommendedSpecialization: r.recommended_specialization ?? null,
+    routingRationale: (() => {
+      try { return r.routing_data ? JSON.parse(r.routing_data).result?.rationale ?? null : null; } catch { return null; }
+    })(),
   }));
   return json({ users, total: users.length });
+}
+
+// ── Routing: admin review of recommendation ───────────────────────────────────
+
+async function handleAdminRoutingReview(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const userId = new URL(request.url).pathname.split('/')[4];
+  if (!userId) return err('User ID required', 400);
+  const body = await request.json().catch(() => null);
+  if (!body?.confirmedProgram) return err('confirmedProgram is required', 400);
+  const validPrograms = new Set(['cdr', 'awtp', 'rpas_hub', 'human_review']);
+  if (!validPrograms.has(body.confirmedProgram)) return err('Invalid program value', 400);
+  const validSpecs = new Set(['engine_maintenance', 'ame', 'pilot', 'rpas', null, undefined, '']);
+  const confirmedSpec = body.confirmedSpecialization || null;
+  if (confirmedSpec && !validSpecs.has(confirmedSpec)) return err('Invalid specialization value', 400);
+
+  const target = await env.DB.prepare('SELECT id, recommended_program, recommended_specialization FROM users WHERE id = ?').bind(userId).first();
+  if (!target) return err('User not found', 404);
+
+  const now = new Date().toISOString();
+  const reviewId = randomHex(8);
+  await env.DB.prepare(
+    `INSERT INTO program_routing_reviews (id, user_id, original_program, original_specialization, admin_program, admin_specialization, admin_id, reason, reviewed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    reviewId, userId,
+    target.recommended_program ?? 'human_review',
+    target.recommended_specialization ?? null,
+    body.confirmedProgram, confirmedSpec,
+    user.sub,
+    typeof body.reason === 'string' ? body.reason.trim() : null,
+    now
+  ).run();
+
+  await env.DB.prepare(
+    `UPDATE users SET recommended_program = ?, recommended_specialization = ?, updated_at = ? WHERE id = ?`
+  ).bind(body.confirmedProgram, confirmedSpec, now, userId).run();
+
+  await audit(env.DB, 'routing_recommendation_reviewed', user.sub, 'user', {
+    targetUserId: userId, adminId: user.sub,
+    originalProgram: target.recommended_program, confirmedProgram: body.confirmedProgram,
+  });
+
+  return json({ success: true, reviewId, message: 'Routing recommendation updated.' });
+}
+
+// ── Routing: participant recommendation ───────────────────────────────────────
+
+async function handleParticipantRecommendation(request, user, env) {
+  const guard = requireRole(user, 'youth'); if (guard) return guard;
+  const row = await env.DB.prepare(
+    `SELECT recommended_program, recommended_specialization, routing_data FROM users WHERE id = ?`
+  ).bind(user.sub).first();
+  if (!row) return err('Not found', 404);
+
+  const reviewRow = await env.DB.prepare(
+    `SELECT id FROM program_routing_reviews WHERE user_id = ? ORDER BY reviewed_at DESC LIMIT 1`
+  ).bind(user.sub).first();
+
+  let rationale = null;
+  try { rationale = row.routing_data ? JSON.parse(row.routing_data).result?.rationale ?? null : null; } catch {}
+
+  return json({
+    recommendedProgram: row.recommended_program ?? null,
+    recommendedSpecialization: row.recommended_specialization ?? null,
+    rationale,
+    reviewStatus: reviewRow ? 'reviewed' : (row.recommended_program ? 'pending_review' : 'not_computed'),
+  });
 }
 
 // ── Admin: notification count (pending approvals) ─────────────────────────────
@@ -12384,9 +12536,27 @@ async function handleAcceptCohortInvite(request, env) {
   // RPAS Hub invitees: status = 'active' — RPAS flow manages their access separately
   const initialStatus = inv.hub_type === 'rpas' ? 'active' : 'pending';
 
+  // Compute routing recommendation for youth participants
+  let recommendedProgram = null;
+  let recommendedSpecialization = null;
+  let routingData = null;
+  if (inv.pilot_role === 'youth' && body.routingAnswers) {
+    try {
+      const routing = computeRoutingServer({ careerStage, ...body.routingAnswers });
+      recommendedProgram = routing.recommendedProgram;
+      recommendedSpecialization = routing.recommendedSpecialization ?? null;
+      routingData = JSON.stringify({
+        answers: { careerStage, ...body.routingAnswers },
+        result: routing,
+        version: '1.0',
+        computedAt: now,
+      });
+    } catch (_) { /* routing failure is non-fatal */ }
+  }
+
   await env.DB.prepare(
-    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_cohort, invitation_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?, 0, NULL, 1, ?, ?, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_cohort, invitation_id, recommended_program, recommended_specialization, routing_data, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?, 0, NULL, 1, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, inv.invited_email, passwordHash, fullName, inv.pilot_role,
     inv.invited_organization ?? '',
@@ -12394,6 +12564,9 @@ async function handleAcceptCohortInvite(request, env) {
     initialStatus,
     inv.cohort_name ?? null,
     inv.id,
+    recommendedProgram,
+    recommendedSpecialization,
+    routingData,
     now, now
   ).run();
 
@@ -13945,6 +14118,10 @@ async function _routeRequest(request, env, ctx) {
     // Participant list + ACIA override (admin+)
     if (path === '/admin/participants' && request.method === 'GET') return handleAdminParticipantList(request, user, env);
     if (path.startsWith('/admin/participants/') && path.endsWith('/acia-override') && request.method === 'POST') return handleAdminAciaOverride(request, user, env);
+
+    // Intelligent routing — admin review + participant recommendation
+    if (path.match(/^\/admin\/routing\/review\/[^/]+$/) && request.method === 'POST') return handleAdminRoutingReview(request, user, env);
+    if (path === '/participant/recommendation' && request.method === 'GET') return handleParticipantRecommendation(request, user, env);
 
     // ACIA integrity audit + monitoring (admin+)
     if (path === '/admin/acia/integrity' && request.method === 'GET') return handleAdminAciaIntegrityAudit(request, user, env);

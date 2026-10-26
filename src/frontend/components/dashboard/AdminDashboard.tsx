@@ -132,15 +132,100 @@ function DeclineModal({ participant, onConfirm, onCancel, loading }: {
 
 // â”€â”€ Participant Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
+const PROGRAM_LABELS_SHORT: Record<string, string> = {
+  cdr: 'CDR (8 wk)',
+  awtp: 'AWTP (2 wk)',
+  rpas_hub: 'RPAS Hub (1 wk)',
+  human_review: 'Pending Review',
+};
+const SPEC_LABELS_SHORT: Record<string, string> = {
+  engine_maintenance: 'Engine Maintenance',
+  ame: 'AME',
+  pilot: 'Pilot / Flight Ops',
+  rpas: 'RPAS / Autonomous',
+};
+
+function RoutingReviewModal({ userId, name, currentProgram, currentSpec, onSave, onClose }: {
+  userId: string; name: string;
+  currentProgram: string | null; currentSpec: string | null;
+  onSave: () => void; onClose: () => void;
+}) {
+  const [prog, setProg] = useState(currentProgram ?? 'cdr');
+  const [spec, setSpec] = useState(currentSpec ?? '');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit() {
+    setSaving(true); setErr(null);
+    try {
+      await apiFetch(`/admin/routing/review/${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmedProgram: prog, confirmedSpecialization: spec || null, reason }),
+      });
+      onSave();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to save');
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28, maxWidth: 480, width: '100%' }}>
+        <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Confirm Program Pathway</div>
+        <div style={{ color: C.greyD, fontSize: 13, marginBottom: 18 }}>{name}</div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, display: 'block', marginBottom: 5 }}>Confirmed Program</label>
+          <select value={prog} onChange={e => { setProg(e.target.value); if (e.target.value !== 'awtp') setSpec(''); }} style={{ width: '100%', background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 12px', color: C.white, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
+            <option value="cdr">Aviation Career Discovery &amp; Readiness (CDR)</option>
+            <option value="awtp">Aviation Workforce Transition Program (AWTP)</option>
+            <option value="rpas_hub">RPAS Workforce Hub</option>
+            <option value="human_review">Pending Advisor Review</option>
+          </select>
+        </div>
+        {prog === 'awtp' && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, display: 'block', marginBottom: 5 }}>Specialization</label>
+            <select value={spec} onChange={e => setSpec(e.target.value)} style={{ width: '100%', background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 12px', color: C.white, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
+              <option value="">To be determined</option>
+              <option value="engine_maintenance">Aircraft Engine Maintenance &amp; Gas Turbine Technology</option>
+              <option value="ame">Aircraft Maintenance Engineering (AME)</option>
+              <option value="pilot">Pilot / Flight Operations</option>
+              <option value="rpas">RPAS / Autonomous Systems</option>
+            </select>
+          </div>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, display: 'block', marginBottom: 5 }}>Reason (optional)</label>
+          <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Notes for this placement decision" style={{ width: '100%', boxSizing: 'border-box' as const, background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 12px', color: C.white, fontSize: 13, resize: 'vertical' as const, outline: 'none', fontFamily: 'inherit' }} />
+        </div>
+        {err && <div style={{ color: '#fca5a5', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+          <button onClick={submit} disabled={saving} style={{ background: saving ? C.crimsonD : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
+            {saving ? 'Saving…' : 'Confirm Pathway'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ParticipantRow({ p, onApprove, onDecline, actionLoading, onRoutingSaved }: {
   p: Participant;
   onApprove: (id: string) => void;
   onDecline: (p: Participant) => void;
   actionLoading: string | null;
+  onRoutingSaved?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showRoutingModal, setShowRoutingModal] = useState(false);
   const org = p.organizationName || p.institutionName;
   const isLoading = actionLoading === p.id;
+  const rec = (p as Record<string, unknown>);
+  const recommendedProgram = rec.recommendedProgram as string | null ?? null;
+  const recommendedSpecialization = rec.recommendedSpecialization as string | null ?? null;
+  const routingRationale = rec.routingRationale as string | null ?? null;
 
   return (
     <div style={{
@@ -187,6 +272,16 @@ function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
 
       {expanded && (
         <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px 16px' }}>
+          {showRoutingModal && (
+            <RoutingReviewModal
+              userId={p.id}
+              name={p.name}
+              currentProgram={recommendedProgram}
+              currentSpec={recommendedSpecialization}
+              onSave={() => { setShowRoutingModal(false); onRoutingSaved?.(); }}
+              onClose={() => setShowRoutingModal(false)}
+            />
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px 20px', marginBottom: 16 }}>
             {[
               ['Email', p.email],
@@ -203,6 +298,28 @@ function ParticipantRow({ p, onApprove, onDecline, actionLoading }: {
               </div>
             ))}
           </div>
+
+          {/* Routing recommendation */}
+          {p.role === 'youth' && (
+            <div style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' as const, marginBottom: routingRationale ? 8 : 0 }}>
+                <div>
+                  <div style={{ color: '#93c5fd', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 3 }}>Recommended Pathway</div>
+                  <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>
+                    {recommendedProgram ? PROGRAM_LABELS_SHORT[recommendedProgram] ?? recommendedProgram : 'Not yet computed'}
+                    {recommendedSpecialization && <span style={{ color: '#93c5fd', fontWeight: 400 }}> — {SPEC_LABELS_SHORT[recommendedSpecialization] ?? recommendedSpecialization}</span>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRoutingModal(true)}
+                  style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', color: '#93c5fd', borderRadius: 7, padding: '6px 13px', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Confirm Pathway
+                </button>
+              </div>
+              {routingRationale && <div style={{ color: C.greyD, fontSize: 11, lineHeight: 1.5 }}>{routingRationale}</div>}
+            </div>
+          )}
 
           {p.status === 'pending' && (
             <div style={{ display: 'flex', gap: 8 }}>
@@ -3799,6 +3916,7 @@ export function AdminDashboard() {
               onApprove={handleApprove}
               onDecline={setDeclineTarget}
               actionLoading={actionLoading}
+              onRoutingSaved={loadParticipants}
             />
           ))}
           <div style={{ color: C.greyD, fontSize: 12, textAlign: 'right', marginTop: 4 }}>
