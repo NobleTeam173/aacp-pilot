@@ -139,10 +139,10 @@ const PROGRAM_LABELS_SHORT: Record<string, string> = {
   human_review: 'Pending Review',
 };
 const SPEC_LABELS_SHORT: Record<string, string> = {
-  engine_maintenance: 'Engine Maintenance',
+  engine_maintenance: 'Engine & Gas Turbine Systems',
   ame: 'AME',
-  pilot: 'Pilot / Flight Ops',
-  rpas: 'RPAS / Autonomous',
+  pilot: 'Pilot & Flight Operations',
+  rpas: 'RPAS & Autonomous Systems',
 };
 
 function RoutingReviewModal({ userId, name, currentProgram, currentSpec, onSave, onClose }: {
@@ -188,10 +188,10 @@ function RoutingReviewModal({ userId, name, currentProgram, currentSpec, onSave,
             <label style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, display: 'block', marginBottom: 5 }}>Specialization</label>
             <select value={spec} onChange={e => setSpec(e.target.value)} style={{ width: '100%', background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 12px', color: C.white, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
               <option value="">To be determined</option>
-              <option value="engine_maintenance">Aircraft Engine Maintenance &amp; Gas Turbine Technology</option>
+              <option value="engine_maintenance">Aircraft Engine &amp; Gas Turbine Systems</option>
               <option value="ame">Aircraft Maintenance Engineering (AME)</option>
-              <option value="pilot">Pilot / Flight Operations</option>
-              <option value="rpas">RPAS / Autonomous Systems</option>
+              <option value="pilot">Pilot &amp; Flight Operations</option>
+              <option value="rpas">RPAS &amp; Autonomous Systems</option>
             </select>
           </div>
         )}

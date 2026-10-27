@@ -136,7 +136,7 @@ export function computeRouting(answers: RoutingAnswers): RoutingResult {
         recommendedSpecialization: 'rpas',
         confidence: 'high',
         rationale:
-          'Based on your aviation background and goal of transitioning into an RPAS career, the two-week Aviation Workforce Transition Program — RPAS / Autonomous Systems specialization is recommended.',
+          'Based on your aviation background and goal of transitioning into an RPAS career, the two-week Aviation Workforce Transition Program — RPAS & Autonomous Systems specialization is recommended.',
         requiresHumanReview: false,
         alternativePrograms: ['rpas_hub'],
       };
@@ -172,7 +172,7 @@ export function computeRouting(answers: RoutingAnswers): RoutingResult {
         recommendedSpecialization: 'rpas',
         confidence: 'high',
         rationale:
-          'Based on your aviation background and goal of transitioning into an RPAS career, the two-week Aviation Workforce Transition Program — RPAS / Autonomous Systems specialization is recommended.',
+          'Based on your aviation background and goal of transitioning into an RPAS career, the two-week Aviation Workforce Transition Program — RPAS & Autonomous Systems specialization is recommended.',
         requiresHumanReview: false,
         alternativePrograms: ['rpas_hub'],
       };
@@ -240,7 +240,7 @@ function resolveSpecialization(interest?: OccupationalInterest): {
       return {
         specialization: 'engine_maintenance',
         rationale: () =>
-          'Based on your interest in aircraft engine maintenance and gas turbine technology, the Aircraft Engine Maintenance & Gas Turbine Technology specialization is recommended.',
+          'Based on your interest in aircraft engine maintenance and gas turbine technology, the Aircraft Engine & Gas Turbine Systems specialization is recommended.',
       };
     case 'ame_airframe':
       return {
@@ -252,13 +252,13 @@ function resolveSpecialization(interest?: OccupationalInterest): {
       return {
         specialization: 'pilot',
         rationale: () =>
-          'Based on your interest in flight operations, the Pilot / Flight Operations specialization is recommended.',
+          'Based on your interest in flight operations, the Pilot & Flight Operations specialization is recommended.',
       };
     case 'rpas_drones':
       return {
         specialization: 'rpas',
         rationale: () =>
-          'Based on your interest in RPAS and autonomous systems, the RPAS / Autonomous Systems specialization is recommended.',
+          'Based on your interest in RPAS and autonomous systems, the RPAS & Autonomous Systems specialization is recommended.',
       };
     case 'not_sure':
     default:
@@ -303,8 +303,8 @@ export const PROGRAM_LABELS: Record<Program, string> = {
 };
 
 export const SPECIALIZATION_LABELS: Record<NonNullable<Specialization>, string> = {
-  engine_maintenance: 'Aircraft Engine Maintenance & Gas Turbine Technology',
+  engine_maintenance: 'Aircraft Engine & Gas Turbine Systems',
   ame: 'Aircraft Maintenance Engineering (AME)',
-  pilot: 'Pilot / Flight Operations',
-  rpas: 'RPAS / Autonomous Systems',
+  pilot: 'Pilot & Flight Operations',
+  rpas: 'RPAS & Autonomous Systems',
 };
