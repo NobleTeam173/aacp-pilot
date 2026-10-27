@@ -20,6 +20,7 @@ export default defineConfig({
         rpas:         resolve(__dirname, 'rpas.html'),
         acia:         resolve(__dirname, 'acia.html'),
         industry:     resolve(__dirname, 'industry.html'),
+        awtp:         resolve(__dirname, 'awtp.html'),
       },
     },
   },
