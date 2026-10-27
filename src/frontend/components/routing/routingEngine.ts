@@ -111,7 +111,7 @@ export function computeRouting(answers: RoutingAnswers): RoutingResult {
       recommendedSpecialization: null,
       confidence: 'high',
       rationale:
-        'Air traffic control career exploration is supported through the eight-week Aviation Career Discovery & Readiness Program. ATC is not offered as a two-week Workforce Transition specialization.',
+        'Air traffic control career exploration is supported through the eight-week Aviation Career Pathways & Workforce Readiness Program. ATC is not offered as a two-week Workforce Transition specialization.',
       requiresHumanReview: false,
       alternativePrograms: [],
     };
@@ -272,7 +272,7 @@ function resolveSpecialization(interest?: OccupationalInterest): {
 
 function buildCdrRationale(stage: CareerStage, hasSpecificInterest: boolean | undefined): string {
   const base =
-    'The eight-week Aviation Career Discovery & Readiness Program is recommended to help you explore aviation career opportunities and build foundational industry awareness.';
+    'The eight-week Aviation Career Pathways & Workforce Readiness Program is recommended to help you explore aviation career opportunities and build foundational industry awareness.';
   if (stage === 'stem' && hasSpecificInterest) {
     return (
       base +
@@ -296,7 +296,7 @@ function stageLabel(stage: CareerStage): string {
 
 // Human-readable program labels for display
 export const PROGRAM_LABELS: Record<Program, string> = {
-  cdr: 'Aviation Career Discovery & Readiness (8 weeks)',
+  cdr: 'Aviation Career Pathways & Workforce Readiness (8 weeks)',
   awtp: 'Aviation Workforce Transition Program (2 weeks)',
   rpas_hub: 'RPAS Workforce Hub (1 week)',
   human_review: 'Pending Advisor Review',

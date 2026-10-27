@@ -177,7 +177,7 @@ function RoutingReviewModal({ userId, name, currentProgram, currentSpec, onSave,
         <div style={{ marginBottom: 12 }}>
           <label style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, display: 'block', marginBottom: 5 }}>Confirmed Program</label>
           <select value={prog} onChange={e => { setProg(e.target.value); if (e.target.value !== 'awtp') setSpec(''); }} style={{ width: '100%', background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 12px', color: C.white, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
-            <option value="cdr">Aviation Career Discovery &amp; Readiness (CDR)</option>
+            <option value="cdr">Aviation Career Pathways &amp; Workforce Readiness (CDR)</option>
             <option value="awtp">Aviation Workforce Transition Program (AWTP)</option>
             <option value="rpas_hub">RPAS Workforce Hub</option>
             <option value="human_review">Pending Advisor Review</option>

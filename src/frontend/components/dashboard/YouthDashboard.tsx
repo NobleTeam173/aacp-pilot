@@ -73,7 +73,7 @@ function fmt(iso: string) {
 // ── Program Recommendation Card ───────────────────────────────────────────────
 
 const PROG_LABELS: Record<string, string> = {
-  cdr: 'Aviation Career Discovery & Readiness',
+  cdr: 'Aviation Career Pathways & Workforce Readiness',
   awtp: 'Aviation Workforce Transition Program',
   rpas_hub: 'RPAS Workforce Hub',
   human_review: 'Pending Advisor Review',
