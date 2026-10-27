@@ -4535,6 +4535,7 @@ const REFERRAL_LABELS: Record<string, string> = {
   industry_association:    'Industry association',
   job_board:               'Job board',
   news_media:              'News / media',
+  cjwe_fm:                 'CJWE FM',
   other:                   'Other',
 };
 
