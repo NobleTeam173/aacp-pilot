@@ -7,3 +7,6 @@ src/**/*.map
 *.DS_Store
 .wrangler/state/
 .wrangler/tmp/
+.agents/
+.claude/skills/
+skills-lock.json
