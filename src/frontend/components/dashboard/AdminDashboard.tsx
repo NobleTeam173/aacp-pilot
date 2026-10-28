@@ -4536,6 +4536,8 @@ const REFERRAL_LABELS: Record<string, string> = {
   job_board:               'Job board',
   news_media:              'News / media',
   cjwe_fm:                 'CJWE FM',
+  aboriginal_futures:      'Aboriginal Futures',
+  community_futures_treaty_seven: 'Community Futures Treaty Seven',
   other:                   'Other',
 };
 
