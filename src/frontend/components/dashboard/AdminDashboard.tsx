@@ -4495,6 +4495,7 @@ interface EoiIndividual {
   careerStage: string | null; areasOfInterest: string[];
   rpasExperience: string | null; background: string | null;
   willingnessToPay: string | null; fundingDependency: string | null;
+  cohortPreference: string | null;
   referralSourceKey: string | null; comment: string | null;
   utmSource: string | null; utmMedium: string | null; utmCampaign: string | null;
   status: string; followUpNotes: string | null; contactedAt: string | null;
@@ -4539,6 +4540,11 @@ const REFERRAL_LABELS: Record<string, string> = {
   aboriginal_futures:      'Aboriginal Futures',
   community_futures_treaty_seven: 'Community Futures Treaty Seven',
   other:                   'Other',
+};
+
+const COHORT_LABELS: Record<string, string> = {
+  acpwr_feb_2027: 'Aviation Career Pathways & Workforce Readiness — Feb 15, 2027',
+  not_sure:       'Not sure yet',
 };
 
 const EOI_PARTNER_INTEREST_LABELS: Record<string, string> = {
@@ -4766,6 +4772,7 @@ function EoiIndividualsPanel() {
                   {item.rpasExperience && <EoiDetail label="RPAS Experience" value={item.rpasExperience.replace(/_/g, ' ')} />}
                   {item.background && <EoiDetail label="Background" value={item.background.replace(/_/g, ' ')} />}
                   {item.fundingDependency && <EoiDetail label="Funding Dependency" value={item.fundingDependency} />}
+                  {item.cohortPreference && <EoiDetail label="Cohort Preference" value={COHORT_LABELS[item.cohortPreference] ?? item.cohortPreference.replace(/_/g, ' ')} />}
                   {item.phone && <EoiDetail label="Phone" value={item.phone} />}
                   {item.utmSource && <EoiDetail label="UTM Source" value={item.utmSource} />}
                   {item.utmCampaign && <EoiDetail label="UTM Campaign" value={item.utmCampaign} />}

@@ -1526,6 +1526,7 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN cohort_preference TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
 
@@ -1553,6 +1554,7 @@ async function runMigrations(db) {
       background           TEXT,
       willingness_to_pay   TEXT,
       funding_dependency   TEXT,
+      cohort_preference    TEXT,
       referral_source      TEXT,
       comment              TEXT,
       utm_source           TEXT,
@@ -9369,6 +9371,9 @@ const REFERRAL_SOURCE_KEYS = new Set([
   'industry_association',
   'job_board',
   'news_media',
+  'cjwe_fm',
+  'aboriginal_futures',
+  'community_futures_treaty_seven',
   'other',
 ]);
 
@@ -9404,11 +9409,11 @@ async function handleEoiIndividual(request, env) {
     INSERT INTO eoi_individuals
       (id, first_name, last_name, email, phone, city, province, country,
        career_stage, areas_of_interest, rpas_experience, background,
-       willingness_to_pay, funding_dependency, referral_source,
+       willingness_to_pay, funding_dependency, cohort_preference, referral_source,
        referral_source_key, referral_source_other, comment,
        utm_source, utm_medium, utm_campaign,
        status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
   `).bind(
     id,
     firstName,
@@ -9424,6 +9429,7 @@ async function handleEoiIndividual(request, env) {
     sanitizeText(body.background, 200) ?? null,
     sanitizeText(body.willingnessToPay, 100) ?? null,
     sanitizeText(body.fundingDependency, 100) ?? null,
+    sanitizeText(body.cohortPreference, 100) ?? null,
     referralSourceKey,
     referralSourceKey,
     referralSourceOther,
@@ -9526,6 +9532,7 @@ async function handleAdminEoiIndividuals(request, user, env) {
     careerStage: r.career_stage, areasOfInterest: safeJsonParse(r.areas_of_interest, []),
     rpasExperience: r.rpas_experience, background: r.background,
     willingnessToPay: r.willingness_to_pay, fundingDependency: r.funding_dependency,
+    cohortPreference: r.cohort_preference,
     referralSource: r.referral_source,
     referralSourceKey: r.referral_source_key, referralSourceOther: r.referral_source_other,
     comment: r.comment,
