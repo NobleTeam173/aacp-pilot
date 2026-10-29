@@ -1530,6 +1530,19 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
 
+  // ACIA Mission 2 open-ended reflection responses (Stage 2) — stored separately from evidence scoring
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS acia_m2_responses (
+      id               TEXT PRIMARY KEY,
+      session_id       TEXT NOT NULL,
+      user_id          TEXT,
+      observation      TEXT NOT NULL,
+      reasoning        TEXT NOT NULL,
+      transferable     TEXT NOT NULL,
+      saved_at         TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
   // Rename pilot_invitations → cohort_invitations (idempotent)
   await db.prepare(`ALTER TABLE pilot_invitations RENAME TO cohort_invitations`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_cohort_inv_token ON cohort_invitations(token_hash)`).run().catch(() => {});
@@ -7860,6 +7873,42 @@ async function handleTalentConnectionRespond(request, user, env) {
   return json({ status: newStatus });
 }
 
+// ── ACIA Mission 2 Reflection Responses ──────────────────────────────────────
+// POST /acia/m2/responses
+// Stores open-ended reflection responses from Mission 2 Stage 2.
+// These are NOT fed into competency scoring or career alignment calculations.
+// Accessible to any authenticated participant; admin can view via audit tools.
+async function handleAciaM2Responses(request, user, env) {
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
+  if (guard) return guard;
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { sessionId, observation, reasoning, transferable } = body ?? {};
+  if (!sessionId || typeof sessionId !== 'string') return json({ error: 'sessionId required' }, 400);
+  if (!observation || !reasoning || !transferable) return json({ error: 'All three responses required' }, 400);
+
+  const MAX = 5000;
+  const sanitize = (v) => typeof v === 'string' ? v.slice(0, MAX).trim() : '';
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`
+    INSERT INTO acia_m2_responses (id, session_id, user_id, observation, reasoning, transferable, saved_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    sanitize(sessionId).slice(0, 64),
+    user?.id ?? null,
+    sanitize(observation),
+    sanitize(reasoning),
+    sanitize(transferable),
+    new Date().toISOString(),
+  ).run();
+
+  return json({ success: true, id });
+}
+
 async function handleAciaAssessmentComplete(request, user, env, ctx) {
   const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
@@ -14095,6 +14144,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/eoi/partners'                                                 && request.method === 'GET')  return handleAdminEoiPartners(request, user, env);
     if (path.match(/^\/admin\/eoi\/partners\/[^/]+$/)                                 && request.method === 'PATCH') return handleAdminEoiPartnerUpdate(request, user, env);
 
+    if (path === '/acia/m2/responses'             && request.method === 'POST') return handleAciaM2Responses(request, user, env);
     if (path === '/acia/assessment/complete'      && request.method === 'POST') return handleAciaAssessmentComplete(request, user, env, ctx);
     if (path === '/acia/rpas/assessment/complete' && request.method === 'POST') return handleAciaRpasAssessmentComplete(request, env, ctx);
     if (path === '/acia/rpas/report'             && request.method === 'GET')  return handleAciaRpasReport(request, env);

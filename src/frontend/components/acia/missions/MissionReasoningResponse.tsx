@@ -26,6 +26,8 @@ export interface ReasoningResponses {
 interface Props {
   questions: ReasoningQuestion[];
   storageKey: string;          // localStorage key for persistence — e.g. 'acia_m2_reasoning'
+  sessionId?: string;          // ACIA session ID — enables server-side persistence
+  serverEndpoint?: string;     // POST endpoint for server persistence, e.g. '/acia/m2/responses'
   onComplete: (responses: ReasoningResponses) => void;
   onSave?: (responses: ReasoningResponses) => void;  // optional callback on each save
   disabled?: boolean;
@@ -45,10 +47,11 @@ function persistResponses(key: string, data: ReasoningResponses): void {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 }
 
-export function MissionReasoningResponse({ questions, storageKey, onComplete, onSave, disabled = false }: Props) {
+export function MissionReasoningResponse({ questions, storageKey, sessionId, serverEndpoint, onComplete, onSave, disabled = false }: Props) {
   const [responses, setResponses] = useState<ReasoningResponses>(() => loadSaved(storageKey));
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [serverSaved, setServerSaved] = useState(false);
 
   // Auto-save on every change
   useEffect(() => {
@@ -67,11 +70,32 @@ export function MissionReasoningResponse({ questions, storageKey, onComplete, on
   const answered = questions.filter(q => (responses[q.id] ?? '').trim().length >= q.minLength);
   const allAnswered = answered.length === questions.length;
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!allAnswered || submitted) return;
     setSubmitted(true);
     // Clear saved draft after confirmed submission
     try { localStorage.removeItem(storageKey); } catch {}
+
+    // Persist to server if endpoint provided — fire-and-forget, never blocks onComplete
+    if (serverEndpoint && sessionId) {
+      try {
+        const token = localStorage.getItem('aacp_access_token');
+        await fetch(serverEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            sessionId,
+            observation: responses['observation'] ?? '',
+            reasoning: responses['reasoning'] ?? '',
+            transferable: responses['transferable'] ?? '',
+          }),
+        });
+        setServerSaved(true);
+      } catch {
+        // Server persistence failed — localStorage was already cleared and onComplete fires regardless
+      }
+    }
+
     onComplete(responses);
   }
 

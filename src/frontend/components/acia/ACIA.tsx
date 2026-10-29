@@ -848,6 +848,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
             stage={stage}
             chatEndpoint={chatEndpoint}
             isRpas={isRpas}
+            sessionId={session.sessionId}
             onComplete={completeMission}
           />
         </div>
@@ -862,10 +863,11 @@ interface MissionRendererProps {
   stage: AssessmentStage;
   chatEndpoint: string;
   isRpas?: boolean;
+  sessionId?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory?: ChatMessage[]) => void;
 }
 
-function MissionRenderer({ mission, stage, chatEndpoint, isRpas, onComplete }: MissionRendererProps) {
+function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, onComplete }: MissionRendererProps) {
   const isFollowup = stage === 'followup';
   switch (mission.type) {
     case 'ai_chat':
@@ -885,7 +887,7 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, onComplete }: M
         />
       );
     case 'inspection':
-      return <AircraftInspection isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
+      return <AircraftInspection isRpas={isRpas} sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
     case 'diagnosis':
       return <SystemDiagnosis isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'puzzle':

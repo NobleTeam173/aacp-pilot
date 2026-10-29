@@ -1,7 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import type { EvidenceItem } from '../types';
-import { Aircraft3DViewer, ZONE_3D_POSITIONS, type Zone3D } from './Aircraft3DViewer';
+import type { Zone3D } from './Aircraft3DViewer';
+import { ZONE_3D_POSITIONS } from './zone3dPositions';
 import { MissionReasoningResponse, type ReasoningResponses, type ReasoningQuestion } from './MissionReasoningResponse';
+
+// Lazy-load the 3D viewer so Three.js (~500KB) is only fetched when the participant
+// explicitly switches to 3D mode. The 2D experience is completely unaffected.
+const Aircraft3DViewer = lazy(() =>
+  import('./Aircraft3DViewer').then(m => ({ default: m.Aircraft3DViewer }))
+);
 
 const C = {
   crimson: '#8F0909',
@@ -50,12 +57,13 @@ const DEFECTS = ZONES.filter(z => z.severity !== 'ok');
 
 interface Props {
   isRpas?: boolean;
+  sessionId?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function AircraftInspection({ isRpas, onComplete }: Props) {
+export function AircraftInspection({ isRpas, sessionId, onComplete }: Props) {
   if (isRpas) return <RpasPreflightInspection onComplete={onComplete} />;
-  return <AircraftInspectionGeneral onComplete={onComplete} />;
+  return <AircraftInspectionGeneral sessionId={sessionId} onComplete={onComplete} />;
 }
 
 // ── RPAS Pre-flight Inspection ────────────────────────────────────────────────
@@ -253,7 +261,7 @@ const M2_QUESTIONS: ReasoningQuestion[] = [
 ];
 
 // ── General aviation inspection ───────────────────────────────────────────────
-function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
+function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: string; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [zones, setZones] = useState<InspectionZone[]>(ZONES);
   const [selected, setSelected] = useState<InspectionZone | null>(null);
   const [inspectionDone, setInspectionDone] = useState(false);
@@ -433,12 +441,18 @@ function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit
                 </>
               ) : (
                 <>
-                  <Aircraft3DViewer
-                    zones={zones3d}
-                    completed={false}
-                    onZoneClick={handleZoneClick3D}
-                    selectedId={selected3dId}
-                  />
+                  <Suspense fallback={
+                    <div style={{ height: 340, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)', borderRadius: 16, color: '#94a3b8', fontSize: 13 }}>
+                      Loading 3D viewer…
+                    </div>
+                  }>
+                    <Aircraft3DViewer
+                      zones={zones3d}
+                      completed={false}
+                      onZoneClick={handleZoneClick3D}
+                      selectedId={selected3dId}
+                    />
+                  </Suspense>
                   <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                     {[{ color: '#22c55e', label: 'OK' }, { color: '#f59e0b', label: 'Caution' }, { color: '#ef4444', label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.grey }}>
@@ -523,6 +537,8 @@ function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit
           <MissionReasoningResponse
             questions={M2_QUESTIONS}
             storageKey="acia_m2_reasoning"
+            sessionId={sessionId}
+            serverEndpoint="/acia/m2/responses"
             onComplete={handleReasoningComplete}
           />
         </>
