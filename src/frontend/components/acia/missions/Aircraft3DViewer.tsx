@@ -64,22 +64,37 @@ function ZoneBeacon({ zone, completed, onClick, isSelected }: {
 
   const scale = hovered && !completed ? 1.35 : 1;
 
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (!completed) onClick();
+  };
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    if (!completed) setHovered(true);
+  };
+  const handlePointerOut = () => setHovered(false);
+
   return (
     <group position={zone.position}>
+      {/* Large invisible hitbox — makes the entire zone area easy to click */}
       <mesh
-        ref={ref}
-        scale={scale}
-        onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); if (!completed) onClick(); }}
-        onPointerOver={() => !completed && setHovered(true)}
-        onPointerOut={() => setHovered(false)}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
       >
-        <octahedronGeometry args={[0.07, 0]} />
+        <sphereGeometry args={[0.22, 8, 6]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {/* Visible beacon octahedron */}
+      <mesh ref={ref} scale={scale}>
+        <octahedronGeometry args={[0.1, 0]} />
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={zone.found ? 0.6 : 0.3}
+          emissiveIntensity={zone.found ? 0.7 : 0.4}
           transparent
-          opacity={0.85}
+          opacity={0.9}
         />
       </mesh>
 
@@ -92,6 +107,7 @@ function ZoneBeacon({ zone, completed, onClick, isSelected }: {
       {(hovered || isSelected) && (
         <Html
           center
+          distanceFactor={6}
           style={{
             pointerEvents: 'none',
             background: zone.found
@@ -103,8 +119,9 @@ function ZoneBeacon({ zone, completed, onClick, isSelected }: {
             whiteSpace: 'nowrap',
             fontSize: 11,
             color: '#f1f5f9',
-            transform: 'translateY(-28px)',
-            minWidth: 140,
+            transform: 'translateY(-32px)',
+            minWidth: 150,
+            userSelect: 'none',
           }}
         >
           <div style={{ fontWeight: 600 }}>{zone.label}</div>
@@ -347,10 +364,12 @@ function SceneContent({ zones, completed, onZoneClick, selectedId }: Props) {
 
       <OrbitControls
         enablePan={false}
-        minDistance={1.2}
-        maxDistance={4.5}
-        maxPolarAngle={Math.PI * 0.8}
+        minDistance={1.5}
+        maxDistance={5.0}
+        maxPolarAngle={Math.PI * 0.85}
         makeDefault
+        enableDamping
+        dampingFactor={0.08}
       />
     </>
   );
@@ -363,7 +382,7 @@ export function Aircraft3DViewer({ zones, completed, onZoneClick, selectedId }: 
       <Canvas
         style={{ height: 340, background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)' }}
         camera={{ position: [0, 1.2, 2.8], fov: 45 }}
-        gl={{ antialias: true }}
+        gl={{ antialias: true, alpha: false }}
       >
         <SceneContent
           zones={zones}
@@ -376,10 +395,19 @@ export function Aircraft3DViewer({ zones, completed, onZoneClick, selectedId }: 
       {/* Navigation hint overlay */}
       <div style={{
         position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: '4px 12px',
+        background: 'rgba(0,0,0,0.65)', borderRadius: 20, padding: '4px 14px',
         color: '#94a3b8', fontSize: 11, pointerEvents: 'none', whiteSpace: 'nowrap',
       }}>
-        Drag to rotate · Scroll to zoom · Tap beacons to inspect
+        Drag to rotate · Scroll to zoom · Click glowing beacons to inspect
+      </div>
+
+      {/* Found count overlay */}
+      <div style={{
+        position: 'absolute', top: 8, right: 8,
+        background: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: '3px 10px',
+        color: '#60a5fa', fontSize: 11, pointerEvents: 'none',
+      }}>
+        {zones.filter(z => z.found).length}/{zones.length} inspected
       </div>
     </div>
   );
