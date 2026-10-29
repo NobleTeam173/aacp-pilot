@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { EvidenceItem } from '../types';
+import { Aircraft3DViewer, ZONE_3D_POSITIONS, type Zone3D } from './Aircraft3DViewer';
+import { MissionReasoningResponse, type ReasoningResponses, type ReasoningQuestion } from './MissionReasoningResponse';
 
 const C = {
   crimson: '#8F0909',
@@ -225,31 +227,83 @@ function RpasPreflightInspection({ onComplete }: { onComplete: (evidence: Omit<E
   );
 }
 
+// ── Career intelligence questions — NOT fed into scoring ─────────────────────
+const M2_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'observation',
+    label: 'Observation',
+    prompt: 'As you examine the aircraft, what details attract your attention, and why?',
+    placeholder: 'Describe what you noticed and what drew your eye to it…',
+    minLength: 40,
+  },
+  {
+    id: 'reasoning',
+    label: 'Reasoning',
+    prompt: 'You notice something that appears different from what you expected. How would you approach understanding the difference, and what information would you want before reaching a conclusion?',
+    placeholder: 'Describe how you would investigate and what you would need to know…',
+    minLength: 50,
+  },
+  {
+    id: 'transferable',
+    label: 'Transferable Capabilities',
+    prompt: 'Describe a situation from your education, work or personal experience where careful observation helped you identify or understand a problem. How did you approach it, and what strengths did you use?',
+    placeholder: 'Share an example — it doesn\'t need to be aviation related…',
+    minLength: 60,
+  },
+];
+
 // ── General aviation inspection ───────────────────────────────────────────────
 function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [zones, setZones] = useState<InspectionZone[]>(ZONES);
   const [selected, setSelected] = useState<InspectionZone | null>(null);
+  const [inspectionDone, setInspectionDone] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [startTime] = useState(Date.now());
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [selected3dId, setSelected3dId] = useState<string | null>(null);
 
   const inspected = zones.filter(z => z.found);
   const defectsFound = zones.filter(z => z.found && z.severity !== 'ok');
   const allInspected = inspected.length === zones.length;
 
-  function handleClick(zone: InspectionZone) {
-    if (completed) return;
+  // Persist inspection state across mode switches via zone array reference
+  const handleZoneClick2D = useCallback((zone: InspectionZone) => {
+    if (inspectionDone) return;
     setZones(prev => prev.map(z => z.id === zone.id ? { ...z, found: true } : z));
     setSelected({ ...zone, found: true });
+  }, [inspectionDone]);
+
+  const handleZoneClick3D = useCallback((id: string) => {
+    if (inspectionDone) return;
+    setZones(prev => prev.map(z => z.id === id ? { ...z, found: true } : z));
+    const zone = zones.find(z => z.id === id);
+    if (zone) setSelected({ ...zone, found: true });
+    setSelected3dId(id);
+  }, [inspectionDone, zones]);
+
+  // Build Zone3D array from current zone state for the 3D viewer
+  const zones3d: Zone3D[] = zones.map(z => ({
+    id: z.id,
+    label: z.label,
+    position: ZONE_3D_POSITIONS[z.id] ?? [0, 0.3, 0],
+    severity: z.severity,
+    issue: z.issue,
+    found: z.found,
+  }));
+
+  function handleInspectionSubmit() {
+    if (inspectionDone || inspected.length < 8) return;
+    setInspectionDone(true);
   }
 
-  function handleComplete() {
+  function handleReasoningComplete(_responses: ReasoningResponses) {
+    // Responses stored in localStorage by MissionReasoningResponse — NOT fed into evidence scoring
     setCompleted(true);
     const elapsed = (Date.now() - startTime) / 1000;
     const coverage = inspected.length / zones.length;
     const defectRate = defectsFound.length / DEFECTS.length;
     const foundPitot = defectsFound.some(z => z.id === 'pitot_tube');
 
-    // Pitot cover is the most safety-critical find — bonus for catching it
     const safetyBase = defectRate > 0.6 ? 0.8 : defectRate > 0.3 ? 0.5 : 0.1;
     const safetyDelta = foundPitot ? Math.min(1, safetyBase + 0.2) : safetyBase;
 
@@ -268,198 +322,217 @@ function AircraftInspectionGeneral({ onComplete }: { onComplete: (evidence: Omit
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 20 }}>
-      <div style={{
-        background: '#0f1a0f',
-        border: '1px solid #1a3a1a',
-        borderRadius: 12,
-        padding: '10px 16px',
-        color: '#86efac',
-        fontSize: 13,
-      }}>
-        Tap each zone on the aircraft to inspect it. Report all findings before departure. A thorough walkaround covers every zone — you may submit once 8 or more zones are checked, but inspecting all zones produces a complete report.
-      </div>
+      {/* Phase 1: Walkaround */}
+      {!inspectionDone && (
+        <>
+          <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: '10px 16px', color: '#86efac', fontSize: 13 }}>
+            Tap each zone on the aircraft to inspect it. Report all findings before departure. A thorough walkaround covers every zone — you may submit once 8 or more zones are checked.
+          </div>
 
-      <style>{`
-        @keyframes inspPulse {
-          0%, 100% { opacity: 0.6; r: 18px; }
-          50% { opacity: 1; r: 22px; }
-        }
-        .insp-zone:hover circle { filter: brightness(1.4); }
-      `}</style>
-
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <svg width={420} height={260} viewBox="0 0 420 260"
-            style={{ background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)', borderRadius: 16, border: `1px solid ${C.border}`, display: 'block' }}>
-
-            {/* Ground shadow */}
-            <ellipse cx={210} cy={242} rx={160} ry={10} fill="#000" opacity={0.4} />
-
-            {/* Fuselage main body */}
-            <ellipse cx={210} cy={128} rx={148} ry={24} fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-            {/* Fuselage highlight */}
-            <ellipse cx={210} cy={122} rx={140} ry={8} fill="#2a3f58" opacity={0.4} />
-
-            {/* Nose cone */}
-            <path d="M 62,128 Q 48,128 44,128 Q 48,116 62,116 Z" fill="#2d4a6a" />
-            <ellipse cx={66} cy={128} rx={28} ry={14} fill="#253646" stroke="#2d4a6a" strokeWidth={1} />
-            {/* Nose cockpit windows */}
-            <ellipse cx={68} cy={124} rx={6} ry={4} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
-            <ellipse cx={78} cy={124} rx={5} ry={3.5} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
-
-            {/* Tail fin vertical */}
-            <path d="M 316,128 L 348,80 L 355,80 L 355,128 Z" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-            {/* Horizontal stabilisers */}
-            <polygon points="318,128 365,108 360,118 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-            <polygon points="318,128 365,148 360,138 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-
-            {/* Wings */}
-            <polygon points="185,128 272,210 252,210 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-            <polygon points="185,128 272,46 252,46 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-            {/* Wing highlight */}
-            <polygon points="190,126 268,204 260,202 208,126" fill="#253646" opacity={0.3} />
-            <polygon points="190,130 268,52 260,54 208,130" fill="#253646" opacity={0.3} />
-
-            {/* Flaps */}
-            <polygon points="228,128 268,190 258,194 218,132" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-            <polygon points="228,128 268,66 258,62 218,124" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-
-            {/* Left engine pod */}
-            <ellipse cx={158} cy={164} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
-            <ellipse cx={138} cy={164} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
-            <ellipse cx={178} cy={164} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-
-            {/* Right engine pod */}
-            <ellipse cx={158} cy={92} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
-            <ellipse cx={138} cy={92} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
-            <ellipse cx={178} cy={92} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-
-            {/* Nose gear */}
-            <rect x={96} y={140} width={5} height={22} fill="#374151" />
-            <rect x={90} y={160} width={16} height={5} rx={2} fill="#4b5563" />
-            <ellipse cx={98} cy={164} rx={8} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-
-            {/* Left main gear */}
-            <rect x={192} y={182} width={5} height={20} fill="#374151" />
-            <ellipse cx={194} cy={202} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-
-            {/* Right main gear */}
-            <rect x={192} y={58} width={5} height={20} fill="#374151" />
-            <ellipse cx={194} cy={58} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-
-            {/* Fuselage cabin windows row */}
-            {[105, 125, 145, 165, 185, 205, 225, 245, 265, 285].map((x, i) => (
-              <ellipse key={i} cx={x} cy={122} rx={5} ry={3.5}
-                fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.7} opacity={0.7} />
+          {/* View mode toggle */}
+          <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start' }}>
+            {(['2d', '3d'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                aria-pressed={viewMode === mode}
+                style={{
+                  background: viewMode === mode ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})` : C.bgCard,
+                  color: viewMode === mode ? 'white' : C.grey,
+                  border: `1px solid ${viewMode === mode ? C.crimson : C.border}`,
+                  borderRadius: 8,
+                  padding: '6px 16px',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {mode === '2d' ? '2D Diagram' : '3D View'}
+              </button>
             ))}
-            <ellipse cx={190} cy={62} rx={8} ry={4} fill="#374151" />
+          </div>
 
-            {/* Inspection zones */}
-            {zones.map(zone => {
-              const color = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
-              return (
-                <g key={zone.id} className="insp-zone" onClick={() => handleClick(zone)} style={{ cursor: completed ? 'default' : 'pointer' }}>
-                  {/* Pulse ring for unfound zones */}
-                  {!zone.found && !completed && (
-                    <circle cx={zone.x} cy={zone.y} r={zone.r + 4} fill="none" stroke="#60a5fa" strokeWidth={1.5} opacity={0.4}>
-                      <animate attributeName="r" values={`${zone.r + 2};${zone.r + 8};${zone.r + 2}`} dur="2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                  )}
-                  {/* Glow for defects */}
-                  {zone.found && zone.severity !== 'ok' && (
-                    <circle cx={zone.x} cy={zone.y} r={zone.r + 6} fill={color} opacity={0.15}>
-                      <animate attributeName="opacity" values="0.15;0.3;0.15" dur="1.2s" repeatCount="indefinite" />
-                    </circle>
-                  )}
-                  <circle cx={zone.x} cy={zone.y} r={zone.r}
-                    fill={color} fillOpacity={zone.found ? 0.25 : 0.15}
-                    stroke={color} strokeWidth={zone.found ? 2 : 1.5}
+          <style>{`
+            @keyframes inspPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+            .insp-zone:hover circle { filter: brightness(1.4); }
+          `}</style>
+
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            {/* Viewer area */}
+            <div style={{ flexShrink: 0, width: viewMode === '3d' ? '100%' : 'auto' }}>
+              {viewMode === '2d' ? (
+                <>
+                  <svg width={420} height={260} viewBox="0 0 420 260"
+                    style={{ background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)', borderRadius: 16, border: `1px solid ${C.border}`, display: 'block' }}>
+
+                    <ellipse cx={210} cy={242} rx={160} ry={10} fill="#000" opacity={0.4} />
+                    <ellipse cx={210} cy={128} rx={148} ry={24} fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
+                    <ellipse cx={210} cy={122} rx={140} ry={8} fill="#2a3f58" opacity={0.4} />
+                    <path d="M 62,128 Q 48,128 44,128 Q 48,116 62,116 Z" fill="#2d4a6a" />
+                    <ellipse cx={66} cy={128} rx={28} ry={14} fill="#253646" stroke="#2d4a6a" strokeWidth={1} />
+                    <ellipse cx={68} cy={124} rx={6} ry={4} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
+                    <ellipse cx={78} cy={124} rx={5} ry={3.5} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
+                    <path d="M 316,128 L 348,80 L 355,80 L 355,128 Z" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
+                    <polygon points="318,128 365,108 360,118 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
+                    <polygon points="318,128 365,148 360,138 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
+                    <polygon points="185,128 272,210 252,210 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
+                    <polygon points="185,128 272,46 252,46 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
+                    <polygon points="190,126 268,204 260,202 208,126" fill="#253646" opacity={0.3} />
+                    <polygon points="190,130 268,52 260,54 208,130" fill="#253646" opacity={0.3} />
+                    <polygon points="228,128 268,190 258,194 218,132" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
+                    <polygon points="228,128 268,66 258,62 218,124" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
+                    <ellipse cx={158} cy={164} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
+                    <ellipse cx={138} cy={164} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
+                    <ellipse cx={178} cy={164} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
+                    <ellipse cx={158} cy={92} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
+                    <ellipse cx={138} cy={92} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
+                    <ellipse cx={178} cy={92} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
+                    <rect x={96} y={140} width={5} height={22} fill="#374151" />
+                    <rect x={90} y={160} width={16} height={5} rx={2} fill="#4b5563" />
+                    <ellipse cx={98} cy={164} rx={8} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
+                    <rect x={192} y={182} width={5} height={20} fill="#374151" />
+                    <ellipse cx={194} cy={202} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
+                    <rect x={192} y={58} width={5} height={20} fill="#374151" />
+                    <ellipse cx={194} cy={58} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
+                    {[105, 125, 145, 165, 185, 205, 225, 245, 265, 285].map((x, i) => (
+                      <ellipse key={i} cx={x} cy={122} rx={5} ry={3.5} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.7} opacity={0.7} />
+                    ))}
+                    <ellipse cx={190} cy={62} rx={8} ry={4} fill="#374151" />
+
+                    {zones.map(zone => {
+                      const color = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
+                      return (
+                        <g key={zone.id} className="insp-zone" onClick={() => handleZoneClick2D(zone)} style={{ cursor: 'pointer' }}>
+                          {!zone.found && (
+                            <circle cx={zone.x} cy={zone.y} r={zone.r + 4} fill="none" stroke="#60a5fa" strokeWidth={1.5} opacity={0.4}>
+                              <animate attributeName="r" values={`${zone.r + 2};${zone.r + 8};${zone.r + 2}`} dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                          )}
+                          {zone.found && zone.severity !== 'ok' && (
+                            <circle cx={zone.x} cy={zone.y} r={zone.r + 6} fill={color} opacity={0.15}>
+                              <animate attributeName="opacity" values="0.15;0.3;0.15" dur="1.2s" repeatCount="indefinite" />
+                            </circle>
+                          )}
+                          <circle cx={zone.x} cy={zone.y} r={zone.r} fill={color} fillOpacity={zone.found ? 0.25 : 0.15} stroke={color} strokeWidth={zone.found ? 2 : 1.5} />
+                          {zone.found && zone.severity !== 'ok' && <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={color} fontSize={13} fontWeight="bold">!</text>}
+                          {zone.found && zone.severity === 'ok' && <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={C.green} fontSize={11} fontWeight="bold">✓</text>}
+                          {!zone.found && <text x={zone.x} y={zone.y + 4} textAnchor="middle" fill="#93c5fd" fontSize={10}>?</text>}
+                        </g>
+                      );
+                    })}
+                  </svg>
+
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                    {[{ color: C.green, label: 'OK' }, { color: C.amber, label: 'Caution' }, { color: C.red, label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.grey }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} /> {label}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Aircraft3DViewer
+                    zones={zones3d}
+                    completed={false}
+                    onZoneClick={handleZoneClick3D}
+                    selectedId={selected3dId}
                   />
-                  {zone.found && zone.severity !== 'ok' && (
-                    <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={color} fontSize={13} fontWeight="bold">!</text>
-                  )}
-                  {zone.found && zone.severity === 'ok' && (
-                    <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={C.green} fontSize={11} fontWeight="bold">✓</text>
-                  )}
-                  {!zone.found && (
-                    <text x={zone.x} y={zone.y + 4} textAnchor="middle" fill="#93c5fd" fontSize={10}>?</text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-            {[{ color: C.green, label: 'OK' }, { color: C.amber, label: 'Caution' }, { color: C.red, label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.grey }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} />
-                {label}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-            <div style={{ color: C.grey, fontSize: 12, marginBottom: 8 }}>Inspection Progress</div>
-            <div style={{ color: C.white, fontSize: 22, fontWeight: 700 }}>{inspected.length}/{zones.length}</div>
-            <div style={{ color: C.grey, fontSize: 12 }}>zones checked</div>
-            <div style={{ height: 4, background: C.border, borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(inspected.length / zones.length) * 100}%`, background: C.crimson, borderRadius: 4, transition: 'width 0.3s' }} />
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                    {[{ color: '#22c55e', label: 'OK' }, { color: '#f59e0b', label: 'Caution' }, { color: '#ef4444', label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.grey }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} /> {label}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ color: C.grey, fontSize: 12, marginTop: 6 }}>
+                    Accessibility: switch to 2D Diagram mode for a fully flat view with the same inspection zones.
+                  </div>
+                </>
+              )}
             </div>
-          </div>
 
-          {selected && (
-            <div style={{
-              background: selected.severity === 'ok' ? '#0f1a0f' : selected.severity === 'caution' ? '#1a1400' : '#1a0505',
-              border: `1px solid ${selected.severity === 'ok' ? '#1a3a1a' : selected.severity === 'caution' ? '#3a2a00' : '#3a0505'}`,
-              borderRadius: 12,
-              padding: 14,
-              marginBottom: 12,
-            }}>
-              <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Last Inspected</div>
-              <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>{selected.label}</div>
-              <div style={{
-                color: selected.severity === 'ok' ? C.green : selected.severity === 'caution' ? C.amber : C.red,
-                fontSize: 13,
-                marginTop: 6,
-              }}>
-                {selected.severity === 'ok' ? '✓ No issues found' : `⚠ ${selected.issue}`}
-              </div>
-            </div>
-          )}
-
-          {defectsFound.length > 0 && (
-            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
-              <div style={{ color: C.grey, fontSize: 11, marginBottom: 8 }}>Findings Log</div>
-              {defectsFound.map(z => (
-                <div key={z.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                  <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 12, flexShrink: 0 }}>●</span>
-                  <span style={{ color: C.white, fontSize: 12 }}>{z.label}: {z.issue}</span>
+            {/* Progress sidebar — always visible */}
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                <div style={{ color: C.grey, fontSize: 12, marginBottom: 8 }}>Inspection Progress</div>
+                <div style={{ color: C.white, fontSize: 22, fontWeight: 700 }}>{inspected.length}/{zones.length}</div>
+                <div style={{ color: C.grey, fontSize: 12 }}>zones checked</div>
+                <div style={{ height: 4, background: C.border, borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${(inspected.length / zones.length) * 100}%`, background: C.crimson, borderRadius: 4, transition: 'width 0.3s' }} />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
 
-      <button
-        onClick={handleComplete}
-        disabled={completed || inspected.length < 8}
-        style={{
-          background: completed || inspected.length < 8 ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-          color: completed || inspected.length < 8 ? C.grey : 'white',
-          border: 'none',
-          borderRadius: 12,
-          padding: '13px',
-          cursor: completed || inspected.length < 8 ? 'not-allowed' : 'pointer',
-          fontWeight: 700,
-          fontSize: 14,
-        }}
-      >
-        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Inspection Report → (${inspected.length}/${zones.length} zones checked)`}
-      </button>
+              {selected && (
+                <div style={{
+                  background: selected.severity === 'ok' ? '#0f1a0f' : selected.severity === 'caution' ? '#1a1400' : '#1a0505',
+                  border: `1px solid ${selected.severity === 'ok' ? '#1a3a1a' : selected.severity === 'caution' ? '#3a2a00' : '#3a0505'}`,
+                  borderRadius: 12, padding: 14, marginBottom: 12,
+                }}>
+                  <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Last Inspected</div>
+                  <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>{selected.label}</div>
+                  <div style={{ color: selected.severity === 'ok' ? C.green : selected.severity === 'caution' ? C.amber : C.red, fontSize: 13, marginTop: 6 }}>
+                    {selected.severity === 'ok' ? '✓ No issues found' : `⚠ ${selected.issue}`}
+                  </div>
+                </div>
+              )}
+
+              {defectsFound.length > 0 && (
+                <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+                  <div style={{ color: C.grey, fontSize: 11, marginBottom: 8 }}>Findings Log</div>
+                  {defectsFound.map(z => (
+                    <div key={z.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                      <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 12, flexShrink: 0 }}>●</span>
+                      <span style={{ color: C.white, fontSize: 12 }}>{z.label}: {z.issue}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleInspectionSubmit}
+            disabled={inspected.length < 8}
+            style={{
+              background: inspected.length < 8 ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+              color: inspected.length < 8 ? C.grey : 'white',
+              border: 'none', borderRadius: 12, padding: '13px',
+              cursor: inspected.length < 8 ? 'not-allowed' : 'pointer',
+              fontWeight: 700, fontSize: 14,
+            }}
+          >
+            {inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Inspection Report → (${inspected.length}/${zones.length} zones checked)`}
+          </button>
+        </>
+      )}
+
+      {/* Phase 2: Reflection questions — not fed into scoring */}
+      {inspectionDone && !completed && (
+        <>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+            <div style={{ color: C.grey, fontSize: 11, marginBottom: 6 }}>Inspection Complete</div>
+            <div style={{ color: C.white, fontSize: 14 }}>
+              You checked {inspected.length}/{zones.length} zones and found {defectsFound.length} issue{defectsFound.length !== 1 ? 's' : ''}.
+            </div>
+          </div>
+
+          <div style={{ color: C.white, fontSize: 15, fontWeight: 600 }}>Career Intelligence Reflection</div>
+
+          <MissionReasoningResponse
+            questions={M2_QUESTIONS}
+            storageKey="acia_m2_reasoning"
+            onComplete={handleReasoningComplete}
+          />
+        </>
+      )}
+
+      {completed && (
+        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: 16, textAlign: 'center', color: '#86efac', fontWeight: 700 }}>
+          Mission 2 Complete ✓
+        </div>
+      )}
     </div>
   );
 }
