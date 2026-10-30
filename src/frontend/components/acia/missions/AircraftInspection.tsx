@@ -1,5 +1,6 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import type { EvidenceItem } from '../types';
+import { AircraftAssembly } from './AircraftAssembly';
 import type { Zone3D } from './Aircraft3DViewer';
 import { ZONE_3D_POSITIONS } from './zone3dPositions';
 import { MissionReasoningResponse, type ReasoningResponses, type ReasoningQuestion } from './MissionReasoningResponse';
@@ -262,6 +263,8 @@ const M2_QUESTIONS: ReasoningQuestion[] = [
 
 // ── General aviation inspection ───────────────────────────────────────────────
 function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: string; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [assemblyDone, setAssemblyDone] = useState(false);
+  const assemblyEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
   const [zones, setZones] = useState<InspectionZone[]>(ZONES);
   const [selected, setSelected] = useState<InspectionZone | null>(null);
   const [inspectionDone, setInspectionDone] = useState(false);
@@ -304,6 +307,11 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
     setInspectionDone(true);
   }
 
+  function handleAssemblyComplete(evidence: Omit<EvidenceItem, 'mission'>[]) {
+    assemblyEvidence.current = evidence;
+    setAssemblyDone(true);
+  }
+
   function handleReasoningComplete(_responses: ReasoningResponses) {
     // Responses stored in localStorage by MissionReasoningResponse — NOT fed into evidence scoring
     setCompleted(true);
@@ -315,7 +323,7 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
     const safetyBase = defectRate > 0.6 ? 0.8 : defectRate > 0.3 ? 0.5 : 0.1;
     const safetyDelta = foundPitot ? Math.min(1, safetyBase + 0.2) : safetyBase;
 
-    const evidence: Omit<EvidenceItem, 'mission'>[] = [
+    const inspectionEvidence: Omit<EvidenceItem, 'mission'>[] = [
       { key: 'attention_to_detail', delta: coverage * 0.8 + defectRate * 0.2 },
       { key: 'systematic_reasoning', delta: coverage > 0.8 ? 0.7 : coverage > 0.5 ? 0.3 : 0 },
       { key: 'safety_mindset', delta: safetyDelta },
@@ -323,9 +331,13 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
       { key: 'mechanical_reasoning', delta: defectRate * 0.8 },
     ];
 
-    if (elapsed < 90) evidence.push({ key: 'multitasking_ability', delta: 0.5 });
+    if (elapsed < 90) inspectionEvidence.push({ key: 'multitasking_ability', delta: 0.5 });
 
-    onComplete(evidence);
+    onComplete([...assemblyEvidence.current, ...inspectionEvidence]);
+  }
+
+  if (!assemblyDone) {
+    return <AircraftAssembly sessionId={sessionId} onComplete={handleAssemblyComplete} />;
   }
 
   return (
