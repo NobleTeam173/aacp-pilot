@@ -127,6 +127,13 @@ const MFA_ENFORCED_ROLES  = new Set(['super_admin', 'admin', 'employer', 'postse
 const VALID_ROLES = new Set(['youth', 'employer', 'postsecondary', 'admin', 'super_admin']);
 const ADMIN_ROLES = new Set(['admin', 'super_admin']); // roles with dashboard access
 
+// ── FAWN — Future Aviation Workforce Network ──────────────────────────────────
+const NETWORK_ROLES = new Set(['network_member', 'organization_admin', 'aacp_industry_partner']);
+const NETWORK_INVITE_TTL_DAYS = 14;
+const NETWORK_ORG_TYPES = ['Airline & Operator', 'Airport Authority', 'MRO / Maintenance', 'Flight Training Unit', 'Aviation Academy', 'Aerospace Manufacturer', 'Defence & Space', 'RPAS / Autonomous Aviation', 'Aviation Technology', 'Industry Association', 'Government / Regulatory Authority', 'Post-Secondary Institution', 'Other'];
+const NETWORK_OPPORTUNITY_TYPES = ['Workforce Initiative', 'Talent Pipeline', 'Training Partnership', 'Industry Project', 'Technology Collaboration', 'Research', 'Funding', 'Event', 'Other'];
+const NETWORK_TOPICS = ['Workforce Supply', 'Workforce Demand', 'Skills & Competency', 'Training & Education', 'Regulatory Environment', 'Technology & Innovation', 'RPAS & Autonomous Aviation', 'Diversity & Inclusion', 'Industry Outlook', 'AACP Program News'];
+
 // P0A: Program activity governed vocabularies
 const VALID_ACTIVITY_PURPOSES  = new Set(['learning', 'practice', 'evidence_generating']);
 const VALID_MISSION_TYPES      = new Set(['preparation', 'research', 'industry', 'career', 'reflection']);
@@ -1645,6 +1652,162 @@ async function runMigrations(db) {
 
   // Clear temporary pilot_account bypass set during emergency admin MFA reset (2026-10-15).
   await db.prepare(`UPDATE users SET pilot_account = 0 WHERE email = 'admin@aviationaerospacecompetency.com' AND pilot_account = 1`).run().catch(() => {});
+
+  // ── FAWN — Future Aviation Workforce Network tables ───────────────────────
+  await db.prepare(`ALTER TABLE users ADD COLUMN network_status TEXT DEFAULT NULL`).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_organizations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      org_type TEXT NOT NULL,
+      description TEXT,
+      website TEXT,
+      location TEXT,
+      is_founding_member INTEGER DEFAULT 0,
+      is_verified INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_org_memberships (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      role TEXT DEFAULT 'member',
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, org_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_org_industry_segments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      segment TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_invitations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      org_id INTEGER REFERENCES network_organizations(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      invited_by INTEGER REFERENCES users(id),
+      expires_at TEXT NOT NULL,
+      accepted_at TEXT,
+      revoked_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_insights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      author_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_opportunities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      posted_by INTEGER NOT NULL REFERENCES users(id),
+      opportunity_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      is_open INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_expressions_of_interest (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      opportunity_id INTEGER NOT NULL REFERENCES network_opportunities(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      message TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(opportunity_id, user_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      title TEXT NOT NULL,
+      description TEXT,
+      event_date TEXT NOT NULL,
+      location TEXT,
+      is_virtual INTEGER DEFAULT 0,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_event_registrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id INTEGER NOT NULL REFERENCES network_events(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(event_id, user_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      author_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      body TEXT NOT NULL,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, topic)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL,
+      payload TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_invitations_email ON network_invitations(email)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_invitations_token ON network_invitations(token_hash)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_org_memberships_user ON network_org_memberships(user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_notifications_user ON network_notifications(user_id, is_read)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -2293,6 +2456,7 @@ function rowToUser(row) {
     aciaPackage: row.acia_package ?? null,
     aciaPaymentStatus: row.acia_payment_status ?? null,
     aciaAccessEnabled: !!row.acia_access_enabled,
+    networkStatus: row.network_status ?? null,
   };
 }
 
@@ -2456,6 +2620,9 @@ async function handleRegister(request, env, ctx) {
 
   // Admin and super_admin accounts cannot be self-registered — they are provisioned by invite only
   if (role === 'admin' || role === 'super_admin') return err('Administrator accounts are provisioned by invitation only. Contact your administrator.', 403);
+
+  // Network roles cannot be self-registered — they are provisioned by network invitation only
+  if (NETWORK_ROLES.has(role)) return err('Industry Network accounts are provisioned by invitation only.', 403);
 
   // Cohort participants must register via their invitation link — direct registration is blocked
   // unless they are selecting a commercial ACIA package (self-directed pathway)
@@ -2905,6 +3072,256 @@ async function emailCoachInvite(env, { name, email, token, organizationType, org
     text: `Hello ${name},\n\nYou have been invited to create a Career Coach account on the AACP platform.\n\nAccept your invitation here: ${inviteUrl}\n\nThis link expires: ${expiry}\n\nAfter setting your password, you must complete MFA setup before accessing the coaching dashboard.\n\nIf you did not expect this, contact ${CONTACT_EMAIL}.`,
     html,
   });
+}
+
+// ── FAWN — Industry Network invite email ──────────────────────────────────────
+async function emailNetworkInvite(env, { email, role, orgName, acceptUrl }) {
+  const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const html = emailLayout({
+    preheader: 'Your invitation to the AACP Industry Network.',
+    body: eH1("You're invited to the AACP Industry Network") +
+      eP(`You have been invited to join the <strong>AACP Aviation &amp; Aerospace Industry Network</strong> as a <strong>${roleLabel}</strong>${orgName ? ` with <strong>${orgName}</strong>` : ''}.`) +
+      eBtn('Accept Invitation', acceptUrl) +
+      eNote(`This invitation expires in ${NETWORK_INVITE_TTL_DAYS} days. If you did not expect this, you can safely ignore it.`),
+  });
+  return sendEmail(env, {
+    event: 'network_invite',
+    to: email,
+    subject: 'AACP — You\'re invited to the Industry Network',
+    text: `You have been invited to the AACP Aviation & Aerospace Industry Network as a ${roleLabel}${orgName ? ` with ${orgName}` : ''}.\n\nAccept your invitation: ${acceptUrl}\n\nThis invitation expires in ${NETWORK_INVITE_TTL_DAYS} days.`,
+    html,
+  });
+}
+
+// ── FAWN — Route handlers ─────────────────────────────────────────────────────
+
+// GET /network/invite/:token — public
+async function handleNetworkInviteGet(request, env) {
+  const token = request.url.match(/\/network\/invite\/([^/?]+)/)?.[1];
+  if (!token) return err('Invalid token', 400);
+  const tokenHash = await sha256hex(token);
+  const row = await env.DB.prepare(`
+    SELECT ni.id, ni.email, ni.role, no.name as org_name
+    FROM network_invitations ni
+    LEFT JOIN network_organizations no ON ni.org_id = no.id
+    WHERE ni.token_hash = ? AND ni.revoked_at IS NULL AND ni.accepted_at IS NULL AND ni.expires_at > datetime('now')
+  `).bind(tokenHash).first();
+  if (!row) return err('Invitation not found or expired', 404);
+  return json({ email: row.email, role: row.role, orgName: row.org_name ?? null });
+}
+
+// POST /network/invite/:token — public — accept invitation and create account
+async function handleNetworkInviteAccept(request, env) {
+  const token = request.url.match(/\/network\/invite\/([^/?]+)/)?.[1];
+  if (!token) return err('Invalid token', 400);
+  const tokenHash = await sha256hex(token);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { firstName, lastName, password } = body ?? {};
+  if (!firstName || !lastName || !password) return err('firstName, lastName and password are required', 400);
+  if (password.length < 8) return err('Password must be at least 8 characters', 400);
+
+  const invite = await env.DB.prepare(`
+    SELECT id, email, role, org_id FROM network_invitations
+    WHERE token_hash = ? AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at > datetime('now')
+  `).bind(tokenHash).first();
+  if (!invite) return err('Invitation not found or expired', 404);
+
+  const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`).bind(invite.email).first();
+  if (existing) return err('An account with this email already exists', 409);
+
+  const passwordHash = await hashPassword(password);
+  const userId = randomHex(16);
+  await env.DB.prepare(`
+    INSERT INTO users (id, email, name, password_hash, role, status, network_status)
+    VALUES (?, ?, ?, ?, ?, 'active', 'active')
+  `).bind(userId, invite.email, `${firstName} ${lastName}`, passwordHash, invite.role).run();
+
+  await env.DB.prepare(`UPDATE network_invitations SET accepted_at = datetime('now') WHERE id = ?`).bind(invite.id).run();
+
+  if (invite.org_id) {
+    await env.DB.prepare(`INSERT OR IGNORE INTO network_org_memberships (user_id, org_id) VALUES (?, ?)`).bind(userId, invite.org_id).run().catch(() => {});
+  }
+
+  await audit(env.DB, 'network_invite_accepted', userId, 'user', userId, { role: invite.role, orgId: invite.org_id ?? null });
+  return json({ success: true, userId }, 201);
+}
+
+// GET /admin/network/invitations
+async function handleAdminNetworkInvitationsList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT ni.id, ni.email, ni.role, ni.expires_at, ni.accepted_at, ni.revoked_at, ni.created_at,
+           no.name as org_name, u.name as invited_by_name
+    FROM network_invitations ni
+    LEFT JOIN network_organizations no ON ni.org_id = no.id
+    LEFT JOIN users u ON ni.invited_by = u.id
+    ORDER BY ni.created_at DESC LIMIT 100
+  `).all();
+  return json({ invitations: rows.results ?? [] });
+}
+
+// POST /admin/network/invitations
+async function handleAdminNetworkInvitationCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { email, role, orgId } = body ?? {};
+  if (!email || !role) return err('email and role are required', 400);
+  if (!NETWORK_ROLES.has(role)) return err('Invalid network role', 400);
+
+  const token = randomHex(32);
+  const tokenHash = await sha256hex(token);
+  const expiresAt = new Date(Date.now() + NETWORK_INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  let orgName = null;
+  if (orgId) {
+    const org = await env.DB.prepare(`SELECT name FROM network_organizations WHERE id = ?`).bind(orgId).first();
+    if (!org) return err('Organization not found', 404);
+    orgName = org.name;
+  }
+
+  const result = await env.DB.prepare(`
+    INSERT INTO network_invitations (email, role, org_id, token_hash, invited_by, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(email, role, orgId ?? null, tokenHash, user.id, expiresAt).run();
+
+  const acceptUrl = `${PLATFORM_URL}?network_invite=${token}`;
+  await emailNetworkInvite(env, { email, role, orgName, acceptUrl }).catch(() => {});
+  await audit(env.DB, 'network_invitation_created', user.id, 'network_invitation', result.meta?.last_row_id, { email, role, orgId: orgId ?? null });
+  return json({ success: true, id: result.meta?.last_row_id }, 201);
+}
+
+// PUT /admin/network/invitations/:id/revoke
+async function handleAdminNetworkInvitationRevoke(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/invitations\/(\d+)\/revoke/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  await env.DB.prepare(`UPDATE network_invitations SET revoked_at = datetime('now') WHERE id = ?`).bind(id).run();
+  return json({ success: true });
+}
+
+// GET /admin/network/organizations
+async function handleAdminNetworkOrgsList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.name, no.org_type, no.status, no.is_founding_member, no.is_verified, no.created_at,
+           COUNT(nom.id) as member_count
+    FROM network_organizations no
+    LEFT JOIN network_org_memberships nom ON nom.org_id = no.id
+    GROUP BY no.id ORDER BY no.name
+  `).all();
+  return json({ organizations: rows.results ?? [] });
+}
+
+// POST /admin/network/organizations
+async function handleAdminNetworkOrgCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { name, orgType, description, website, location, industrySegments } = body ?? {};
+  if (!name || !orgType) return err('name and orgType are required', 400);
+  if (!NETWORK_ORG_TYPES.includes(orgType)) return err('Invalid orgType', 400);
+
+  const result = await env.DB.prepare(`
+    INSERT INTO network_organizations (name, org_type, description, website, location, created_by)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(name, orgType, description ?? null, website ?? null, location ?? null, user.id).run();
+  const orgId = result.meta?.last_row_id;
+
+  if (Array.isArray(industrySegments) && industrySegments.length > 0) {
+    for (const seg of industrySegments) {
+      await env.DB.prepare(`INSERT INTO network_org_industry_segments (org_id, segment) VALUES (?, ?)`).bind(orgId, seg).run().catch(() => {});
+    }
+  }
+  return json({ success: true, id: orgId }, 201);
+}
+
+// GET /admin/network/organizations/:id
+async function handleAdminNetworkOrgGet(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)$/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  const org = await env.DB.prepare(`SELECT * FROM network_organizations WHERE id = ?`).bind(id).first();
+  if (!org) return err('Not found', 404);
+  const segments = await env.DB.prepare(`SELECT segment FROM network_org_industry_segments WHERE org_id = ?`).bind(id).all();
+  const members = await env.DB.prepare(`
+    SELECT u.id, u.name, u.email, nom.role, nom.created_at
+    FROM network_org_memberships nom JOIN users u ON nom.user_id = u.id
+    WHERE nom.org_id = ?
+  `).bind(id).all();
+  return json({ ...org, industrySegments: (segments.results ?? []).map(r => r.segment), members: members.results ?? [] });
+}
+
+// PUT /admin/network/organizations/:id
+async function handleAdminNetworkOrgUpdate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)$/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const fields = [];
+  const vals = [];
+  if (body.name)     { fields.push('name = ?');     vals.push(body.name); }
+  if (body.orgType)  { fields.push('org_type = ?'); vals.push(body.orgType); }
+  if (body.description !== undefined) { fields.push('description = ?'); vals.push(body.description); }
+  if (body.website  !== undefined) { fields.push('website = ?');  vals.push(body.website); }
+  if (body.location !== undefined) { fields.push('location = ?'); vals.push(body.location); }
+  if (body.status)   { fields.push('status = ?');   vals.push(body.status); }
+  if (!fields.length) return err('No fields to update', 400);
+  fields.push("updated_at = datetime('now')");
+  vals.push(id);
+  await env.DB.prepare(`UPDATE network_organizations SET ${fields.join(', ')} WHERE id = ?`).bind(...vals).run();
+  return json({ success: true });
+}
+
+// PUT /admin/network/organizations/:id/founding-member
+async function handleAdminNetworkOrgFoundingMember(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)\/founding-member/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  const org = await env.DB.prepare(`SELECT is_founding_member FROM network_organizations WHERE id = ?`).bind(id).first();
+  if (!org) return err('Not found', 404);
+  await env.DB.prepare(`UPDATE network_organizations SET is_founding_member = ? WHERE id = ?`).bind(org.is_founding_member ? 0 : 1, id).run();
+  return json({ success: true });
+}
+
+// PUT /admin/network/organizations/:id/verify
+async function handleAdminNetworkOrgVerify(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)\/verify/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  await env.DB.prepare(`UPDATE network_organizations SET is_verified = 1 WHERE id = ?`).bind(id).run();
+  return json({ success: true });
+}
+
+// GET /admin/network/members
+async function handleAdminNetworkMembersList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT u.id, u.name, u.email, u.role, u.network_status, u.created_at,
+           no.name as org_name
+    FROM users u
+    LEFT JOIN network_org_memberships nom ON nom.user_id = u.id
+    LEFT JOIN network_organizations no ON nom.org_id = no.id
+    WHERE u.role IN ('network_member','organization_admin','aacp_industry_partner')
+    ORDER BY u.created_at DESC
+  `).all();
+  return json({ members: rows.results ?? [] });
+}
+
+// PUT /admin/network/members/:id/status
+async function handleAdminNetworkMemberStatusUpdate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/members\/([^/]+)\/status/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { status } = body ?? {};
+  if (!['active','suspended'].includes(status)) return err('status must be active or suspended', 400);
+  await env.DB.prepare(`UPDATE users SET network_status = ? WHERE id = ?`).bind(status, id).run();
+  await audit(env.DB, 'network_member_status_updated', user.id, 'user', id, { status });
+  return json({ success: true });
 }
 
 // ── RPAS Hub invite email ─────────────────────────────────────────────────────
@@ -3476,6 +3893,8 @@ async function handleLogin(request, env) {
   if (user.status === 'pending') return err('Your account is pending administrator approval. You will be notified when access is granted.', 403);
   if (user.status === 'rejected') return err('Your registration was not approved. Please contact AACP for more information.', 403);
   if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Your pilot access has been revoked. Please contact AACP if you have questions.', 403);
+  // M2: Network member suspension guard
+  if (NETWORK_ROLES.has(user.role) && user.networkStatus === 'suspended') return err('Your Industry Network account has been suspended. Please contact AACP for assistance.', 403);
 
   // Password change required before proceeding — return a signal (no tokens yet)
   if (user.passwordChangeRequired) {
@@ -14368,6 +14787,23 @@ async function _routeRequest(request, env, ctx) {
       const g = requireAuth(user); if (g) return g;
       return json({ message: 'Coming soon', path });
     }
+
+    // ── FAWN — Industry Network routes ───────────────────────────────────────
+    // Public (no JWT)
+    if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'GET')  return handleNetworkInviteGet(request, env);
+    if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'POST') return handleNetworkInviteAccept(request, env);
+    // Admin-only
+    if (path === '/admin/network/invitations'               && request.method === 'GET')  return handleAdminNetworkInvitationsList(request, user, env);
+    if (path === '/admin/network/invitations'               && request.method === 'POST') return handleAdminNetworkInvitationCreate(request, user, env);
+    if (path.match(/^\/admin\/network\/invitations\/\d+\/revoke$/) && request.method === 'PUT') return handleAdminNetworkInvitationRevoke(request, user, env);
+    if (path === '/admin/network/organizations'             && request.method === 'GET')  return handleAdminNetworkOrgsList(request, user, env);
+    if (path === '/admin/network/organizations'             && request.method === 'POST') return handleAdminNetworkOrgCreate(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+$/) && request.method === 'GET')  return handleAdminNetworkOrgGet(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+$/) && request.method === 'PUT')  return handleAdminNetworkOrgUpdate(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+\/founding-member$/) && request.method === 'PUT') return handleAdminNetworkOrgFoundingMember(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+\/verify$/)          && request.method === 'PUT') return handleAdminNetworkOrgVerify(request, user, env);
+    if (path === '/admin/network/members'                   && request.method === 'GET')  return handleAdminNetworkMembersList(request, user, env);
+    if (path.match(/^\/admin\/network\/members\/[^/]+\/status$/) && request.method === 'PUT') return handleAdminNetworkMemberStatusUpdate(request, user, env);
 
     // ── AACP External Validation — Public token-gated (no JWT) ───────────────
     if (path.match(/^\/validate\/[^/]+$/) && request.method === 'GET') {

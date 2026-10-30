@@ -10,7 +10,7 @@ import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getS
 import { PilotRegistrationForm } from './components/pilot/PilotRegistrationForm';
 import { ValidatorExperience } from './components/validator/ValidatorExperience';
 
-type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach';
+type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach' | 'network_member' | 'organization_admin' | 'aacp_industry_partner';
 
 interface AuthState {
   role: Role;
@@ -26,7 +26,7 @@ const CANADIAN_PROVINCES = [
 
 // ── Registration form ─────────────────────────────────────────────────────────
 
-type RegisterRole = Exclude<Role, 'admin'>;
+type RegisterRole = 'youth' | 'employer' | 'postsecondary';
 
 function RegisterForm({ onBack }: { onBack: () => void }) {
   const [role, setRole] = useState<RegisterRole>('youth');
@@ -850,6 +850,7 @@ function viewsForRole(role: Role): DashboardView[] {
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   if (role === 'coach') return ['coach'];
+  if (role === 'network_member' || role === 'organization_admin' || role === 'aacp_industry_partner') return ['industry'];
   return ['youth'];
 }
 
@@ -915,6 +916,87 @@ function NetworkComingSoon() {
   );
 }
 
+// ── FAWN — Network Dashboard (Phase 2 will implement the full shell) ──────────
+
+function NetworkDashboard() {
+  return (
+    <div style={{ padding: '48px 32px', maxWidth: 680 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 10 }}>
+        Industry Network
+      </div>
+      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 900, margin: '0 0 12px', lineHeight: 1.2 }}>
+        AACP™ Future Aviation Workforce Network — Canada
+      </h1>
+      <p style={{ fontSize: 14, color: '#c4b5c0', lineHeight: 1.8, maxWidth: 520 }}>
+        Welcome to the Industry Network. The full dashboard is coming in the next release.
+      </p>
+    </div>
+  );
+}
+
+// ── FAWN — Network invite acceptance form (Phase 2 will implement full UI) ────
+
+function NetworkInviteAcceptForm({ token }: { token: string }) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [invite, setInvite] = useState<{ email: string; role: string; orgName: string | null } | null>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    fetch(`/network/invite/${token}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then((d: { email: string; role: string; orgName: string | null }) => { setInvite(d); setStatus('ready'); })
+      .catch(() => setStatus('error'));
+  }, [token]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true); setErrorMsg('');
+    try {
+      const r = await fetch(`/network/invite/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, password }),
+      });
+      const d = await r.json() as { success?: boolean; error?: string };
+      if (!r.ok) { setErrorMsg(d.error ?? 'Something went wrong'); setSubmitting(false); return; }
+      setDone(true);
+    } catch { setErrorMsg('Network error. Please try again.'); setSubmitting(false); }
+  }
+
+  if (status === 'loading') return <div style={{ padding: 48, color: '#94a3b8', fontSize: 14 }}>Loading invitation…</div>;
+  if (status === 'error') return <div style={{ padding: 48, color: '#f87171', fontSize: 14 }}>This invitation is invalid or has expired.</div>;
+  if (done) return (
+    <div style={{ padding: 48, maxWidth: 480 }}>
+      <div style={{ color: '#22c55e', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Account created</div>
+      <p style={{ color: '#94a3b8', fontSize: 14 }}>Your Industry Network account is ready. <a href="/" style={{ color: '#8F0909' }}>Sign in</a></p>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 48, maxWidth: 440 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 10 }}>Industry Network</div>
+      <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Accept Invitation</h2>
+      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24 }}>
+        {invite?.email}{invite?.orgName ? ` · ${invite.orgName}` : ''}
+      </p>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" required style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" required style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required minLength={8} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        {errorMsg && <div style={{ color: '#f87171', fontSize: 13 }}>{errorMsg}</div>}
+        <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg,#8F0909,#721010)', color: 'white', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+          {submitting ? 'Creating account…' : 'Create Account →'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ── Main app shell ────────────────────────────────────────────────────────────
 
 export function App() {
@@ -970,6 +1052,12 @@ export function App() {
   const coachInviteToken = new URL(window.location.href).searchParams.get('coach_invite');
   if (coachInviteToken) {
     return <CoachInviteAcceptForm token={coachInviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
+  }
+
+  // Industry Network invitation — token arrives as ?network_invite=<token>
+  const networkInviteToken = new URL(window.location.href).searchParams.get('network_invite');
+  if (networkInviteToken) {
+    return <NetworkInviteAcceptForm token={networkInviteToken} />;
   }
 
   useEffect(() => {
@@ -1088,7 +1176,7 @@ export function App() {
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
-        {currentView === 'industry'       && <NetworkComingSoon />}
+        {currentView === 'industry'       && <NetworkDashboard />}
       </main>
     </div>
   );
