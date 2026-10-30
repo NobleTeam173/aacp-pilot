@@ -9,7 +9,7 @@
     "dev": "vite",
     "dev:worker": "wrangler dev",
     "build": "vite build",
-    "deploy": "vite build && wrangler deploy",
+    "deploy": "vite build && wrangler deploy --config wrangler.toml",
     "preview": "vite preview",
     "test": "echo \"No tests configured yet\"",
     "test:integration": "node tests/integration.test.js"
