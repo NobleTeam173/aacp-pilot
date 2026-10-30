@@ -4,22 +4,35 @@ import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReaso
 import { ATCBriefing, type WMEvidence } from './ATCBriefing';
 import { interpretWMEvidence } from '../wmInterpreter';
 
-// ── Colors ────────────────────────────────────────────────────────────────────
+// ── Color palette — aviation workstation ──────────────────────────────────────
 const C = {
-  bg: '#07090f',
-  panel: '#0c1220',
-  card: '#101828',
-  border: '#1e3148',
-  text: '#dde4f0',
-  dim: '#5a6980',
-  blue: '#3b82f6',
-  blueL: '#93c5fd',
-  green: '#22c55e',
-  amber: '#f59e0b',
-  red: '#ef4444',
-  crimson: '#8F0909',
-  crimsonD: '#721010',
+  bg: '#05080f',
+  panel: '#0a1120',
+  card: '#0d1626',
+  border: '#162340',
+  borderL: '#1e3a5f',
+  text: '#d8e4f0',
+  dim: '#526070',
+  dimM: '#7a8fa0',
+  blue: '#2563eb',
+  blueL: '#60a5fa',
+  blueXL: '#bfdbfe',
+  green: '#16a34a',
+  greenL: '#4ade80',
+  amber: '#d97706',
+  amberL: '#fbbf24',
+  red: '#dc2626',
+  action: '#1d4ed8',
+  actionH: '#1e40af',
+  radarBg: '#020a04',
+  radarGreen: 'rgba(74,222,128,',
 };
+
+// ── Reduced-motion helper ─────────────────────────────────────────────────────
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Phase = 'welcome' | 'setup' | 's1' | 'wm' | 's3' | 's4' | 's5' | 'reflection' | 'done';
@@ -39,8 +52,7 @@ interface CommunicationExercise {
   id: string; title: string; guide: string;
   scenarioBriefing?: ScenarioFact[];
   atcTransmission: string; callsign: string;
-  template: string; blanks: string[]; hints: string[];
-  sourceHints: string[]; explanation: string;
+  template: string; blanks: string[]; hints: string[]; sourceHints: string[]; explanation: string;
 }
 
 const RPAS_EXERCISES: CommunicationExercise[] = [
@@ -60,11 +72,11 @@ const RPAS_EXERCISES: CommunicationExercise[] = [
     blanks: ['Advanced certificate', '250 m radius', 'Richmond & Baseline, Ottawa', '60 m', '2025-08-14 1300–1600Z', 'DJI Matrice 350 RTK 9.2 kg'],
     hints: ['Pilot certification level', 'Operation radius', 'Operation location', 'Maximum altitude', 'Date and UTC time window', 'Aircraft type and MTOW'],
     sourceHints: ['Scenario: "Operator" — what certificate level?', 'Scenario: "Operation Area" — what radius?', 'Scenario: "Operation Area" — what intersection?', 'Scenario: "Altitude" — what AGL limit?', 'Scenario: "Date / Time" — convert to UTC (Zulu)', 'Scenario: "Aircraft" — type and MTOW'],
-    explanation: 'RPAS authorization requests near controlled airspace must include the pilot\'s certification level, exact location, maximum altitude, operational window (in UTC/Zulu), and aircraft MTOW. Incomplete requests are rejected. MTOW determines whether an Advanced or Basic certificate is required and which rules apply.',
+    explanation: 'RPAS authorization requests near controlled airspace must include the pilot\'s certification level, exact location, maximum altitude, operational window (in UTC/Zulu), and aircraft MTOW.',
   },
   {
     id: 're2', title: 'Lost-Link Incident Report',
-    guide: 'After a lost-link event, you are required to submit an occurrence report to Transport Canada. Accurate, complete reporting is a regulatory requirement and helps improve RPAS safety. Use the scenario briefing to compose the incident notification.',
+    guide: 'After a lost-link event, you are required to submit an occurrence report to Transport Canada. Use the scenario briefing to compose the incident notification.',
     scenarioBriefing: [
       { label: 'Operator', value: 'Clearview Surveys Ltd.' },
       { label: 'Date / Location', value: '2025-06-03, Pemberton, BC (CYPB 4 NM south)' },
@@ -77,12 +89,12 @@ const RPAS_EXERCISES: CommunicationExercise[] = [
     template: '[OPERATOR] reports RPAS occurrence: [DATE_LOCATION], aircraft [REG], [INCIDENT_DESC], duration [DURATION], outcome [OUTCOME], probable cause [CAUSE].',
     blanks: ['Clearview Surveys Ltd.', '2025-06-03 Pemberton BC', 'C-XXCL', 'complete C2 link loss at 1.4 km', '42 seconds', 'RTH executed, no damage or injuries', 'suspected cellular interference'],
     hints: ['Operator name', 'Date and location', 'Aircraft registration', 'Incident description', 'Duration', 'Outcome', 'Probable cause'],
-    sourceHints: ['Scenario: "Operator"', 'Scenario: "Date / Location"', 'Scenario: "Aircraft" — registration code only', 'Scenario: "What Happened" — brief description of the link loss', 'Scenario: "What Happened" — how long was the link lost?', 'Scenario: "What Happened" — what was the result?', 'Scenario: "Probable Cause"'],
-    explanation: 'RPAS operators in Canada are required to report occurrences including: lost link lasting more than a defined threshold, unintended landings, airspace incursions, and aircraft damage. Accurate reporting provides the safety intelligence that improves RPAS regulations over time.',
+    sourceHints: ['Scenario: "Operator"', 'Scenario: "Date / Location"', 'Scenario: "Aircraft" — registration code only', 'Scenario: "What Happened" — brief description', 'Scenario: "What Happened" — how long?', 'Scenario: "What Happened" — result?', 'Scenario: "Probable Cause"'],
+    explanation: 'RPAS operators in Canada are required to report occurrences including lost link, unintended landings, airspace incursions, and aircraft damage.',
   },
   {
     id: 're3', title: 'Pre-Flight Airspace Communication',
-    guide: 'Before flying near an aerodrome, you may need to contact the aerodrome\'s mandatory frequency (MF) or use UNICOM to advise manned aircraft of your presence. This is not ATC clearance — it is traffic awareness communication. Use the scenario briefing to compose your advisory.',
+    guide: 'Before flying near an aerodrome, you may need to contact the mandatory frequency or UNICOM to advise manned aircraft of your presence.',
     scenarioBriefing: [
       { label: 'Aerodrome', value: 'Springbank Airport (CYBW) mandatory frequency 122.8 MHz' },
       { label: 'Your Operation', value: 'RPAS pipeline inspection, 800 m northwest of threshold, 50 m AGL' },
@@ -94,12 +106,12 @@ const RPAS_EXERCISES: CommunicationExercise[] = [
     template: '[AERODROME] traffic, RPAS operations [LOCATION], [ALT] AGL, [TIME_WINDOW], [OPERATOR_ID], [AERODROME] traffic.',
     blanks: ['Springbank', '800 m northwest of runway threshold', '50 m', '09:30 to 11:00 local', 'RPAS operator', 'Springbank'],
     hints: ['Aerodrome name (start)', 'Operation location description', 'Maximum altitude AGL', 'Time window', 'Who you are', 'Aerodrome name (end)'],
-    sourceHints: ['Scenario: "Aerodrome" — name only', 'Scenario: "Your Operation" — location description', 'Scenario: "Your Operation" — altitude', 'Scenario: "Duration"', 'Identify yourself generically', 'Standard advisory format ends with the aerodrome name again'],
-    explanation: 'On a mandatory frequency or UNICOM, RPAS operators are expected to advise manned aircraft of their presence, location, altitude, and operational window. The advisory follows the same format as a standard traffic advisory: aerodrome name, traffic info, and aerodrome name again.',
+    sourceHints: ['Scenario: "Aerodrome" — name only', 'Scenario: "Your Operation" — location', 'Scenario: "Your Operation" — altitude', 'Scenario: "Duration"', 'Identify yourself generically', 'Standard advisory ends with aerodrome name again'],
+    explanation: 'On a mandatory frequency or UNICOM, RPAS operators advise manned aircraft of their presence, location, altitude, and operational window.',
   },
   {
     id: 're4', title: 'RPAS Operations Handover',
-    guide: 'Your replacement operator is arriving to take over mid-mission. Give them a complete situation awareness transfer. Every answer is in the scenario briefing — no RPAS background needed, just accurate information transfer.',
+    guide: 'Your replacement operator is arriving to take over mid-mission. Give them a complete situation awareness transfer.',
     scenarioBriefing: [
       { label: 'Current Aircraft Status', value: 'Airborne, 55 m AGL, 620 m northeast of GCS, battery 54%' },
       { label: 'Active Mission', value: 'Linear infrastructure inspection, segment 3 of 5 complete' },
@@ -112,8 +124,8 @@ const RPAS_EXERCISES: CommunicationExercise[] = [
     template: 'Aircraft [STATUS]. Mission [MISSION_PROGRESS]. Hazard: [HAZARD]. Weather: [WX]. Next: [NEXT_ACTION].',
     blanks: ['airborne 55 m 620 m northeast battery 54%', 'segment 3 of 5 complete', 'power line 300 m north marked on plan', 'wind 12 km/h SW cloud 800 m deteriorating recheck 30 min', 'complete segment 4 then RTH to recharge'],
     hints: ['Aircraft current status', 'Mission progress', 'Known hazard', 'Weather and trend', 'Next planned action'],
-    sourceHints: ['Scenario: "Current Aircraft Status"', 'Scenario: "Active Mission" — what segment are you on?', 'Scenario: "Known Hazard"', 'Scenario: "Weather"', 'Scenario: "Next Action"'],
-    explanation: 'RPAS operator handovers must transfer: aircraft status (position, altitude, battery), mission progress, known hazards, current weather and trend, and the next planned action. An incomplete handover creates a safety gap.',
+    sourceHints: ['Scenario: "Current Aircraft Status"', 'Scenario: "Active Mission"', 'Scenario: "Known Hazard"', 'Scenario: "Weather"', 'Scenario: "Next Action"'],
+    explanation: 'RPAS operator handovers must transfer: aircraft status, mission progress, known hazards, weather trend, and next planned action.',
   },
 ];
 
@@ -123,7 +135,6 @@ const M7_RPAS_QUESTIONS: ReasoningQuestion[] = [
   { id: 'teamwork', label: 'Team Coordination', prompt: 'These exercises involved passing information between people in time-pressured situations. What did that make you think about how teams need to communicate?', placeholder: 'Reflect on what you noticed about information transfer and coordination…', minLength: 60 },
 ];
 
-// ── New immersive experience — Reflection questions ───────────────────────────
 const M7_QUESTIONS: ReasoningQuestion[] = [
   { id: 'communication', label: 'Communication in Context', prompt: 'What did you notice about how information was exchanged in these scenarios? What made some communications clearer or more difficult than others?', placeholder: 'Reflect on what made the communications effective or challenging…', minLength: 60 },
   { id: 'uncertainty', label: 'Handling Uncertainty', prompt: 'At some points, information seemed unclear, incomplete or conflicting. What was your instinct when that happened? How did you decide whether to ask for clarification?', placeholder: 'Describe how you responded when something was unclear or didn\'t seem right…', minLength: 60 },
@@ -135,7 +146,7 @@ function speak(text: string, onEnd?: () => void): () => void {
   if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return () => {}; }
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
-  utt.pitch = 0.88; utt.rate = 0.92;
+  utt.pitch = 0.86; utt.rate = 0.90;
   if (onEnd) utt.onend = () => onEnd();
   window.speechSynthesis.speak(utt);
   return () => window.speechSynthesis?.cancel();
@@ -151,11 +162,9 @@ function wantsClarification(t: string): boolean {
   return t.includes('?') ||
     /confirm|clarif|verif|check|repeat|say again|sure|certain|double|discrepan|conflict|mismatch|different|not correct|incorrect|doesn.t match|doesn.t agree/i.test(t);
 }
-
 function notesConflict(t: string): boolean {
   return /east|west|position|showing|display|radar|inconsist|different|conflict|mismatch|opposite|not match/i.test(t);
 }
-
 function analyzeS1(response: string): number {
   const t = response.toLowerCase().trim();
   if (t.length < 5) return 0;
@@ -165,7 +174,6 @@ function analyzeS1(response: string): number {
   if (/receiv|copy|confirm|roger|got it|understand|acknowledg|heard|affirm/.test(t)) d += 0.20;
   return Math.min(0.70, d);
 }
-
 function analyzeS3(response: string, didClarify: boolean): number {
   const t = response.toLowerCase().trim();
   if (t.length < 5) return 0.05;
@@ -176,17 +184,15 @@ function analyzeS3(response: string, didClarify: boolean): number {
   if (conflict) return 0.40;
   return 0.15;
 }
-
 function analyzeS4(r1: string, r2: string): number {
   const t1 = r1.toLowerCase(); const t2 = r2.toLowerCase();
   let d = 0;
   if (/northern|305/.test(t1) && t1.trim().length > 5) d += 0.20;
   if (/maple|214/.test(t2) && t2.trim().length > 5) d += 0.20;
-  if (/earlier|sooner|update|change|arriv|revised|ahead|ahead of|schedule/.test(t2)) d += 0.20;
+  if (/earlier|sooner|update|change|arriv|revised|ahead|schedule/.test(t2)) d += 0.20;
   if (t1.trim().length > 5 && t2.trim().length > 5) d = Math.max(d, 0.15);
   return Math.min(0.65, d);
 }
-
 function analyzeS5(response: string): { dm: number; al: number } {
   const t = response.toLowerCase().trim();
   if (t.length < 5) return { dm: 0, al: 0.15 };
@@ -197,23 +203,47 @@ function analyzeS5(response: string): { dm: number; al: number } {
   return { dm: Math.min(0.65, dm), al: Math.min(0.50, al) };
 }
 
+// ── Audio waveform indicator ──────────────────────────────────────────────────
+function Waveform({ active }: { active: boolean }) {
+  const bars = [3, 5, 8, 6, 9, 7, 4, 8, 5, 3, 7, 9, 6, 4, 8];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 14 }}>
+      {bars.map((h, i) => (
+        <div key={i} style={{
+          width: 2, borderRadius: 1,
+          height: active ? h : 3,
+          background: active ? C.blueL : C.dim,
+          transition: prefersReducedMotion() ? 'none' : `height 0.${(i % 3) + 2}s ease-in-out`,
+          animationDelay: `${i * 60}ms`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
 // ── Radar display ─────────────────────────────────────────────────────────────
-function RadarDisplay({ aircraft }: { aircraft: Aircraft[] }) {
+function RadarDisplay({ aircraft, selectedId, onSelect }: {
+  aircraft: Aircraft[];
+  selectedId?: string;
+  onSelect?: (id: string) => void;
+}) {
   const [angle, setAngle] = useState(0);
   const frameRef = useRef<number>(0);
   const prevRef = useRef(0);
+  const reduced = prefersReducedMotion();
 
   useEffect(() => {
+    if (reduced) return;
     function tick(ts: number) {
-      if (ts - prevRef.current > 50) {
-        setAngle(a => (a + 3) % 360);
+      if (ts - prevRef.current > 60) {
+        setAngle(a => (a + 2) % 360);
         prevRef.current = ts;
       }
       frameRef.current = requestAnimationFrame(tick);
     }
     frameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameRef.current);
-  }, []);
+  }, [reduced]);
 
   const cx = 100; const cy = 100; const r = 84;
   const rad = (angle * Math.PI) / 180;
@@ -223,58 +253,75 @@ function RadarDisplay({ aircraft }: { aircraft: Aircraft[] }) {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: 220, margin: '0 auto' }}>
       <svg viewBox="0 0 200 200" style={{ width: '100%', height: 'auto', display: 'block' }}>
-        {/* Outer frame */}
-        <circle cx={cx} cy={cy} r={r + 3} fill="#030a05" stroke="rgba(74,222,128,0.18)" strokeWidth="1" />
-        {/* Background */}
-        <circle cx={cx} cy={cy} r={r} fill="#030f06" />
-        {/* Grid circles */}
+        {/* Frame */}
+        <circle cx={cx} cy={cy} r={r + 4} fill={C.radarBg} stroke={`${C.radarGreen}0.12)`} strokeWidth="1.5" />
+        <circle cx={cx} cy={cy} r={r} fill={C.radarBg} />
+        {/* Rings */}
         {[0.33, 0.66, 1].map(f => (
-          <circle key={f} cx={cx} cy={cy} r={r * f} fill="none"
-            stroke="rgba(74,222,128,0.07)" strokeWidth="0.6" />
+          <circle key={f} cx={cx} cy={cy} r={r * f} fill="none" stroke={`${C.radarGreen}0.07)`} strokeWidth="0.7" />
         ))}
-        {/* Grid lines */}
-        <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke="rgba(74,222,128,0.06)" strokeWidth="0.5" />
-        <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke="rgba(74,222,128,0.06)" strokeWidth="0.5" />
-        {/* Sweep line */}
-        <line x1={cx} y1={cy} x2={sx} y2={sy}
-          stroke="rgba(74,222,128,0.5)" strokeWidth="1.5" />
-        {/* Airport center */}
-        <circle cx={cx} cy={cy} r={2.5} fill="#4ade80" opacity={0.95} />
-        <text x={cx + 5} y={cy + 4} fill="rgba(74,222,128,0.6)" fontSize="6.5" fontFamily="monospace">APT</text>
+        {/* Cross */}
+        <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke={`${C.radarGreen}0.06)`} strokeWidth="0.5" />
+        <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke={`${C.radarGreen}0.06)`} strokeWidth="0.5" />
+        {/* Sweep */}
+        {!reduced && (
+          <>
+            <defs>
+              <radialGradient id="sweepGrad" cx="0%" cy="0%" r="100%">
+                <stop offset="0%" stopColor={`${C.radarGreen}0.4)`} />
+                <stop offset="100%" stopColor={`${C.radarGreen}0)`} />
+              </radialGradient>
+            </defs>
+            <line x1={cx} y1={cy} x2={sx} y2={sy} stroke={`${C.radarGreen}0.55)`} strokeWidth="1.8" />
+          </>
+        )}
+        {/* Airport */}
+        <circle cx={cx} cy={cy} r={3} fill={C.greenL} opacity={0.9} />
+        <text x={cx + 6} y={cy + 4} fill={`${C.radarGreen}0.5)`} fontSize="6" fontFamily="monospace">APT</text>
         {/* Aircraft blips */}
-        {aircraft.filter(a => a.visible).map(a => (
-          <g key={a.id}>
-            {a.alert && (
-              <circle cx={a.x} cy={a.y} r={10} fill="none"
-                stroke="rgba(239,68,68,0.6)" strokeWidth="1" />
-            )}
-            <polygon
-              points={`${a.x},${a.y - 5} ${a.x + 4},${a.y} ${a.x},${a.y + 5} ${a.x - 4},${a.y}`}
-              fill={a.alert ? '#f59e0b' : '#4ade80'}
-            />
-            <text x={a.x + 7} y={a.y + 4} fill={a.alert ? '#f59e0b' : '#4ade80'}
-              fontSize="6.5" fontFamily="monospace" fontWeight="bold">{a.callsign}</text>
-          </g>
-        ))}
+        {aircraft.filter(a => a.visible).map(a => {
+          const sel = selectedId === a.id;
+          const color = a.alert ? C.amberL : C.greenL;
+          return (
+            <g key={a.id} style={{ cursor: onSelect ? 'pointer' : 'default' }}
+              onClick={() => onSelect?.(a.id)}>
+              {sel && <circle cx={a.x} cy={a.y} r={12} fill="none" stroke={color} strokeWidth="0.8" opacity={0.5} />}
+              {a.alert && <circle cx={a.x} cy={a.y} r={9} fill="none" stroke="rgba(220,38,38,0.6)" strokeWidth="1" />}
+              <polygon
+                points={`${a.x},${a.y - 5} ${a.x + 4},${a.y + 1} ${a.x},${a.y + 3} ${a.x - 4},${a.y + 1}`}
+                fill={color}
+                opacity={0.95}
+              />
+              {sel ? (
+                <rect x={a.x + 6} y={a.y - 8} width={a.callsign.length * 5.5 + 8} height={14}
+                  fill="rgba(5,8,15,0.85)" rx="2" />
+              ) : null}
+              <text x={a.x + 10} y={a.y + 2} fill={sel ? color : `${C.radarGreen}0.7)`}
+                fontSize="6" fontFamily="monospace" fontWeight={sel ? 'bold' : 'normal'}>
+                {a.callsign}
+              </text>
+            </g>
+          );
+        })}
       </svg>
-      {/* Compass */}
+      {/* Compass labels */}
       {[
-        { lbl: 'N', style: { top: '1%', left: '50%', transform: 'translateX(-50%)' } },
-        { lbl: 'S', style: { bottom: '1%', left: '50%', transform: 'translateX(-50%)' } },
-        { lbl: 'E', style: { right: '3%', top: '50%', transform: 'translateY(-50%)' } },
-        { lbl: 'W', style: { left: '3%', top: '50%', transform: 'translateY(-50%)' } },
-      ].map(({ lbl, style }) => (
+        { lbl: 'N', s: { top: '1%', left: '50%', transform: 'translateX(-50%)' } },
+        { lbl: 'S', s: { bottom: '1%', left: '50%', transform: 'translateX(-50%)' } },
+        { lbl: 'E', s: { right: '3%', top: '50%', transform: 'translateY(-50%)' } },
+        { lbl: 'W', s: { left: '3%', top: '50%', transform: 'translateY(-50%)' } },
+      ].map(({ lbl, s }) => (
         <div key={lbl} style={{
-          position: 'absolute', ...style,
-          color: 'rgba(74,222,128,0.35)', fontSize: 8, fontFamily: 'monospace', lineHeight: 1,
+          position: 'absolute', ...s,
+          color: `${C.radarGreen}0.3)`, fontSize: 7, fontFamily: 'monospace', lineHeight: 1,
         }}>{lbl}</div>
       ))}
     </div>
   );
 }
 
-// ── Response input (PTT + text fallback) ─────────────────────────────────────
-function ResponseInput({ onSubmit, context, label = 'Transmit Response' }: {
+// ── Response input ─────────────────────────────────────────────────────────────
+function ResponseInput({ onSubmit, context, label = 'Transmit' }: {
   onSubmit: (text: string) => void;
   context: string;
   label?: string;
@@ -291,21 +338,14 @@ function ResponseInput({ onSubmit, context, label = 'Transmit Response' }: {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recog = new SR();
     recog.lang = 'en'; recog.interimResults = false; recog.maxAlternatives = 1;
-    recog.onresult = (e: any) => {
-      setTranscript(e.results[0][0].transcript);
-      setListening(false);
-    };
+    recog.onresult = (e: any) => { setTranscript(e.results[0][0].transcript); setListening(false); };
     recog.onerror = () => setListening(false);
     recog.onend = () => setListening(false);
     recogRef.current = recog;
     recog.start();
     setListening(true);
   }
-
-  function stopListening() {
-    recogRef.current?.stop();
-    setListening(false);
-  }
+  function stopListening() { recogRef.current?.stop(); setListening(false); }
 
   const currentText = transcript || text;
 
@@ -317,45 +357,52 @@ function ResponseInput({ onSubmit, context, label = 'Transmit Response' }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ color: C.dim, fontSize: 12, lineHeight: 1.4 }}>{context}</div>
+      <div style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5 }}>{context}</div>
 
-      {voiceSupported && (
-        <button
-          onPointerDown={startListening}
-          onPointerUp={stopListening}
-          style={{
-            background: listening ? '#2a0606' : C.panel,
-            border: `2px solid ${listening ? C.red : C.border}`,
-            borderRadius: 10, padding: '11px 16px',
-            color: listening ? C.red : C.dim,
-            cursor: 'pointer', fontWeight: 600, fontSize: 13,
-            touchAction: 'none', userSelect: 'none',
-            transition: 'all 0.15s',
+      <div style={{ display: 'flex', gap: 8 }}>
+        {voiceSupported && (
+          <button
+            onPointerDown={startListening}
+            onPointerUp={stopListening}
+            style={{
+              flex: '0 0 auto',
+              background: listening ? 'rgba(220,38,38,0.15)' : C.card,
+              border: `1px solid ${listening ? C.red : C.border}`,
+              borderRadius: 8, padding: '10px 16px',
+              color: listening ? C.red : C.dimM,
+              cursor: 'pointer', fontWeight: 700, fontSize: 11,
+              fontFamily: 'monospace', letterSpacing: 1,
+              touchAction: 'none', userSelect: 'none',
+              display: 'flex', alignItems: 'center', gap: 8,
+              transition: 'all 0.15s',
+            }}
+          >
+            <span style={{ fontSize: 8, lineHeight: 1 }}>
+              {listening ? '◉' : '◎'}
+            </span>
+            PTT
+            <Waveform active={listening} />
+          </button>
+        )}
+        <textarea
+          value={currentText}
+          onChange={e => {
+            if (transcript) setTranscript(e.target.value);
+            else setText(e.target.value);
           }}
-        >
-          {listening ? '⬤  TRANSMITTING — Release to stop' : '🎙  Hold to Talk'}
-        </button>
-      )}
-
-      <textarea
-        value={transcript || text}
-        onChange={e => {
-          if (transcript) setTranscript(e.target.value);
-          else setText(e.target.value);
-        }}
-        rows={3}
-        placeholder={transcript ? 'Review and edit your response before submitting…' : 'Type your response here…'}
-        style={{
-          width: '100%', boxSizing: 'border-box',
-          background: C.panel, border: `1px solid ${C.border}`,
-          borderRadius: 8, color: C.text, padding: '10px 12px',
-          fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit',
-        }}
-      />
+          rows={2}
+          placeholder={transcript ? 'Review and edit before transmitting…' : 'Type your response…'}
+          style={{
+            flex: 1, background: C.panel, border: `1px solid ${C.border}`,
+            borderRadius: 8, color: C.text, padding: '10px 12px',
+            fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+      </div>
 
       {tooShort && (
-        <div style={{ color: C.amber, fontSize: 12 }}>
-          Please provide more detail before transmitting.
+        <div style={{ color: C.amberL, fontSize: 11, fontFamily: 'monospace' }}>
+          ADD MORE DETAIL BEFORE TRANSMITTING
         </div>
       )}
 
@@ -363,100 +410,142 @@ function ResponseInput({ onSubmit, context, label = 'Transmit Response' }: {
         onClick={handleSubmit}
         style={{
           background: currentText.trim().length < 5
-            ? '#111825'
-            : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+            ? C.card
+            : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
           color: currentText.trim().length < 5 ? C.dim : '#fff',
-          border: 'none', borderRadius: 10, padding: '12px 16px',
-          fontWeight: 700, fontSize: 14,
+          border: `1px solid ${currentText.trim().length < 5 ? C.border : C.action}`,
+          borderRadius: 8, padding: '11px 16px',
+          fontWeight: 700, fontSize: 13, letterSpacing: 0.5,
           cursor: currentText.trim().length < 5 ? 'not-allowed' : 'pointer',
-          touchAction: 'manipulation',
+          touchAction: 'manipulation', fontFamily: 'monospace',
         }}
       >
-        {label}
+        {label.toUpperCase()} TRANSMISSION
       </button>
     </div>
   );
 }
 
-// ── Console wrapper (radar + aircraft panel + comms + children) ───────────────
+// ── ATC Console wrapper ───────────────────────────────────────────────────────
 function ATCConsole({
-  aircraft, aircraftInfoRows, incomingMsg, pilotCallsign,
-  scenarioNum, scenarioLabel, children,
+  aircraft, aircraftInfoRows, incomingMsg, pilotCallsign, pilotSpeaking,
+  scenarioNum, scenarioLabel, selectedId, onSelectAircraft, children,
 }: {
   aircraft: Aircraft[];
   aircraftInfoRows: { callsign: string; status: string; alert?: boolean }[];
   incomingMsg?: string;
   pilotCallsign?: string;
+  pilotSpeaking?: boolean;
   scenarioNum: number;
   scenarioLabel: string;
+  selectedId?: string;
+  onSelectAircraft?: (id: string) => void;
   children?: React.ReactNode;
 }) {
+  const selected = aircraftInfoRows.find(a => aircraft.find(b => b.id === selectedId)?.callsign === a.callsign);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+      {/* Header bar */}
       <div style={{
         background: C.panel, borderBottom: `1px solid ${C.border}`,
-        padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <span style={{ color: C.blueL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1 }}>
+        <span style={{ color: C.blueXL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+          ACIA
+        </span>
+        <div style={{ width: 1, height: 10, background: C.border }} />
+        <span style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1 }}>
           MISSION 07
         </span>
         <div style={{ width: 1, height: 10, background: C.border }} />
-        <span style={{ color: C.dim, fontSize: 9 }}>
-          SCENARIO {scenarioNum}/5 — {scenarioLabel.toUpperCase()}
+        <span style={{ color: C.dim, fontSize: 9, fontFamily: 'monospace' }}>
+          {String(scenarioNum).padStart(2, '0')}/05 {scenarioLabel.toUpperCase()}
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.green }} />
-          <span style={{ color: C.green, fontSize: 8, fontFamily: 'monospace' }}>COMMS ACTIVE</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: C.greenL, boxShadow: `0 0 5px ${C.greenL}`,
+          }} />
+          <span style={{ color: C.greenL, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1 }}>
+            COMMS LIVE
+          </span>
         </div>
       </div>
 
-      {/* Radar + Aircraft info */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        borderBottom: `1px solid ${C.border}`,
-      }}>
-        <div style={{ background: '#030c05', borderRight: `1px solid ${C.border}`, padding: 10 }}>
-          <div style={{ color: 'rgba(74,222,128,0.4)', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
+      {/* Radar + aircraft info */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ background: C.radarBg, borderRight: `1px solid ${C.border}`, padding: 10 }}>
+          <div style={{ color: `${C.radarGreen}0.35)`, fontSize: 7, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 5 }}>
             AIR TRAFFIC DISPLAY
           </div>
-          <RadarDisplay aircraft={aircraft} />
+          <RadarDisplay aircraft={aircraft} selectedId={selectedId} onSelect={onSelectAircraft} />
+          {onSelectAircraft && (
+            <div style={{ color: C.dim, fontSize: 9, textAlign: 'center', marginTop: 4, fontFamily: 'monospace' }}>
+              SELECT AIRCRAFT FOR DETAILS
+            </div>
+          )}
         </div>
-        <div style={{ background: C.panel, padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={{ color: C.dim, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1 }}>
-            AIRCRAFT INFORMATION
+        <div style={{ background: C.panel, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ color: C.dim, fontSize: 7, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 2 }}>
+            AIRCRAFT STATUS
           </div>
           {aircraftInfoRows.map(a => (
             <div key={a.callsign} style={{
-              background: a.alert ? '#1a1005' : C.card,
-              border: `1px solid ${a.alert ? '#4a2a05' : C.border}`,
-              borderRadius: 6, padding: '7px 9px',
+              background: a.alert ? 'rgba(120,53,15,0.2)' : C.card,
+              border: `1px solid ${a.alert ? 'rgba(217,119,6,0.4)' : C.border}`,
+              borderRadius: 5, padding: '6px 9px',
             }}>
-              <div style={{ color: a.alert ? C.amber : C.blueL, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}>
+              <div style={{
+                color: a.alert ? C.amberL : C.blueL,
+                fontSize: 10, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 0.5,
+              }}>
                 {a.callsign}
               </div>
-              <div style={{ color: C.dim, fontSize: 10, marginTop: 2 }}>{a.status}</div>
+              <div style={{ color: C.dimM, fontSize: 10, marginTop: 2 }}>{a.status}</div>
             </div>
           ))}
+          {/* Selected aircraft detail */}
+          {selected && (
+            <div style={{
+              marginTop: 4, background: 'rgba(37,99,235,0.08)',
+              border: `1px solid rgba(37,99,235,0.25)`, borderRadius: 5, padding: '6px 9px',
+            }}>
+              <div style={{ color: C.blueL, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 3 }}>
+                SELECTED
+              </div>
+              <div style={{ color: C.blueXL, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}>
+                {selected.callsign}
+              </div>
+              <div style={{ color: C.dimM, fontSize: 10, marginTop: 2 }}>{selected.status}</div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Incoming transmission */}
       {incomingMsg && (
         <div style={{
-          background: '#090f18', borderBottom: `1px solid ${C.border}`,
+          background: 'rgba(8,14,28,0.9)', borderBottom: `1px solid ${C.border}`,
           padding: '10px 14px',
         }}>
-          <div style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 5 }}>
-            🎧  INCOMING — {pilotCallsign}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{
+              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+              background: C.blue, boxShadow: `0 0 6px ${C.blue}`,
+            }} />
+            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              INCOMING — {pilotCallsign}
+            </span>
+            <Waveform active={!!pilotSpeaking} />
           </div>
-          <div style={{ color: C.text, fontSize: 13, fontStyle: 'italic', lineHeight: 1.55 }}>
+          <div style={{ color: C.text, fontSize: 13, fontStyle: 'italic', lineHeight: 1.6 }}>
             "{incomingMsg}"
           </div>
         </div>
       )}
 
-      {/* Active scenario content */}
+      {/* Scenario content */}
       {children && (
         <div style={{ background: C.bg, padding: 14 }}>
           {children}
@@ -466,75 +555,149 @@ function ATCConsole({
   );
 }
 
+// ── Situation card ────────────────────────────────────────────────────────────
+function SituationCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(13,22,38,0.9)', border: `1px solid ${C.borderL}`,
+      borderRadius: 8, padding: '12px 14px', marginBottom: 12,
+    }}>
+      <div style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 6 }}>
+        SITUATION BRIEF
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Status notice (amber, no emoji) ──────────────────────────────────────────
+function StatusNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(120,53,15,0.12)', border: `1px solid rgba(217,119,6,0.3)`,
+      borderRadius: 6, padding: '8px 12px', marginBottom: 10,
+      display: 'flex', gap: 8, alignItems: 'flex-start',
+    }}>
+      <span style={{ color: C.amberL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, flexShrink: 0, paddingTop: 2 }}>
+        STATUS
+      </span>
+      <div style={{ color: C.amberL, fontSize: 12, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── Alert notice (red, no emoji) ─────────────────────────────────────────────
+function AlertNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(127,29,29,0.12)', border: `1px solid rgba(220,38,38,0.3)`,
+      borderRadius: 6, padding: '8px 12px', marginBottom: 10,
+      display: 'flex', gap: 8, alignItems: 'flex-start',
+    }}>
+      <span style={{ color: C.red, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, flexShrink: 0, paddingTop: 2 }}>
+        ALERT
+      </span>
+      <div style={{ color: '#fca5a5', fontSize: 12, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── Action button (aviation style) ────────────────────────────────────────────
+function ActionBtn({ onClick, children, secondary }: { onClick: () => void; children: React.ReactNode; secondary?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: secondary ? C.card : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+        color: secondary ? C.dimM : '#fff',
+        border: `1px solid ${secondary ? C.border : C.action}`,
+        borderRadius: 8, padding: '12px 16px',
+        fontWeight: 700, fontSize: 12, letterSpacing: 0.5,
+        cursor: 'pointer', touchAction: 'manipulation',
+        fontFamily: 'monospace', width: '100%',
+      }}
+    >
+      {(children as string).toUpperCase ? (children as string).toUpperCase() : children}
+    </button>
+  );
+}
+
 // ── Welcome screen ────────────────────────────────────────────────────────────
 function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
   return (
-    <div style={{
-      minHeight: 400, background: 'linear-gradient(160deg, #07090f 0%, #0c1628 60%, #07090f 100%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: '40px 24px', gap: 24, textAlign: 'center',
-    }}>
-      {/* Mission badge */}
-      <div style={{
-        background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.25)',
-        borderRadius: 8, padding: '5px 14px',
-        color: C.blueL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700,
-      }}>
-        MISSION 07
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <h1 style={{ color: C.text, fontSize: 26, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
-          Air Traffic Communication
-        </h1>
-        <p style={{ color: C.blue, fontSize: 13, margin: 0, fontStyle: 'italic', letterSpacing: 0.5 }}>
-          Listen. Interpret. Communicate. Adapt.
-        </p>
-      </div>
-
-      {/* Tower icon placeholder */}
-      <div style={{
-        width: 80, height: 80,
-        background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)',
-        borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 36,
-      }}>
-        🗼
-      </div>
-
-      {/* Captain ACIA intro */}
-      <div style={{
-        background: 'rgba(14,24,40,0.8)', border: '1px solid rgba(30,49,72,0.8)',
-        borderRadius: 12, padding: '18px 20px', maxWidth: 440,
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>
-          CAPTAIN ACIA
-        </div>
-        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
-          Welcome to Mission 7.
-        </p>
-        <p style={{ color: C.dim, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
-          You're about to experience how communication, attention and decision-making come
-          together in an airport environment. You'll receive messages from aircraft, monitor
-          changing information and respond to different situations.
-        </p>
-        <p style={{ color: C.dim, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
-          You don't need aviation experience or specialized terminology. Listen carefully,
-          communicate clearly and ask questions whenever something doesn't make sense.
-        </p>
-      </div>
-
-      <button
-        onClick={onEnter}
+    <div style={{ position: 'relative', minHeight: 480, overflow: 'hidden' }}>
+      {/* Full-bleed tower photo */}
+      <img
+        src="/images/atc-tower-interior.webp"
+        alt=""
+        aria-hidden
         style={{
-          background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-          color: '#fff', border: 'none', borderRadius: 12, padding: '14px 32px',
-          fontWeight: 700, fontSize: 15, cursor: 'pointer', touchAction: 'manipulation',
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: 'cover', objectPosition: 'center top',
         }}
-      >
-        Enter Communications Centre →
-      </button>
+      />
+      {/* Gradient overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(to bottom, rgba(5,8,15,0.45) 0%, rgba(5,8,15,0.72) 45%, rgba(5,8,15,0.97) 100%)',
+      }} />
+      {/* Content */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+        minHeight: 480, padding: '32px 24px 36px', gap: 18, textAlign: 'center',
+      }}>
+        <div style={{
+          background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.35)',
+          borderRadius: 6, padding: '4px 14px',
+          color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2.5, fontWeight: 700,
+        }}>
+          ACIA — MISSION 07 — AVIATION OPERATIONS
+        </div>
+
+        <div>
+          <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: '0 0 6px', lineHeight: 1.2, textShadow: '0 2px 16px rgba(0,0,0,0.9)' }}>
+            Air Traffic Communication
+          </h1>
+          <p style={{ color: C.blueL, fontSize: 13, margin: 0, fontStyle: 'italic', letterSpacing: 0.5 }}>
+            Listen. Interpret. Communicate. Adapt.
+          </p>
+        </div>
+
+        <div style={{
+          background: 'rgba(5,8,15,0.85)', border: `1px solid rgba(22,35,64,0.95)`,
+          borderRadius: 10, padding: '16px 20px', maxWidth: 440,
+          display: 'flex', flexDirection: 'column', gap: 10,
+          backdropFilter: 'blur(8px)',
+        }}>
+          <div style={{ color: C.blueL, fontSize: 9, fontWeight: 700, letterSpacing: 1.5, fontFamily: 'monospace' }}>
+            CAPTAIN ACIA
+          </div>
+          <p style={{ color: C.text, fontSize: 13, lineHeight: 1.65, margin: 0 }}>Welcome to Mission 7.</p>
+          <p style={{ color: C.dimM, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+            You're about to experience how communication, attention and decision-making come
+            together in an airport environment. You'll receive messages from aircraft, monitor
+            changing information and respond to different situations.
+          </p>
+          <p style={{ color: C.dimM, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+            You don't need aviation experience or specialized terminology. Listen carefully,
+            communicate clearly and ask questions whenever something doesn't make sense.
+          </p>
+        </div>
+
+        <button
+          onClick={onEnter}
+          style={{
+            background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+            color: '#fff', border: 'none', borderRadius: 10, padding: '14px 32px',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
+            letterSpacing: 0.5, fontFamily: 'monospace',
+            boxShadow: `0 4px 20px rgba(29,78,216,0.4)`,
+          }}
+        >
+          ENTER COMMUNICATIONS CENTRE
+        </button>
+      </div>
     </div>
   );
 }
@@ -548,89 +711,83 @@ function SetupScreen({ onReady }: { onReady: () => void }) {
     speak('Communications centre ready. Maple 214, this is Clearfield Tower. Message received.');
     setAudioTested(true);
   }
-
   async function testMic() {
     if (!hasSTT()) { setMicStatus('unavailable'); return; }
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMicStatus('granted');
-    } catch {
-      setMicStatus('denied');
-    }
+    try { await navigator.mediaDevices.getUserMedia({ audio: true }); setMicStatus('granted'); }
+    catch { setMicStatus('denied'); }
   }
 
   return (
-    <div style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 480, margin: '0 auto' }}>
-      <div style={{ color: C.blueL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
-        COMMUNICATION SETUP
-      </div>
-
-      <p style={{ color: C.dim, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-        For the best experience, use headphones or a headset. Voice is optional — you can
-        type all your responses if preferred.
-      </p>
-
-      {/* Audio check */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
-        <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-          Step 1 — Audio check
-        </div>
-        <button
-          onClick={testAudio}
-          style={{
-            background: audioTested ? '#0a1a0a' : C.panel,
-            border: `1px solid ${audioTested ? '#1a3a1a' : C.border}`,
-            borderRadius: 8, padding: '9px 16px',
-            color: audioTested ? C.green : C.text,
-            cursor: 'pointer', fontSize: 13, touchAction: 'manipulation',
-          }}
-        >
-          {audioTested ? '✓ Audio working' : 'Play sample pilot message'}
-        </button>
-        {!audioTested && (
-          <p style={{ color: C.dim, fontSize: 11, marginTop: 6, marginBottom: 0 }}>
-            If you don't hear anything, pilot transmissions will appear as text only.
+    <div style={{
+      background: C.bg, position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Subtle controller photo as background panel accent */}
+      <div style={{ position: 'relative' }}>
+        <img src="/images/atc-controller.webp" alt="" aria-hidden
+          style={{ width: '100%', height: 140, objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(5,8,15,0.3) 0%, rgba(5,8,15,0.96) 100%)',
+        }} />
+        <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+          <div style={{ color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
+            COMMUNICATION SETUP
+          </div>
+          <p style={{ color: C.dimM, fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.5 }}>
+            For the best experience, use headphones or a headset. Voice is optional — you can type all responses.
           </p>
-        )}
-      </div>
-
-      {/* Mic check */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
-        <div style={{ color: C.text, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-          Step 2 — Microphone (optional)
         </div>
-        {micStatus === 'idle' && (
-          <button
-            onClick={testMic}
-            style={{
-              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8,
-              padding: '9px 16px', color: C.text, cursor: 'pointer', fontSize: 13, touchAction: 'manipulation',
-            }}
-          >
-            Check microphone
-          </button>
-        )}
-        {micStatus === 'granted' && (
-          <div style={{ color: C.green, fontSize: 12 }}>✓ Microphone ready — voice mode available</div>
-        )}
-        {micStatus === 'denied' && (
-          <div style={{ color: C.amber, fontSize: 12 }}>Microphone access denied — text mode only. That's fine.</div>
-        )}
-        {micStatus === 'unavailable' && (
-          <div style={{ color: C.dim, fontSize: 12 }}>Voice input not supported in this browser — text mode only. That's fine.</div>
-        )}
       </div>
 
-      <button
-        onClick={onReady}
-        style={{
-          background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-          color: '#fff', border: 'none', borderRadius: 12, padding: '13px 24px',
-          fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-        }}
-      >
-        Begin Mission →
-      </button>
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14 }}>
+          <div style={{ color: C.dimM, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 8 }}>
+            STEP 01 — AUDIO CHECK
+          </div>
+          <button onClick={testAudio} style={{
+            background: audioTested ? 'rgba(22,163,74,0.1)' : C.panel,
+            border: `1px solid ${audioTested ? 'rgba(22,163,74,0.4)' : C.border}`,
+            borderRadius: 7, padding: '9px 16px',
+            color: audioTested ? C.greenL : C.text,
+            cursor: 'pointer', fontSize: 13, touchAction: 'manipulation',
+            fontFamily: 'monospace', fontWeight: 600, letterSpacing: 0.5,
+          }}>
+            {audioTested ? 'AUDIO CONFIRMED' : 'PLAY SAMPLE TRANSMISSION'}
+          </button>
+          {!audioTested && (
+            <p style={{ color: C.dim, fontSize: 11, marginTop: 6, marginBottom: 0, fontFamily: 'monospace' }}>
+              If audio is unavailable, pilot transmissions will appear as text.
+            </p>
+          )}
+        </div>
+
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14 }}>
+          <div style={{ color: C.dimM, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 8 }}>
+            STEP 02 — MICROPHONE (OPTIONAL)
+          </div>
+          {micStatus === 'idle' && (
+            <button onClick={testMic} style={{
+              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 7,
+              padding: '9px 16px', color: C.text, cursor: 'pointer', fontSize: 13,
+              touchAction: 'manipulation', fontFamily: 'monospace', fontWeight: 600,
+            }}>
+              CHECK MICROPHONE
+            </button>
+          )}
+          {micStatus === 'granted' && <div style={{ color: C.greenL, fontSize: 12, fontFamily: 'monospace' }}>MICROPHONE READY — VOICE MODE AVAILABLE</div>}
+          {micStatus === 'denied' && <div style={{ color: C.amberL, fontSize: 12, fontFamily: 'monospace' }}>MICROPHONE DENIED — TEXT MODE ONLY</div>}
+          {micStatus === 'unavailable' && <div style={{ color: C.dim, fontSize: 12, fontFamily: 'monospace' }}>VOICE NOT SUPPORTED — TEXT MODE ONLY</div>}
+        </div>
+
+        <button onClick={onReady} style={{
+          background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: '#fff', border: 'none', borderRadius: 8, padding: '13px 24px',
+          fontWeight: 700, fontSize: 13, cursor: 'pointer', touchAction: 'manipulation',
+          fontFamily: 'monospace', letterSpacing: 1,
+        }}>
+          BEGIN MISSION
+        </button>
+      </div>
     </div>
   );
 }
@@ -640,10 +797,12 @@ function PilotMessage({ message, callsign, onReady, autoSpeak = true }: {
   message: string; callsign: string; onReady: () => void; autoSpeak?: boolean;
 }) {
   const [spoken, setSpoken] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
     if (!autoSpeak) { setSpoken(true); return; }
-    const cancel = speak(message, () => setSpoken(true));
+    setSpeaking(true);
+    const cancel = speak(message, () => { setSpeaking(false); setSpoken(true); });
     return cancel;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -651,516 +810,411 @@ function PilotMessage({ message, callsign, onReady, autoSpeak = true }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{
-        background: '#090f18', border: `1px solid ${C.border}`,
-        borderRadius: 10, padding: '12px 14px',
+        background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`,
+        borderRadius: 8, padding: '12px 14px',
       }}>
-        <div style={{ color: C.blue, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
-          🎧  INCOMING — {callsign}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
+            background: speaking ? C.blue : C.dim,
+            boxShadow: speaking ? `0 0 6px ${C.blue}` : 'none',
+            transition: 'all 0.3s',
+          }} />
+          <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+            INCOMING — {callsign}
+          </span>
+          <Waveform active={speaking} />
         </div>
-        <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.55 }}>
+        <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
           "{message}"
         </div>
         {!spoken && (
-          <div style={{ color: C.dim, fontSize: 11, marginTop: 6 }}>Playing pilot audio…</div>
+          <div style={{ color: C.dim, fontSize: 10, marginTop: 6, fontFamily: 'monospace' }}>
+            PLAYING TRANSMISSION…
+          </div>
         )}
       </div>
-
-      <button
-        onClick={onReady}
-        style={{
-          background: C.panel, border: `1px solid ${C.border}`,
-          borderRadius: 10, padding: '11px 16px',
-          color: C.text, cursor: 'pointer', fontSize: 13, fontWeight: 600, touchAction: 'manipulation',
-        }}
-      >
-        Message received →
+      <button onClick={onReady} style={{
+        background: C.card, border: `1px solid ${C.border}`,
+        borderRadius: 8, padding: '11px 16px',
+        color: C.dimM, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+        touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
+      }}>
+        MESSAGE RECEIVED — CONTINUE
       </button>
     </div>
   );
 }
 
 // ── Feedback card ─────────────────────────────────────────────────────────────
-function FeedbackCard({ message, onNext, nextLabel = 'Continue →' }: {
+function FeedbackCard({ message, onNext, nextLabel = 'CONTINUE' }: {
   message: string; onNext: () => void; nextLabel?: string;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{
-        background: '#0a130a', border: '1px solid #1a3a1a',
-        borderRadius: 10, padding: '12px 14px',
-        color: C.dim, fontSize: 13, lineHeight: 1.6,
+        background: 'rgba(22,163,74,0.07)', border: `1px solid rgba(22,163,74,0.2)`,
+        borderRadius: 8, padding: '12px 14px',
+        color: C.dimM, fontSize: 13, lineHeight: 1.6,
       }}>
         {message}
       </div>
-      <button
-        onClick={onNext}
-        style={{
-          background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-          color: '#fff', border: 'none', borderRadius: 10, padding: '12px 16px',
-          fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-        }}
-      >
+      <button onClick={onNext} style={{
+        background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+        color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px',
+        fontWeight: 700, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation',
+        fontFamily: 'monospace', letterSpacing: 1,
+      }}>
         {nextLabel}
       </button>
     </div>
   );
 }
 
-// ── Scenario 1: Initial Radio Contact ─────────────────────────────────────────
+// ── Scenario 1 ────────────────────────────────────────────────────────────────
 function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'done'>('intro');
+  const [step, setStep] = useState<'intro' | 'pilot' | 'respond'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
 
   const aircraft: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 40, y: 90, status: 'Approaching — West', visible: true },
   ];
+  const info = [{ callsign: 'MAPLE 214', status: 'Approaching from the west' }];
 
-  const aircraftInfo = [
-    { callsign: 'MAPLE 214', status: 'Approaching from the west' },
-  ];
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          You've just taken your position at the communications console. The display shows one aircraft —
+          <strong style={{ color: C.blueL }}> MAPLE 214</strong> — approaching from the west.
+          A transmission is incoming.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          You don't need formal aviation terminology. Listen to the message, identify the key
+          information, and respond clearly.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('pilot')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
 
-  if (step === 'intro') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        scenarioNum={1} scenarioLabel="Initial Radio Contact">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{
-            background: C.panel, border: `1px solid ${C.border}`,
-            borderRadius: 10, padding: '12px 14px',
-          }}>
-            <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
-              SITUATION
-            </div>
-            <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              You've just taken your position at the communications console. The display shows
-              one aircraft — <strong style={{ color: C.blueL }}>MAPLE 214</strong> — approaching
-              from the west. A transmission is coming in.
-            </p>
-            <p style={{ color: C.dim, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
-              You don't need to use formal aviation terminology. Listen to the message, identify
-              the key information and respond clearly.
-            </p>
-          </div>
-          <button onClick={() => setStep('pilot')} style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 16px',
-            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-          }}>
-            Open channel →
-          </button>
-        </div>
-      </ATCConsole>
-    );
-  }
+  if (step === 'pilot') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
+        onReady={() => setStep('respond')}
+      />
+    </ATCConsole>
+  );
 
-  if (step === 'pilot') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        scenarioNum={1} scenarioLabel="Initial Radio Contact">
-        <PilotMessage
-          callsign="MAPLE 214"
-          message="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
-          onReady={() => setStep('respond')}
-        />
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'respond') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        incomingMsg="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
-        pilotCallsign="MAPLE 214"
-        scenarioNum={1} scenarioLabel="Initial Radio Contact">
-        <ResponseInput
-          context="Acknowledge MAPLE 214's message. Include the aircraft name and confirm the key information."
-          onSubmit={text => {
-            const delta = analyzeS1(text);
-            onComplete([{ key: 'communication_quality', delta }]);
-          }}
-        />
-      </ATCConsole>
-    );
-  }
-
-  return null;
+  return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info}
+      incomingMsg="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
+      pilotCallsign="MAPLE 214" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <ResponseInput
+        context="Acknowledge MAPLE 214's message. Include the aircraft identifier and confirm the key information you received."
+        onSubmit={text => onComplete([{ key: 'communication_quality', delta: analyzeS1(text) }])}
+      />
+    </ATCConsole>
+  );
 }
 
-// ── Scenario 3: Conflicting Information ───────────────────────────────────────
+// ── Scenario 3 ────────────────────────────────────────────────────────────────
 function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'correction' | 'done'>('intro');
-  const [clarifyRequested, setClarifyRequested] = useState(false);
+  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'correction'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
   const responseRef = useRef('');
+  const clarifyRef = useRef(false);
 
   const aircraftEast: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position: East', visible: true },
   ];
-  const aircraftInfoConflict = [
-    { callsign: 'MAPLE 214', status: 'Display: East of airport — Pilot reports: West' },
-  ];
-  const aircraftInfoResolved = [
-    { callsign: 'MAPLE 214', status: 'Position confirmed: East of airport' },
-  ];
+  const infoConflict = [{ callsign: 'MAPLE 214', status: 'Display shows east — pilot reports west' }];
+  const infoResolved = [{ callsign: 'MAPLE 214', status: 'Position confirmed: East of airport' }];
 
-  if (step === 'intro') {
-    return (
-      <ATCConsole aircraft={aircraftEast} aircraftInfoRows={[{ callsign: 'MAPLE 214', status: 'Position: East of airport' }]}
-        scenarioNum={3} scenarioLabel="Conflicting Information">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>SITUATION</div>
-            <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              Your display shows <strong style={{ color: C.blueL }}>MAPLE 214</strong> positioned
-              east of the airport. An incoming transmission is coming in from MAPLE 214 with
-              information about their position.
-            </p>
-            <p style={{ color: C.dim, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
-              Pay attention to what the pilot says and compare it to what your display shows.
-            </p>
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={[{ callsign: 'MAPLE 214', status: 'Position: East of airport' }]}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          Your display shows <strong style={{ color: C.blueL }}>MAPLE 214</strong> positioned east of
+          the airport. An incoming transmission is arriving from MAPLE 214 with position information.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          Pay attention to what the pilot reports and compare it to your display.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('pilot')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'pilot') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={infoConflict}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. We're approximately five miles west of the airport."
+        onReady={() => setStep('respond')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'respond') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={infoConflict}
+      incomingMsg="Tower, Maple 214. We're approximately five miles west of the airport."
+      pilotCallsign="MAPLE 214" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <ResponseInput
+        context="Respond to MAPLE 214."
+        onSubmit={text => {
+          responseRef.current = text;
+          const asked = wantsClarification(text) || notesConflict(text);
+          clarifyRef.current = asked;
+          if (asked) setStep('correction');
+          else onComplete([{ key: 'situational_awareness', delta: analyzeS3(text, false) }]);
+        }}
+      />
+    </ATCConsole>
+  );
+
+  const resolved: Aircraft[] = [{ id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position confirmed: East', visible: true }];
+  return (
+    <ATCConsole aircraft={resolved} aircraftInfoRows={infoResolved}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
+            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              MAPLE 214 — CORRECTION
+            </span>
           </div>
-          <button onClick={() => setStep('pilot')} style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 16px',
-            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-          }}>Open channel →</button>
+          <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+            "Maple 214. Correction — we are east of the airport. Apologies for the confusion."
+          </div>
         </div>
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'pilot') {
-    return (
-      <ATCConsole aircraft={aircraftEast} aircraftInfoRows={aircraftInfoConflict}
-        scenarioNum={3} scenarioLabel="Conflicting Information">
-        <PilotMessage
-          callsign="MAPLE 214"
-          message="Tower, Maple 214. We're approximately five miles west of the airport."
-          onReady={() => setStep('respond')}
+        <FeedbackCard
+          message="MAPLE 214 has confirmed their correct position. Display updated."
+          onNext={() => onComplete([{ key: 'situational_awareness', delta: analyzeS3(responseRef.current, true) }])}
+          nextLabel="CONTINUE TO SCENARIO 4"
         />
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'respond') {
-    return (
-      <ATCConsole aircraft={aircraftEast} aircraftInfoRows={aircraftInfoConflict}
-        incomingMsg="Tower, Maple 214. We're approximately five miles west of the airport."
-        pilotCallsign="MAPLE 214"
-        scenarioNum={3} scenarioLabel="Conflicting Information">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{
-            background: '#160f04', border: '1px solid #3a2205',
-            borderRadius: 8, padding: '9px 12px',
-            color: '#d97706', fontSize: 12, lineHeight: 1.5,
-          }}>
-            ⚠ Your display shows MAPLE 214 east of the airport. The pilot has reported a different position.
-          </div>
-          <ResponseInput
-            context="Respond to MAPLE 214. You may acknowledge their message, ask for clarification, or address the position information."
-            onSubmit={text => {
-              responseRef.current = text;
-              const asked = wantsClarification(text) || notesConflict(text);
-              setClarifyRequested(asked);
-              if (asked) {
-                setStep('correction');
-              } else {
-                const delta = analyzeS3(text, false);
-                onComplete([{ key: 'situational_awareness', delta }]);
-              }
-            }}
-          />
-        </div>
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'correction') {
-    const correctionAircraft: Aircraft[] = [
-      { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position confirmed: East', visible: true },
-    ];
-    return (
-      <ATCConsole aircraft={correctionAircraft} aircraftInfoRows={aircraftInfoResolved}
-        scenarioNum={3} scenarioLabel="Conflicting Information">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#090f18', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ color: C.blue, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
-              🎧  MAPLE 214 — CORRECTION
-            </div>
-            <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.55 }}>
-              "Maple 214. Correction — we are east of the airport. Apologies for the confusion."
-            </div>
-          </div>
-          <div style={{ background: '#0a130a', border: '1px solid #1a3a1a', borderRadius: 8, padding: '9px 12px', color: C.dim, fontSize: 12, lineHeight: 1.5 }}>
-            Display updated. MAPLE 214 position confirmed as east of the airport.
-          </div>
-          <FeedbackCard
-            message="You identified the discrepancy and requested clarification. MAPLE 214 has now confirmed their correct position."
-            onNext={() => {
-              const delta = analyzeS3(responseRef.current, true);
-              onComplete([{ key: 'situational_awareness', delta }]);
-            }}
-            nextLabel="Continue to Scenario 4 →"
-          />
-        </div>
-      </ATCConsole>
-    );
-  }
-
-  return null;
+      </div>
+    </ATCConsole>
+  );
 }
 
-// ── Scenario 4: Changing Traffic Situation ────────────────────────────────────
+// ── Scenario 4 ────────────────────────────────────────────────────────────────
 function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [step, setStep] = useState<'intro' | 'pilot1' | 'respond1' | 'pilot2' | 'respond2'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
   const r1Ref = useRef('');
 
   const aircraft: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 155, y: 96, status: 'Approaching', visible: true },
-    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, status: 'Ground — Dep.', visible: true },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, status: 'Ground', visible: true },
   ];
-  const aircraftInfo = [
+  const info = [
     { callsign: 'MAPLE 214', status: 'Approaching from east' },
     { callsign: 'NORTHERN 305', status: 'Preparing for departure' },
   ];
-  const aircraftInfoUpdated = [
+  const infoUpdated = [
     { callsign: 'MAPLE 214', status: 'Arrival: earlier than planned' },
     { callsign: 'NORTHERN 305', status: 'Preparing for departure' },
   ];
 
-  if (step === 'intro') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>SITUATION</div>
-            <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              The traffic picture has changed. Two aircraft are now on your display. You'll be
-              receiving communications from both — pay attention to what's new or changing, and
-              respond to each one.
-            </p>
-          </div>
-          <button onClick={() => setStep('pilot1')} style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 16px',
-            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-          }}>Open channel →</button>
-        </div>
-      </ATCConsole>
-    );
-  }
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          Two aircraft are now on your display. You'll be receiving communications from both —
+          pay attention to what's new or changing and respond to each one.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('pilot1')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
 
-  if (step === 'pilot1') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-        <PilotMessage
-          callsign="NORTHERN 305"
-          message="Tower, Northern 305. We're preparing to depart and waiting for further information."
-          onReady={() => setStep('respond1')}
-        />
-      </ATCConsole>
-    );
-  }
+  if (step === 'pilot1') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <PilotMessage
+        callsign="NORTHERN 305"
+        message="Tower, Northern 305. We're preparing to depart and waiting for further information."
+        onReady={() => setStep('respond1')}
+      />
+    </ATCConsole>
+  );
 
-  if (step === 'respond1') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfo}
-        incomingMsg="Tower, Northern 305. We're preparing to depart and waiting for further information."
-        pilotCallsign="NORTHERN 305"
-        scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-        <ResponseInput
-          context="Acknowledge NORTHERN 305's message. A second transmission from MAPLE 214 will follow."
-          label="Respond to NORTHERN 305"
-          onSubmit={text => { r1Ref.current = text; setStep('pilot2'); }}
-        />
-      </ATCConsole>
-    );
-  }
+  if (step === 'respond1') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info}
+      incomingMsg="Tower, Northern 305. We're preparing to depart and waiting for further information."
+      pilotCallsign="NORTHERN 305" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <ResponseInput
+        context="Acknowledge NORTHERN 305. A second transmission from MAPLE 214 will follow."
+        label="Respond to NORTHERN 305"
+        onSubmit={text => { r1Ref.current = text; setStep('pilot2'); }}
+      />
+    </ATCConsole>
+  );
 
-  if (step === 'pilot2') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfoUpdated}
-        scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-        <PilotMessage
-          callsign="MAPLE 214"
-          message="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
-          onReady={() => setStep('respond2')}
-        />
-      </ATCConsole>
-    );
-  }
+  if (step === 'pilot2') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
+        onReady={() => setStep('respond2')}
+      />
+    </ATCConsole>
+  );
 
-  if (step === 'respond2') {
-    return (
-      <ATCConsole aircraft={aircraft} aircraftInfoRows={aircraftInfoUpdated}
-        incomingMsg="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
-        pilotCallsign="MAPLE 214"
-        scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-        <ResponseInput
-          context="Respond to MAPLE 214's updated arrival information."
-          label="Respond to MAPLE 214"
-          onSubmit={text => {
-            const delta = analyzeS4(r1Ref.current, text);
-            onComplete([{ key: 'multitasking_ability', delta }]);
-          }}
-        />
-      </ATCConsole>
-    );
-  }
-
-  return null;
+  return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated}
+      incomingMsg="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
+      pilotCallsign="MAPLE 214" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <ResponseInput
+        context="Respond to MAPLE 214's updated arrival information."
+        label="Respond to MAPLE 214"
+        onSubmit={text => onComplete([{ key: 'multitasking_ability', delta: analyzeS4(r1Ref.current, text) }])}
+      />
+    </ATCConsole>
+  );
 }
 
-// ── Scenario 5: Unexpected Operational Event ──────────────────────────────────
+// ── Scenario 5 ────────────────────────────────────────────────────────────────
 function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'pilots' | 'northern' | 'respond' | 'ack'>('intro');
+  const [step, setStep] = useState<'intro' | 'maple' | 'northern' | 'respond' | 'ack'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
   const responseRef = useRef('');
 
   const aircraftAlert: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 140, y: 98, visible: true, status: 'Technical Issue', alert: true },
     { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, visible: true, status: 'Ground — Standby' },
   ];
-  const aircraftInfo = [
+  const info = [
     { callsign: 'MAPLE 214', status: 'Technical issue reported', alert: true },
     { callsign: 'NORTHERN 305', status: 'Ground — standing by' },
   ];
 
-  if (step === 'intro') {
-    return (
-      <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={aircraftInfo}
-        scenarioNum={5} scenarioLabel="Unexpected Operational Event">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>SITUATION</div>
-            <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              Two transmissions are coming in at the same time. Both aircraft are on your display.
-              Listen to both messages and decide how to respond.
-            </p>
-            <p style={{ color: C.dim, fontSize: 12, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
-              This is a competency exercise, not an emergency procedures test. Respond clearly,
-              ask questions if you need more information.
-            </p>
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          Two transmissions are arriving at the same time. Both aircraft are on your display.
+          Listen to both messages and decide how to respond.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+          Respond clearly and ask questions if you need more information.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('maple')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'maple') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. We've experienced a technical issue and need assistance. Our arrival plans may change."
+        onReady={() => setStep('northern')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'northern') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ background: 'rgba(127,29,29,0.1)', border: `1px solid rgba(220,38,38,0.25)`, borderRadius: 7, padding: '8px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.red, display: 'inline-block' }} />
+            <span style={{ color: C.red, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>MAPLE 214 — PRIORITY</span>
           </div>
-          <button onClick={() => setStep('pilots')} style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 16px',
-            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-          }}>Open channel →</button>
+          <div style={{ color: '#fca5a5', fontSize: 12, fontStyle: 'italic' }}>
+            "We've experienced a technical issue and need assistance. Our arrival plans may change."
+          </div>
         </div>
-      </ATCConsole>
-    );
-  }
+        <PilotMessage
+          callsign="NORTHERN 305"
+          message="Tower, Northern 305. Still preparing on the ground, no changes on our end."
+          onReady={() => setStep('respond')}
+        />
+      </div>
+    </ATCConsole>
+  );
 
-  if (step === 'pilots') {
-    return (
-      <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={aircraftInfo}
-        scenarioNum={5} scenarioLabel="Unexpected Operational Event">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <PilotMessage
-            callsign="MAPLE 214"
-            message="Tower, Maple 214. We've experienced a technical issue and need assistance. Our arrival plans may change."
-            onReady={() => setStep('northern')}
-            autoSpeak
-          />
-        </div>
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'northern') {
-    return (
-      <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={aircraftInfo}
-        scenarioNum={5} scenarioLabel="Unexpected Operational Event">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* First message shown in header */}
-          <div style={{ background: '#160808', border: '1px solid #3a1010', borderRadius: 8, padding: '9px 12px' }}>
-            <div style={{ color: C.red, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 4 }}>
-              ⚠ MAPLE 214 — TECHNICAL ISSUE
-            </div>
+  if (step === 'respond') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 4 }}>
+          <div style={{ background: 'rgba(127,29,29,0.1)', border: `1px solid rgba(220,38,38,0.25)`, borderRadius: 6, padding: '7px 10px' }}>
+            <div style={{ color: C.red, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 3 }}>MAPLE 214</div>
             <div style={{ color: '#fca5a5', fontSize: 12, fontStyle: 'italic' }}>
-              "We've experienced a technical issue and need assistance. Our arrival plans may change."
+              "We've experienced a technical issue and need assistance."
             </div>
           </div>
-          <PilotMessage
-            callsign="NORTHERN 305"
-            message="Tower, Northern 305. Still preparing on the ground, no changes on our end."
-            onReady={() => setStep('respond')}
-            autoSpeak
-          />
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 10px' }}>
+            <div style={{ color: C.dim, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 3 }}>NORTHERN 305</div>
+            <div style={{ color: C.dimM, fontSize: 12, fontStyle: 'italic' }}>
+              "Still preparing on the ground, no changes on our end."
+            </div>
+          </div>
         </div>
-      </ATCConsole>
-    );
-  }
-
-  if (step === 'respond') {
-    return (
-      <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={aircraftInfo}
-        scenarioNum={5} scenarioLabel="Unexpected Operational Event">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ background: '#160808', border: '1px solid #3a1010', borderRadius: 7, padding: '8px 10px' }}>
-              <div style={{ color: C.red, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 3 }}>⚠ MAPLE 214</div>
-              <div style={{ color: '#fca5a5', fontSize: 12, fontStyle: 'italic' }}>
-                "We've experienced a technical issue and need assistance. Our arrival plans may change."
-              </div>
-            </div>
-            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 10px' }}>
-              <div style={{ color: C.dim, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 3 }}>NORTHERN 305</div>
-              <div style={{ color: C.dim, fontSize: 12, fontStyle: 'italic' }}>
-                "Still preparing on the ground, no changes on our end."
-              </div>
-            </div>
-          </div>
-          <ResponseInput
-            context="Respond to the transmissions you just heard. You can address both aircraft in one response."
-            onSubmit={text => {
-              responseRef.current = text;
+        <ResponseInput
+          context="Respond to the transmissions you just heard. You can address both aircraft in one response."
+          onSubmit={text => {
+            responseRef.current = text;
+            if (wantsClarification(text) || text.includes('?')) setStep('ack');
+            else {
               const { dm, al } = analyzeS5(text);
-              if (wantsClarification(text) || text.includes('?')) {
-                setStep('ack');
-              } else {
-                onComplete([
-                  { key: 'decision_quality', delta: dm },
-                  { key: 'learning_agility', delta: al },
-                ]);
-              }
-            }}
-          />
-        </div>
-      </ATCConsole>
-    );
-  }
+              onComplete([{ key: 'decision_quality', delta: dm }, { key: 'learning_agility', delta: al }]);
+            }
+          }}
+        />
+      </div>
+    </ATCConsole>
+  );
 
-  if (step === 'ack') {
-    return (
-      <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={aircraftInfo}
-        scenarioNum={5} scenarioLabel="Unexpected Operational Event">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#090f18', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ color: C.blue, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
-              🎧  MAPLE 214 — RESPONSE
-            </div>
-            <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.55 }}>
-              "Maple 214. We have an issue with our navigation system — minor, we believe. Monitoring the situation. Will keep you updated as we get more information."
-            </div>
+  return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
+            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              MAPLE 214 — RESPONSE
+            </span>
           </div>
-          <FeedbackCard
-            message="You sought additional information from MAPLE 214. That kind of follow-up communication is a key part of managing uncertainty in operational environments."
-            onNext={() => {
-              const { dm, al } = analyzeS5(responseRef.current);
-              onComplete([
-                { key: 'decision_quality', delta: Math.min(0.65, dm + 0.10) },
-                { key: 'learning_agility', delta: Math.min(0.50, al + 0.05) },
-              ]);
-            }}
-            nextLabel="Continue →"
-          />
+          <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+            "Maple 214. We have an issue with our navigation system — minor, we believe. Monitoring the situation. Will keep you updated."
+          </div>
         </div>
-      </ATCConsole>
-    );
-  }
-
-  return null;
+        <FeedbackCard
+          message="You sought additional information from MAPLE 214. That kind of follow-up communication is a key part of managing uncertainty in operational environments."
+          onNext={() => {
+            const { dm, al } = analyzeS5(responseRef.current);
+            onComplete([
+              { key: 'decision_quality', delta: Math.min(0.65, dm + 0.10) },
+              { key: 'learning_agility', delta: Math.min(0.50, al + 0.05) },
+            ]);
+          }}
+          nextLabel="CONTINUE"
+        />
+      </div>
+    </ATCConsole>
+  );
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -1172,11 +1226,9 @@ interface Props {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function ATCCommunication({ isRpas, sessionId, onComplete }: Props) {
-  // RPAS path: original fill-in exercise format (unchanged)
   if (isRpas) {
     return <ATCCommunicationCore exercises={RPAS_EXERCISES} questions={M7_RPAS_QUESTIONS} onComplete={onComplete} />;
   }
-
   return <ATCMission7 sessionId={sessionId} onComplete={onComplete} />;
 }
 
@@ -1191,29 +1243,19 @@ function ATCMission7({ sessionId, onComplete }: { sessionId?: string; onComplete
     evidenceRef.current = [...evidenceRef.current, ...ev];
   }
 
-  if (phase === 'welcome') {
-    return <WelcomeScreen onEnter={() => setPhase('setup')} />;
-  }
+  if (phase === 'welcome') return <WelcomeScreen onEnter={() => setPhase('setup')} />;
+  if (phase === 'setup') return <SetupScreen onReady={() => setPhase('s1')} />;
 
-  if (phase === 'setup') {
-    return <SetupScreen onReady={() => setPhase('s1')} />;
-  }
-
-  if (phase === 's1') {
-    return (
-      <Scenario1 onComplete={ev => {
-        addEvidence(ev);
-        setPhase('wm');
-      }} />
-    );
-  }
+  if (phase === 's1') return (
+    <Scenario1 onComplete={ev => { addEvidence(ev); setPhase('wm'); }} />
+  );
 
   if (phase === 'wm') {
     return (
       <ATCBriefing
         sessionId={sessionId}
         onComplete={(wmEv: WMEvidence) => {
-          // ── Preserved exactly from prior ATCCommunication implementation ──
+          // ── Preserved exactly ──────────────────────────────────────────────
           const submissionId = crypto.randomUUID();
           const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
           if (token) {
@@ -1234,59 +1276,50 @@ function ATCMission7({ sessionId, onComplete }: { sessionId?: string; onComplete
             wmDelta = Math.min(0.60, wmDelta);
           }
           wmEvidenceRef.current = [{ key: 'working_memory', delta: wmDelta }];
-          // ── End preserved block ──
+          // ── End preserved block ────────────────────────────────────────────
           setPhase('s3');
         }}
       />
     );
   }
 
-  if (phase === 's3') {
-    return (
-      <Scenario3 onComplete={ev => {
-        addEvidence(ev);
-        setPhase('s4');
-      }} />
-    );
-  }
+  if (phase === 's3') return <Scenario3 onComplete={ev => { addEvidence(ev); setPhase('s4'); }} />;
+  if (phase === 's4') return <Scenario4 onComplete={ev => { addEvidence(ev); setPhase('s5'); }} />;
 
-  if (phase === 's4') {
-    return (
-      <Scenario4 onComplete={ev => {
-        addEvidence(ev);
-        setPhase('s5');
-      }} />
-    );
-  }
-
-  if (phase === 's5') {
-    return (
-      <Scenario5 onComplete={ev => {
-        addEvidence(ev);
-        pendingRef.current = [...wmEvidenceRef.current, ...evidenceRef.current, ...ev];
-        setPhase('reflection');
-      }} />
-    );
-  }
+  if (phase === 's5') return (
+    <Scenario5 onComplete={ev => {
+      addEvidence(ev);
+      pendingRef.current = [...wmEvidenceRef.current, ...evidenceRef.current, ...ev];
+      setPhase('reflection');
+    }} />
+  );
 
   if (phase === 'reflection') {
     return (
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px' }}>
-          <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>
-            CAPTAIN ACIA
+      <div style={{ background: C.bg, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative' }}>
+          <img src="/images/atc-tower-night.webp" alt="" aria-hidden
+            style={{ width: '100%', height: 120, objectFit: 'cover', objectPosition: 'center 40%', display: 'block' }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(5,8,15,0.4) 0%, rgba(5,8,15,0.95) 100%)',
+          }} />
+          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16 }}>
+            <div style={{ color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
+              MISSION COMPLETE — REFLECTION
+            </div>
+            <p style={{ color: C.dimM, fontSize: 12, marginTop: 4, marginBottom: 0, lineHeight: 1.5 }}>
+              Before we close, take a moment to reflect on what you experienced.
+            </p>
           </div>
-          <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-            Mission complete. You've experienced how aviation communication environments bring
-            together listening, information processing, situational awareness and decision-making.
-            Before we close, take a moment to reflect.
-          </p>
         </div>
-        <MissionReasoningResponse
-          questions={M7_QUESTIONS}
-          storageKey="acia_m7_reasoning"
-          onComplete={() => onComplete(pendingRef.current)}
-        />
+        <div style={{ padding: 16 }}>
+          <MissionReasoningResponse
+            questions={M7_QUESTIONS}
+            storageKey="acia_m7_reasoning"
+            onComplete={() => onComplete(pendingRef.current)}
+          />
+        </div>
       </div>
     );
   }
@@ -1338,14 +1371,13 @@ function ATCCommunicationCore({ exercises, questions, onComplete }: {
     if (isLast) {
       const allFinal = [...allScores];
       const avg = allFinal.reduce((a, b) => a + b, 0) / allFinal.length;
-      const evidence: Omit<EvidenceItem, 'mission'>[] = [
+      pendingEvidence.current = [
         { key: 'communication_quality', delta: avg * 0.9 },
         { key: 'procedural_compliance', delta: avg * 0.85 },
         { key: 'attention_to_detail', delta: avg * 0.8 },
         { key: 'situational_awareness', delta: (allScores[0] ?? 0) > 0.6 ? 0.75 : 0.35 },
         { key: 'systematic_reasoning', delta: (allScores[3] ?? 0) > 0.7 ? 0.65 : 0.3 },
       ];
-      pendingEvidence.current = evidence;
       setShowReasoning(true);
     } else {
       setExIdx(i => i + 1);
@@ -1358,26 +1390,18 @@ function ATCCommunicationCore({ exercises, questions, onComplete }: {
   if (showReasoning) {
     return (
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
-          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-            Air Navigation Communication — Reflection
-          </div>
-          <div style={{ color: '#94a3b8', fontSize: 13 }}>
-            You've completed all communication exercises. Reflect on how information moves between people in operational environments.
-          </div>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 16px' }}>
+          <div style={{ color: C.blueL, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Air Navigation Communication — Reflection</div>
+          <div style={{ color: C.dimM, fontSize: 13 }}>You've completed all communication exercises. Reflect on how information moves between people in operational environments.</div>
         </div>
-        <MissionReasoningResponse
-          questions={questions}
-          storageKey="acia_m7_reasoning"
-          onComplete={() => onComplete(pendingEvidence.current)}
-        />
+        <MissionReasoningResponse questions={questions} storageKey="acia_m7_reasoning" onComplete={() => onComplete(pendingEvidence.current)} />
       </div>
     );
   }
 
-  const transmissionColor = ex.id === 're3' ? '#ef4444' : ex.id === 're4' ? '#a855f7' : '#60a5fa';
-  const transmissionBg = ex.id === 're3' ? '#1a0505' : ex.id === 're4' ? '#1a0d2a' : '#0f1520';
-  const transmissionBorder = ex.id === 're3' ? '#3a0505' : ex.id === 're4' ? '#2a1a4a' : '#1e3a5f';
+  const txColor = ex.id === 're3' ? C.red : ex.id === 're4' ? '#a855f7' : C.blueL;
+  const txBg = ex.id === 're3' ? 'rgba(127,29,29,0.12)' : ex.id === 're4' ? 'rgba(88,28,135,0.12)' : 'rgba(8,14,28,0.9)';
+  const txBorder = ex.id === 're3' ? 'rgba(220,38,38,0.25)' : ex.id === 're4' ? 'rgba(168,85,247,0.25)' : C.borderL;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1385,79 +1409,78 @@ function ATCCommunicationCore({ exercises, questions, onComplete }: {
         {exercises.map((_, i) => (
           <div key={i} style={{
             width: i === exIdx ? 24 : 8, height: 8, borderRadius: 4,
-            background: i < exIdx ? C.green : i === exIdx ? C.crimson : C.border,
+            background: i < exIdx ? C.green : i === exIdx ? C.action : C.border,
             transition: 'all 0.2s',
           }} />
         ))}
-        <span style={{ color: C.dim, fontSize: 12, marginLeft: 8 }}>
-          Exercise {exIdx + 1}/{exercises.length} — {ex.title}
+        <span style={{ color: C.dim, fontSize: 11, marginLeft: 8, fontFamily: 'monospace' }}>
+          {String(exIdx + 1).padStart(2, '0')}/{exercises.length} — {ex.title.toUpperCase()}
         </span>
       </div>
 
-      <div style={{ background: '#1a1505', border: '1px solid #3d2e05', borderRadius: 10, padding: '10px 14px' }}>
-        <div style={{ color: '#fbbf24', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-          How to complete this exercise
+      <div style={{ background: 'rgba(120,85,10,0.12)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 8, padding: '10px 14px' }}>
+        <div style={{ color: C.amberL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 4 }}>
+          EXERCISE GUIDE
         </div>
         <div style={{ color: '#e2c77a', fontSize: 13, lineHeight: 1.6 }}>{ex.guide}</div>
       </div>
 
       {ex.scenarioBriefing && (
-        <div style={{ background: '#0f1a2e', border: '1px solid #1e3a5f', borderRadius: 12, padding: 16 }}>
-          <div style={{ color: '#60a5fa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Scenario Briefing — your answers come from here
+        <div style={{ background: 'rgba(8,17,32,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 10, padding: 16 }}>
+          <div style={{ color: C.blueL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 10 }}>
+            SCENARIO BRIEFING
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {ex.scenarioBriefing.map(fact => (
               <div key={fact.label} style={{ display: 'flex', gap: 10, fontSize: 13, lineHeight: 1.5 }}>
-                <span style={{ color: '#93c5fd', fontWeight: 600, minWidth: 160, flexShrink: 0 }}>{fact.label}:</span>
-                <span style={{ color: '#dde4f0' }}>{fact.value}</span>
+                <span style={{ color: C.blueXL, fontWeight: 600, minWidth: 160, flexShrink: 0 }}>{fact.label}:</span>
+                <span style={{ color: C.text }}>{fact.value}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div style={{ background: transmissionBg, border: `1px solid ${transmissionBorder}`, borderRadius: 12, padding: 16 }}>
-        <div style={{ color: transmissionColor, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-          {ex.id === 're4' ? 'Incoming Operator' : 'ATC Transmission'} — {ex.title}
+      <div style={{ background: txBg, border: `1px solid ${txBorder}`, borderRadius: 10, padding: 14 }}>
+        <div style={{ color: txColor, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
+          {ex.id === 're4' ? 'INCOMING OPERATOR' : 'INCOMING TRANSMISSION'} — {ex.title.toUpperCase()}
         </div>
-        <div style={{ color: '#dde4f0', fontSize: 14, lineHeight: 1.65, fontStyle: 'italic' }}>
+        <div style={{ color: C.text, fontSize: 14, lineHeight: 1.65, fontStyle: 'italic' }}>
           "{ex.atcTransmission}"
         </div>
       </div>
 
-      <div style={{ background: '#0d120d', border: '1px solid #1a2e1a', borderRadius: 10, padding: '10px 14px' }}>
-        <div style={{ color: '#4ade80', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-          Response template — fill in the blanks below
+      <div style={{ background: 'rgba(10,18,12,0.9)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+        <div style={{ color: C.greenL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 4 }}>
+          RESPONSE TEMPLATE
         </div>
         <div style={{ color: '#86efac', fontSize: 12, lineHeight: 1.7, fontFamily: 'monospace' }}>{ex.template}</div>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ color: C.dim, fontSize: 12 }}>
-            Compose your <strong style={{ color: C.text }}>{ex.title.toLowerCase()}</strong> as{' '}
-            <strong style={{ color: C.text }}>{ex.callsign}</strong>:
+          <div style={{ color: C.dimM, fontSize: 12 }}>
+            Compose as <strong style={{ color: C.text }}>{ex.callsign}</strong>:
           </div>
           {!revealed && (
             <button onClick={() => setShowSourceHints(v => !v)} style={{
-              background: 'transparent', border: '1px solid #3d2e05', borderRadius: 6,
-              padding: '4px 10px', color: '#fbbf24', fontSize: 11, cursor: 'pointer',
-              touchAction: 'manipulation', flexShrink: 0, marginLeft: 12,
+              background: 'transparent', border: `1px solid rgba(217,119,6,0.3)`, borderRadius: 6,
+              padding: '4px 10px', color: C.amberL, fontSize: 10, cursor: 'pointer',
+              touchAction: 'manipulation', flexShrink: 0, marginLeft: 12, fontFamily: 'monospace',
             }}>
-              {showSourceHints ? 'Hide hints' : 'Where do I find this?'}
+              {showSourceHints ? 'HIDE HINTS' : 'WHERE DO I FIND THIS?'}
             </button>
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {ex.blanks.map((blank, i) => (
             <div key={i}>
-              <label style={{ color: C.dim, fontSize: 11, display: 'block', marginBottom: 3 }}>
-                {ex.hints[i]}
+              <label style={{ color: C.dim, fontSize: 11, display: 'block', marginBottom: 3, fontFamily: 'monospace' }}>
+                {ex.hints[i].toUpperCase()}
               </label>
               {showSourceHints && !revealed && (
-                <div style={{ color: '#fbbf24', fontSize: 11, marginBottom: 4, fontStyle: 'italic' }}>
-                  → {ex.sourceHints[i]}
+                <div style={{ color: C.amberL, fontSize: 11, marginBottom: 4, fontStyle: 'italic' }}>
+                  — {ex.sourceHints[i]}
                 </div>
               )}
               <input
@@ -1468,18 +1491,18 @@ function ATCCommunicationCore({ exercises, questions, onComplete }: {
                 style={{
                   width: '100%',
                   background: revealed
-                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? '#0f1a0f' : '#1a0505'
+                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? 'rgba(22,163,74,0.1)' : 'rgba(127,29,29,0.1)'
                     : C.bg,
                   border: `1px solid ${revealed
-                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? '#1a3a1a' : '#3a0505'
+                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? 'rgba(22,163,74,0.4)' : 'rgba(220,38,38,0.3)'
                     : C.border}`,
-                  borderRadius: 8, color: C.text, padding: '10px 12px',
+                  borderRadius: 7, color: C.text, padding: '10px 12px',
                   fontSize: 14, outline: 'none', boxSizing: 'border-box', touchAction: 'manipulation',
                 }}
               />
               {revealed && (
-                <div style={{ color: C.dim, fontSize: 11, marginTop: 3 }}>
-                  Expected: <span style={{ color: C.green }}>{blank}</span>
+                <div style={{ color: C.dim, fontSize: 11, marginTop: 3, fontFamily: 'monospace' }}>
+                  EXPECTED: <span style={{ color: C.greenL }}>{blank}</span>
                 </div>
               )}
             </div>
@@ -1488,29 +1511,31 @@ function ATCCommunicationCore({ exercises, questions, onComplete }: {
       </div>
 
       {revealed && (
-        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: 14 }}>
-          <div style={{ color: C.green, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>BRIEFING</div>
-          <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.6 }}>{ex.explanation}</div>
+        <div style={{ background: 'rgba(10,18,12,0.9)', border: `1px solid rgba(22,163,74,0.2)`, borderRadius: 10, padding: 14 }}>
+          <div style={{ color: C.greenL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>BRIEFING</div>
+          <div style={{ color: C.dimM, fontSize: 13, lineHeight: 1.6 }}>{ex.explanation}</div>
         </div>
       )}
 
       {!revealed ? (
         <button onClick={confirm} disabled={inputs.some(v => !v?.trim())} style={{
-          background: inputs.some(v => !v?.trim()) ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+          background: inputs.some(v => !v?.trim()) ? C.card : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
           color: inputs.some(v => !v?.trim()) ? C.dim : 'white',
-          border: 'none', borderRadius: 12, padding: '14px',
+          border: `1px solid ${inputs.some(v => !v?.trim()) ? C.border : C.action}`,
+          borderRadius: 10, padding: '13px',
           cursor: inputs.some(v => !v?.trim()) ? 'not-allowed' : 'pointer',
-          fontWeight: 700, fontSize: 14, touchAction: 'manipulation',
+          fontWeight: 700, fontSize: 13, touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
         }}>
-          Submit Response
+          SUBMIT RESPONSE
         </button>
       ) : (
         <button onClick={next} style={{
-          background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-          color: 'white', border: 'none', borderRadius: 12, padding: '14px',
-          cursor: 'pointer', fontWeight: 700, fontSize: 14, touchAction: 'manipulation',
+          background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: 'white', border: 'none', borderRadius: 10, padding: '13px',
+          cursor: 'pointer', fontWeight: 700, fontSize: 13,
+          touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
         }}>
-          {isLast ? 'Complete Mission →' : 'Next Exercise →'}
+          {isLast ? 'COMPLETE MISSION' : 'NEXT EXERCISE'}
         </button>
       )}
     </div>
