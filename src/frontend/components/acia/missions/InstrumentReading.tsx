@@ -1,5 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M5_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'interpretation',
+    prompt: 'When you looked at the instrument readings, how did you decide what was normal and what wasn\'t? What were you looking for?',
+    placeholder: 'Describe how you interpreted what you saw…',
+  },
+  {
+    id: 'ambiguity',
+    prompt: 'Were any readings unclear or harder to interpret than others? How did you approach that uncertainty?',
+    placeholder: 'Describe a reading you found less clear and how you reasoned through it…',
+  },
+  {
+    id: 'priority',
+    prompt: 'If you had to act on one of those readings right now, which would it be and why?',
+    placeholder: 'Which instrument reading felt most important to you and why…',
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -190,10 +209,28 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
   const [startTime] = useState(Date.now());
 
   const q = questions[current];
   const isLast = current === questions.length - 1;
+
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Instrument Reading — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>You've worked through the instrument readings. Reflect on how you interpreted what you saw.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M5_REASONING_QUESTIONS}
+          storageKey="acia_m5_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
+  }
 
   function selectAnswer(idx: number) {
     if (revealed) return;
@@ -225,7 +262,10 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
         { key: 'safety_mindset', delta: safetyScore * 0.9 },
       ];
       if (elapsed < 240) evidence.push({ key: 'systematic_reasoning', delta: 0.55 });
-      onComplete(evidence);
+      pendingEvidence.current = evidence;
+      setAnswers(newAnswers);
+      setShowReasoning(true);
+      return;
     } else {
       setAnswers(newAnswers);
       setCurrent(c => c + 1);

@@ -1,5 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M8_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'prioritization',
+    prompt: 'When everything seemed equally urgent, how did you decide what to tackle first? What was your thinking?',
+    placeholder: 'Describe how you worked out what mattered most…',
+  },
+  {
+    id: 'falling_behind',
+    prompt: 'Was there a point in those scenarios where you felt like things were piling up faster than you could handle them? What would you do in that situation?',
+    placeholder: 'Describe how you would respond when you recognize you\'re falling behind…',
+  },
+  {
+    id: 'support',
+    prompt: 'In a real situation like that, when would you ask for help — and who would you ask?',
+    placeholder: 'Reflect on when and how you would seek support or escalate…',
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -129,6 +148,8 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
   const [submitted, setSubmitted] = useState(false);
   const [startTime] = useState(Date.now());
   const [round1Score, setRound1Score] = useState<{ normalised: number; top3Correct: number } | null>(null);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
 
   const currentRound = rounds[round];
 
@@ -189,7 +210,8 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
         { key: 'systematic_reasoning', delta: r2.normalised > 0.65 ? 0.7 : 0.35 },
       ];
 
-      setTimeout(() => onComplete(evidence), 3200);
+      pendingEvidence.current = evidence;
+      setTimeout(() => setShowReasoning(true), 1200);
     }
   }
 
@@ -199,6 +221,22 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
     setSubmitted(false);
     setDragging(null);
     setDragOver(null);
+  }
+
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#86efac', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Workload Management — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>You've ranked priorities across two demanding scenarios. Take a moment to reflect on how you approached them.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M8_REASONING_QUESTIONS}
+          storageKey="acia_m8_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
   }
 
   const correctOrder = currentRound.correctOrder;

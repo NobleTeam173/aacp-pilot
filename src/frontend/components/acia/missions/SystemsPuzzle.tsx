@@ -1,5 +1,24 @@
 import { useState } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M4_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'relationships',
+    prompt: 'Looking at the components you just classified — were there any where you weren\'t sure which category they belonged to? What made those uncertain?',
+    placeholder: 'Describe a component you were unsure about and how you reasoned through it…',
+  },
+  {
+    id: 'approach',
+    prompt: 'When you encountered something unfamiliar, how did you decide where it belonged? Walk me through your thinking.',
+    placeholder: 'Describe your approach when something was unclear…',
+  },
+  {
+    id: 'reflection',
+    prompt: 'If you were learning about one of these systems in more depth, which would you want to explore and why?',
+    placeholder: 'Which system caught your interest and what draws you to it…',
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -96,6 +115,8 @@ function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComp
   const [selected, setSelected] = useState<string | null>(null); // tap-to-place selection
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [pendingEvidence, setPendingEvidence] = useState<Omit<EvidenceItem, 'mission'>[]>([]);
   const [startTime] = useState(Date.now());
 
   const placed = new Set(Object.values(placements).flat());
@@ -177,10 +198,11 @@ function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComp
     ];
     if (elapsed < 150) evidence.push({ key: 'multitasking_ability', delta: 0.45 });
 
-    setTimeout(() => onComplete(evidence), 2000);
+    setPendingEvidence(evidence);
+    setShowReasoning(true);
   }
 
-  if (done) {
+  if (done && showReasoning) {
     let correct = 0;
     let total = 0;
     for (const [cat, ids] of Object.entries(placements)) {
@@ -191,13 +213,28 @@ function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComp
       }
     }
     return (
-      <div style={{ padding: 20, textAlign: 'center' }}>
-        <div style={{ color: C.green, fontSize: 40, marginBottom: 16 }}>✓</div>
-        <div style={{ color: C.white, fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Classification Complete</div>
-        <div style={{ color: C.grey, fontSize: 14, marginBottom: 20 }}>
-          {correct}/{total} components correctly categorised.
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: C.green, fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+            Systems Classification — {correct}/{total} correct
+          </div>
+          <div style={{ color: C.grey, fontSize: 13 }}>
+            You've categorised the components. Take a moment to reflect on your approach.
+          </div>
         </div>
-        <div style={{ color: C.grey, fontSize: 13 }}>Advancing to next mission…</div>
+        <MissionReasoningResponse
+          questions={M4_REASONING_QUESTIONS}
+          storageKey="acia_m4_reasoning"
+          onComplete={() => onComplete(pendingEvidence)}
+        />
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        <div style={{ color: C.grey, fontSize: 13 }}>Advancing…</div>
       </div>
     );
   }

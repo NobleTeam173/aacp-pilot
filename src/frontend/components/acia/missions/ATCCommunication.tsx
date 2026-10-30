@@ -1,5 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M7_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'clarity',
+    prompt: 'In the communication exercises you just completed, what made some transmissions harder to compose than others? What did you find yourself paying attention to?',
+    placeholder: 'Describe what you noticed about how information needs to be communicated clearly…',
+  },
+  {
+    id: 'verification',
+    prompt: 'If something in a transmission was unclear or you weren\'t sure you heard correctly, what would you do? What\'s your instinct?',
+    placeholder: 'Describe how you would handle uncertainty in a communication exchange…',
+  },
+  {
+    id: 'teamwork',
+    prompt: 'These exercises involved passing information between people in time-pressured situations. What did that make you think about how teams need to communicate?',
+    placeholder: 'Reflect on what you noticed about information transfer and coordination…',
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -247,6 +266,8 @@ function ATCCommunicationCore({ exercises, onComplete }: { exercises: Communicat
   const [revealed, setRevealed] = useState(false);
   const [showSourceHints, setShowSourceHints] = useState(false);
   const [allScores, setAllScores] = useState<number[]>([]);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
 
   const ex = exercises[exIdx];
   const isLast = exIdx === exercises.length - 1;
@@ -291,13 +312,30 @@ function ATCCommunicationCore({ exercises, onComplete }: { exercises: Communicat
         { key: 'stress_response', delta: emergencyScore > 0.7 ? 0.7 : 0.35 },
         { key: 'systematic_reasoning', delta: handoverScore > 0.7 ? 0.65 : 0.3 },
       ];
-      onComplete(evidence);
+      pendingEvidence.current = evidence;
+      setShowReasoning(true);
     } else {
       setExIdx(i => i + 1);
       setInputs([]);
       setRevealed(false);
       setShowSourceHints(false);
     }
+  }
+
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Air Navigation Communication — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>You've completed all four communication exercises. Reflect on how information moves between people in operational environments.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M7_REASONING_QUESTIONS}
+          storageKey="acia_m7_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
   }
 
   const transmissionColor = ex.id === 'e3' ? '#ef4444' : ex.id === 'e4' ? '#a855f7' : '#60a5fa';
