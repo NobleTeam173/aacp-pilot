@@ -1558,7 +1558,7 @@ function AdminManagementPanel() {
   );
 }
 
-type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'acia_commercial' | 'handoffs' | 'eoi';
+type AdminTab = 'approvals' | 'questions' | 'organizations' | 'coaches' | 'audit' | 'admins' | 'pilot' | 'participants' | 'waitlist' | 'acia_integrity' | 'acia_commercial' | 'handoffs' | 'eoi' | 'network';
 
 // ── AACP Waitlist Panel (Admin view) ──────────────────────────────────────────
 
@@ -3787,6 +3787,7 @@ export function AdminDashboard() {
           { key: 'acia_integrity', label: 'ACIA Integrity' },
           { key: 'acia_commercial', label: 'Commercial ACIA' },
           { key: 'eoi', label: 'Expressions of Interest' },
+          { key: 'network', label: 'Industry Network' },
           { key: 'pilot', label: 'Pilot Access' },
           { key: 'audit', label: 'Audit Log' },
           { key: 'questions', label: 'Question Bank' },
@@ -3818,6 +3819,7 @@ export function AdminDashboard() {
       {adminTab === 'acia_integrity'  && <ACIAIntegrityPanel />}
       {adminTab === 'acia_commercial' && <CommercialAciaPanel />}
       {adminTab === 'eoi'             && <EoiAdminPanel />}
+      {adminTab === 'network'        && <NetworkAdminPanel />}
       {adminTab === 'pilot'          && <PilotAccessPanel />}
       {adminTab === 'audit'          && <AuditLogPanel />}
       {adminTab === 'admins'         && isSuperAdmin && <AdminManagementPanel />}
@@ -4900,6 +4902,213 @@ function EoiPartnersPanel() {
               )}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── FAWN — Network Admin Panel ────────────────────────────────────────────────
+
+const NETWORK_ORG_TYPES_LIST = ['Airline & Operator','Airport Authority','MRO / Maintenance','Flight Training Unit','Aviation Academy','Aerospace Manufacturer','Defence & Space','RPAS / Autonomous Aviation','Aviation Technology','Industry Association','Government / Regulatory Authority','Post-Secondary Institution','Other'];
+const NETWORK_ROLES_LIST = ['network_member','organization_admin','aacp_industry_partner'];
+
+type NetAdminTab = 'invitations' | 'organizations' | 'members';
+
+interface NetInvitation { id: number; email: string; role: string; org_name: string | null; status: string; expires_at: string; created_at: string }
+interface NetOrg { id: number; name: string; org_type: string; description: string | null; website: string | null; location: string | null; is_founding_member: number; is_verified: number; member_count: number; status: string }
+interface NetMember { id: string; first_name: string; last_name: string; email: string; role: string; network_status: string | null; org_name: string | null; created_at: string }
+
+export function NetworkAdminPanel() {
+  const [tab, setTab] = useState<NetAdminTab>('invitations');
+  const [invitations, setInvitations] = useState<NetInvitation[]>([]);
+  const [orgs, setOrgs] = useState<NetOrg[]>([]);
+  const [members, setMembers] = useState<NetMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  const [invEmail, setInvEmail] = useState('');
+  const [invRole, setInvRole] = useState('network_member');
+  const [invOrgId, setInvOrgId] = useState('');
+  const [invSending, setInvSending] = useState(false);
+
+  const [orgName, setOrgName] = useState('');
+  const [orgType, setOrgType] = useState('Airline & Operator');
+  const [orgDesc, setOrgDesc] = useState('');
+  const [orgSaving, setOrgSaving] = useState(false);
+
+  function showToast(msg: string, ok = true) { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); }
+
+  async function loadNetTab(t: NetAdminTab) {
+    setLoading(true);
+    try {
+      if (t === 'invitations') {
+        const d = await apiFetch<{ invitations: NetInvitation[] }>('/admin/network/invitations');
+        setInvitations(d.invitations);
+        if (orgs.length === 0) {
+          const od = await apiFetch<{ organizations: NetOrg[] }>('/admin/network/organizations');
+          setOrgs(od.organizations);
+        }
+      } else if (t === 'organizations') {
+        const d = await apiFetch<{ organizations: NetOrg[] }>('/admin/network/organizations');
+        setOrgs(d.organizations);
+      } else if (t === 'members') {
+        const d = await apiFetch<{ members: NetMember[] }>('/admin/network/members');
+        setMembers(d.members);
+      }
+    } catch (e) { showToast(e instanceof Error ? e.message : 'Load failed', false); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadNetTab(tab); }, [tab]);
+
+  async function sendInvite(e: React.FormEvent) {
+    e.preventDefault(); setInvSending(true);
+    try {
+      await apiFetch('/admin/network/invitations', { method: 'POST', body: JSON.stringify({ email: invEmail, role: invRole, orgId: invOrgId ? Number(invOrgId) : undefined }) });
+      showToast('Invitation sent');
+      setInvEmail(''); setInvOrgId('');
+      loadNetTab('invitations');
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+    finally { setInvSending(false); }
+  }
+
+  async function revokeInvite(id: number) {
+    try {
+      await apiFetch(`/admin/network/invitations/${id}/revoke`, { method: 'PUT', body: '{}' });
+      showToast('Invitation revoked');
+      setInvitations(prev => prev.map(i => i.id === id ? { ...i, status: 'revoked' } : i));
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+  }
+
+  async function createOrg(e: React.FormEvent) {
+    e.preventDefault(); setOrgSaving(true);
+    try {
+      await apiFetch('/admin/network/organizations', { method: 'POST', body: JSON.stringify({ name: orgName, orgType, description: orgDesc || undefined }) });
+      showToast('Organization created');
+      setOrgName(''); setOrgDesc('');
+      loadNetTab('organizations');
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+    finally { setOrgSaving(false); }
+  }
+
+  async function verifyOrg(id: number) {
+    try {
+      await apiFetch(`/admin/network/organizations/${id}/verify`, { method: 'PUT', body: '{}' });
+      showToast('Organization verified');
+      setOrgs(prev => prev.map(o => o.id === id ? { ...o, is_verified: 1 } : o));
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+  }
+
+  async function toggleFoundingMember(id: number, current: number) {
+    try {
+      await apiFetch(`/admin/network/organizations/${id}/founding-member`, { method: 'PUT', body: '{}' });
+      setOrgs(prev => prev.map(o => o.id === id ? { ...o, is_founding_member: current ? 0 : 1 } : o));
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+  }
+
+  async function toggleMemberStatus(id: string, current: string | null) {
+    const newStatus = current === 'suspended' ? 'active' : 'suspended';
+    try {
+      await apiFetch(`/admin/network/members/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+      setMembers(prev => prev.map(m => m.id === id ? { ...m, network_status: newStatus } : m));
+      showToast(`Member ${newStatus}`);
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed', false); }
+  }
+
+  const ROLE_LABELS: Record<string, string> = { network_member: 'Member', organization_admin: 'Org Admin', aacp_industry_partner: 'Industry Partner' };
+  const inp: React.CSSProperties = { padding: '8px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: C.bgCard, color: C.white, fontSize: 13, width: '100%', boxSizing: 'border-box' };
+
+  return (
+    <div>
+      {toast && <div style={{ position: 'fixed', bottom: 24, right: 24, background: toast.ok ? '#166534' : '#7f1d1d', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>{toast.msg}</div>}
+      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
+        {(['invitations','organizations','members'] as NetAdminTab[]).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 18px', fontSize: 13, fontWeight: 600, color: tab === t ? C.white : C.greyD, borderBottom: `2px solid ${tab === t ? C.crimson : 'transparent'}`, marginBottom: -1 }}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {loading && <div style={{ color: C.greyD, fontSize: 13, padding: '20px 0' }}>Loading…</div>}
+
+      {tab === 'invitations' && !loading && (
+        <div>
+          <form onSubmit={sendInvite} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 24, alignItems: 'end' }}>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Email</label><input required type="email" value={invEmail} onChange={e => setInvEmail(e.target.value)} style={inp} /></div>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Role</label><select value={invRole} onChange={e => setInvRole(e.target.value)} style={inp}>{NETWORK_ROLES_LIST.map(r => <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>)}</select></div>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Organization</label><select value={invOrgId} onChange={e => setInvOrgId(e.target.value)} style={inp}><option value="">— None —</option>{orgs.map(o => <option key={o.id} value={String(o.id)}>{o.name}</option>)}</select></div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}><button type="submit" disabled={invSending} style={{ background: C.crimson, color: C.white, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }}>{invSending ? 'Sending…' : 'Send Invitation'}</button></div>
+          </form>
+          {invitations.length === 0 ? <div style={{ color: C.greyD, fontSize: 14 }}>No invitations yet.</div> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr>{['Email','Role','Organization','Status','Expires','Sent'].map(h => <th key={h} style={{ textAlign: 'left', color: C.greyD, fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</th>)}<th /></tr></thead>
+                <tbody>{invitations.map(inv => (
+                  <tr key={inv.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '10px 10px', color: C.white }}>{inv.email}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{ROLE_LABELS[inv.role] ?? inv.role}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{inv.org_name ?? '—'}</td>
+                    <td style={{ padding: '10px 10px' }}><span style={{ background: inv.status === 'accepted' ? '#166534' : inv.status === 'revoked' ? '#7f1d1d' : '#78350f', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>{inv.status}</span></td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{new Date(inv.expires_at).toLocaleDateString('en-CA')}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{new Date(inv.created_at).toLocaleDateString('en-CA')}</td>
+                    <td style={{ padding: '10px 10px' }}>{inv.status === 'pending' && <button onClick={() => revokeInvite(inv.id)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Revoke</button>}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'organizations' && !loading && (
+        <div>
+          <form onSubmit={createOrg} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 24, alignItems: 'end' }}>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Name</label><input required value={orgName} onChange={e => setOrgName(e.target.value)} style={inp} /></div>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Type</label><select value={orgType} onChange={e => setOrgType(e.target.value)} style={inp}>{NETWORK_ORG_TYPES_LIST.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div><label style={{ fontSize: 11, color: C.greyD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Description</label><input value={orgDesc} onChange={e => setOrgDesc(e.target.value)} style={inp} /></div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}><button type="submit" disabled={orgSaving} style={{ background: C.crimson, color: C.white, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }}>{orgSaving ? 'Creating…' : 'Create'}</button></div>
+          </form>
+          {orgs.length === 0 ? <div style={{ color: C.greyD, fontSize: 14 }}>No organizations yet.</div> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr>{['Name','Type','Members','Verified','Founding'].map(h => <th key={h} style={{ textAlign: 'left', color: C.greyD, fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</th>)}<th /></tr></thead>
+                <tbody>{orgs.map(o => (
+                  <tr key={o.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '10px 10px', color: C.white, fontWeight: 600 }}>{o.name}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{o.org_type}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{o.member_count}</td>
+                    <td style={{ padding: '10px 10px' }}>{o.is_verified ? <span style={{ color: '#34d399', fontSize: 12 }}>✓ Verified</span> : <button onClick={() => verifyOrg(o.id)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 5, padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}>Verify</button>}</td>
+                    <td style={{ padding: '10px 10px' }}><button onClick={() => toggleFoundingMember(o.id, o.is_founding_member)} style={{ background: 'none', border: `1px solid ${C.border}`, color: o.is_founding_member ? '#f59e0b' : C.greyD, borderRadius: 5, padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}>{o.is_founding_member ? 'Founding ★' : 'Set Founding'}</button></td>
+                    <td />
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'members' && !loading && (
+        <div>
+          {members.length === 0 ? <div style={{ color: C.greyD, fontSize: 14 }}>No network members yet.</div> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr>{['Name','Email','Role','Organization','Status','Joined'].map(h => <th key={h} style={{ textAlign: 'left', color: C.greyD, fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</th>)}<th /></tr></thead>
+                <tbody>{members.map(m => (
+                  <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '10px 10px', color: C.white }}>{m.first_name} {m.last_name}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{m.email}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{ROLE_LABELS[m.role] ?? m.role}</td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{m.org_name ?? '—'}</td>
+                    <td style={{ padding: '10px 10px' }}><span style={{ background: m.network_status === 'suspended' ? '#7f1d1d' : '#166534', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>{m.network_status === 'suspended' ? 'Suspended' : 'Active'}</span></td>
+                    <td style={{ padding: '10px 10px', color: C.greyD }}>{new Date(m.created_at).toLocaleDateString('en-CA')}</td>
+                    <td style={{ padding: '10px 10px' }}><button onClick={() => toggleMemberStatus(m.id, m.network_status)} style={{ background: 'none', border: `1px solid ${C.border}`, color: C.greyD, borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>{m.network_status === 'suspended' ? 'Activate' : 'Suspend'}</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

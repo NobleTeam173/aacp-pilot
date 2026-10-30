@@ -3343,6 +3343,159 @@ async function handleAdminNetworkMemberStatusUpdate(request, user, env) {
   return json({ success: true });
 }
 
+// ── FAWN — Member-facing routes ──────────────────────────────────────────────
+
+// GET /network/profile
+async function handleNetworkProfile(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const row = await env.DB.prepare(`
+    SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.network_status,
+           no.id as org_id, no.name as org_name, no.org_type,
+           nom.role as member_role
+    FROM users u
+    LEFT JOIN network_org_memberships nom ON nom.user_id = u.id
+    LEFT JOIN network_organizations no ON no.id = nom.org_id
+    WHERE u.id = ?
+  `).bind(user.id).first();
+  if (!row) return err('User not found', 404);
+  return json({
+    user: { id: row.id, firstName: row.first_name, lastName: row.last_name, email: row.email, role: row.role, networkStatus: row.network_status },
+    org: row.org_id ? { id: row.org_id, name: row.org_name, orgType: row.org_type, memberRole: row.member_role } : null,
+  });
+}
+
+// GET /network/feed
+async function handleNetworkFeed(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const subs = await env.DB.prepare(`SELECT topic FROM network_subscriptions WHERE user_id = ?`).bind(user.id).all();
+  const topics = subs.results?.map(r => r.topic) ?? [];
+  const hasTopics = topics.length > 0;
+  const topicClause = hasTopics ? `AND ni.topic IN (${topics.map(() => '?').join(',')})` : '';
+  const topicClause2 = hasTopics ? `AND nu.topic IN (${topics.map(() => '?').join(',')})` : '';
+  const binds = hasTopics ? [...topics, ...topics] : [];
+  const rows = await env.DB.prepare(`
+    SELECT 'insight' as type, ni.id, ni.title, ni.body, ni.topic, ni.created_at,
+           no.name as org_name
+    FROM network_insights ni
+    JOIN network_organizations no ON no.id = ni.org_id
+    WHERE ni.is_published = 1 ${topicClause}
+    UNION ALL
+    SELECT 'update' as type, nu.id, nu.topic as title, nu.body, nu.topic, nu.created_at,
+           no.name as org_name
+    FROM network_updates nu
+    JOIN network_organizations no ON no.id = nu.org_id
+    WHERE nu.is_published = 1 ${topicClause2}
+    ORDER BY created_at DESC LIMIT 20
+  `).bind(...binds).all();
+  return json({ items: rows.results ?? [] });
+}
+
+// GET /network/organizations
+async function handleNetworkOrganizations(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.name, no.org_type, no.description, no.website, no.location,
+           no.is_founding_member, COUNT(nom.id) as member_count
+    FROM network_organizations no
+    LEFT JOIN network_org_memberships nom ON nom.org_id = no.id
+    WHERE no.is_verified = 1 AND no.status = 'active'
+    GROUP BY no.id ORDER BY no.is_founding_member DESC, no.name ASC
+  `).all();
+  return json({ organizations: rows.results ?? [] });
+}
+
+// GET /network/opportunities
+async function handleNetworkOpportunities(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.title, no.description, no.opportunity_type, no.created_at,
+           norg.name as org_name,
+           EXISTS(SELECT 1 FROM network_expressions_of_interest WHERE opportunity_id = no.id AND user_id = ?) as expressed_interest
+    FROM network_opportunities no
+    JOIN network_organizations norg ON norg.id = no.org_id
+    WHERE no.is_open = 1 ORDER BY no.created_at DESC
+  `).bind(user.id).all();
+  return json({ opportunities: rows.results ?? [] });
+}
+
+// POST /network/opportunities/:id/express-interest
+async function handleNetworkExpressInterest(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/opportunities\/(\d+)\/express-interest/)?.[1];
+  if (!id) return err('Invalid opportunity id', 400);
+  let body; try { body = await request.json(); } catch { body = {}; }
+  const { message } = body ?? {};
+  await env.DB.prepare(`INSERT OR IGNORE INTO network_expressions_of_interest (opportunity_id, user_id, message) VALUES (?, ?, ?)`).bind(id, user.id, message ?? null).run();
+  await audit(env.DB, 'network_interest_expressed', user.id, 'opportunity', id, {});
+  return json({ success: true });
+}
+
+// GET /network/events
+async function handleNetworkEvents(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT ne.id, ne.title, ne.description, ne.event_date, ne.location, ne.is_virtual,
+           norg.name as org_name,
+           EXISTS(SELECT 1 FROM network_event_registrations WHERE event_id = ne.id AND user_id = ?) as registered
+    FROM network_events ne
+    JOIN network_organizations norg ON norg.id = ne.org_id
+    WHERE ne.is_published = 1 AND ne.event_date >= date('now')
+    ORDER BY ne.event_date ASC
+  `).bind(user.id).all();
+  return json({ events: rows.results ?? [] });
+}
+
+// POST /network/events/:id/register
+async function handleNetworkEventRegister(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/events\/(\d+)\/register/)?.[1];
+  if (!id) return err('Invalid event id', 400);
+  await env.DB.prepare(`INSERT OR IGNORE INTO network_event_registrations (event_id, user_id) VALUES (?, ?)`).bind(id, user.id).run();
+  await audit(env.DB, 'network_event_registered', user.id, 'event', id, {});
+  return json({ success: true });
+}
+
+// GET /network/subscriptions
+async function handleNetworkSubscriptionsGet(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`SELECT topic FROM network_subscriptions WHERE user_id = ?`).bind(user.id).all();
+  return json({ topics: (rows.results ?? []).map(r => r.topic) });
+}
+
+// PUT /network/subscriptions
+async function handleNetworkSubscriptions(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  let body; try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { topics } = body ?? {};
+  if (!Array.isArray(topics)) return err('topics must be an array', 400);
+  const validTopics = topics.filter(t => NETWORK_TOPICS.includes(t));
+  await env.DB.prepare(`DELETE FROM network_subscriptions WHERE user_id = ?`).bind(user.id).run();
+  for (const topic of validTopics) {
+    await env.DB.prepare(`INSERT INTO network_subscriptions (user_id, topic) VALUES (?, ?)`).bind(user.id, topic).run();
+  }
+  return json({ success: true });
+}
+
+// GET /network/notifications
+async function handleNetworkNotifications(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT id, type, payload, is_read, created_at
+    FROM network_notifications WHERE user_id = ?
+    ORDER BY created_at DESC LIMIT 50
+  `).bind(user.id).all();
+  return json({ notifications: rows.results ?? [] });
+}
+
+// PUT /network/notifications/:id/read
+async function handleNetworkNotificationRead(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/notifications\/(\d+)\/read/)?.[1];
+  if (!id) return err('Invalid notification id', 400);
+  await env.DB.prepare(`UPDATE network_notifications SET is_read = 1 WHERE id = ? AND user_id = ?`).bind(id, user.id).run();
+  return json({ success: true });
+}
+
 // ── RPAS Hub invite email ─────────────────────────────────────────────────────
 async function emailRpasHubInvite(env, { name, email, token, expiresAt }) {
   const inviteUrl = `${PLATFORM_URL}?rpas_invite=${token}`;
@@ -14840,6 +14993,18 @@ async function _routeRequest(request, env, ctx) {
     // Public (no JWT)
     if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'GET')  return handleNetworkInviteGet(request, env);
     if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'POST') return handleNetworkInviteAccept(request, env);
+    // Member-facing (requires network role JWT)
+    if (path === '/network/profile'                                                     && request.method === 'GET')  return handleNetworkProfile(request, user, env);
+    if (path === '/network/feed'                                                        && request.method === 'GET')  return handleNetworkFeed(request, user, env);
+    if (path === '/network/organizations'                                               && request.method === 'GET')  return handleNetworkOrganizations(request, user, env);
+    if (path === '/network/opportunities'                                               && request.method === 'GET')  return handleNetworkOpportunities(request, user, env);
+    if (path.match(/^\/network\/opportunities\/\d+\/express-interest$/)                && request.method === 'POST') return handleNetworkExpressInterest(request, user, env);
+    if (path === '/network/events'                                                      && request.method === 'GET')  return handleNetworkEvents(request, user, env);
+    if (path.match(/^\/network\/events\/\d+\/register$/)                               && request.method === 'POST') return handleNetworkEventRegister(request, user, env);
+    if (path === '/network/subscriptions'                                               && request.method === 'GET')  return handleNetworkSubscriptionsGet(request, user, env);
+    if (path === '/network/subscriptions'                                               && request.method === 'PUT')  return handleNetworkSubscriptions(request, user, env);
+    if (path === '/network/notifications'                                               && request.method === 'GET')  return handleNetworkNotifications(request, user, env);
+    if (path.match(/^\/network\/notifications\/\d+\/read$/)                            && request.method === 'PUT')  return handleNetworkNotificationRead(request, user, env);
     // Admin-only
     if (path === '/admin/network/invitations'               && request.method === 'GET')  return handleAdminNetworkInvitationsList(request, user, env);
     if (path === '/admin/network/invitations'               && request.method === 'POST') return handleAdminNetworkInvitationCreate(request, user, env);

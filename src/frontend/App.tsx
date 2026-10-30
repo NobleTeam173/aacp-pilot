@@ -3,7 +3,7 @@ import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
 import { RpasHubDashboard } from './components/rpas/RpasHubDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
-import { AdminDashboard, RpasHubAdminPanel } from './components/dashboard/AdminDashboard';
+import { AdminDashboard, RpasHubAdminPanel, NetworkAdminPanel } from './components/dashboard/AdminDashboard';
 import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
 import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
@@ -918,18 +918,324 @@ function NetworkComingSoon() {
 
 // ── FAWN — Network Dashboard (Phase 2 will implement the full shell) ──────────
 
-function NetworkDashboard() {
+// ── FAWN — Network Dashboard ──────────────────────────────────────────────────
+
+const NETWORK_TOPICS_LIST = [
+  'Workforce Supply','Workforce Demand','Skills & Competency','Training & Education',
+  'Regulatory Environment','Technology & Innovation','RPAS & Autonomous Aviation',
+  'Diversity & Inclusion','Industry Outlook','AACP Program News',
+];
+
+type NetworkTab = 'feed' | 'opportunities' | 'events' | 'profile';
+
+interface NetProfile { user: { firstName: string; lastName: string; email: string; role: string }; org: { id: number; name: string; orgType: string; memberRole: string } | null }
+interface FeedItem { type: string; id: number; title: string; body: string; topic: string; org_name: string; created_at: string }
+interface Opportunity { id: number; title: string; description: string; opportunity_type: string; created_at: string; org_name: string; expressed_interest: number }
+interface NetworkEvent { id: number; title: string; description: string; event_date: string; location: string | null; is_virtual: number; org_name: string; registered: number }
+
+function netFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
+  return fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers as Record<string,string> ?? {}) },
+  }).then(async r => {
+    const d = await r.json();
+    if (!r.ok) throw new Error((d as { error?: string }).error ?? 'Request failed');
+    return d as T;
+  });
+}
+
+function TopicBadge({ topic }: { topic: string }) {
   return (
-    <div style={{ padding: '48px 32px', maxWidth: 680 }}>
-      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 10 }}>
-        Industry Network
+    <span style={{ background: '#2a0d14', border: '1px solid #3d1020', color: '#c4b5c0', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      {topic}
+    </span>
+  );
+}
+
+function EmptyState({ msg }: { msg: string }) {
+  return <div style={{ color: '#94a3b8', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>{msg}</div>;
+}
+
+function NetCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '16px 20px', marginBottom: 12 }}>
+      {children}
+    </div>
+  );
+}
+
+function NetworkDashboard() {
+  const [tab, setTab] = useState<NetworkTab>('feed');
+  const [profile, setProfile] = useState<NetProfile | null>(null);
+  const [feed, setFeed] = useState<FeedItem[] | null>(null);
+  const [opps, setOpps] = useState<Opportunity[] | null>(null);
+  const [events, setEvents] = useState<NetworkEvent[] | null>(null);
+  const [subTopics, setSubTopics] = useState<string[]>([]);
+  const [loadedTabs, setLoadedTabs] = useState<Set<NetworkTab>>(new Set());
+  const [tabLoading, setTabLoading] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+  const [interestDone, setInterestDone] = useState<Set<number>>(new Set());
+  const [registeredEvts, setRegisteredEvts] = useState<Set<number>>(new Set());
+  const [subSaving, setSubSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  useEffect(() => {
+    netFetch<NetProfile>('/network/profile').then(p => {
+      setProfile(p);
+    }).catch(() => {});
+    netFetch<{ notifications: { is_read: number }[] }>('/network/notifications').then(d => {
+      setNotifCount(d.notifications.filter(n => !n.is_read).length);
+    }).catch(() => {});
+  }, []);
+
+  async function loadTab(t: NetworkTab) {
+    if (loadedTabs.has(t)) return;
+    setTabLoading(true);
+    try {
+      if (t === 'feed') {
+        const d = await netFetch<{ items: FeedItem[] }>('/network/feed');
+        setFeed(d.items);
+      } else if (t === 'opportunities') {
+        const d = await netFetch<{ opportunities: Opportunity[] }>('/network/opportunities');
+        setOpps(d.opportunities);
+        setInterestDone(new Set(d.opportunities.filter(o => o.expressed_interest).map(o => o.id)));
+      } else if (t === 'events') {
+        const d = await netFetch<{ events: NetworkEvent[] }>('/network/events');
+        setEvents(d.events);
+        setRegisteredEvts(new Set(d.events.filter(e => e.registered).map(e => e.id)));
+      } else if (t === 'profile') {
+        const d = await netFetch<{ subscriptions?: string[] }>('/network/notifications').catch(() => ({ subscriptions: [] }));
+        // load current subscriptions via feed endpoint side-effect: use dedicated fetch
+        const subs = await netFetch<{ topics?: string[] }>('/network/subscriptions').catch(() => ({ topics: [] }));
+        setSubTopics(subs.topics ?? []);
+      }
+      setLoadedTabs(prev => new Set([...prev, t]));
+    } catch { /* silent */ } finally { setTabLoading(false); }
+  }
+
+  useEffect(() => { loadTab('feed'); }, []);
+
+  function switchTab(t: NetworkTab) {
+    setTab(t);
+    loadTab(t);
+  }
+
+  async function expressInterest(id: number) {
+    setInterestDone(prev => new Set([...prev, id]));
+    try {
+      await netFetch(`/network/opportunities/${id}/express-interest`, { method: 'POST', body: JSON.stringify({}) });
+      showToast('Interest expressed');
+    } catch (e) {
+      setInterestDone(prev => { const n = new Set(prev); n.delete(id); return n; });
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    }
+  }
+
+  async function registerEvent(id: number) {
+    setRegisteredEvts(prev => new Set([...prev, id]));
+    try {
+      await netFetch(`/network/events/${id}/register`, { method: 'POST', body: JSON.stringify({}) });
+      showToast('Registered for event');
+    } catch (e) {
+      setRegisteredEvts(prev => { const n = new Set(prev); n.delete(id); return n; });
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    }
+  }
+
+  async function saveSubscriptions() {
+    setSubSaving(true);
+    try {
+      await netFetch('/network/subscriptions', { method: 'PUT', body: JSON.stringify({ topics: subTopics }) });
+      showToast('Subscriptions saved');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    } finally { setSubSaving(false); }
+  }
+
+  const TABS: { key: NetworkTab; label: string }[] = [
+    { key: 'feed', label: 'Feed' },
+    { key: 'opportunities', label: 'Opportunities' },
+    { key: 'events', label: 'Events' },
+    { key: 'profile', label: 'Profile' },
+  ];
+
+  const tabBtn = (t: NetworkTab, label: string) => (
+    <button key={t} onClick={() => switchTab(t)} style={{
+      background: 'none', border: 'none', cursor: 'pointer',
+      padding: '10px 16px', fontSize: 13, fontWeight: 600,
+      color: tab === t ? '#f1f5f9' : '#94a3b8',
+      borderBottom: `2px solid ${tab === t ? '#8F0909' : 'transparent'}`,
+      transition: 'color 0.15s, border-color 0.15s',
+    }}>{label}</button>
+  );
+
+  return (
+    <div style={{ background: '#0f0a0b', minHeight: '100%', fontFamily: 'DM Sans, sans-serif', color: '#f1f5f9' }}>
+      <style>{`.nd-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s; } .nd-btn:disabled { opacity: 0.45; cursor: default; }`}</style>
+
+      {/* Header */}
+      <div style={{ padding: '24px 24px 0', borderBottom: '1px solid #3d1020' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 6 }}>
+          Industry Network
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
+            AACP™ Future Aviation Workforce Network — Canada
+          </h1>
+          {profile && (
+            <span style={{ fontSize: 13, color: '#94a3b8' }}>
+              {profile.user.firstName} {profile.user.lastName}{profile.org ? ` · ${profile.org.name}` : ''}
+            </span>
+          )}
+          {notifCount > 0 && (
+            <span style={{ background: '#8F0909', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 12, padding: '2px 8px' }}>
+              {notifCount} new
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
+          {TABS.map(t => tabBtn(t.key, t.label))}
+        </div>
       </div>
-      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 900, margin: '0 0 12px', lineHeight: 1.2 }}>
-        AACP™ Future Aviation Workforce Network — Canada
-      </h1>
-      <p style={{ fontSize: 14, color: '#c4b5c0', lineHeight: 1.8, maxWidth: 520 }}>
-        Welcome to the Industry Network. The full dashboard is coming in the next release.
-      </p>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: toast.ok ? '#166534' : '#7f1d1d', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>
+          {toast.msg}
+        </div>
+      )}
+
+      <div style={{ padding: '24px', maxWidth: 760, marginInline: 'auto' }}>
+        {tabLoading && <div style={{ color: '#94a3b8', fontSize: 14, padding: '20px 0' }}>Loading…</div>}
+
+        {/* Feed tab */}
+        {tab === 'feed' && !tabLoading && (
+          <div>
+            {!feed || feed.length === 0
+              ? <EmptyState msg="No updates yet — check back soon." />
+              : feed.map(item => (
+                <NetCard key={`${item.type}-${item.id}`}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <TopicBadge topic={item.topic} />
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{item.org_name}</span>
+                    <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                      {new Date(item.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{item.title}</div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7 }}>{item.body}</div>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Opportunities tab */}
+        {tab === 'opportunities' && !tabLoading && (
+          <div>
+            {!opps || opps.length === 0
+              ? <EmptyState msg="No opportunities posted yet — check back soon." />
+              : opps.map(o => (
+                <NetCard key={o.id}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ background: '#1e1029', border: '1px solid #4c1d95', color: '#a78bfa', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{o.opportunity_type}</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{o.org_name}</span>
+                    <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                      {new Date(o.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{o.title}</div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7, marginBottom: 12 }}>{o.description}</div>
+                  <button
+                    className="nd-btn"
+                    disabled={interestDone.has(o.id)}
+                    onClick={() => expressInterest(o.id)}
+                    style={{ background: interestDone.has(o.id) ? '#2d1f2b' : '#8F0909', color: '#fff' }}
+                  >
+                    {interestDone.has(o.id) ? 'Interest Expressed' : 'Express Interest'}
+                  </button>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Events tab */}
+        {tab === 'events' && !tabLoading && (
+          <div>
+            {!events || events.length === 0
+              ? <EmptyState msg="No upcoming events — check back soon." />
+              : events.map(e => (
+                <NetCard key={e.id}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ background: e.is_virtual ? '#0c2a1e' : '#0c1a2a', border: `1px solid ${e.is_virtual ? '#064e3b' : '#1e3a5f'}`, color: e.is_virtual ? '#34d399' : '#60a5fa', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      {e.is_virtual ? 'Virtual' : 'In-Person'}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{e.org_name}</span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{e.title}</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>
+                    {new Date(e.event_date).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                    {e.location ? ` · ${e.location}` : ''}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7, marginBottom: 12 }}>{e.description}</div>
+                  <button
+                    className="nd-btn"
+                    disabled={registeredEvts.has(e.id)}
+                    onClick={() => registerEvent(e.id)}
+                    style={{ background: registeredEvts.has(e.id) ? '#2d1f2b' : '#8F0909', color: '#fff' }}
+                  >
+                    {registeredEvts.has(e.id) ? 'Registered' : 'Register'}
+                  </button>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Profile tab */}
+        {tab === 'profile' && !tabLoading && profile && (
+          <div>
+            <NetCard>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Account</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{profile.user.firstName} {profile.user.lastName}</div>
+              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: profile.org ? 16 : 0 }}>{profile.user.email}</div>
+              {profile.org && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Organization</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{profile.org.name}</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8' }}>{profile.org.orgType} · {profile.org.memberRole}</div>
+                </>
+              )}
+            </NetCard>
+            <NetCard>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Topic Subscriptions</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8, marginBottom: 16 }}>
+                {NETWORK_TOPICS_LIST.map(t => (
+                  <label key={t} style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontSize: 13, color: '#c4b5c0' }}>
+                    <input
+                      type="checkbox"
+                      checked={subTopics.includes(t)}
+                      onChange={ev => setSubTopics(prev => ev.target.checked ? [...prev, t] : prev.filter(x => x !== t))}
+                      style={{ accentColor: '#8F0909' }}
+                    />
+                    {t}
+                  </label>
+                ))}
+              </div>
+              <button className="nd-btn" disabled={subSaving} onClick={saveSubscriptions} style={{ background: '#8F0909', color: '#fff' }}>
+                {subSaving ? 'Saving…' : 'Save Subscriptions'}
+              </button>
+            </NetCard>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
