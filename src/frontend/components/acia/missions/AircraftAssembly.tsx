@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
 
 useGLTF.preload('/models/aircraft.glb');
 
@@ -59,7 +60,31 @@ const COMPONENT_GROUPS = [
   },
 ];
 
-type Phase = 'explore' | 'assemble' | 'challenge' | 'complete';
+const ASSEMBLY_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'approach',
+    label: 'Your approach',
+    prompt: 'How did you work out where the different components belonged?',
+    placeholder: 'Describe what you looked for or how you figured it out…',
+    minLength: 20,
+  },
+  {
+    id: 'stuck',
+    label: 'When it didn\'t fit',
+    prompt: 'What did you do when a component didn\'t go where you expected?',
+    placeholder: 'Describe what you tried or how you adjusted…',
+    minLength: 20,
+  },
+  {
+    id: 'learning',
+    label: 'What helped',
+    prompt: 'What helped you understand the assembly, and what would you do differently next time?',
+    placeholder: 'Reflect on what worked and what you\'d change…',
+    minLength: 20,
+  },
+];
+
+type Phase = 'explore' | 'assemble' | 'challenge' | 'complete' | 'reflection';
 
 interface AssembledState {
   [componentId: string]: boolean;
@@ -267,7 +292,11 @@ export function AircraftAssembly({ sessionId, onComplete }: Props) {
     setPhase('complete');
   }
 
-  function handleComplete() {
+  function handleProceedToReflection() {
+    setPhase('reflection');
+  }
+
+  function handleReflectionComplete() {
     // Save assembly log to localStorage
     const logKey = sessionId ? `acia_assembly_log_${sessionId}` : 'acia_assembly_log';
     try {
@@ -429,12 +458,21 @@ export function AircraftAssembly({ sessionId, onComplete }: Props) {
             </div>
           )}
           <button
-            onClick={handleComplete}
+            onClick={handleProceedToReflection}
             style={{ background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: 'white', border: 'none', borderRadius: 12, padding: '13px', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}
           >
-            Proceed to Inspection →
+            Reflect on the Assembly →
           </button>
         </div>
+      )}
+
+      {/* Phase: Reflection */}
+      {phase === 'reflection' && (
+        <MissionReasoningResponse
+          questions={ASSEMBLY_QUESTIONS}
+          storageKey="acia_assembly_reasoning"
+          onComplete={handleReflectionComplete}
+        />
       )}
     </div>
   );
