@@ -5,18 +5,24 @@ import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReaso
 const M4_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'relationships',
+    label: 'Component Relationships',
     prompt: 'Looking at the components you just classified — were there any where you weren\'t sure which category they belonged to? What made those uncertain?',
     placeholder: 'Describe a component you were unsure about and how you reasoned through it…',
+    minLength: 60,
   },
   {
     id: 'approach',
+    label: 'Approach to Uncertainty',
     prompt: 'When you encountered something unfamiliar, how did you decide where it belonged? Walk me through your thinking.',
     placeholder: 'Describe your approach when something was unclear…',
+    minLength: 60,
   },
   {
     id: 'reflection',
+    label: 'What Interests You',
     prompt: 'If you were learning about one of these systems in more depth, which would you want to explore and why?',
     placeholder: 'Which system caught your interest and what draws you to it…',
+    minLength: 60,
   },
 ];
 

@@ -5,18 +5,24 @@ import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReaso
 const M5_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'interpretation',
+    label: 'Reading the Data',
     prompt: 'When you looked at the instrument readings, how did you decide what was normal and what wasn\'t? What were you looking for?',
     placeholder: 'Describe how you interpreted what you saw…',
+    minLength: 60,
   },
   {
     id: 'ambiguity',
+    label: 'Handling Uncertainty',
     prompt: 'Were any readings unclear or harder to interpret than others? How did you approach that uncertainty?',
     placeholder: 'Describe a reading you found less clear and how you reasoned through it…',
+    minLength: 60,
   },
   {
     id: 'priority',
+    label: 'What Matters Most',
     prompt: 'If you had to act on one of those readings right now, which would it be and why?',
     placeholder: 'Which instrument reading felt most important to you and why…',
+    minLength: 60,
   },
 ];
 

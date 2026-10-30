@@ -5,18 +5,24 @@ import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReaso
 const M8_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'prioritization',
+    label: 'Setting Priorities',
     prompt: 'When everything seemed equally urgent, how did you decide what to tackle first? What was your thinking?',
     placeholder: 'Describe how you worked out what mattered most…',
+    minLength: 60,
   },
   {
     id: 'falling_behind',
+    label: 'Recognising Limits',
     prompt: 'Was there a point in those scenarios where you felt like things were piling up faster than you could handle them? What would you do in that situation?',
     placeholder: 'Describe how you would respond when you recognize you\'re falling behind…',
+    minLength: 60,
   },
   {
     id: 'support',
+    label: 'Seeking Support',
     prompt: 'In a real situation like that, when would you ask for help — and who would you ask?',
     placeholder: 'Reflect on when and how you would seek support or escalate…',
+    minLength: 60,
   },
 ];
 

@@ -5,18 +5,24 @@ import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReaso
 const M7_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'clarity',
+    label: 'Communication Clarity',
     prompt: 'In the communication exercises you just completed, what made some transmissions harder to compose than others? What did you find yourself paying attention to?',
     placeholder: 'Describe what you noticed about how information needs to be communicated clearly…',
+    minLength: 60,
   },
   {
     id: 'verification',
+    label: 'Handling Uncertainty',
     prompt: 'If something in a transmission was unclear or you weren\'t sure you heard correctly, what would you do? What\'s your instinct?',
     placeholder: 'Describe how you would handle uncertainty in a communication exchange…',
+    minLength: 60,
   },
   {
     id: 'teamwork',
+    label: 'Team Coordination',
     prompt: 'These exercises involved passing information between people in time-pressured situations. What did that make you think about how teams need to communicate?',
     placeholder: 'Reflect on what you noticed about information transfer and coordination…',
+    minLength: 60,
   },
 ];
 
