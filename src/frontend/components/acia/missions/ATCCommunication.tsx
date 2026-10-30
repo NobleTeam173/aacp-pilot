@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import type { EvidenceItem } from '../types';
 import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+import { ATCBriefing, type WMEvidence } from './ATCBriefing';
+import { interpretWMEvidence } from '../wmInterpreter';
 
 const M7_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
@@ -259,11 +261,51 @@ const RPAS_EXERCISES: CommunicationExercise[] = [
 
 interface Props {
   isRpas?: boolean;
+  sessionId?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function ATCCommunication({ isRpas, onComplete }: Props) {
-  return <ATCCommunicationCore exercises={isRpas ? RPAS_EXERCISES : EXERCISES} onComplete={onComplete} />;
+export function ATCCommunication({ isRpas, sessionId, onComplete }: Props) {
+  const [wmDone, setWmDone] = useState(false);
+  const wmEvidenceRef = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
+
+  // RPAS bypasses WM briefing entirely
+  if (isRpas) {
+    return <ATCCommunicationCore exercises={RPAS_EXERCISES} onComplete={onComplete} />;
+  }
+
+  if (!wmDone) {
+    return (
+      <ATCBriefing
+        sessionId={sessionId}
+        onComplete={(wmEv: WMEvidence) => {
+          // Persist to backend (fire-and-forget)
+          const submissionId = crypto.randomUUID();
+          const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
+          if (token) {
+            fetch('/acia/wm-evidence', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ submissionId, sessionId, wmEvidence: wmEv }),
+            }).catch(() => {});
+          }
+          // Save interpretation to localStorage (admin/researcher only)
+          const interp = interpretWMEvidence(wmEv);
+          try { localStorage.setItem(`acia_wm_interpretation_${sessionId ?? 'local'}`, JSON.stringify(interp)); } catch { /* ignore */ }
+          // WM evidence — non-scoring until validated and approved
+          wmEvidenceRef.current = [{ key: 'working_memory', delta: 0 }];
+          setWmDone(true);
+        }}
+      />
+    );
+  }
+
+  return (
+    <ATCCommunicationCore
+      exercises={EXERCISES}
+      onComplete={(evidence) => onComplete([...wmEvidenceRef.current, ...evidence])}
+    />
+  );
 }
 
 function ATCCommunicationCore({ exercises, onComplete }: { exercises: CommunicationExercise[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {

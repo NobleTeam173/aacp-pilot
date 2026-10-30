@@ -646,6 +646,22 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_assembly_evidence_user ON acia_assembly_evidence(user_id)`).run().catch(() => {});
 
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS acia_wm_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      submission_id TEXT NOT NULL UNIQUE,
+      session_id TEXT,
+      mission TEXT DEFAULT 'M7',
+      briefing_version TEXT DEFAULT 'v1',
+      presentation_mode TEXT,
+      wm_evidence TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wm_evidence_user ON acia_wm_evidence(user_id)`).run().catch(() => {});
+
   // Coach invitation tokens — invite-only provisioning for career coach accounts
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS coach_invitations (
@@ -8775,6 +8791,33 @@ async function handleAciaAssemblyEvidence(request, user, env) {
   }
 }
 
+async function handleAciaWmEvidence(request, user, env) {
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid JSON', 400); }
+
+  const { submissionId, sessionId, wmEvidence } = body ?? {};
+  if (!submissionId || !wmEvidence) return err('submissionId and wmEvidence are required', 400);
+
+  const now = new Date().toISOString();
+  const presentationMode = wmEvidence.presentationMode ?? null;
+  const briefingVersion = wmEvidence.briefingVersion ?? 'v1';
+  try {
+    const result = await env.DB.prepare(`
+      INSERT OR IGNORE INTO acia_wm_evidence (user_id, submission_id, session_id, mission, briefing_version, presentation_mode, wm_evidence, created_at)
+      VALUES (?, ?, ?, 'M7', ?, ?, ?, ?)
+    `).bind(user.sub, submissionId, sessionId ?? null, briefingVersion, presentationMode, JSON.stringify(wmEvidence), now).run();
+
+    const duplicate = result.meta?.changes === 0;
+    return json({ success: true, duplicate });
+  } catch (e) {
+    console.error('[handleAciaWmEvidence] DB error:', e);
+    return err('Failed to save WM evidence', 500);
+  }
+}
+
 async function handleAciaEligibility(request, user, env) {
   const guard = requireRole(user, 'youth', 'admin');
   if (guard) return guard;
@@ -14610,6 +14653,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/acia/eligibility'         && request.method === 'GET')  return handleAciaEligibility(request, user, env);
     if (path === '/acia/checkpoint'          && request.method === 'POST') return handleAciaCheckpoint(request, user, env);
     if (path === '/acia/assembly-evidence'   && request.method === 'POST') return handleAciaAssemblyEvidence(request, user, env);
+    if (path === '/acia/wm-evidence'         && request.method === 'POST') return handleAciaWmEvidence(request, user, env);
     if (path === '/program/interest'         && request.method === 'POST') return handleProgramInterest(request, user, env, ctx);
     if (path === '/program/waitlist'         && request.method === 'POST') return handleProgramWaitlistJoin(request, user, env, ctx);
     if (path === '/program/waitlist'         && request.method === 'GET')  return handleProgramWaitlistGet(request, user, env);
