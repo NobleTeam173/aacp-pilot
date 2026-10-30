@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
 
 const C = {
   crimson: '#8F0909',
@@ -313,10 +314,36 @@ export function SystemDiagnosis({ isRpas, onComplete }: Props) {
   return <SystemDiagnosisGeneral onComplete={onComplete} />;
 }
 
+const M3_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'observation',
+    label: 'Initial Read',
+    prompt: 'What was your first instinct when you read the initial squawk — and looking back, was it right?',
+    placeholder: 'Describe what caught your attention first, and what it told you about the fault...',
+    minLength: 60,
+  },
+  {
+    id: 'reasoning',
+    label: 'Key Decision',
+    prompt: 'Walk through the critical decision point in this investigation. What information shifted your thinking, and how did you connect the dots?',
+    placeholder: 'What evidence mattered most, and how did you use it to narrow down the cause?',
+    minLength: 80,
+  },
+  {
+    id: 'transferable',
+    label: 'Personal Reflection',
+    prompt: 'Does systematic fault investigation like this feel natural to you, or is it something you\'d want to develop further? What does working through this kind of problem feel like?',
+    placeholder: 'Be honest — describe how methodical diagnosis felt, and whether you\'d want more of it...',
+    minLength: 60,
+  },
+];
+
 function SystemDiagnosisGeneral({ onComplete }: { onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [history, setHistory] = useState<string[]>(['root']);
   const [done, setDone] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
 
   const currentId = history[history.length - 1];
   const currentNode = TREE.find(n => n.id === currentId)!;
@@ -350,10 +377,27 @@ function SystemDiagnosisGeneral({ onComplete }: { onComplete: (evidence: Omit<Ev
         { key: 'analytical_reasoning', delta: depth >= 3 ? 0.7 : 0.35 },
       ];
 
-      setTimeout(() => onComplete(evidence), 2800);
+      pendingEvidence.current = evidence;
+      setTimeout(() => setShowReasoning(true), 2800);
     } else {
       setHistory(prev => [...prev, opt.nextId!]);
     }
+  }
+
+  if (done && outcome && showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0c1a2e', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Fault Investigation — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>Take a moment to reflect on your diagnostic approach. These questions have no right or wrong answers.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M3_REASONING_QUESTIONS}
+          storageKey="acia_m3_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
   }
 
   if (done && outcome) {
@@ -392,7 +436,7 @@ function SystemDiagnosisGeneral({ onComplete }: { onComplete: (evidence: Omit<Ev
             })}
         </div>
 
-        <div style={{ color: C.grey, fontSize: 13, textAlign: 'center' }}>Advancing to next mission…</div>
+        <div style={{ color: C.grey, fontSize: 13, textAlign: 'center' }}>Preparing reflection questions…</div>
       </div>
     );
   }

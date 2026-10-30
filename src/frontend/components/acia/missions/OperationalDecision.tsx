@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
 
 const C = {
   crimson: '#8F0909',
@@ -217,11 +218,37 @@ export function OperationalDecision({ isRpas, onComplete }: Props) {
   return <OperationalDecisionCore scenarios={isRpas ? RPAS_SCENARIOS : SCENARIOS} onComplete={onComplete} />;
 }
 
+const M6_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'observation',
+    label: 'What You Noticed',
+    prompt: 'Across the three scenarios, what common thread did you notice in the situations — and how did you approach reading each one?',
+    placeholder: 'Describe what patterns you noticed and how you oriented yourself in each situation...',
+    minLength: 60,
+  },
+  {
+    id: 'reasoning',
+    label: 'Your Decision Process',
+    prompt: 'In the scenario where you were most uncertain, what was the key tension — and how did you resolve it?',
+    placeholder: 'Describe the competing considerations and what ultimately guided your choice...',
+    minLength: 80,
+  },
+  {
+    id: 'transferable',
+    label: 'High-Stakes Decisions',
+    prompt: 'How do you respond to high-stakes decisions under time pressure? Does this kind of pressure sharpen your thinking or make it harder to act?',
+    placeholder: 'Be honest — describe how you experience decision-making when the stakes feel real...',
+    minLength: 60,
+  },
+];
+
 function OperationalDecisionCore({ scenarios, onComplete }: { scenarios: Scenario[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [scores, setScores] = useState({ safety: 0, decision: 0, sitAware: 0, assert: 0, count: 0 });
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
 
   const scenario = scenarios[scenarioIdx];
   const isLast = scenarioIdx === scenarios.length - 1;
@@ -262,9 +289,10 @@ function OperationalDecisionCore({ scenarios, onComplete }: { scenarios: Scenari
         { key: 'situational_awareness', delta: sitAware },
         { key: 'stress_response', delta: (safety + decision) / 2 },
         { key: 'procedural_compliance', delta: safety > 0.7 ? 0.85 : 0.35 },
-        { key: 'communication_quality', delta: assert }, // assertiveness in authority-gradient situations
+        { key: 'communication_quality', delta: assert },
       ];
-      onComplete(evidence);
+      pendingEvidence.current = evidence;
+      setShowReasoning(true);
     } else {
       setScenarioIdx(i => i + 1);
       setSelected(null);
@@ -272,6 +300,22 @@ function OperationalDecisionCore({ scenarios, onComplete }: { scenarios: Scenari
     }
 
     void finalScores;
+  }
+
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0c1a2e', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Operational Decisions — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>You've worked through three operational scenarios. Take a moment to reflect on your approach.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M6_REASONING_QUESTIONS}
+          storageKey="acia_m6_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
   }
 
   return (
