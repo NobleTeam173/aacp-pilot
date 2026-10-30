@@ -466,13 +466,24 @@ export function AircraftAssembly({ sessionId, onComplete }: Props) {
     // Clear session recovery state
     try { localStorage.removeItem(stateKey); } catch { /* ignore */ }
 
-    // Build evidence (spatial_reasoning stays delta: 0 — non-scoring)
+    // Build evidence
     const explorationDepth = Math.min(1, exploreTime / 30);
     const attentionDelta = challengeSolved ? 0.75 : hintsUsed === 0 ? 0.6 : 0.4;
     const curiosityDelta = explorationDepth > 0.5 ? 0.7 : explorationDepth > 0.2 ? 0.5 : 0.3;
 
+    // SR scoring (Stage 4 — activated)
+    let srDelta = 0;
+    if (srInterpretation.state === 'observed') {
+      const d = srInterpretation.dimensions;
+      srDelta += d.orientation === 'independent' ? 0.25 : d.orientation === 'guided' ? 0.10 : 0;
+      srDelta += d.correction === 'self_corrected' ? 0.20 : 0;
+      srDelta += d.relationships === 'accurate' ? 0.15 : d.relationships === 'partial' ? 0.07 : 0;
+      srDelta += d.mentalRotation === 'active' ? 0.05 : 0;
+      srDelta = Math.min(0.65, srDelta);
+    }
+
     const evidence: Omit<EvidenceItem, 'mission'>[] = [
-      { key: 'spatial_reasoning', delta: 0 },
+      { key: 'spatial_reasoning', delta: srDelta },
       { key: 'attention_to_detail', delta: attentionDelta },
       { key: 'curiosity', delta: curiosityDelta },
     ];

@@ -292,8 +292,16 @@ export function ATCCommunication({ isRpas, sessionId, onComplete }: Props) {
           // Save interpretation to localStorage (admin/researcher only)
           const interp = interpretWMEvidence(wmEv);
           try { localStorage.setItem(`acia_wm_interpretation_${sessionId ?? 'local'}`, JSON.stringify(interp)); } catch { /* ignore */ }
-          // WM evidence — non-scoring until validated and approved
-          wmEvidenceRef.current = [{ key: 'working_memory', delta: 0 }];
+          // WM scoring (Stage 4 — activated)
+          let wmDelta = 0;
+          if (interp.state === 'observed') {
+            const d = interp.dimensions;
+            wmDelta += d.retention === 'accurate' ? 0.25 : d.retention === 'partial' ? 0.12 : 0;
+            wmDelta += d.updateTracking === 'accurate' ? 0.25 : d.updateTracking === 'partial' ? 0.10 : 0;
+            wmDelta += d.interferenceManagement === 'clean' ? 0.10 : 0;
+            wmDelta = Math.min(0.60, wmDelta);
+          }
+          wmEvidenceRef.current = [{ key: 'working_memory', delta: wmDelta }];
           setWmDone(true);
         }}
       />

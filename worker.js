@@ -594,6 +594,9 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE acia_assessments ADD COLUMN submission_id TEXT`).run().catch(() => {});
   await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acia_submission ON acia_assessments(submission_id) WHERE submission_id IS NOT NULL`).run().catch(() => {});
 
+  // scoring_version on acia_assessments — tracks which scoring ruleset produced the record
+  await db.prepare(`ALTER TABLE acia_assessments ADD COLUMN scoring_version TEXT DEFAULT NULL`).run().catch(() => {});
+
   // Save-attempt log — every persistence attempt is recorded for monitoring
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS acia_save_attempts (
@@ -8465,8 +8468,8 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
         (id, user_id, pathway_type, acia_version, assessment_stage, started_at, completed_at,
          top_pathway, competency_profile, career_alignment, evidence_confidence,
          development_areas, recommended_pathways, session_summary, badge_id, badge_issued_at,
-         status, created_at, submission_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         status, created_at, submission_id, scoring_version)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).bind(
       assessmentId, user.sub, body.pathwayType ?? 'standard', '1.0', stage,
       body.startedAt ?? null, now,
@@ -8478,6 +8481,7 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
       JSON.stringify(body.recommendedPathways ?? []),
       JSON.stringify(body.sessionSummary ?? {}),
       badgeId, now, 'complete', now, submissionId ?? null,
+      body.scoringVersion ?? null,
     ));
 
     // [B] acia_badges — completion badge (REQUIRED; a badge must not exist without

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { savePendingCompletion, deletePendingCompletion, getAllPendingCompletions, type PendingCompletion } from '../../utils/aciaStorage';
 import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord, QuestionResponse } from './types';
 import { recordEvidence } from './behaviourEngine';
-import { computeAlignments } from './careerEngine';
+import { computeAlignments, SCORING_VERSION } from './careerEngine';
 import { selectNextQuestion, isAssessmentComplete } from './adaptiveEngine';
 import { ACIAJourneyPanel } from './ACIAJourneyPanel';
 import { ACIACareerProfile } from './ACIACareerProfile';
@@ -358,6 +358,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       recommendedPathways: alignments.slice(0, 3).map(a => a.pathwayId),
       startedAt: sess.startedAt,
       participantName,
+      scoringVersion: SCORING_VERSION,
     };
   }, [stage, isRpas]);
 
