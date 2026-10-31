@@ -202,7 +202,6 @@ function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComp
       { key: 'analytical_reasoning', delta: accuracy * 0.75 },
       { key: 'curiosity', delta: fullyComplete ? 0.6 : completion > 0.6 ? 0.35 : 0.15 },
     ];
-    if (elapsed < 150) evidence.push({ key: 'multitasking_ability', delta: 0.45 });
 
     setPendingEvidence(evidence);
     setShowReasoning(true);

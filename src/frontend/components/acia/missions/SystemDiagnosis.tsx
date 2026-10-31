@@ -242,14 +242,13 @@ function RpasFaultDiagnosis({ onComplete }: { onComplete: (evidence: Omit<Eviden
         { key: 'situational_awareness', delta: landedFirst ? 0.8 : 0.3 },
         { key: 'analytical_reasoning', delta: depth >= 3 ? 0.75 : 0.35 },
         { key: 'procedural_compliance', delta: out.optimal ? 0.85 : 0.35 },
+        { key: 'learning_agility', delta: out.optimal ? 0.8 : landedFirst ? 0.5 : 0.2 },
       ];
       setTimeout(() => onComplete(evidence), 2800);
     } else {
       setHistory(prev => [...prev, opt.nextId!]);
     }
   }
-
-  void outcomeKey;
 
   if (done && outcome) {
     return (

@@ -514,6 +514,9 @@ function Scenario2({
     if (hasConcept(f2, CONCEPTS.revisedMeetsCriterion)) evidence.push(ev('analytical_reasoning', 0.6));
     if (hasConcept(f2, CONCEPTS.outstandingRequirement)) evidence.push(ev('procedural_compliance', 0.5));
 
+    // SO — requesting review when operating limits are in question
+    if (decision === 'review') evidence.push(ev('safety_mindset', 0.7));
+
     onComplete(evidence, `S2: initial=${decision}; reassess=${reassess}`);
     setPhase('done');
   }
@@ -803,6 +806,9 @@ function Scenario5({
     // Contra-indicator: false reassurance when an outstanding requirement exists
     if (/all clear|ready to go|no concern|no issue/i.test(t) && !msgOutstanding)
       evidence.push(ev('communication_quality', -0.6));
+
+    // SO — confirming review before declaring complete demonstrates safety-first posture
+    if (decision === 'confirm_review') evidence.push(ev('safety_mindset', 0.7));
 
     onComplete(evidence, `S5: decision=${decision}; msg="${finalMsg.substring(0,100)}"`);
     setPhase('done');

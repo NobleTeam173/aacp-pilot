@@ -211,12 +211,7 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
       // under simultaneous demand is observable composure, not typing speed.
       const immediateIds = (rIdx: number) =>
         rounds[rIdx].tasks.filter(t => t.urgency === 'immediate').map(t => t.id);
-      const r1UserOrder = round === 1
-        ? rounds[0].tasks.map(t => t.id) // fallback (shouldn't happen)
-        : items.map(t => t.id);
-      // items at this point is round 2's submitted order; round 1 order is lost after transition
-      // so we proxy from the top3Correct counts already captured
-      const immediateInTop3R1 = r1.top3Correct; // already counts immediate items correct in top-3
+      const immediateInTop3R1 = r1.top3Correct;
       const immediateInTop3R2 = items
         .slice(0, 3)
         .filter(t => immediateIds(1).includes(t.id)).length;

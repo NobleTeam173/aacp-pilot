@@ -349,11 +349,6 @@ function indicatorsToDeltas(
   for (const [key, data] of Object.entries(scores)) {
     result[key] = data.count > 0 ? data.sum / data.count : 0;
   }
-  // Participation baseline for any competency with no indicator fired
-  const allCompetencies = [...new Set(competencyKeys.map(c => c.competency))];
-  for (const key of allCompetencies) {
-    if (!(key in result)) result[key] = 0.2;
-  }
   return result;
 }
 

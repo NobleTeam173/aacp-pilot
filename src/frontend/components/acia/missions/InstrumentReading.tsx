@@ -255,10 +255,11 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
       const accuracy = correct / questions.length;
       const elapsed = (Date.now() - startTime) / 1000;
 
-      // Q2 and Q4 are the safety-critical reads
+      // Q2 (oil), Q3 (fuel), Q4 (hydraulic) are the safety-critical reads
       const oilCorrect = newAnswers[1] === questions[1]?.correctIndex;
+      const fuelCorrect = newAnswers[2] === questions[2]?.correctIndex;
       const hydCorrect = newAnswers[3] === questions[3]?.correctIndex;
-      const safetyScore = ((oilCorrect ? 1 : 0) + (hydCorrect ? 1 : 0)) / 2;
+      const safetyScore = ((oilCorrect ? 1 : 0) + (fuelCorrect ? 1 : 0) + (hydCorrect ? 1 : 0)) / 3;
 
       const evidence: Omit<EvidenceItem, 'mission'>[] = [
         { key: 'analytical_reasoning', delta: accuracy * 0.9 },
@@ -266,8 +267,8 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
         { key: 'situational_awareness', delta: accuracy * 0.8 },
         { key: 'decision_quality', delta: accuracy > 0.7 ? 0.75 : accuracy > 0.4 ? 0.4 : 0.1 },
         { key: 'safety_mindset', delta: safetyScore * 0.9 },
+        { key: 'systematic_reasoning', delta: accuracy > 0.8 ? 0.75 : accuracy > 0.5 ? 0.45 : 0.2 },
       ];
-      if (elapsed < 240) evidence.push({ key: 'systematic_reasoning', delta: 0.55 });
       pendingEvidence.current = evidence;
       setAnswers(newAnswers);
       setShowReasoning(true);
