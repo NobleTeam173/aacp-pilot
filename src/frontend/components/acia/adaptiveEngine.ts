@@ -26,12 +26,21 @@ const FAMILY_TARGETS: Record<string, number> = {
   '15': 1,  // Career Navigation
 };
 
+// Career stages that have prior aviation/technical knowledge — eligible for AK questions
+const PRIOR_KNOWLEDGE_ELIGIBLE_STAGES = new Set([
+  'aviation_professional',
+  'intl_aviation_professional',
+  'stem_graduate',
+  'stem_student',
+]);
+
 export interface SelectionContext {
   askedIds: string[];
   familyCounts: Record<string, number>;
   competencyCounts: Record<CompetencyKey, number>;
   interactionCount: number;
   careerInterests?: string[]; // detected from discovery phase
+  careerStage?: string; // from registration — unlocks priorKnowledgeRequired questions
 }
 
 export function buildSelectionContext(session: ACIASession): SelectionContext {
@@ -58,11 +67,14 @@ export function buildSelectionContext(session: ACIASession): SelectionContext {
 export function selectNextQuestion(
   session: ACIASession,
   overrideInteractionType?: string,
+  careerStage?: string,
 ): { question: QuestionRecord; variant: string; expectedCorrect?: string } | null {
-  const ctx = buildSelectionContext(session);
+  const ctx = { ...buildSelectionContext(session), careerStage };
+  const priorKnowledgeEligible = PRIOR_KNOWLEDGE_ELIGIBLE_STAGES.has(ctx.careerStage ?? '');
   const pool = QUESTION_BANK.filter(q =>
     q.status === 'active' &&
     !ctx.askedIds.includes(q.questionId) &&
+    (!q.priorKnowledgeRequired || priorKnowledgeEligible) &&
     (!overrideInteractionType || q.interactionType === overrideInteractionType)
   );
 

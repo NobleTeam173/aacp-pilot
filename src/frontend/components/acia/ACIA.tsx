@@ -614,7 +614,8 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const currentIdx = prev.currentMissionIndex;
 
       if (adaptiveAfterIdx.includes(currentIdx)) {
-        const selected = selectNextQuestion(prev);
+        const careerStage = localStorage.getItem('aacp_career_stage') ?? undefined;
+        const selected = selectNextQuestion(prev, undefined, careerStage);
         if (selected) {
           adaptiveQuestionRef.current = selected;
           const newSession = {
