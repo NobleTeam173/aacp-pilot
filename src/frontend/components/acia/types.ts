@@ -117,7 +117,10 @@ export type PathwayId =
   | 'mro_manager'
   | 'aerospace_project_mgr'
   | 'human_factors_specialist'
-  | 'passenger_services';
+  | 'passenger_services'
+  | 'methods_engineer'
+  | 'manufacturing_engineer'
+  | 'aircraft_structural_engineer';
 
 export type AlignmentLevel =
   | 'strong'

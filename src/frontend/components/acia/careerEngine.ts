@@ -213,6 +213,19 @@ const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>>
   passenger_services: {
     CM: 1.0, SA: 0.8, SO: 0.8, DM: 0.7, MT: 0.7, AP: 0.6,
   },
+  // ── STEM Engineering Pathways ────────────────────────────────────────────────
+  methods_engineer: {
+    PS: 1.0, PR: 1.0, AP: 0.9, MR: 0.9, AL: 0.8, SR: 0.7,
+    CM: 0.7, DM: 0.6, AK: 0.6,
+  },
+  manufacturing_engineer: {
+    PS: 1.0, MR: 1.0, AP: 0.9, PR: 0.9, SR: 0.8, AL: 0.8,
+    DM: 0.7, CM: 0.6, AK: 0.5,
+  },
+  aircraft_structural_engineer: {
+    PS: 1.0, AP: 1.0, MR: 1.0, SR: 0.9, AL: 0.8, DM: 0.7,
+    SO: 0.7, CM: 0.5, AK: 0.6,
+  },
 };
 
 const PATHWAY_META: Record<PathwayId, {
@@ -1141,6 +1154,66 @@ const PATHWAY_META: Record<PathwayId, {
       "Research airline and airport passenger services hiring criteria",
       "Explore customer service and aviation operations programs at Canadian colleges",
       "Connect with an AACP Ground/Airport Operations pathway mentor",
+    ],
+  },
+  methods_engineer: {
+    label: 'Methods & Liaison Engineer',
+    description: 'Your analytical precision, procedural depth, and structured systems reasoning align with methods and liaison engineering — the critical interface between design intent and production reality in aerospace manufacturing.',
+    observedStrengthLabels: {
+      PS: 'Systematic decomposition of complex technical processes',
+      PR: 'Rigorous procedure development and documentation mindset',
+      AP: 'High precision — detects ambiguity before it propagates',
+      MR: 'Strong mechanical and assembly systems reasoning',
+      AL: 'Adapts readily to design changes and new process requirements',
+      SR: 'Spatial understanding of component assemblies and fit',
+      CM: 'Clear technical communication across engineering disciplines',
+    },
+    nextSteps: [
+      "Explore accredited mechanical, aerospace, or industrial engineering programs (B.Eng) at Canadian universities",
+      "Research methods engineering, liaison engineering, and DER (Designated Engineering Representative) pathways",
+      "Investigate opportunities at Canadian aerospace primes and Tier 1 suppliers (e.g. Bombardier, CAE, StandardAero, De Havilland)",
+      "Note: methods engineering roles typically require a B.Eng and relevant manufacturing/design experience; P.Eng registration may be required for some positions",
+      "Connect with an AACP STEM/Aerospace pathway mentor",
+    ],
+  },
+  manufacturing_engineer: {
+    label: 'Manufacturing & Production Engineer',
+    description: 'Your mechanical reasoning, systematic problem-solving, and process-oriented thinking align with manufacturing and production engineering in aerospace — optimizing how aircraft components are built with precision and repeatability.',
+    observedStrengthLabels: {
+      PS: 'Process-level analytical and improvement thinking',
+      MR: 'Strong mechanical aptitude and tooling systems reasoning',
+      AP: 'Precision focus applicable to process specification and inspection',
+      PR: 'Structured, documentation-oriented work approach',
+      SR: 'Spatial visualization of assembly sequences and tooling geometry',
+      AL: 'Continuous improvement and new technology adoption orientation',
+      DM: 'Sound trade-off decisions in process design and non-conformance disposition',
+    },
+    nextSteps: [
+      "Explore accredited manufacturing, industrial, or mechanical engineering programs (B.Eng) at Canadian universities and colleges",
+      "Research Lean Manufacturing and Six Sigma Green Belt/Black Belt certification pathways",
+      "Investigate production engineering roles within Canadian aerospace MRO and manufacturing (StandardAero, Magellan, Héroux-Devtek, Safran)",
+      "Note: engineering-designated roles require B.Eng; technologist-level entry is available with an engineering technology diploma",
+      "Connect with an AACP STEM/Aerospace pathway mentor",
+    ],
+  },
+  aircraft_structural_engineer: {
+    label: 'Aircraft Structural Engineer',
+    description: 'Your analytical depth, spatial reasoning, and precise mechanical systems thinking align with aircraft structural engineering — the discipline responsible for ensuring aerospace structures meet airworthiness requirements through analysis, testing, and substantiation.',
+    observedStrengthLabels: {
+      PS: 'Strong analytical and systems-level structural reasoning',
+      AP: 'Precision focus applicable to stress calculations and tolerance analysis',
+      MR: 'Deep mechanical and structural systems understanding',
+      SR: 'Spatial reasoning for 3D structural assemblies and load paths',
+      AL: 'Engagement with new materials, methods, and analysis tools',
+      DM: 'Structural disposition and engineering judgment under uncertainty',
+      SO: 'Airworthiness and safety-first orientation in structural decisions',
+    },
+    nextSteps: [
+      "Explore accredited aerospace, mechanical, or civil structural engineering programs (B.Eng) at Canadian universities",
+      "Research damage tolerance, fatigue analysis, and finite element analysis (FEA) training and certification",
+      "Investigate structural engineering roles at Canadian aerospace OEMs and Tier 1 suppliers",
+      "Note: aircraft structural engineering typically requires B.Eng, P.Eng registration, and may involve Transport Canada or FAA DER (Designated Engineering Representative) authorization for airworthiness substantiation",
+      "Connect with an AACP STEM/Aerospace pathway mentor",
     ],
   },
 };
