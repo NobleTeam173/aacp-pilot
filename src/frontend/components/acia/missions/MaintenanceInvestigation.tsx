@@ -631,13 +631,16 @@ function S1Inspection({ onComplete }: { onComplete: (zones: Zone[], items: Tagge
     setDone(true);
     const coverage   = inspected.length / zones.length;
     const defectRate = defectsFound.length / DEFECTS.length;
-    const foundPitot = defectsFound.some(z => z.id === 'pitot_tube');
-    const foundOil   = defectsFound.some(z => z.id === 'l_engine');
+    const foundPitot   = defectsFound.some(z => z.id === 'pitot_tube');
+    const foundOil     = defectsFound.some(z => z.id === 'l_engine');
+    const foundLWingTip = defectsFound.some(z => z.id === 'l_wing_tip');
+    const lateralCorrect = (foundOil ? 1 : 0) + (foundLWingTip ? 1 : 0);
     const items: TaggedEvidence[] = [
       ev('attention_to_detail', coverage * 0.7 + defectRate * 0.3, 0),
       ev('systematic_reasoning', coverage > 0.85 ? 0.75 : coverage > 0.6 ? 0.45 : 0.15, 0),
       ev('safety_mindset', foundPitot ? Math.min(1, defectRate * 0.7 + 0.25) : defectRate * 0.6, 0),
       ev('procedural_compliance', coverage > 0.8 ? 0.75 : coverage, 0),
+      ev('spatial_reasoning', lateralCorrect === 2 ? 0.7 : lateralCorrect === 1 ? 0.4 : 0.2, 0),
     ];
     if (foundOil) items.push(ev('mechanical_reasoning', 0.5, 0));
     onComplete(zones, items);

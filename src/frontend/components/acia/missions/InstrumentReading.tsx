@@ -268,6 +268,7 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
         { key: 'decision_quality', delta: accuracy > 0.7 ? 0.75 : accuracy > 0.4 ? 0.4 : 0.1 },
         { key: 'safety_mindset', delta: safetyScore * 0.9 },
         { key: 'systematic_reasoning', delta: accuracy > 0.8 ? 0.75 : accuracy > 0.5 ? 0.45 : 0.2 },
+        { key: 'aviation_knowledge', delta: safetyScore > 0.65 ? 0.7 : safetyScore > 0.3 ? 0.4 : 0.2 },
       ];
       pendingEvidence.current = evidence;
       setAnswers(newAnswers);

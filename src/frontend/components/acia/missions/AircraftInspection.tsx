@@ -114,14 +114,18 @@ function RpasPreflightInspection({ onComplete }: { onComplete: (evidence: Omit<E
     const criticalCaught = (batteryFound ? 1 : 0) + (propFound ? 1 : 0);
     const safetyDelta = Math.min(1, defectRate * 0.6 + criticalCaught * 0.2);
 
+    const motorFrFound = defectsFound.some(z => z.id === 'motor_fr');
+    const motorRlFound = defectsFound.some(z => z.id === 'motor_rl');
+    const spatialCorrect = (motorFrFound ? 1 : 0) + (motorRlFound ? 1 : 0);
+
     const evidence: Omit<EvidenceItem, 'mission'>[] = [
       { key: 'attention_to_detail', delta: coverage * 0.8 + defectRate * 0.2 },
       { key: 'systematic_reasoning', delta: coverage > 0.8 ? 0.75 : coverage > 0.5 ? 0.4 : 0.15 },
       { key: 'safety_mindset', delta: safetyDelta },
       { key: 'procedural_compliance', delta: allInspected ? 0.85 : coverage },
       { key: 'mechanical_reasoning', delta: defectRate * 0.75 },
+      { key: 'spatial_reasoning', delta: spatialCorrect === 2 ? 0.75 : spatialCorrect === 1 ? 0.45 : 0.2 },
     ];
-    if (elapsed < 90) evidence.push({ key: 'multitasking_ability', delta: 0.5 });
     onComplete(evidence);
   }
 
@@ -323,15 +327,18 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
     const safetyBase = defectRate > 0.6 ? 0.8 : defectRate > 0.3 ? 0.5 : 0.1;
     const safetyDelta = foundPitot ? Math.min(1, safetyBase + 0.2) : safetyBase;
 
+    const foundLEngine = defectsFound.some(z => z.id === 'l_engine');
+    const foundLWingTip = defectsFound.some(z => z.id === 'l_wing_tip');
+    const lateralCorrect = (foundLEngine ? 1 : 0) + (foundLWingTip ? 1 : 0);
+
     const inspectionEvidence: Omit<EvidenceItem, 'mission'>[] = [
       { key: 'attention_to_detail', delta: coverage * 0.8 + defectRate * 0.2 },
       { key: 'systematic_reasoning', delta: coverage > 0.8 ? 0.7 : coverage > 0.5 ? 0.3 : 0 },
       { key: 'safety_mindset', delta: safetyDelta },
       { key: 'procedural_compliance', delta: allInspected ? 0.8 : coverage },
       { key: 'mechanical_reasoning', delta: defectRate * 0.8 },
+      { key: 'spatial_reasoning', delta: lateralCorrect === 2 ? 0.7 : lateralCorrect === 1 ? 0.4 : 0.2 },
     ];
-
-    if (elapsed < 90) inspectionEvidence.push({ key: 'multitasking_ability', delta: 0.5 });
 
     onComplete([...assemblyEvidence.current, ...inspectionEvidence]);
   }

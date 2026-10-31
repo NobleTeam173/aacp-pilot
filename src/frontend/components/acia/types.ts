@@ -222,7 +222,8 @@ export type EvidenceKey =
   | 'analytical_reasoning'
   | 'procedural_compliance'
   | 'multitasking_ability'
-  | 'working_memory';
+  | 'working_memory'
+  | 'aviation_knowledge';
 
 // Maps legacy EvidenceKey → CompetencyKey
 export const EVIDENCE_KEY_TO_COMPETENCY: Record<EvidenceKey, CompetencyKey> = {
@@ -241,6 +242,7 @@ export const EVIDENCE_KEY_TO_COMPETENCY: Record<EvidenceKey, CompetencyKey> = {
   procedural_compliance: 'PR',
   multitasking_ability: 'MT',
   working_memory: 'WM',
+  aviation_knowledge: 'AK',
 };
 
 export interface EvidenceItem {

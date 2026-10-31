@@ -517,6 +517,12 @@ function Scenario2({
     // SO — requesting review when operating limits are in question
     if (decision === 'review') evidence.push(ev('safety_mindset', 0.7));
 
+    // AK — referencing operating limits or criteria by value/name = applied aviation knowledge
+    if (hasConcept(f1, CONCEPTS.visibilityCriterion) || hasConcept(f2, CONCEPTS.revisedMeetsCriterion))
+      evidence.push(ev('aviation_knowledge', 0.6));
+    else if (decision === 'review')
+      evidence.push(ev('aviation_knowledge', 0.3));
+
     onComplete(evidence, `S2: initial=${decision}; reassess=${reassess}`);
     setPhase('done');
   }
@@ -809,6 +815,12 @@ function Scenario5({
 
     // SO — confirming review before declaring complete demonstrates safety-first posture
     if (decision === 'confirm_review') evidence.push(ev('safety_mindset', 0.7));
+
+    // AK — applied knowledge of documentation requirements and operating minima
+    if (hasConcept(f, CONCEPTS.outstandingRequirement) && decision === 'confirm_review')
+      evidence.push(ev('aviation_knowledge', 0.65));
+    else if (hasConcept(f, CONCEPTS.outstandingRequirement))
+      evidence.push(ev('aviation_knowledge', 0.4));
 
     onComplete(evidence, `S5: decision=${decision}; msg="${finalMsg.substring(0,100)}"`);
     setPhase('done');

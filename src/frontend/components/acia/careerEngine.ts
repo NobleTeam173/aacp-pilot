@@ -6,22 +6,22 @@ import { COMPETENCY_LABELS } from './types';
 import { computeCompetencyIndex, getTopCompetencies } from './evidenceEngine';
 import type { EvidenceItem, QuestionResponse } from './types';
 
-export const SCORING_VERSION = '2.0.0';
+export const SCORING_VERSION = '2.1.0';
 
 // ── Pathway competency weights ─────────────────────────────────────────────────
 // Each pathway lists which competencies matter most (0–1)
 const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>> = {
   pilot: {
     SA: 1.0, DM: 1.0, SO: 0.9, CM: 0.9, MT: 0.8, SR: 0.8,
-    WM: 0.7, PR: 0.7, AP: 0.6, PS: 0.5, AL: 0.4, MR: 0.3,
+    WM: 0.7, PR: 0.7, AP: 0.6, PS: 0.5, AL: 0.4, MR: 0.3, AK: 0.7,
   },
   first_officer: {
     SA: 1.0, DM: 0.9, CM: 1.0, SO: 0.9, MT: 0.8, SR: 0.7,
-    WM: 0.7, PR: 0.8, AP: 0.6, PS: 0.5, AL: 0.5,
+    WM: 0.7, PR: 0.8, AP: 0.6, PS: 0.5, AL: 0.5, AK: 0.6,
   },
   ame: {
     AP: 1.0, PR: 1.0, SO: 0.9, PS: 0.9, MR: 0.9,
-    DM: 0.8, AL: 0.7, SA: 0.6, CM: 0.5, SR: 0.4,
+    DM: 0.8, AL: 0.7, SA: 0.6, CM: 0.5, SR: 0.4, AK: 0.6,
   },
   amt: {
     MR: 1.0, AP: 0.9, PR: 1.0, PS: 0.9, SO: 0.9,
@@ -49,7 +49,7 @@ const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>>
   },
   atc: {
     CM: 1.0, MT: 1.0, SA: 1.0, DM: 0.9, WM: 0.9,
-    PR: 0.8, SR: 0.8, AP: 0.7, PS: 0.6, SO: 0.7,
+    PR: 0.8, SR: 0.8, AP: 0.7, PS: 0.6, SO: 0.7, AK: 0.5,
   },
   fss: {
     CM: 1.0, SA: 0.9, WM: 0.9, PR: 0.8, MT: 0.8,
@@ -61,14 +61,14 @@ const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>>
   },
   aerospace: {
     PS: 1.0, AL: 1.0, MR: 0.9, SR: 0.8, AP: 0.7,
-    DM: 0.6, CM: 0.5, SO: 0.5,
+    DM: 0.6, CM: 0.5, SO: 0.5, AK: 0.5,
   },
   // ── Flight Operations ────────────────────────────────────────────────────────
   flight_instructor: {
-    CM: 1.0, SA: 0.9, DM: 0.9, PR: 0.8, AL: 0.8, SO: 0.8, WM: 0.6, PS: 0.5,
+    CM: 1.0, SA: 0.9, DM: 0.9, PR: 0.8, AL: 0.8, SO: 0.8, WM: 0.6, PS: 0.5, AK: 0.6,
   },
   helicopter_pilot: {
-    SA: 1.0, DM: 1.0, SR: 0.9, MT: 0.9, SO: 0.9, CM: 0.8, AP: 0.7, WM: 0.6,
+    SA: 1.0, DM: 1.0, SR: 0.9, MT: 0.9, SO: 0.9, CM: 0.8, AP: 0.7, WM: 0.6, AK: 0.6,
   },
   bush_pilot: {
     DM: 1.0, SA: 1.0, SO: 0.9, SR: 0.8, AP: 0.8, MT: 0.8, AL: 0.6, PS: 0.6,
@@ -164,7 +164,7 @@ const PATHWAY_WEIGHTS: Record<PathwayId, Partial<Record<CompetencyKey, number>>>
     MR: 1.0, AP: 1.0, PR: 0.9, SO: 0.9, PS: 0.8, SR: 0.7, AL: 0.6,
   },
   propulsion_engineer: {
-    PS: 1.0, MR: 1.0, AP: 0.9, AL: 0.9, SR: 0.7, DM: 0.6, SO: 0.6,
+    PS: 1.0, MR: 1.0, AP: 0.9, AL: 0.9, SR: 0.7, DM: 0.6, SO: 0.6, AK: 0.5,
   },
   spacecraft_assembler: {
     AP: 1.0, MR: 0.9, PR: 1.0, SO: 0.9, SR: 0.8, PS: 0.6,
