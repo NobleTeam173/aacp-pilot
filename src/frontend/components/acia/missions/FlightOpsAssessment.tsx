@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Html, useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
 import type { EvidenceItem } from '../types';
+
+// Preload model so it's ready when M6 loads
+useGLTF.preload('/models/acia-generic-twin.glb');
 
 const C = {
   crimson: '#8F0909',
@@ -107,6 +113,164 @@ function FollowUpInput({ question, onSubmit, disabled }: { question: string; onS
     </div>
   );
 }
+
+// ── 3D Cockpit Shell ─────────────────────────────────────────────────────────
+// Cockpit panel beacons positioned in aircraft model space (Y-up, -Z nose).
+// Each beacon corresponds to a simulation panel/scenario.
+
+interface CockpitPanel {
+  id: string;
+  label: string;
+  position: [number, number, number];
+  color: string;
+  available: boolean;
+  active: boolean;
+}
+
+function AircraftModel() {
+  const { scene } = useGLTF('/models/acia-generic-twin.glb');
+  const cloned = scene.clone(true);
+  cloned.traverse(o => {
+    if ((o as THREE.Mesh).isMesh) {
+      const m = o as THREE.Mesh;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      if (m.material) {
+        m.material = (m.material as THREE.Material).clone();
+        (m.material as THREE.MeshStandardMaterial).envMapIntensity = 0.4;
+      }
+    }
+  });
+  return <primitive object={cloned} />;
+}
+
+function PanelBeacon({ panel, onClick }: { panel: CockpitPanel; onClick: () => void }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const t = useRef(0);
+  const [hovered, setHovered] = useState(false);
+
+  useFrame((_, delta) => {
+    t.current += delta;
+    if (meshRef.current) meshRef.current.rotation.y += delta * 1.2;
+    if (ringRef.current && panel.available && !panel.active) {
+      const s = 1 + Math.sin(t.current * 2.0) * 0.3;
+      ringRef.current.scale.setScalar(s);
+      (ringRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.35 - Math.sin(t.current * 2.0) * 0.15;
+    }
+  });
+
+  const color = panel.active ? '#22c55e' : panel.available ? panel.color : '#334155';
+
+  return (
+    <group position={panel.position}>
+      {/* Invisible hitbox */}
+      <mesh
+        onClick={e => { e.stopPropagation(); if (panel.available) onClick(); }}
+        onPointerOver={e => { e.stopPropagation(); if (panel.available) setHovered(true); }}
+        onPointerOut={() => setHovered(false)}
+      >
+        <sphereGeometry args={[0.6, 8, 6]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {/* Beacon */}
+      <mesh ref={meshRef} scale={hovered && panel.available ? 1.4 : 1}>
+        <octahedronGeometry args={[0.2, 0]} />
+        <meshStandardMaterial
+          color={color} emissive={color}
+          emissiveIntensity={panel.active ? 1.2 : panel.available ? 0.6 : 0.1}
+          transparent opacity={panel.available ? 0.92 : 0.35}
+          depthTest={false}
+        />
+      </mesh>
+
+      {/* Pulse ring for available panels */}
+      {panel.available && !panel.active && (
+        <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.3, 0.38, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={0.35} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+
+      {/* Tooltip */}
+      {(hovered || panel.active) && (
+        <Html center distanceFactor={14} style={{ pointerEvents: 'none' }}>
+          <div style={{
+            background: panel.active ? '#0a1f0a' : '#0c1a2e',
+            border: `1px solid ${color}`,
+            borderRadius: 8, padding: '6px 12px',
+            whiteSpace: 'nowrap', fontSize: 11,
+            color: '#f1f5f9', userSelect: 'none',
+            transform: 'translateY(-40px)',
+          }}>
+            <div style={{ fontWeight: 700 }}>{panel.label}</div>
+            <div style={{ color, marginTop: 2, fontSize: 10 }}>
+              {panel.active ? '▶ Active' : panel.available ? 'Click to open' : 'Locked'}
+            </div>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+function CockpitScene({ panels, onPanelClick }: { panels: CockpitPanel[]; onPanelClick: (id: string) => void }) {
+  return (
+    <>
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[-8, 14, -10]} intensity={1.8} color="#fff5e0" castShadow
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-20} shadow-camera-right={20}
+        shadow-camera-top={20} shadow-camera-bottom={-20}
+        shadow-bias={-0.001}
+      />
+      <directionalLight position={[10, 6, 8]} intensity={0.45} color="#a0c4ff" />
+      <hemisphereLight args={['#8fa3c0', '#1e3050', 0.6]} />
+
+      {/* Tarmac ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]} receiveShadow>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#0c1520" roughness={0.95} />
+      </mesh>
+      <gridHelper args={[60, 30, '#1a2a3a', '#0d1820']} position={[0, 0.005, 0]} />
+
+      <Suspense fallback={null}>
+        <AircraftModel />
+        {panels.map(p => (
+          <PanelBeacon key={p.id} panel={p} onClick={() => onPanelClick(p.id)} />
+        ))}
+      </Suspense>
+
+      <OrbitControls
+        target={[0, 1.8, 0]}
+        enablePan={false}
+        minDistance={10}
+        maxDistance={55}
+        maxPolarAngle={Math.PI * 0.48}
+        makeDefault enableDamping dampingFactor={0.08}
+      />
+    </>
+  );
+}
+
+// Panel beacon positions around the aircraft (model space: Y-up, -Z nose)
+const PANEL_POSITIONS: Record<string, [number, number, number]> = {
+  checklist: [-1.5,  3.8,  1.2],   // above nose — checklist
+  briefing:  [ 2.0,  3.5,  0.5],   // starboard forward — flight briefing
+  aircraft:  [-2.0,  3.5,  0.5],   // port forward — aircraft panel
+  weather:   [ 0.0,  3.2, -3.0],   // aft centre — weather
+  crew:      [ 3.0,  2.8,  1.8],   // starboard mid — crew
+};
+
+const SCENARIO_PANEL_IDS: string[][] = [
+  ['checklist', 'briefing', 'aircraft', 'crew'],  // S1
+  ['weather', 'briefing'],                          // S2
+  ['briefing', 'weather', 'aircraft', 'crew'],      // S3 — info reference
+  ['briefing', 'weather', 'aircraft', 'crew'],      // S4
+  ['aircraft', 'weather'],                          // S5
+];
 
 // ── SCENARIO 1: Pre-flight Preparation ───────────────────────────────────────
 
@@ -706,16 +870,31 @@ const SCENARIO_LABELS = [
   'Final Decision',
 ];
 
+const PANEL_LABELS: Record<string, string> = {
+  checklist: 'Flight Checklist',
+  briefing:  'Flight Briefing',
+  aircraft:  'Aircraft Information',
+  weather:   'Weather Information',
+  crew:      'Crew Information',
+};
+
+const PANEL_COLORS: Record<string, string> = {
+  checklist: '#38bdf8',
+  briefing:  '#a78bfa',
+  aircraft:  '#f59e0b',
+  weather:   '#2dd4bf',
+  crew:      '#60a5fa',
+};
+
 export function FlightOpsAssessment({ isRpas, onComplete }: Props) {
   const [scenario, setScenario] = useState(0);
   const [allEvidence, setAllEvidence] = useState<Omit<EvidenceItem, 'mission'>[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [show3D, setShow3D] = useState(true);
 
-  const handleScenarioComplete = useCallback((scIdx: number, ev: Omit<EvidenceItem, 'mission'>[], note: string) => {
+  const handleScenarioComplete = useCallback((scIdx: number, evItems: Omit<EvidenceItem, 'mission'>[], _note: string) => {
     setAllEvidence(prev => {
-      const merged = [...prev, ...ev];
+      const merged = [...prev, ...evItems];
       if (scIdx === 4) {
-        // All 5 scenarios done — deduplicate by key, average deltas
         const grouped: Record<string, number[]> = {};
         for (const item of merged) {
           if (!grouped[item.key]) grouped[item.key] = [];
@@ -729,46 +908,81 @@ export function FlightOpsAssessment({ isRpas, onComplete }: Props) {
       }
       return merged;
     });
-    setNotes(prev => [...prev, note]);
     setScenario(scIdx + 1);
   }, [onComplete]);
 
+  // Build panel beacons for current scenario
+  const activePanelIds = scenario < SCENARIO_PANEL_IDS.length ? SCENARIO_PANEL_IDS[scenario] : [];
+  const panels: CockpitPanel[] = Object.entries(PANEL_POSITIONS).map(([id, position]) => ({
+    id,
+    label: PANEL_LABELS[id] ?? id,
+    position,
+    color: PANEL_COLORS[id] ?? '#60a5fa',
+    available: activePanelIds.includes(id),
+    active: false,
+  }));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {/* Cockpit header */}
-      <div style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div>
-            <div style={{ fontSize: 11, color: C.greyDim, letterSpacing: '0.1em', fontWeight: 700 }}>REGIONAL 214 · CALGARY → LETHBRIDGE · 10:30 A.M.</div>
-            <div style={{ fontSize: 13, color: C.white, marginTop: 2, fontWeight: 600 }}>Mission 6 — Pilot & Flight Operations</div>
-          </div>
-          <div style={{ fontSize: 10, color: C.greyDim, textAlign: 'right' }}>
-            ACIA Career Intelligence Platform
+      {/* Flight status bar */}
+      <div style={{ background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: '10px 10px 0 0', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 10, color: C.greyDim, letterSpacing: '0.12em', fontWeight: 700 }}>REGIONAL 214 · CALGARY → LETHBRIDGE · 10:30 A.M.</div>
+          <div style={{ fontSize: 12, color: C.white, marginTop: 2, fontWeight: 600 }}>
+            {scenario < 5 ? `Scenario ${scenario + 1} of 5 — ${SCENARIO_LABELS[scenario]}` : 'Mission Complete'}
           </div>
         </div>
-        {/* Progress bar */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {SCENARIO_LABELS.map((label, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ height: 3, borderRadius: 2, background: i < scenario ? C.green : i === scenario ? C.crimson : C.border, transition: 'background 0.3s', marginBottom: 3 }} />
-              <div style={{ fontSize: 9, color: i < scenario ? C.green : i === scenario ? C.white : C.greyDim, display: 'none' }}>{label}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: C.grey, marginTop: 4 }}>
-          {scenario < 5 ? `Scenario ${scenario + 1} of 5 — ${SCENARIO_LABELS[scenario]}` : 'Assessment complete'}
-        </div>
+        <button
+          onClick={() => setShow3D(s => !s)}
+          style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 10px', color: C.grey, fontSize: 11, cursor: 'pointer' }}
+        >{show3D ? '2D View' : '3D View'}</button>
       </div>
 
-      {/* Scenario panels */}
-      <div style={{ overflowY: 'auto', maxHeight: 480, paddingRight: 2 }}>
+      {/* Progress bar */}
+      <div style={{ display: 'flex', gap: 3, padding: '0 14px', background: C.bgDeep, borderBottom: `1px solid ${C.border}` }}>
+        {SCENARIO_LABELS.map((label, i) => (
+          <div key={i} style={{ flex: 1, paddingBottom: 6, paddingTop: 4 }}>
+            <div style={{ height: 3, borderRadius: 2, background: i < scenario ? C.green : i === scenario ? C.crimson : C.border, transition: 'background 0.3s' }} />
+            <div style={{ fontSize: 9, color: i < scenario ? C.green : i === scenario ? C.white : C.greyDim, marginTop: 3, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3D cockpit view */}
+      {show3D && scenario < 5 && (
+        <div style={{ position: 'relative', border: `1px solid ${C.border}`, borderTop: 'none' }}>
+          <Canvas
+            style={{ height: 260, background: 'linear-gradient(160deg, #04080f 0%, #0a1220 100%)' }}
+            camera={{ position: [-12, 8, -16], fov: 44 }}
+            gl={{ antialias: true, alpha: false }}
+            shadows
+            onCreated={({ gl }) => {
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 1.1;
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+            }}
+          >
+            <CockpitScene panels={panels} onPanelClick={() => {}} />
+          </Canvas>
+          <div style={{
+            position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.65)', borderRadius: 20, padding: '3px 12px',
+            color: '#94a3b8', fontSize: 10, pointerEvents: 'none', whiteSpace: 'nowrap',
+          }}>
+            Drag to orbit · Scroll to zoom · Glowing beacons = active panels this scenario
+          </div>
+        </div>
+      )}
+
+      {/* Scenario interaction panel */}
+      <div style={{ border: `1px solid ${C.border}`, borderTop: show3D ? 'none' : `1px solid ${C.border}`, borderRadius: show3D ? '0 0 10px 10px' : 10, background: C.bg, overflowY: 'auto', maxHeight: scenario < 5 ? (show3D ? 380 : 520) : 200, padding: '14px 14px 10px' }}>
         {scenario === 0 && <Scenario1 onComplete={(ev, note) => handleScenarioComplete(0, ev, note)} />}
         {scenario === 1 && <Scenario2 onComplete={(ev, note) => handleScenarioComplete(1, ev, note)} />}
         {scenario === 2 && <Scenario3 onComplete={(ev, note) => handleScenarioComplete(2, ev, note)} />}
         {scenario === 3 && <Scenario4 onComplete={(ev, note) => handleScenarioComplete(3, ev, note)} />}
         {scenario === 4 && <Scenario5 onComplete={(ev, note) => handleScenarioComplete(4, ev, note)} />}
         {scenario >= 5 && (
-          <div style={{ padding: '20px', textAlign: 'center' }}>
+          <div style={{ padding: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 8 }}>Mission 6 Complete</div>
             <div style={{ fontSize: 12, color: C.grey }}>Your operational assessment has been recorded. Proceeding to Mission 7.</div>
           </div>
