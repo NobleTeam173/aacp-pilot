@@ -14,6 +14,7 @@ import { InstrumentReading } from './missions/InstrumentReading';
 import { OperationalDecision } from './missions/OperationalDecision';
 import { ATCCommunication } from './missions/ATCCommunication';
 import { WorkloadPriority } from './missions/WorkloadPriority';
+import { FlightOpsAssessment } from './missions/FlightOpsAssessment';
 import { AdaptiveQuestion } from './missions/AdaptiveQuestion';
 
 const C = {
@@ -45,7 +46,7 @@ function makeInitialSession(isRpas = false): ACIASession {
     { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
     { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
     { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
-    { id: 'm6', title: 'Operational Decision', subtitle: 'High-stakes scenario choices', type: 'decision', estimatedMinutes: 4, completed: false },
+    { id: 'm6', title: 'Pilot & Flight Operations', subtitle: 'Interactive flight preparation simulation', type: 'flight_ops', estimatedMinutes: 12, completed: false },
     { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
     { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
     { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
@@ -224,10 +225,10 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'Each answer is locked once confirmed. All information needed is provided with each question.',
   },
   'm6': {
-    what: 'You will work through a series of aviation-related situations and make decisions using the information provided.',
-    interactions: '3 scenarios',
-    time: '~ 4 minutes',
-    note: 'Each decision is locked once confirmed.',
+    what: 'You will work through five connected flight operations scenarios for a simulated regional flight. Review the information provided, identify discrepancies, communicate with your crew, and make operational decisions.',
+    interactions: '5 connected scenarios',
+    time: '~ 10–12 minutes',
+    note: 'All information needed is provided within the simulation. Each scenario builds on the previous one.',
   },
   'm7': {
     what: 'You will compose radio transmissions and handover messages using scenario information provided to you.',
@@ -1015,6 +1016,8 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, m9Sy
       return <InstrumentReading isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'decision':
       return <OperationalDecision isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
+    case 'flight_ops':
+      return <FlightOpsAssessment isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'atc':
       return <ATCCommunication isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'workload':

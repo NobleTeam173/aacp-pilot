@@ -264,7 +264,7 @@ export interface Mission {
   id: MissionId;
   title: string;
   subtitle: string;
-  type: 'ai_chat' | 'inspection' | 'diagnosis' | 'puzzle' | 'graph' | 'decision' | 'atc' | 'workload' | 'reflection';
+  type: 'ai_chat' | 'inspection' | 'diagnosis' | 'puzzle' | 'graph' | 'decision' | 'flight_ops' | 'atc' | 'workload' | 'reflection';
   estimatedMinutes: number;
   completed: boolean;
   oneSitting?: boolean;         // mission must be completed without interruption once started
