@@ -8,6 +8,7 @@ import { ACIAJourneyPanel } from './ACIAJourneyPanel';
 import { ACIACareerProfile } from './ACIACareerProfile';
 import { AIMentorChat } from './missions/AIMentorChat';
 import { AircraftInspection } from './missions/AircraftInspection';
+import { MaintenanceInvestigation } from './missions/MaintenanceInvestigation';
 import { SystemDiagnosis } from './missions/SystemDiagnosis';
 import { SystemsPuzzle } from './missions/SystemsPuzzle';
 import { InstrumentReading } from './missions/InstrumentReading';
@@ -42,7 +43,7 @@ function makeInitialSession(isRpas = false): ACIASession {
     { id: 'm9', title: 'RPAS Assessment Debrief', subtitle: 'Reflect on your RPAS career intelligence', type: 'reflection', estimatedMinutes: 4, completed: false },
   ] : [
     { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
-    { id: 'm2', title: 'Aircraft Inspection', subtitle: 'Pre-flight walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
+    { id: 'm2', title: 'Aircraft Maintenance Investigation', subtitle: 'AME inspection & records review', type: 'inspection', estimatedMinutes: 8, completed: false },
     { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
     { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
     { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
@@ -201,10 +202,10 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'There are no right or wrong answers. Respond naturally.',
   },
   'm2': {
-    what: 'You will conduct a visual walkaround inspection of a parked aircraft by tapping zones on a diagram. Document any findings you observe.',
-    interactions: 'Up to 15 zones to inspect',
-    time: '~ 4 minutes',
-    note: 'Once submitted, your inspection report cannot be changed.',
+    what: 'You will conduct a five-scenario aircraft maintenance investigation — exterior inspection, maintenance record review, mechanical system analysis, a handover briefing, and a priorities decision under operational pressure.',
+    interactions: '5 connected scenarios',
+    time: '~ 8 minutes',
+    note: 'Observations from early scenarios carry forward. Take your time.',
   },
   'm3': {
     what: 'You will work through a diagnostic scenario involving an aircraft discrepancy. You will review information and answer a series of questions.',
@@ -1007,7 +1008,8 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, m9Sy
         />
       );
     case 'inspection':
-      return <AircraftInspection isRpas={isRpas} sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
+      if (isRpas) return <AircraftInspection isRpas={true} sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
+      return <MaintenanceInvestigation sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
     case 'diagnosis':
       return <SystemDiagnosis isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'puzzle':
