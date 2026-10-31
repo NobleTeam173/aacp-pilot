@@ -1110,30 +1110,54 @@ function S4Handover({ foundDefectIds, onComplete }: {
     const docRegulatory    = hasConcept(lt, CONCEPTS.regulatoryRef);
 
     // Supervisor handover quality
-    const handoverConsistent = docFindings >= 2 && hasConcept(st, CONCEPTS.navLightMention || CONCEPTS.oilResidueFound);
-    const handoverSafety     = hasConcept(st, CONCEPTS.safetyGround);
+    const handoverMentionsFindings = hasConcept(st, CONCEPTS.navLightMention) || hasConcept(st, CONCEPTS.oilResidueFound) || hasConcept(st, CONCEPTS.tyreMention) || hasConcept(st, CONCEPTS.pitotMention);
+    const handoverConsistent  = docFindings >= 2 && handoverMentionsFindings;
+    const handoverSafety      = hasConcept(st, CONCEPTS.safetyGround);
     const handoverOutstanding = hasConcept(st, CONCEPTS.handoverComplete);
 
     // Distinguishes confirmed from assumed (uses hedging language)
     const distinguishesUncertainty = /appear|suggest|possibl|may|might|indicat|further|not.{0,10}confirm/i.test(lt);
 
+    // Mechanical reasoning — root cause analysis for oil system
+    const docRootCause   = hasConcept(lt, CONCEPTS.oilSystemCause);
+    const docMechNextStep = hasConcept(lt, CONCEPTS.oilNextStep);
+
+    // Decision quality — grounds vs releases aircraft
+    const recommendsGround   = hasConcept(lt, CONCEPTS.safetyGround) || hasConcept(st, CONCEPTS.safetyGround);
+    const recommendsRelease  = /return.{0,10}service|clear.{0,10}flight|airworthy.{0,10}for/i.test(lt + ' ' + st);
+
     const items: TaggedEvidence[] = [];
 
-    // Documentation quality
+    // Documentation completeness → AP
     if (docFindings >= 3) items.push(ev('attention_to_detail', 0.8, 3));
     else if (docFindings >= 2) items.push(ev('attention_to_detail', 0.5, 3));
     else if (docFindings >= 1) items.push(ev('attention_to_detail', 0.3, 3));
 
+    // Systematic documentation → PS
     if (docOutstanding)           items.push(ev('systematic_reasoning', 0.6, 3));
     if (docNextSteps)             items.push(ev('systematic_reasoning', 0.4, 3));
     if (distinguishesUncertainty) items.push(ev('systematic_reasoning', 0.3, 3));
-    if (docSafety)                items.push(ev('safety_mindset', 0.65, 3));
-    if (docRegulatory)            items.push(ev('procedural_compliance', 0.5, 3));
 
-    // Supervisor handover
-    if (docFindings >= 2)         items.push(ev('communication_quality', 0.4 + (docFindings >= 3 ? 0.3 : 0), 3));
-    if (handoverSafety)           items.push(ev('safety_mindset', 0.4, 3));
-    if (handoverOutstanding)      items.push(ev('communication_quality', 0.3, 3));
+    // Safety documentation → SO
+    if (docSafety)        items.push(ev('safety_mindset', 0.65, 3));
+    if (handoverSafety)   items.push(ev('safety_mindset', 0.4, 3));
+
+    // Regulatory references → PR
+    if (docRegulatory)    items.push(ev('procedural_compliance', 0.5, 3));
+
+    // Root cause analysis for oil system → MR
+    if (docRootCause)     items.push(ev('mechanical_reasoning', 0.55, 3));
+    if (docMechNextStep)  items.push(ev('mechanical_reasoning', 0.35, 3));
+
+    // Decision quality — correctly withholds release vs. unsafe release → DM
+    if (recommendsGround && !recommendsRelease) items.push(ev('decision_quality', 0.7, 3));
+    else if (!recommendsGround && !recommendsRelease) items.push(ev('decision_quality', 0.2, 3));
+    else if (recommendsRelease) items.push(ev('decision_quality', -0.3, 3));
+
+    // Handover communication quality → CM
+    if (handoverConsistent)  items.push(ev('communication_quality', 0.5, 3));
+    else if (docFindings >= 2) items.push(ev('communication_quality', 0.3, 3));
+    if (handoverOutstanding) items.push(ev('communication_quality', 0.3, 3));
 
     onComplete(items, logbook);
   }
