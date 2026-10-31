@@ -1212,7 +1212,7 @@ const PATHWAY_META: Record<PathwayId, {
       "Explore accredited aerospace, mechanical, or civil structural engineering programs (B.Eng) at Canadian universities",
       "Research damage tolerance, fatigue analysis, and finite element analysis (FEA) training and certification",
       "Investigate structural engineering roles at Canadian aerospace OEMs and Tier 1 suppliers",
-      "Note: aircraft structural engineering typically requires B.Eng, P.Eng registration, and may involve Transport Canada or FAA DER (Designated Engineering Representative) authorization for airworthiness substantiation",
+      "Note: aircraft structural engineering roles typically require a B.Eng and P.Eng registration; senior roles in airworthiness substantiation may lead to Transport Canada or FAA DER (Designated Engineering Representative) authorization — this is an advanced career milestone, not an entry requirement",
       "Connect with an AACP STEM/Aerospace pathway mentor",
     ],
   },
