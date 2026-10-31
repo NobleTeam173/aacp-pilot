@@ -1177,20 +1177,23 @@ function overallConfidence(
 export function computeAlignments(
   evidence: EvidenceItem[],
   responses: QuestionResponse[],
+  srScoringActive = false,
 ): CareerAlignment[] {
   const competencies = computeCompetencyIndex(responses, evidence);
 
   const pathwayScores: Record<PathwayId, number> = {} as Record<PathwayId, number>;
 
-  // Competencies that require prior knowledge are only assessed for eligible participants.
-  // When no evidence exists for them, exclude from the weighted sum entirely rather than
-  // treating absence as neutral — avoiding dilution for entry-level participants.
+  // Competencies excluded from weighted pathway calculations:
+  // - AK: prior knowledge gate — excluded when no evidence present (entry-level participants)
+  // - SR: calibration gate — excluded entirely until srScoringActive (≥20 v2.1 completions reviewed)
   const PRIOR_KNOWLEDGE_KEYS: Set<CompetencyKey> = new Set(['AK']);
+  const INACTIVE_KEYS: Set<CompetencyKey> = srScoringActive ? new Set() : new Set(['SR']);
 
   for (const [pathway, weights] of Object.entries(PATHWAY_WEIGHTS) as [PathwayId, Partial<Record<CompetencyKey, number>>][]) {
     let weightedSum = 0;
     let totalWeight = 0;
     for (const [key, weight] of Object.entries(weights) as [CompetencyKey, number][]) {
+      if (INACTIVE_KEYS.has(key)) continue; // SR excluded until calibration threshold reached
       const obs = competencies[key];
       if (!obs && PRIOR_KNOWLEDGE_KEYS.has(key)) continue; // no evidence — exclude from denominator
       const rawScore = obs ? obs.rawScore : 0;

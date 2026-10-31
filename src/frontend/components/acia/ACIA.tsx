@@ -351,7 +351,8 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     }
 
     // General ACIA payload
-    const alignments = computeAlignments(sess.evidence, sess.responses);
+    const srScoringActive = (() => { try { return localStorage.getItem('aacp_sr_scoring_active') === 'true'; } catch { return false; } })();
+    const alignments = computeAlignments(sess.evidence, sess.responses, srScoringActive);
     const competencyProfile: Record<string, { state: string; evidenceLevel: string; confidence: string }> = {};
     for (const [compId, obs] of Object.entries(sess.competencies)) {
       if (obs) competencyProfile[compId] = { state: obs.state, evidenceLevel: obs.state, confidence: obs.confidence };
@@ -401,7 +402,10 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         body: JSON.stringify(payload),
       });
       if (!r.ok && r.status !== 200 && r.status !== 201) throw new Error(`HTTP ${r.status}`);
-      const d: { assessmentId?: string; badgeId?: string; completedAt?: string } = await r.json();
+      const d: { assessmentId?: string; badgeId?: string; completedAt?: string; srScoringActive?: boolean } = await r.json();
+      if (typeof d.srScoringActive === 'boolean') {
+        try { localStorage.setItem('aacp_sr_scoring_active', String(d.srScoringActive)); } catch { /* ignore */ }
+      }
       if (d.assessmentId) {
         setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId ?? '', completedAt: d.completedAt ?? new Date().toISOString() });
         setSaveError(false);

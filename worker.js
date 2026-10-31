@@ -8728,7 +8728,13 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
       }), 'acia_completed');
     }
 
-    return json({ assessmentId, badgeId, completedAt: now }, 201);
+    // SR scoring activation: count v2.1.0+ completions; activate at 20
+    const srCount = await env.DB.prepare(
+      `SELECT COUNT(*) as c FROM acia_assessments WHERE scoring_version = '2.1.0' AND status = 'complete'`
+    ).first().catch(() => ({ c: 0 }));
+    const srScoringActive = (srCount?.c ?? 0) >= 20;
+
+    return json({ assessmentId, badgeId, completedAt: now, srScoringActive }, 201);
 
   } catch (e) {
     // Batch failed — D1 rolled back; no partial completion state exists.
