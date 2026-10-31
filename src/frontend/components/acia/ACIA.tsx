@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { savePendingCompletion, deletePendingCompletion, getAllPendingCompletions, type PendingCompletion } from '../../utils/aciaStorage';
 import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord, QuestionResponse } from './types';
-import { recordEvidence, classifyMissionChatForShadow, extractM1Context, appendShadowEvidence } from './behaviourEngine';
+import { recordEvidence, classifyMissionChatForShadow, extractM1Context, appendShadowEvidence, shadowRecordToLiveEvidence } from './behaviourEngine';
 import { computeAlignments, SCORING_VERSION } from './careerEngine';
 import { selectNextQuestion, isAssessmentComplete } from './adaptiveEngine';
 import { ACIAJourneyPanel } from './ACIAJourneyPanel';
@@ -53,6 +53,7 @@ function makeInitialSession(isRpas = false): ACIASession {
   return {
     sessionId: newSessionId,
     startedAt: now,
+    evidenceScoringVersion: 'ai_v2',
     evidence: [],
     responses: [],
     askedQuestionIds: [],
@@ -177,7 +178,12 @@ function loadSessionFromStorage(): { session: ACIASession; stage: AssessmentStag
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as { session: ACIASession; stage: AssessmentStage };
+    const parsed = JSON.parse(raw) as { session: ACIASession; stage: AssessmentStage };
+    // Backfill version on sessions saved before Phase C
+    if (!parsed.session.evidenceScoringVersion) {
+      parsed.session.evidenceScoringVersion = 'keyword_v1';
+    }
+    return parsed;
   } catch { return null; }
 }
 
@@ -484,14 +490,15 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     setTimeout(() => setView('saving'), 50);
   }, [session]);
 
-  // Shadow evidence classification after M1/M9 chat missions
+  // AI evidence classification after M1/M9 chat missions
   useEffect(() => {
     if (!session) return;
     const token = localStorage.getItem('aacp_access_token');
+    const isAiV2 = session.evidenceScoringVersion === 'ai_v2';
 
     // Run classification after M1 completes
     const m1Mission = session.missions.find(m => m.id === 'm1');
-    if (m1Mission?.completed && session.chatHistory['m1'] && !session.m1Context && !session.shadowEvidence?.some(e => e.missionId === 'm1')) {
+    if (m1Mission?.completed && session.chatHistory['m1'] && !session.shadowEvidence?.some(e => e.missionId === 'm1')) {
       const messages = session.chatHistory['m1'];
       Promise.all([
         extractM1Context(messages, chatEndpoint, token),
@@ -505,6 +512,11 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
           }
           if (shadowRec) {
             updated = appendShadowEvidence(updated, shadowRec);
+            // For ai_v2 sessions: activate live evidence from the AI classification
+            if (isAiV2) {
+              const liveItems = shadowRecordToLiveEvidence(shadowRec);
+              updated = recordEvidence(updated, liveItems, 'm1');
+            }
           }
           saveSessionToStorage(updated, stage);
           return updated;
@@ -512,7 +524,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       }).catch(() => {});
     }
 
-    // Run shadow classification after M9 completes
+    // Run classification after M9 completes
     const m9Mission = session.missions.find(m => m.id === 'm9');
     if (m9Mission?.completed && session.chatHistory['m9'] && !session.shadowEvidence?.some(e => e.missionId === 'm9')) {
       const messages = session.chatHistory['m9'];
@@ -520,7 +532,15 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         if (!shadowRec) return;
         setSession(prev => {
           if (!prev) return prev;
-          const updated = appendShadowEvidence(prev, shadowRec);
+          let updated = appendShadowEvidence(prev, shadowRec);
+          // For ai_v2 sessions: activate live evidence — only indicators NOT already
+          // observed in M1 to prevent double-counting across the session
+          if (isAiV2) {
+            const m1Indicators = prev.shadowEvidence?.filter(e => e.missionId === 'm1').flatMap(e => e.detectedIndicators) ?? [];
+            const newRecord = { ...shadowRec, detectedIndicators: shadowRec.detectedIndicators.filter(i => !m1Indicators.includes(i)) };
+            const liveItems = shadowRecordToLiveEvidence(newRecord);
+            updated = recordEvidence(updated, liveItems, 'm9');
+          }
           saveSessionToStorage(updated, stage);
           return updated;
         });
@@ -696,6 +716,27 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       saveSessionToStorage(next, stage);
       return next;
     });
+
+    // For ai_v2 sessions: run shadow classification on the reasoning response
+    if (adaptiveQuestionRef.current && session?.evidenceScoringVersion === 'ai_v2') {
+      const { question, variant } = adaptiveQuestionRef.current;
+      const token = localStorage.getItem('aacp_access_token');
+      const currentMissionId = session.missions[session.currentMissionIndex]?.id as MissionId ?? 'm2';
+      import('./behaviourEngine').then(({ classifyReasoningResponseForShadow, appendShadowEvidence: appendSE }) => {
+        classifyReasoningResponseForShadow(
+          question.questionId, variant, qResponse.responseText,
+          currentMissionId, chatEndpoint, token,
+        ).then(shadowRec => {
+          if (!shadowRec) return;
+          setSession(prev => {
+            if (!prev) return prev;
+            const updated = appendSE(prev, shadowRec);
+            saveSessionToStorage(updated, stage);
+            return updated;
+          });
+        }).catch(() => {});
+      });
+    }
 
     setSession(prev => {
       if (!prev) return prev;

@@ -305,10 +305,15 @@ export interface ShadowEvidenceRecord {
   evidenceScoringVersion: 'shadow_v1';     // versioning flag — activating in live scoring requires product owner approval
 }
 
+// 'keyword_v1' — original keyword-proxy scoring (historical sessions)
+// 'ai_v2'      — evidence-based AI classification (new sessions from Phase C)
+export type EvidenceScoringVersion = 'keyword_v1' | 'ai_v2';
+
 export interface ACIASession {
   sessionId: string;
   startedAt: string;
   completedAt?: string;
+  evidenceScoringVersion: EvidenceScoringVersion;
   evidence: EvidenceItem[];                // legacy visual mission evidence
   responses: QuestionResponse[];           // question bank responses
   askedQuestionIds: string[];              // repeat protection
@@ -317,8 +322,8 @@ export interface ACIASession {
   currentMissionIndex: number;
   chatHistory: Record<string, ChatMessage[]>;
   discoveredInterests?: string[];          // career interests from discovery phase
-  m1Context?: M1Context;                   // structured context from M1 — NOT used in live scoring
-  shadowEvidence?: ShadowEvidenceRecord[]; // AI-classified evidence — NOT in live scoring until approved
+  m1Context?: M1Context;                   // structured context from M1
+  shadowEvidence?: ShadowEvidenceRecord[]; // audit trail for AI-classified evidence
   // Internal session analytics
   sessionRecords: SessionRecord[];
   interruptionCount: number;

@@ -162,6 +162,43 @@ export function appendShadowEvidence(session: ACIASession, record: ShadowEvidenc
   };
 }
 
+// Maps shadow indicator ids → { key: EvidenceKey, positive: boolean }
+// Only indicators with a clear, specific evidence interpretation are mapped.
+const SHADOW_INDICATOR_EVIDENCE_MAP: Record<string, { key: EvidenceKey; delta: number }[]> = {
+  curiosity_initiative:     [{ key: 'curiosity', delta: 0.7 }],
+  communication_clarity:    [{ key: 'communication_quality', delta: 0.7 }],
+  safety_spontaneous:       [{ key: 'safety_mindset', delta: 0.8 }],
+  systematic_approach:      [{ key: 'systematic_reasoning', delta: 0.7 }],
+  procedural_awareness:     [{ key: 'procedural_compliance', delta: 0.7 }],
+  reflective_learning:      [{ key: 'learning_agility', delta: 0.8 }],
+  analytical_reasoning:     [{ key: 'systematic_reasoning', delta: 0.6 }],
+  aviation_context_awareness: [{ key: 'situational_awareness', delta: 0.6 }],
+  response_avoidance:       [{ key: 'communication_quality', delta: -0.3 }],
+  factual_error_safety:     [{ key: 'safety_mindset', delta: -0.4 }],
+};
+
+// Convert a shadow evidence record to live EvidenceItems for ai_v2 sessions.
+// Only called when evidenceScoringVersion === 'ai_v2'.
+export function shadowRecordToLiveEvidence(
+  record: ShadowEvidenceRecord,
+): Omit<EvidenceItem, 'mission'>[] {
+  if (record.detectedIndicators.length === 0) return [];
+
+  const items: Omit<EvidenceItem, 'mission'>[] = [];
+  for (const indicator of record.detectedIndicators) {
+    const mappings = SHADOW_INDICATOR_EVIDENCE_MAP[indicator];
+    if (!mappings) continue;
+    for (const m of mappings) {
+      items.push({ key: m.key, delta: m.delta });
+    }
+  }
+  // Participation baseline when indicators fired but none mapped
+  if (items.length === 0 && record.detectedIndicators.some(i => i !== 'insufficient_evidence')) {
+    items.push({ key: 'learning_agility', delta: 0.2 });
+  }
+  return items;
+}
+
 // ── M1 context extraction ─────────────────────────────────────────────────────
 export async function extractM1Context(
   messages: { role: string; content: string }[],
