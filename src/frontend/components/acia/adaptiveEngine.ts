@@ -5,7 +5,7 @@ import { generateVariant, auditStaticVariant, logValidationIssue } from './varia
 // ── Coverage targets (how many observations per competency before sufficient) ─
 const COVERAGE_TARGETS: Partial<Record<CompetencyKey, number>> = {
   SO: 3, DM: 3, CM: 2, MR: 2, AP: 2, SR: 2,
-  PS: 2, SA: 2, MT: 2, PR: 2, AL: 2, WM: 1, AK: 1,
+  PS: 2, SA: 2, MT: 2, PR: 2, AL: 2, WM: 2, AK: 1,
 };
 
 // ── Session composition targets ───────────────────────────────────────────────

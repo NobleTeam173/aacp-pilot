@@ -1182,11 +1182,17 @@ export function computeAlignments(
 
   const pathwayScores: Record<PathwayId, number> = {} as Record<PathwayId, number>;
 
+  // Competencies that require prior knowledge are only assessed for eligible participants.
+  // When no evidence exists for them, exclude from the weighted sum entirely rather than
+  // treating absence as neutral — avoiding dilution for entry-level participants.
+  const PRIOR_KNOWLEDGE_KEYS: Set<CompetencyKey> = new Set(['AK']);
+
   for (const [pathway, weights] of Object.entries(PATHWAY_WEIGHTS) as [PathwayId, Partial<Record<CompetencyKey, number>>][]) {
     let weightedSum = 0;
     let totalWeight = 0;
     for (const [key, weight] of Object.entries(weights) as [CompetencyKey, number][]) {
       const obs = competencies[key];
+      if (!obs && PRIOR_KNOWLEDGE_KEYS.has(key)) continue; // no evidence — exclude from denominator
       const rawScore = obs ? obs.rawScore : 0;
       const normalized = (rawScore + 1) / 2; // -1..1 → 0..1
       weightedSum += normalized * weight;

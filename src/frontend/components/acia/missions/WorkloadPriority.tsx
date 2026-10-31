@@ -152,7 +152,7 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [startTime] = useState(Date.now());
+  const [startTime] = useState(Date.now()); // retained for session analytics only — not used in scoring
   const [round1Score, setRound1Score] = useState<{ normalised: number; top3Correct: number } | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
@@ -201,17 +201,33 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
       setRound1Score({ normalised, top3Correct });
     } else {
       // Both rounds done — compute combined evidence
-      const elapsed = (Date.now() - startTime) / 1000;
       const r1 = round1Score!;
       const r2 = { normalised, top3Correct };
       const combinedNorm = (r1.normalised + r2.normalised) / 2;
       const combinedTop3 = (r1.top3Correct + r2.top3Correct) / 2;
 
+      // Behavioural stress_response: count how many 'immediate' items the participant
+      // placed in position 1–3 across both rounds. Placing safety-critical items first
+      // under simultaneous demand is observable composure, not typing speed.
+      const immediateIds = (rIdx: number) =>
+        rounds[rIdx].tasks.filter(t => t.urgency === 'immediate').map(t => t.id);
+      const r1UserOrder = round === 1
+        ? rounds[0].tasks.map(t => t.id) // fallback (shouldn't happen)
+        : items.map(t => t.id);
+      // items at this point is round 2's submitted order; round 1 order is lost after transition
+      // so we proxy from the top3Correct counts already captured
+      const immediateInTop3R1 = r1.top3Correct; // already counts immediate items correct in top-3
+      const immediateInTop3R2 = items
+        .slice(0, 3)
+        .filter(t => immediateIds(1).includes(t.id)).length;
+      const immediateScore = (immediateInTop3R1 + immediateInTop3R2) / (immediateIds(0).length + immediateIds(1).length);
+
       const evidence: Omit<EvidenceItem, 'mission'>[] = [
         { key: 'multitasking_ability', delta: combinedNorm * 0.9 },
         { key: 'situational_awareness', delta: combinedTop3 >= 2 ? 0.85 : combinedTop3 >= 1 ? 0.5 : 0.2 },
         { key: 'decision_quality', delta: combinedNorm * 0.75 },
-        { key: 'stress_response', delta: elapsed < 210 ? 0.75 : 0.45 },
+        // Composure under simultaneous demand: placing safety-critical items first
+        { key: 'stress_response', delta: Math.min(0.85, 0.2 + immediateScore * 0.65) },
         { key: 'safety_mindset', delta: combinedTop3 >= 2.5 ? 0.9 : combinedTop3 >= 1 ? 0.6 : 0.2 },
         { key: 'systematic_reasoning', delta: r2.normalised > 0.65 ? 0.7 : 0.35 },
       ];
