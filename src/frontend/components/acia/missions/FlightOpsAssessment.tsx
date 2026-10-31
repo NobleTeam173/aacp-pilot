@@ -293,17 +293,31 @@ function Scenario1({
 
   function handleFollowUp(val: string) {
     const evidence: Omit<EvidenceItem, 'mission'>[] = [];
-    if (reviewedIds.has('checklist')) evidence.push(ev('procedural_compliance', 0.6));
-    if (canDecide) evidence.push(ev('attention_to_detail', 0.5));
-    if (decision === 'flag' || decision === 'clarify') {
-      evidence.push(ev('attention_to_detail', 0.7));
-      evidence.push(ev('procedural_compliance', 0.7));
-    }
-    if (decision === 'complete') evidence.push(ev('procedural_compliance', -0.4));
     const text = val.toLowerCase();
-    if (text.includes('discrepancy') || text.includes('time') || text.includes('differ') || text.includes('conflict'))
-      evidence.push(ev('situational_awareness', 0.7));
-    onComplete(evidence, `S1: decision=${decision}; reviewed=${[...reviewedIds].join(',')}`);
+
+    // PR: flagging or seeking clarification on a discrepancy before proceeding
+    // Both are valid procedural approaches — neither is wrong.
+    if (decision === 'flag') evidence.push(ev('procedural_compliance', 0.8));
+    if (decision === 'clarify') evidence.push(ev('procedural_compliance', 0.7));
+    // skip = active dismissal of an unresolved concern — contra-indicator
+    if (decision === 'skip') evidence.push(ev('procedural_compliance', -0.5));
+    // complete without flagging = no procedural evidence either way (absence, not negative)
+
+    // AP: did they open both sources AND notice the conflict?
+    if (reviewedIds.has('briefing') && reviewedIds.has('aircraft')) {
+      if (decision === 'flag' || decision === 'clarify') evidence.push(ev('attention_to_detail', 0.7));
+    }
+
+    // SA: did follow-up reasoning reference the specific discrepancy and its implications?
+    const mentionsDiscrepancy = text.match(/discrepancy|10:30|11:00|differ|conflict|time.*depart|depart.*time/);
+    const mentionsImplication = text.match(/proceed|depart|confirm|clarif|verif|operat/);
+    if (mentionsDiscrepancy && mentionsImplication) evidence.push(ev('situational_awareness', 0.8));
+    else if (mentionsDiscrepancy) evidence.push(ev('situational_awareness', 0.5));
+
+    // CM: did they articulate what needed verification vs. what was already confirmed?
+    if (text.match(/still need|not yet|outstanding|unresolved|before proceed/)) evidence.push(ev('communication_quality', 0.5));
+
+    onComplete(evidence, `S1: decision=${decision}; reviewed=${[...reviewedIds].join(',')}; followup="${val.substring(0,80)}"`);
     setPhase('done');
   }
 
@@ -380,12 +394,37 @@ function Scenario2({
 
   function handleFollowUp2(val: string) {
     const evidence: Omit<EvidenceItem, 'mission'>[] = [];
-    if (decision === 'review') { evidence.push(ev('decision_quality', 0.8)); evidence.push(ev('situational_awareness', 0.7)); }
-    else evidence.push(ev('decision_quality', -0.3));
-    if (followUp1.toLowerCase().match(/5|visib|3 km|criteria/)) evidence.push(ev('attention_to_detail', 0.7));
+    const f1 = followUp1.toLowerCase();
+    const f2 = val.toLowerCase();
+
+    // DM — initial decision: requesting review when visibility drops below criterion is correct
+    // continuing without review is a genuine contra-indicator (ignoring a defined criterion)
+    if (decision === 'review') evidence.push(ev('decision_quality', 0.8));
+    if (decision === 'continue') evidence.push(ev('decision_quality', -0.5));
+    // ignore_wind and skip show failure to apply the criterion — but are less severe than continue
+    if (decision === 'ignore_wind' || decision === 'skip') evidence.push(ev('decision_quality', -0.3));
+
+    // SA — initial: did they identify the specific criterion value that was breached?
+    if (decision === 'review') evidence.push(ev('situational_awareness', 0.7));
+
+    // AP — follow-up 1: did they reference the actual criterion threshold (5 km or 3 km)?
+    if (f1.match(/5\s*km|below\s*5|3\s*km|minimum|threshold|criterion/)) evidence.push(ev('attention_to_detail', 0.8));
+    else if (f1.match(/visib|condition|weather|updat/)) evidence.push(ev('attention_to_detail', 0.4));
+
+    // DM — reassessment: both 'continue_updated' and 'still_review' are reasonable
+    // continue_updated = correctly updated decision based on new info
+    // still_review = appropriately cautious given outstanding operational review
     if (reassess === 'continue_updated' || reassess === 'still_review') evidence.push(ev('decision_quality', 0.6));
+    // revert or no_change = failing to integrate new information
+    if (reassess === 'revert') evidence.push(ev('decision_quality', -0.3));
+
+    // SA — reassessment reasoning: did they track what changed and why it matters?
     if (reassess === 'still_review') evidence.push(ev('situational_awareness', 0.6));
-    if (val.toLowerCase().match(/6|meets|above|updated/)) evidence.push(ev('analytical_reasoning', 0.5));
+
+    // AR — follow-up 2: did they articulate WHY the revised figure changes the picture?
+    if (f2.match(/6\s*km|now meets|above\s*5|revised.*meet|meet.*revised/)) evidence.push(ev('analytical_reasoning', 0.6));
+    if (f2.match(/outstanding|review.*still|still.*review|not yet confirm/)) evidence.push(ev('procedural_compliance', 0.5));
+
     onComplete(evidence, `S2: initial=${decision}; reassess=${reassess}`);
     setPhase('done');
   }
@@ -457,16 +496,38 @@ function Scenario3({
 
   function handleFollowUp(val: string) {
     const evidence: Omit<EvidenceItem, 'mission'>[] = [];
-    const t = message.toLowerCase(); const f = val.toLowerCase();
-    if (t.match(/departure|time|10:30|11:00|discrepancy/)) evidence.push(ev('situational_awareness', 0.6));
-    if (t.match(/weather|visibility|3 km|6 km/)) evidence.push(ev('communication_quality', 0.6));
-    if ((t.includes('resolved') || t.includes('confirmed')) && (t.includes('outstanding') || t.includes('still') || t.includes('unresolved')))
-      evidence.push(ev('communication_quality', 0.8));
-    if (!t.match(/all clear|no issues|everything is fine/)) evidence.push(ev('procedural_compliance', 0.5));
-    if (f.match(/departure|discrepancy|time/)) evidence.push(ev('procedural_compliance', 0.6));
-    if (message.length > 30 && message.length < 800) evidence.push(ev('communication_quality', 0.4));
-    if (!t.match(/departure|time|weather|visibility/)) evidence.push(ev('communication_quality', -0.3));
-    onComplete(evidence, `S3: message="${message.substring(0, 100)}"`);
+    const t = message.toLowerCase();
+    const f = val.toLowerCase();
+
+    // CM — accuracy: message should reflect what is actually known and what is still open
+    // Three key facts available: (a) departure discrepancy, (b) weather change, (c) outstanding review
+    const coversDeparture = !!t.match(/departure|time|10:30|11:00|discrepancy/);
+    const coversWeather = !!t.match(/weather|visibility|3\s*km|6\s*km|condition/);
+    const coversOutstanding = !!t.match(/outstanding|unresolved|still need|confirm|not yet|pending/);
+    const distinguishesResolvedVsOpen = (t.match(/resolv|confirm|correct/) != null) && coversOutstanding;
+
+    // Award CM for each independently covered fact — information accuracy is observable
+    if (coversDeparture) evidence.push(ev('communication_quality', 0.4));
+    if (coversWeather) evidence.push(ev('communication_quality', 0.4));
+    // Strongest CM signal: correctly distinguishing what is resolved from what remains open
+    if (distinguishesResolvedVsOpen) evidence.push(ev('communication_quality', 0.8));
+    else if (coversOutstanding) evidence.push(ev('communication_quality', 0.5));
+
+    // SA — did the message reflect awareness of the operational picture, not just recite facts?
+    if (coversDeparture && coversWeather && coversOutstanding) evidence.push(ev('situational_awareness', 0.7));
+    else if (coversDeparture && coversWeather) evidence.push(ev('situational_awareness', 0.4));
+
+    // Negative CM: false reassurance is a genuine contra-indicator (claiming all clear when review is outstanding)
+    if (t.match(/all clear|no issue|everything.{0,10}fine|all good|ready to go/) && !coversOutstanding)
+      evidence.push(ev('communication_quality', -0.6));
+
+    // PR — follow-up: did they correctly identify what still needs verification?
+    if (f.match(/departure|discrepancy|time/) && f.match(/weather|visibility|outstanding|confirm/))
+      evidence.push(ev('procedural_compliance', 0.6));
+    else if (f.match(/outstanding|still need|not yet|confirm/))
+      evidence.push(ev('procedural_compliance', 0.4));
+
+    onComplete(evidence, `S3: message="${message.substring(0, 100)}"; followup="${val.substring(0,60)}"`);
     setPhase('done');
   }
 
@@ -527,12 +588,36 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
 
   function handleFollowUp(val: string) {
     const evidence: Omit<EvidenceItem, 'mission'>[] = [];
-    if (order[order.length-1] === 'C' || order[order.length-2] === 'C') evidence.push(ev('multitasking_ability', 0.7));
-    if (order.slice(0,2).includes('A')) evidence.push(ev('situational_awareness', 0.6));
-    if (order.indexOf('B') <= 2) evidence.push(ev('communication_quality', 0.5));
-    if (order[0] !== 'C') evidence.push(ev('decision_quality', 0.5));
-    if (val.toLowerCase().match(/update|weather|departure|changed/)) evidence.push(ev('learning_agility', 0.5));
-    else evidence.push(ev('multitasking_ability', -0.2));
+    const f = val.toLowerCase();
+
+    // MT — prioritization structure:
+    // Operational items (A=weather, B=crew discrepancy, D=ops confirmation) should precede admin (C)
+    // Both A and B are safety-relevant; D is operationally relevant. C is explicitly deferrable.
+    const adminRank = order.indexOf('C'); // lower index = higher priority
+    const weatherRank = order.indexOf('A');
+    const crewRank = order.indexOf('B');
+    const opsRank = order.indexOf('D');
+
+    // Deferring admin (C) appropriately
+    if (adminRank >= 2) evidence.push(ev('multitasking_ability', 0.7));
+    // Placing admin first is a genuine contra-indicator — it's explicitly non-urgent
+    if (adminRank === 0) evidence.push(ev('multitasking_ability', -0.5));
+
+    // SA — weather and crew concerns ranked ahead of admin
+    if (weatherRank < adminRank) evidence.push(ev('situational_awareness', 0.5));
+    if (crewRank < adminRank) evidence.push(ev('situational_awareness', 0.4));
+
+    // DM — overall logic: operational items before admin is the observable indicator
+    const operationalBeforeAdmin = [weatherRank, crewRank, opsRank].every(r => r < adminRank);
+    if (operationalBeforeAdmin) evidence.push(ev('decision_quality', 0.6));
+
+    // AL — follow-up: did they integrate the new information (departure resolved, weather outstanding)?
+    const usedNewInfo = f.match(/weather|outstanding|resolv|still|updated|depart.*resolv|now.*weather/);
+    if (usedNewInfo) evidence.push(ev('learning_agility', 0.6));
+
+    // CM — addressed crew request (B) in top half
+    if (crewRank <= 1) evidence.push(ev('communication_quality', 0.4));
+
     onComplete(evidence, `S4: order=[${order.join(',')}]; initial=[${initial.join(',')}]`);
     setPhase('done');
   }
@@ -597,14 +682,43 @@ function Scenario5({
   function handleFinal() {
     if (finalMsg.trim().length < 15) return;
     const evidence: Omit<EvidenceItem, 'mission'>[] = [];
-    const t = finalMsg.toLowerCase(); const f = followUp.toLowerCase();
+    const t = finalMsg.toLowerCase();
+    const f = followUp.toLowerCase();
+
+    // DM — final recommendation:
+    // confirm_review = correct: weather criterion is met but ops confirmation is outstanding
+    // mark_complete = incorrect: ignores an explicitly outstanding procedural requirement
+    // ignore_outstanding = explicit dismissal of a defined requirement — contra-indicator
     if (decision === 'confirm_review') evidence.push(ev('decision_quality', 0.9));
-    else evidence.push(ev('decision_quality', -0.4));
-    if (f.match(/6|visib|meets|above/)) evidence.push(ev('situational_awareness', 0.6));
-    if (f.match(/outstanding|confirm|review|not yet/)) evidence.push(ev('procedural_compliance', 0.7));
-    if (t.match(/weather|visib|confirm|outstanding/)) evidence.push(ev('communication_quality', 0.7));
-    if (!t.match(/all clear|ready to go|no concerns/)) evidence.push(ev('communication_quality', 0.4));
-    if (t.match(/departure|time/) && t.match(/weather|visib/)) evidence.push(ev('situational_awareness', 0.6));
+    if (decision === 'mark_complete') {
+      // No positive DM evidence — completed without addressing outstanding requirement
+      // Not a contra-indicator (criterion IS met), just absent evidence
+    }
+    if (decision === 'ignore_outstanding') evidence.push(ev('decision_quality', -0.5));
+    if (decision === 'revert_original') evidence.push(ev('decision_quality', -0.4));
+
+    // PR — follow-up: did they identify what remains outstanding and why it matters?
+    if (f.match(/outstanding|not yet|ops.*confirm|confirm.*ops|review.*not|weather.*review/))
+      evidence.push(ev('procedural_compliance', 0.8));
+    if (f.match(/6\s*km|meets.*5|above.*5|criterion.*met/))
+      evidence.push(ev('situational_awareness', 0.6));
+
+    // CM — final message to co-pilot:
+    // Three observable elements: (a) weather meets criterion, (b) departure resolved, (c) outstanding requirement
+    const msgWeather = !!t.match(/weather|visib|6\s*km|condition/);
+    const msgDeparture = !!t.match(/departure|time.*resolv|resolv.*time/);
+    const msgOutstanding = !!t.match(/outstanding|not yet|confirm|still need|pending/);
+
+    if (msgWeather && msgOutstanding) evidence.push(ev('communication_quality', 0.7));
+    else if (msgWeather || msgOutstanding) evidence.push(ev('communication_quality', 0.4));
+
+    // SA — integrating all three threads in both follow-up and message demonstrates full picture
+    if (msgWeather && msgDeparture && msgOutstanding) evidence.push(ev('situational_awareness', 0.7));
+
+    // False reassurance in the final message is a CM contra-indicator
+    if (t.match(/all clear|ready to go|no concern|no issue/) && !msgOutstanding)
+      evidence.push(ev('communication_quality', -0.6));
+
     onComplete(evidence, `S5: decision=${decision}; msg="${finalMsg.substring(0,100)}"`);
     setPhase('done');
   }
@@ -704,10 +818,29 @@ export function FlightOpsAssessment({ onComplete }: Props) {
           if (!grouped[item.key]) grouped[item.key] = [];
           grouped[item.key].push(item.delta);
         }
-        const deduped = Object.entries(grouped).map(([key, vals]) => ({
-          key: key as EvidenceKey,
-          delta: vals.reduce((a, b) => a + b, 0) / vals.length,
-        }));
+        // Directional consistency weighting:
+        // - All same-direction observations → confirmed evidence (weighted sum, capped)
+        // - Mixed directions → conservative net (positives discounted where contradicted)
+        // - Single observation → face value, capped at ±0.9
+        const deduped = Object.entries(grouped).map(([key, vals]) => {
+          const positives = vals.filter(v => v > 0);
+          const negatives = vals.filter(v => v < 0);
+          let delta: number;
+          if (negatives.length === 0) {
+            // All positive: average with a consistency bonus for multiple independent observations
+            const avg = positives.reduce((a, b) => a + b, 0) / positives.length;
+            const consistencyBonus = positives.length >= 3 ? 0.1 : positives.length >= 2 ? 0.05 : 0;
+            delta = Math.min(avg + consistencyBonus, 1.0);
+          } else if (positives.length === 0) {
+            // All negative: average (conservative — don't compound)
+            delta = Math.max(negatives.reduce((a, b) => a + b, 0) / negatives.length, -1.0);
+          } else {
+            // Mixed: net sum, capped — contradictory evidence reduces confidence
+            const net = vals.reduce((a, b) => a + b, 0);
+            delta = Math.max(-0.8, Math.min(net, 0.8));
+          }
+          return { key: key as EvidenceKey, delta };
+        });
         onComplete(deduped);
       }
       return merged;
