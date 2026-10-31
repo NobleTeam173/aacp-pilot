@@ -157,112 +157,6 @@ function hasSTT(): boolean {
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 }
 
-// ── Response analysis ─────────────────────────────────────────────────────────
-function wantsClarification(t: string): boolean {
-  return t.includes('?') ||
-    /confirm|clarif|verif|check|repeat|say again|sure|certain|double|discrepan|conflict|mismatch|different|not correct|incorrect|doesn.t match|doesn.t agree/i.test(t);
-}
-function notesConflict(t: string): boolean {
-  return /east|west|position|showing|display|radar|inconsist|different|conflict|mismatch|opposite|not match/i.test(t);
-}
-function analyzeS1(response: string): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return 0;
-  let d = 0.10;
-  if (/maple|214/.test(t)) d += 0.25;
-  if (/west/.test(t)) d += 0.20;
-  if (/receiv|copy|confirm|roger|got it|understand|acknowledg|heard|affirm/.test(t)) d += 0.20;
-  return Math.min(0.70, d);
-}
-function analyzeS3(response: string, didClarify: boolean): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return 0.05;
-  const conflict = notesConflict(t);
-  const clarify = didClarify || wantsClarification(t);
-  if (clarify && conflict) return 0.70;
-  if (clarify) return 0.55;
-  if (conflict) return 0.40;
-  return 0.15;
-}
-function analyzeS4(r1: string, r2: string): number {
-  const t1 = r1.toLowerCase(); const t2 = r2.toLowerCase();
-  let d = 0;
-  if (/northern|305/.test(t1) && t1.trim().length > 5) d += 0.20;
-  if (/maple|214/.test(t2) && t2.trim().length > 5) d += 0.20;
-  if (/earlier|sooner|update|change|arriv|revised|ahead|schedule/.test(t2)) d += 0.20;
-  if (t1.trim().length > 5 && t2.trim().length > 5) d = Math.max(d, 0.15);
-  return Math.min(0.65, d);
-}
-function analyzeS5(response: string): { dm: number; al: number } {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return { dm: 0, al: 0.15 };
-  let dm = 0; let al = 0.20;
-  if (/maple|214|technical|assist|issue|concern/.test(t)) { dm += 0.30; al += 0.10; }
-  if (/\?|what|detail|more|nature|type|tell|describe|help|kind of|how can/.test(t)) { dm += 0.25; al += 0.10; }
-  if (/northern|305/.test(t)) al += 0.10;
-  return { dm: Math.min(0.65, dm), al: Math.min(0.50, al) };
-}
-
-// ── New competency analysis functions ─────────────────────────────────────────
-
-// S1: attention to detail — catches east/west discrepancy vs. display
-function analyzeS1Detail(response: string): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return 0.05;
-  let d = 0.05;
-  if (/maple|214/.test(t)) d += 0.10;
-  // Catches the discrepancy (display shows west, pilot said east)
-  const noticesConflict = /east|west|position|show|radar|display|differ|discrepan|conflict|mismatch|not match|opposite|incorrect|that.s not|incorrect/.test(t);
-  const probes = /\?|confirm|verif|clarif|check|correct|right|sure|repeat|say again/.test(t);
-  if (noticesConflict) d += 0.35;
-  if (probes) d += 0.25;
-  if (noticesConflict && probes) d += 0.10; // bonus for both
-  return Math.min(0.70, d);
-}
-
-// S3: composure under pressure — quality of response when two demands arrive simultaneously
-function analyzeS3Pressure(response: string): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return 0.05;
-  let d = 0.05;
-  const addressesMaple = /maple|214|position|clarif|confirm|east|west/.test(t);
-  const addressesNorthern = /northern|305|fuel|urgent|hold|standby|wait|priority|moment|shortly/.test(t);
-  const showsPrioritization = /first|then|after|and|also|once|follow/.test(t);
-  if (addressesMaple) d += 0.20;
-  if (addressesNorthern) d += 0.20;
-  if (addressesMaple && addressesNorthern) d += 0.15; // handled both
-  if (showsPrioritization) d += 0.10;
-  if (t.length > 30) d += 0.05; // stayed measured, not terse panic
-  return Math.min(0.70, d);
-}
-
-// S4: teamwork — quality of colleague handover (structured, covers both aircraft)
-function analyzeHandover(response: string): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 10) return 0.05;
-  let d = 0.05;
-  if (/maple|214/.test(t)) d += 0.20;
-  if (/northern|305|nth/.test(t)) d += 0.20;
-  if (/earlier|updated|changed|arrival|depart|fuel|technical|issue/.test(t)) d += 0.15;
-  if (/both|and|also/.test(t)) d += 0.10; // covered multiple items
-  if (t.length > 40) d += 0.10; // sufficient detail
-  return Math.min(0.70, d);
-}
-
-// S5 phase 2: adaptability — revises understanding when MAPLE 214 updates their status
-function analyzeAdaptability(response: string): number {
-  const t = response.toLowerCase().trim();
-  if (t.length < 5) return 0.05;
-  let d = 0.05;
-  // Accepts the update and integrates it
-  if (/copy|roger|confirm|receiv|understand|noted|acknowledged/.test(t)) d += 0.15;
-  // Asks a specific follow-up question about the updated status
-  if (/\?/.test(response)) d += 0.20;
-  if (/approach|clear|path|route|still|certain|sure|confirm|safe|proceed|system|navigation|instrument/.test(t)) d += 0.20;
-  // Notices the uncertainty and probes it
-  if (/think|believe|uncertain|not sure|may|might|possibly/.test(t)) d += 0.15;
-  return Math.min(0.65, d);
-}
 
 // ── Audio waveform indicator ──────────────────────────────────────────────────
 function Waveform({ active }: { active: boolean }) {
@@ -381,9 +275,91 @@ function RadarDisplay({ aircraft, selectedId, onSelect }: {
   );
 }
 
+// ── M7 AI rubric classification ────────────────────────────────────────────────
+interface M7Indicator { id: string; label: string; positive: boolean; }
+
+function buildM7Prompt(scenarioContext: string, transmission: string, response: string, indicators: M7Indicator[]): string {
+  const list = indicators.map(i => `- ${i.id}: ${i.label}`).join('\n');
+  return `You are an aviation competency evidence classifier for a structured assessment scenario.
+
+SCENARIO: ${scenarioContext}
+INCOMING TRANSMISSION: "${transmission}"
+PARTICIPANT RESPONSE: "${response}"
+
+BEHAVIOURAL INDICATORS TO CHECK:
+${list}
+
+Determine which indicators are evidenced in the participant's response. Be generous — partial or implicit evidence counts. Look for meaning and intent, not exact keywords.
+
+Reply with ONLY a JSON object:
+{ "detected": ["indicator_id_1", "indicator_id_2"] }`;
+}
+
+async function classifyM7Response(
+  scenarioContext: string,
+  transmission: string,
+  response: string,
+  indicators: M7Indicator[],
+  chatEndpoint: string,
+  token: string | null,
+): Promise<string[]> {
+  try {
+    const prompt = buildM7Prompt(scenarioContext, transmission, response, indicators);
+    const res = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        systemPrompt: prompt,
+        messages: [{ role: 'user', content: 'Classify this response.' }],
+      }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { reply?: string };
+    if (!data.reply) return [];
+    const match = data.reply.match(/\{[\s\S]*\}/);
+    if (!match) return [];
+    const parsed = JSON.parse(match[0]) as { detected?: string[] };
+    return parsed.detected ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Convert detected indicator IDs → evidence deltas using rubric
+function indicatorsToDeltas(
+  detected: string[],
+  indicators: M7Indicator[],
+  competencyKeys: { id: string; competency: string }[],
+): Record<string, number> {
+  const scores: Record<string, { sum: number; count: number }> = {};
+  for (const ind of indicators) {
+    const mapping = competencyKeys.find(c => c.id === ind.id);
+    if (!mapping) continue;
+    const key = mapping.competency;
+    if (!scores[key]) scores[key] = { sum: 0, count: 0 };
+    const delta = ind.positive
+      ? (detected.includes(ind.id) ? 0.8 : 0.0)
+      : (detected.includes(ind.id) ? -0.3 : 0.0);
+    if (delta !== 0) { scores[key].sum += delta; scores[key].count += 1; }
+  }
+  const result: Record<string, number> = {};
+  for (const [key, data] of Object.entries(scores)) {
+    result[key] = data.count > 0 ? data.sum / data.count : 0;
+  }
+  // Participation baseline for any competency with no indicator fired
+  const allCompetencies = [...new Set(competencyKeys.map(c => c.competency))];
+  for (const key of allCompetencies) {
+    if (!(key in result)) result[key] = 0.2;
+  }
+  return result;
+}
+
 // ── Response input ─────────────────────────────────────────────────────────────
 function ResponseInput({ onSubmit, context, label = 'Transmit' }: {
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string) => Promise<void>;
   context: string;
   label?: string;
 }) {
@@ -391,6 +367,7 @@ function ResponseInput({ onSubmit, context, label = 'Transmit' }: {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [tooShort, setTooShort] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [voiceSupported] = useState(hasSTT);
   const recogRef = useRef<any>(null);
 
@@ -410,11 +387,19 @@ function ResponseInput({ onSubmit, context, label = 'Transmit' }: {
 
   const currentText = transcript || text;
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (currentText.trim().length < 5) { setTooShort(true); return; }
     setTooShort(false);
-    onSubmit(currentText.trim());
+    setSubmitting(true);
+    try { await onSubmit(currentText.trim()); } finally { setSubmitting(false); }
   }
+
+  if (submitting) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '20px 0', color: C.blueL, fontSize: 12, fontFamily: 'monospace' }}>
+      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: C.blueL, animation: 'pulse 1s ease-in-out infinite' }} />
+      PROCESSING TRANSMISSION…
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -980,10 +965,33 @@ function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       scenarioNum={1} scenarioLabel="Initial Radio Contact">
       <ResponseInput
         context="Respond to MAPLE 214. Your display shows their current position — pay attention to whether what the pilot reported matches what you see."
-        onSubmit={text => onComplete([
-          { key: 'attention_to_detail', delta: analyzeS1Detail(text) },
-          { key: 'communication_quality', delta: analyzeS1(text) },
-        ])}
+        onSubmit={async text => {
+          const token = localStorage.getItem('aacp_access_token');
+          const s1Indicators: M7Indicator[] = [
+            { id: 'notices_discrepancy', label: 'Notices the position discrepancy (pilot says east, display shows west)', positive: true },
+            { id: 'seeks_clarification', label: 'Asks the pilot to confirm or clarify their reported position', positive: true },
+            { id: 'references_display', label: 'References own display, radar, or system data when noting the conflict', positive: true },
+            { id: 'acknowledges_aircraft', label: 'Acknowledges the aircraft by callsign and confirms receipt of transmission', positive: true },
+            { id: 'accepts_unchecked', label: 'Accepts the pilot report without any verification or cross-check', positive: false },
+          ];
+          const s1Keys = [
+            { id: 'notices_discrepancy', competency: 'attention_to_detail' },
+            { id: 'seeks_clarification', competency: 'attention_to_detail' },
+            { id: 'references_display', competency: 'attention_to_detail' },
+            { id: 'acknowledges_aircraft', competency: 'communication_quality' },
+            { id: 'accepts_unchecked', competency: 'attention_to_detail' },
+          ];
+          const detected = await classifyM7Response(
+            'ATC Initial Contact: pilot MAPLE 214 reports position five miles east; controller\'s display shows the aircraft west of the airport.',
+            'Tower, Maple 214. We\'re currently approximately five miles east of the airport. Just checking in and confirming our position.',
+            text, s1Indicators, '/acia/chat', token,
+          );
+          const deltas = indicatorsToDeltas(detected, s1Indicators, s1Keys);
+          onComplete([
+            { key: 'attention_to_detail', delta: Math.min(0.80, deltas['attention_to_detail'] ?? 0.2) },
+            { key: 'communication_quality', delta: Math.min(0.70, deltas['communication_quality'] ?? 0.2) },
+          ]);
+        }}
       />
     </ATCConsole>
   );
@@ -996,6 +1004,7 @@ function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
   const responseRef = useRef('');
   const clarifyRef = useRef(false);
   const pressureRef = useRef('');
+  const saDetectedRef = useRef<{ detected: string[]; saIndicators: M7Indicator[]; saKeys: { id: string; competency: string }[] } | null>(null);
 
   const aircraftEast: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position: East', visible: true },
@@ -1045,11 +1054,27 @@ function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
       <ResponseInput
         context="Respond to MAPLE 214. Your display and the pilot's report are not consistent."
-        onSubmit={text => {
+        onSubmit={async text => {
           responseRef.current = text;
-          const asked = wantsClarification(text) || notesConflict(text);
-          clarifyRef.current = asked;
-          // Whether or not they caught the conflict, NORTHERN 305 now breaks in
+          // Store whether the participant sought clarification — assessed by AI at scenario end
+          const token = localStorage.getItem('aacp_access_token');
+          const saIndicators: M7Indicator[] = [
+            { id: 'notes_conflict', label: 'Notes the conflict between pilot report and display data', positive: true },
+            { id: 'seeks_clarification', label: 'Asks the pilot to clarify or confirm their position', positive: true },
+            { id: 'cites_own_data', label: 'References own radar or display as the conflicting source', positive: true },
+          ];
+          const saKeys = [
+            { id: 'notes_conflict', competency: 'situational_awareness' },
+            { id: 'seeks_clarification', competency: 'situational_awareness' },
+            { id: 'cites_own_data', competency: 'situational_awareness' },
+          ];
+          const detected = await classifyM7Response(
+            'ATC Conflict: controller\'s display shows MAPLE 214 east of the airport, but pilot reports a different position.',
+            'Tower, Maple 214, we are west of the airport, approximately five miles.',
+            text, saIndicators, '/acia/chat', token,
+          );
+          clarifyRef.current = detected.includes('seeks_clarification') || detected.includes('notes_conflict');
+          saDetectedRef.current = { detected, saIndicators, saKeys };
           setStep('correction');
         }}
       />
@@ -1101,13 +1126,36 @@ function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
       <ResponseInput
         context="NORTHERN 305 has a time-sensitive fuel concern. MAPLE 214's position issue was just resolved. Respond to the current situation."
-        onSubmit={text => {
+        onSubmit={async text => {
           pressureRef.current = text;
-          const saDelta = analyzeS3(responseRef.current, clarifyRef.current);
-          const stressDelta = analyzeS3Pressure(text);
+          const token = localStorage.getItem('aacp_access_token');
+          // Classify stress_response from the pressure response
+          const srIndicators: M7Indicator[] = [
+            { id: 'acknowledges_urgency', label: 'Acknowledges the urgency or time-sensitive nature of the fuel concern', positive: true },
+            { id: 'provides_departure_info', label: 'Provides or commits to provide departure window information', positive: true },
+            { id: 'stays_composed', label: 'Response is structured and professional under dual-demand pressure', positive: true },
+            { id: 'ignores_urgency', label: 'Fails to acknowledge or dismisses the fuel urgency', positive: false },
+          ];
+          const srKeys = [
+            { id: 'acknowledges_urgency', competency: 'stress_response' },
+            { id: 'provides_departure_info', competency: 'stress_response' },
+            { id: 'stays_composed', competency: 'stress_response' },
+            { id: 'ignores_urgency', competency: 'stress_response' },
+          ];
+          const srDetected = await classifyM7Response(
+            'Dual demand: NORTHERN 305 has just declared a time-sensitive fuel concern while MAPLE 214\'s position issue was recently resolved.',
+            'Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive.',
+            text, srIndicators, '/acia/chat', token,
+          );
+          const srDeltas = indicatorsToDeltas(srDetected, srIndicators, srKeys);
+          // SA delta from the earlier first-response classification
+          const saResult = saDetectedRef.current;
+          const saDeltas = saResult
+            ? indicatorsToDeltas(saResult.detected, saResult.saIndicators, saResult.saKeys)
+            : { situational_awareness: 0.2 };
           onComplete([
-            { key: 'situational_awareness', delta: saDelta },
-            { key: 'stress_response', delta: stressDelta },
+            { key: 'situational_awareness', delta: Math.min(0.80, saDeltas['situational_awareness'] ?? 0.2) },
+            { key: 'stress_response', delta: Math.min(0.80, srDeltas['stress_response'] ?? 0.2) },
           ]);
         }}
       />
@@ -1240,10 +1288,37 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
         <ResponseInput
           context="Brief your colleague on what happened while they were away. Include any changes or developments they'll need to know about."
           label="Brief your colleague"
-          onSubmit={text => onComplete([
-            { key: 'multitasking_ability', delta: analyzeS4(r1Ref.current, r2Ref.current) },
-            { key: 'communication_quality', delta: analyzeHandover(text) },
-          ])}
+          onSubmit={async text => {
+            const token = localStorage.getItem('aacp_access_token');
+            // Multitasking: behavioural — did they actually respond to both pilots?
+            const handledBoth = r1Ref.current.trim().length > 5 && r2Ref.current.trim().length > 5;
+            const mtDelta = handledBoth ? 0.65 : (r1Ref.current.trim().length > 5 || r2Ref.current.trim().length > 5 ? 0.40 : 0.20);
+            // Handover quality: AI classification
+            const hvIndicators: M7Indicator[] = [
+              { id: 'covers_maple', label: 'Mentions MAPLE 214 and its status or relevant update', positive: true },
+              { id: 'covers_northern', label: 'Mentions NORTHERN 305 and its status or relevant update', positive: true },
+              { id: 'includes_changes', label: 'Communicates changes or developments (arrival update, fuel concern)', positive: true },
+              { id: 'structured_briefing', label: 'Briefing is structured and easy to follow — not disorganised or omitting key items', positive: true },
+              { id: 'incomplete_handover', label: 'Omits a key aircraft or critical status change from the briefing', positive: false },
+            ];
+            const hvKeys = [
+              { id: 'covers_maple', competency: 'communication_quality' },
+              { id: 'covers_northern', competency: 'communication_quality' },
+              { id: 'includes_changes', competency: 'communication_quality' },
+              { id: 'structured_briefing', competency: 'communication_quality' },
+              { id: 'incomplete_handover', competency: 'communication_quality' },
+            ];
+            const detected = await classifyM7Response(
+              'Controller handing over to a returning colleague after managing two aircraft: MAPLE 214 (arrival earlier than planned) and NORTHERN 305 (preparing for departure, fuel concern noted).',
+              'Back now — thanks for covering. What\'s the situation with MAPLE 214 and NORTHERN 305? Anything I should know before I take over?',
+              text, hvIndicators, '/acia/chat', token,
+            );
+            const hvDeltas = indicatorsToDeltas(detected, hvIndicators, hvKeys);
+            onComplete([
+              { key: 'multitasking_ability', delta: mtDelta },
+              { key: 'communication_quality', delta: Math.min(0.80, hvDeltas['communication_quality'] ?? 0.2) },
+            ]);
+          }}
         />
       </div>
     </ATCConsole>
@@ -1255,6 +1330,7 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
   const [step, setStep] = useState<'intro' | 'maple' | 'northern' | 'respond' | 'ack' | 'update' | 'respond2'>('intro');
   const [sel, setSel] = useState<string | undefined>(undefined);
   const responseRef = useRef('');
+  const s5ClarifiedRef = useRef(false);
 
   const aircraftAlert: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 140, y: 98, visible: true, status: 'Technical Issue', alert: true },
@@ -1334,9 +1410,21 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
         </div>
         <ResponseInput
           context="Respond to the transmissions you just heard. You can address both aircraft in one response."
-          onSubmit={text => {
+          onSubmit={async text => {
             responseRef.current = text;
-            if (wantsClarification(text) || text.includes('?')) setStep('ack');
+            // Route to 'ack' if participant sought clarification about the technical issue
+            const token = localStorage.getItem('aacp_access_token');
+            const clarifyCheck: M7Indicator[] = [
+              { id: 'asks_followup', label: 'Asks for more information about the nature or severity of the technical issue', positive: true },
+            ];
+            const clarifyKeys = [{ id: 'asks_followup', competency: 'decision_quality' }];
+            const detected = await classifyM7Response(
+              'MAPLE 214 reported a vague technical issue. Controller decides how to respond.',
+              'We\'ve experienced a technical issue and need assistance. Our arrival plans may change.',
+              text, clarifyCheck, '/acia/chat', token,
+            );
+            s5ClarifiedRef.current = detected.includes('asks_followup');
+            if (s5ClarifiedRef.current) setStep('ack');
             else setStep('update');
           }}
         />
@@ -1390,7 +1478,6 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
   );
 
   if (step === 'respond2') {
-    const { dm, al } = analyzeS5(responseRef.current);
     return (
       <ATCConsole aircraft={aircraftUpdate} aircraftInfoRows={infoUpdate}
         incomingMsg="Tower, Maple 214. The technical issue may have cleared. We believe we can proceed, but we're not entirely certain the issue is fully resolved."
@@ -1398,11 +1485,34 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
         selectedId={sel} onSelectAircraft={setSel} scenarioNum={5} scenarioLabel="Unexpected Operational Event">
         <ResponseInput
           context="MAPLE 214 says the issue may be resolved but they are not certain. How do you respond to this update?"
-          onSubmit={text => onComplete([
-            { key: 'decision_quality', delta: Math.min(0.65, dm + 0.10) },
-            { key: 'learning_agility', delta: Math.min(0.50, al + 0.05) },
-            { key: 'curiosity', delta: analyzeAdaptability(text) },
-          ])}
+          onSubmit={async text => {
+            const token = localStorage.getItem('aacp_access_token');
+            const s5Indicators: M7Indicator[] = [
+              { id: 'probes_uncertainty', label: 'Asks a follow-up question about whether the issue is fully resolved before proceeding', positive: true },
+              { id: 'requests_confirmation', label: 'Requests the pilot confirm system status before continuing the approach', positive: true },
+              { id: 'acknowledges_update', label: 'Acknowledges the status update from the pilot', positive: true },
+              { id: 'proceeds_without_check', label: 'Clears the aircraft to proceed without addressing the stated uncertainty', positive: false },
+            ];
+            const s5Keys = [
+              { id: 'probes_uncertainty', competency: 'curiosity' },
+              { id: 'requests_confirmation', competency: 'decision_quality' },
+              { id: 'acknowledges_update', competency: 'learning_agility' },
+              { id: 'proceeds_without_check', competency: 'decision_quality' },
+            ];
+            const detected = await classifyM7Response(
+              'MAPLE 214 reports a technical issue may have cleared but pilot is not fully certain. Controller must decide how to respond to this uncertain update.',
+              'The technical issue may have cleared — our instruments are reading normally now. We believe we can proceed with our original approach. However, we\'re not entirely certain the issue is fully resolved.',
+              text, s5Indicators, '/acia/chat', token,
+            );
+            const deltas = indicatorsToDeltas(detected, s5Indicators, s5Keys);
+            // Bonus for clarifying in the first response
+            const clarityBonus = s5ClarifiedRef.current ? 0.10 : 0;
+            onComplete([
+              { key: 'decision_quality', delta: Math.min(0.80, (deltas['decision_quality'] ?? 0.2) + clarityBonus) },
+              { key: 'learning_agility', delta: Math.min(0.70, deltas['learning_agility'] ?? 0.2) },
+              { key: 'curiosity', delta: Math.min(0.80, deltas['curiosity'] ?? 0.2) },
+            ]);
+          }}
         />
       </ATCConsole>
     );
