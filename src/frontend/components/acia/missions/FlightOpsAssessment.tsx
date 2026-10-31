@@ -19,6 +19,98 @@ const C = {
 type EvidenceKey = EvidenceItem['key'];
 function ev(key: EvidenceKey, delta: number): Omit<EvidenceItem, 'mission'> { return { key, delta }; }
 
+// ── Semantic concept matching ─────────────────────────────────────────────────
+// Each concept is a cluster of patterns expressing the same idea.
+// A concept is "present" if ANY pattern in its cluster matches.
+// This captures meaning regardless of specific wording chosen by the participant.
+
+type ConceptCluster = RegExp[];
+
+function hasConcept(text: string, cluster: ConceptCluster): boolean {
+  return cluster.some(p => p.test(text));
+}
+
+// Concept clusters used across M6 rubrics
+const CONCEPTS = {
+  // S1, S3, S5 — the departure time inconsistency between sources
+  departureDiscrepancy: [
+    /discrepan/i, /depart.{0,12}time/i, /time.{0,12}depart/i,
+    /two.{0,15}time/i, /differ.{0,12}time/i, /time.{0,12}differ/i,
+    /mismatch/i, /inconsisten/i, /not.{0,8}match/i, /conflict.{0,12}time/i,
+    /10.{0,4}30.{0,20}11.{0,4}00/i, /11.{0,4}00.{0,20}10.{0,4}30/i,
+    /schedul.{0,20}differ/i, /differ.{0,20}schedul/i,
+  ] as ConceptCluster,
+
+  // S1 — the need to act on or resolve an unverified item before proceeding
+  actionBeforeProceeding: [
+    /before.{0,15}proceed/i, /before.{0,15}depart/i, /before.{0,15}go/i,
+    /resolve.{0,15}first/i, /first.{0,15}resolve/i,
+    /confirm.{0,15}before/i, /verif/i, /clarif/i,
+    /need.{0,12}address/i, /address.{0,12}first/i, /cannot.{0,12}proceed/i,
+    /should.{0,12}not.{0,12}proceed/i, /hold.{0,12}depart/i,
+  ] as ConceptCluster,
+
+  // S2 — the specific operating criterion being a threshold value
+  visibilityCriterion: [
+    /\b5\s*km/i, /minimum.{0,20}visib/i, /visib.{0,20}minimum/i,
+    /below.{0,15}limit/i, /below.{0,15}requir/i, /requir.{0,15}visib/i,
+    /threshold/i, /criterion/i, /criteria/i, /operating.{0,15}limit/i,
+    /\b3\s*km.{0,20}below/i, /below.{0,20}\b3\s*km/i,
+    /not.{0,10}meet/i, /fail.{0,10}meet/i, /doesn.{0,5}t.{0,10}meet/i,
+  ] as ConceptCluster,
+
+  // S2, S5 — revised figure now meets the criterion
+  revisedMeetsCriterion: [
+    /\b6\s*km/i, /now.{0,15}meet/i, /meet.{0,15}now/i,
+    /above.{0,12}minimum/i, /above.{0,12}\b5/i, /satisf/i,
+    /within.{0,12}limit/i, /acceptable/i, /revised.{0,15}meet/i,
+    /meet.{0,15}revised/i, /updated.{0,15}meet/i, /meet.{0,15}updated/i,
+    /now.{0,12}acceptable/i, /sufficient/i,
+  ] as ConceptCluster,
+
+  // S3, S5 — the weather update and its evolving state
+  weatherUpdate: [
+    /weather/i, /visib/i, /condition/i, /forecast/i,
+    /3\s*km/i, /6\s*km/i, /kilomet/i, /updated.{0,15}weather/i,
+    /weather.{0,15}updat/i, /meteorolog/i,
+  ] as ConceptCluster,
+
+  // S3, S5 — distinguishing what has been confirmed from what remains open
+  distinguishResolvedFromOpen: [
+    /resolv.{0,20}(outstanding|still|pending|open|unresolved)/i,
+    /(outstanding|still|pending|open|unresolved).{0,20}resolv/i,
+    /confirm.{0,20}(outstanding|still|pending)/i,
+    /(outstanding|pending|unresolved).{0,20}confirm/i,
+    /one.{0,20}resolv.{0,20}(another|other|but)/i,
+    /depart.{0,20}resolv.{0,20}weather/i, /weather.{0,20}still.{0,20}depart/i,
+    /while.{0,20}(still|outstanding|pending)/i,
+    /however.{0,20}(still|outstanding|weather)/i,
+    /although.{0,20}(still|weather|outstanding)/i,
+  ] as ConceptCluster,
+
+  // S3, S5 — an item that still requires attention before proceeding
+  outstandingRequirement: [
+    /outstanding/i, /unresolved/i, /not.{0,10}yet/i, /still.{0,10}need/i,
+    /pending/i, /await/i, /remain.{0,10}open/i, /open.{0,10}item/i,
+    /not.{0,10}confirm/i, /confirm.{0,10}not/i, /incomplete/i,
+    /still.{0,10}require/i, /need.{0,10}confirm/i, /require.{0,10}confirm/i,
+    /before.{0,10}mark/i, /before.{0,10}complet/i,
+  ] as ConceptCluster,
+
+  // S4 — integrating updated information into a revised view
+  integratedNewInfo: [
+    /updat.{0,20}(change|affect|now|show)/i,
+    /(change|affect|now|show).{0,20}updat/i,
+    /new.{0,15}(information|info|update|data)/i,
+    /(information|info|update|data).{0,15}change/i,
+    /weather.{0,20}still/i, /still.{0,20}weather/i,
+    /depart.{0,20}resolv/i, /resolv.{0,20}depart/i,
+    /now.{0,15}(only|just|weather|one)/i,
+    /remain.{0,15}(weather|one|only)/i,
+    /original.{0,15}priorit/i,
+  ] as ConceptCluster,
+};
+
 // ── Shared UI components ──────────────────────────────────────────────────────
 
 function ACIABubble({ text }: { text: string }) {
@@ -308,14 +400,14 @@ function Scenario1({
       if (decision === 'flag' || decision === 'clarify') evidence.push(ev('attention_to_detail', 0.7));
     }
 
-    // SA: did follow-up reasoning reference the specific discrepancy and its implications?
-    const mentionsDiscrepancy = text.match(/discrepancy|10:30|11:00|differ|conflict|time.*depart|depart.*time/);
-    const mentionsImplication = text.match(/proceed|depart|confirm|clarif|verif|operat/);
-    if (mentionsDiscrepancy && mentionsImplication) evidence.push(ev('situational_awareness', 0.8));
-    else if (mentionsDiscrepancy) evidence.push(ev('situational_awareness', 0.5));
+    // SA: did follow-up reasoning show awareness of the discrepancy AND its operational implication?
+    const sawDiscrepancy = hasConcept(text, CONCEPTS.departureDiscrepancy);
+    const sawImplication = hasConcept(text, CONCEPTS.actionBeforeProceeding);
+    if (sawDiscrepancy && sawImplication) evidence.push(ev('situational_awareness', 0.8));
+    else if (sawDiscrepancy) evidence.push(ev('situational_awareness', 0.5));
 
-    // CM: did they articulate what needed verification vs. what was already confirmed?
-    if (text.match(/still need|not yet|outstanding|unresolved|before proceed/)) evidence.push(ev('communication_quality', 0.5));
+    // CM: did they articulate what still needed verification?
+    if (hasConcept(text, CONCEPTS.outstandingRequirement)) evidence.push(ev('communication_quality', 0.5));
 
     onComplete(evidence, `S1: decision=${decision}; reviewed=${[...reviewedIds].join(',')}; followup="${val.substring(0,80)}"`);
     setPhase('done');
@@ -407,23 +499,20 @@ function Scenario2({
     // SA — initial: did they identify the specific criterion value that was breached?
     if (decision === 'review') evidence.push(ev('situational_awareness', 0.7));
 
-    // AP — follow-up 1: did they reference the actual criterion threshold (5 km or 3 km)?
-    if (f1.match(/5\s*km|below\s*5|3\s*km|minimum|threshold|criterion/)) evidence.push(ev('attention_to_detail', 0.8));
-    else if (f1.match(/visib|condition|weather|updat/)) evidence.push(ev('attention_to_detail', 0.4));
+    // AP — follow-up 1: did they reference the criterion threshold that was breached?
+    if (hasConcept(f1, CONCEPTS.visibilityCriterion)) evidence.push(ev('attention_to_detail', 0.8));
+    else if (hasConcept(f1, CONCEPTS.weatherUpdate)) evidence.push(ev('attention_to_detail', 0.4));
 
-    // DM — reassessment: both 'continue_updated' and 'still_review' are reasonable
-    // continue_updated = correctly updated decision based on new info
-    // still_review = appropriately cautious given outstanding operational review
+    // DM — reassessment: both continue_updated and still_review are reasonable
     if (reassess === 'continue_updated' || reassess === 'still_review') evidence.push(ev('decision_quality', 0.6));
-    // revert or no_change = failing to integrate new information
     if (reassess === 'revert') evidence.push(ev('decision_quality', -0.3));
 
-    // SA — reassessment reasoning: did they track what changed and why it matters?
+    // SA — still_review shows awareness that a process step remains open
     if (reassess === 'still_review') evidence.push(ev('situational_awareness', 0.6));
 
-    // AR — follow-up 2: did they articulate WHY the revised figure changes the picture?
-    if (f2.match(/6\s*km|now meets|above\s*5|revised.*meet|meet.*revised/)) evidence.push(ev('analytical_reasoning', 0.6));
-    if (f2.match(/outstanding|review.*still|still.*review|not yet confirm/)) evidence.push(ev('procedural_compliance', 0.5));
+    // AR — follow-up 2: did they explain WHY the revised figure changes the picture?
+    if (hasConcept(f2, CONCEPTS.revisedMeetsCriterion)) evidence.push(ev('analytical_reasoning', 0.6));
+    if (hasConcept(f2, CONCEPTS.outstandingRequirement)) evidence.push(ev('procedural_compliance', 0.5));
 
     onComplete(evidence, `S2: initial=${decision}; reassess=${reassess}`);
     setPhase('done');
@@ -499,32 +588,30 @@ function Scenario3({
     const t = message.toLowerCase();
     const f = val.toLowerCase();
 
-    // CM — accuracy: message should reflect what is actually known and what is still open
-    // Three key facts available: (a) departure discrepancy, (b) weather change, (c) outstanding review
-    const coversDeparture = !!t.match(/departure|time|10:30|11:00|discrepancy/);
-    const coversWeather = !!t.match(/weather|visibility|3\s*km|6\s*km|condition/);
-    const coversOutstanding = !!t.match(/outstanding|unresolved|still need|confirm|not yet|pending/);
-    const distinguishesResolvedVsOpen = (t.match(/resolv|confirm|correct/) != null) && coversOutstanding;
+    // CM — accuracy and completeness: three independently observable facts in this message
+    const coversDeparture = hasConcept(t, CONCEPTS.departureDiscrepancy);
+    const coversWeather   = hasConcept(t, CONCEPTS.weatherUpdate);
+    const coversOutstanding = hasConcept(t, CONCEPTS.outstandingRequirement);
+    const distinguishesResolvedVsOpen = hasConcept(t, CONCEPTS.distinguishResolvedFromOpen);
 
-    // Award CM for each independently covered fact — information accuracy is observable
     if (coversDeparture) evidence.push(ev('communication_quality', 0.4));
-    if (coversWeather) evidence.push(ev('communication_quality', 0.4));
-    // Strongest CM signal: correctly distinguishing what is resolved from what remains open
+    if (coversWeather)   evidence.push(ev('communication_quality', 0.4));
+    // Highest CM signal: distinguishing what is confirmed from what remains open
     if (distinguishesResolvedVsOpen) evidence.push(ev('communication_quality', 0.8));
-    else if (coversOutstanding) evidence.push(ev('communication_quality', 0.5));
+    else if (coversOutstanding)      evidence.push(ev('communication_quality', 0.5));
 
-    // SA — did the message reflect awareness of the operational picture, not just recite facts?
+    // SA — does the message reflect the full operational picture?
     if (coversDeparture && coversWeather && coversOutstanding) evidence.push(ev('situational_awareness', 0.7));
-    else if (coversDeparture && coversWeather) evidence.push(ev('situational_awareness', 0.4));
+    else if (coversDeparture && coversWeather)                 evidence.push(ev('situational_awareness', 0.4));
 
-    // Negative CM: false reassurance is a genuine contra-indicator (claiming all clear when review is outstanding)
-    if (t.match(/all clear|no issue|everything.{0,10}fine|all good|ready to go/) && !coversOutstanding)
+    // Contra-indicator: false reassurance when an outstanding item exists
+    if (/all clear|no issue|everything.{0,10}fine|all good|ready to go/i.test(t) && !coversOutstanding)
       evidence.push(ev('communication_quality', -0.6));
 
-    // PR — follow-up: did they correctly identify what still needs verification?
-    if (f.match(/departure|discrepancy|time/) && f.match(/weather|visibility|outstanding|confirm/))
+    // PR — follow-up: did they identify what still needs verification?
+    if (hasConcept(f, CONCEPTS.departureDiscrepancy) && hasConcept(f, CONCEPTS.outstandingRequirement))
       evidence.push(ev('procedural_compliance', 0.6));
-    else if (f.match(/outstanding|still need|not yet|confirm/))
+    else if (hasConcept(f, CONCEPTS.outstandingRequirement))
       evidence.push(ev('procedural_compliance', 0.4));
 
     onComplete(evidence, `S3: message="${message.substring(0, 100)}"; followup="${val.substring(0,60)}"`);
@@ -611,9 +698,8 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
     const operationalBeforeAdmin = [weatherRank, crewRank, opsRank].every(r => r < adminRank);
     if (operationalBeforeAdmin) evidence.push(ev('decision_quality', 0.6));
 
-    // AL — follow-up: did they integrate the new information (departure resolved, weather outstanding)?
-    const usedNewInfo = f.match(/weather|outstanding|resolv|still|updated|depart.*resolv|now.*weather/);
-    if (usedNewInfo) evidence.push(ev('learning_agility', 0.6));
+    // AL — follow-up: did they integrate the new information into a revised view?
+    if (hasConcept(f, CONCEPTS.integratedNewInfo)) evidence.push(ev('learning_agility', 0.6));
 
     // CM — addressed crew request (B) in top half
     if (crewRank <= 1) evidence.push(ev('communication_quality', 0.4));
@@ -697,26 +783,25 @@ function Scenario5({
     if (decision === 'ignore_outstanding') evidence.push(ev('decision_quality', -0.5));
     if (decision === 'revert_original') evidence.push(ev('decision_quality', -0.4));
 
-    // PR — follow-up: did they identify what remains outstanding and why it matters?
-    if (f.match(/outstanding|not yet|ops.*confirm|confirm.*ops|review.*not|weather.*review/))
-      evidence.push(ev('procedural_compliance', 0.8));
-    if (f.match(/6\s*km|meets.*5|above.*5|criterion.*met/))
-      evidence.push(ev('situational_awareness', 0.6));
+    // PR — follow-up: did they identify what remains outstanding and why it blocks completion?
+    if (hasConcept(f, CONCEPTS.outstandingRequirement)) evidence.push(ev('procedural_compliance', 0.8));
+    if (hasConcept(f, CONCEPTS.revisedMeetsCriterion)) evidence.push(ev('situational_awareness', 0.6));
 
-    // CM — final message to co-pilot:
-    // Three observable elements: (a) weather meets criterion, (b) departure resolved, (c) outstanding requirement
-    const msgWeather = !!t.match(/weather|visib|6\s*km|condition/);
-    const msgDeparture = !!t.match(/departure|time.*resolv|resolv.*time/);
-    const msgOutstanding = !!t.match(/outstanding|not yet|confirm|still need|pending/);
+    // CM — final message: three independently observable facts
+    const msgWeather     = hasConcept(t, CONCEPTS.weatherUpdate);
+    const msgDeparture   = hasConcept(t, CONCEPTS.departureDiscrepancy);
+    const msgOutstanding = hasConcept(t, CONCEPTS.outstandingRequirement);
+    const msgDistinguishes = hasConcept(t, CONCEPTS.distinguishResolvedFromOpen);
 
-    if (msgWeather && msgOutstanding) evidence.push(ev('communication_quality', 0.7));
-    else if (msgWeather || msgOutstanding) evidence.push(ev('communication_quality', 0.4));
+    if (msgDistinguishes)                  evidence.push(ev('communication_quality', 0.7));
+    else if (msgWeather && msgOutstanding) evidence.push(ev('communication_quality', 0.6));
+    else if (msgWeather || msgOutstanding) evidence.push(ev('communication_quality', 0.3));
 
-    // SA — integrating all three threads in both follow-up and message demonstrates full picture
+    // SA — integrating all three threads demonstrates full operational picture
     if (msgWeather && msgDeparture && msgOutstanding) evidence.push(ev('situational_awareness', 0.7));
 
-    // False reassurance in the final message is a CM contra-indicator
-    if (t.match(/all clear|ready to go|no concern|no issue/) && !msgOutstanding)
+    // Contra-indicator: false reassurance when an outstanding requirement exists
+    if (/all clear|ready to go|no concern|no issue/i.test(t) && !msgOutstanding)
       evidence.push(ev('communication_quality', -0.6));
 
     onComplete(evidence, `S5: decision=${decision}; msg="${finalMsg.substring(0,100)}"`);
@@ -792,7 +877,8 @@ const SCENARIO_PANEL_IDS: string[][] = [
 
 export function FlightOpsAssessment({ onComplete }: Props) {
   const [scenario, setScenario] = useState(0);
-  const [allEvidence, setAllEvidence] = useState<Omit<EvidenceItem, 'mission'>[]>([]);
+  // Tag each evidence item with its source scenario for diversity-aware aggregation
+  const [allEvidence, setAllEvidence] = useState<Array<Omit<EvidenceItem, 'mission'> & { _sc: number }>>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   // Track which panels opened per scenario
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
@@ -811,36 +897,50 @@ export function FlightOpsAssessment({ onComplete }: Props) {
 
   const handleScenarioComplete = useCallback((scIdx: number, evItems: Omit<EvidenceItem, 'mission'>[], _note: string) => {
     setAllEvidence(prev => {
-      const merged = [...prev, ...evItems];
+      const tagged = evItems.map(e => ({ ...e, _sc: scIdx }));
+      const merged = [...prev, ...tagged];
+
       if (scIdx === 4) {
-        const grouped: Record<string, number[]> = {};
+        // Group by evidence key, preserving source scenario per item
+        const grouped: Record<string, Array<{ delta: number; sc: number }>> = {};
         for (const item of merged) {
           if (!grouped[item.key]) grouped[item.key] = [];
-          grouped[item.key].push(item.delta);
+          grouped[item.key].push({ delta: item.delta, sc: item._sc });
         }
-        // Directional consistency weighting:
-        // - All same-direction observations → confirmed evidence (weighted sum, capped)
-        // - Mixed directions → conservative net (positives discounted where contradicted)
-        // - Single observation → face value, capped at ±0.9
-        const deduped = Object.entries(grouped).map(([key, vals]) => {
-          const positives = vals.filter(v => v > 0);
-          const negatives = vals.filter(v => v < 0);
+
+        const deduped = Object.entries(grouped).map(([key, items]) => {
+          const positives = items.filter(i => i.delta > 0);
+          const negatives = items.filter(i => i.delta < 0);
+
+          // Count how many DISTINCT scenarios contributed positive observations
+          // (only items with delta >= 0.4 count as meaningful — weak signals don't earn diversity credit)
+          const distinctPositiveScenarios = new Set(
+            positives.filter(i => i.delta >= 0.4).map(i => i.sc)
+          ).size;
+
           let delta: number;
-          if (negatives.length === 0) {
-            // All positive: average with a consistency bonus for multiple independent observations
-            const avg = positives.reduce((a, b) => a + b, 0) / positives.length;
-            const consistencyBonus = positives.length >= 3 ? 0.1 : positives.length >= 2 ? 0.05 : 0;
+          if (negatives.length === 0 && positives.length > 0) {
+            // All positive: average the observations
+            const avg = positives.reduce((a, b) => a + b.delta, 0) / positives.length;
+            // Consistency bonus ONLY when observations span 2+ independent scenarios
+            // and at least 2 of those are meaningful (≥0.4) — prevents inflation from
+            // weak repeated signals within a single scenario
+            const consistencyBonus = distinctPositiveScenarios >= 3 ? 0.1
+              : distinctPositiveScenarios >= 2 ? 0.05
+              : 0;
             delta = Math.min(avg + consistencyBonus, 1.0);
           } else if (positives.length === 0) {
-            // All negative: average (conservative — don't compound)
-            delta = Math.max(negatives.reduce((a, b) => a + b, 0) / negatives.length, -1.0);
+            // All negative: average, don't compound
+            delta = Math.max(negatives.reduce((a, b) => a + b.delta, 0) / negatives.length, -1.0);
           } else {
-            // Mixed: net sum, capped — contradictory evidence reduces confidence
-            const net = vals.reduce((a, b) => a + b, 0);
+            // Mixed: conservative net — contradictory signals reduce confidence
+            const net = items.reduce((a, b) => a + b.delta, 0);
             delta = Math.max(-0.8, Math.min(net, 0.8));
           }
+
           return { key: key as EvidenceKey, delta };
         });
+
         onComplete(deduped);
       }
       return merged;
