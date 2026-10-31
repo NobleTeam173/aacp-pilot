@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CareerAlignment, EvidenceItem, QuestionResponse, CompetencyKey } from './types';
 import { EVIDENCE_STATE_LABELS, ALIGNMENT_LABELS, COMPETENCY_LABELS } from './types';
 import { computeCompetencyIndex, getTopCompetencies, getDevelopmentOpportunities } from './evidenceEngine';
+import { QUESTION_BANK } from './questionBank';
 import { ACIABadge } from './ACIABadge';
 import type { BadgeData } from './ACIABadge';
 import { openACIAReport } from './reportGenerator';
@@ -57,8 +58,23 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, on
 
   function handleDownloadReport() {
     const name = participantName ?? localStorage.getItem('aacp_name') ?? 'Participant';
-    // Only surface a top pathway when it has actual evidence behind it
     const reliableTop = top && top.alignment !== 'insufficient' && top.evidenceConfidence !== 'low' ? top : null;
+
+    // G6: Build behaviour descriptions from positive rubric indicators observed by evidenceEngine
+    const behaviourDescriptions: string[] = [];
+    const seenIndicators = new Set<string>();
+    for (const resp of responses) {
+      if (!resp.observedIndicators.length) continue;
+      const qr = QUESTION_BANK.find(q => q.questionId === resp.questionId);
+      if (!qr) continue;
+      for (const indKey of resp.observedIndicators) {
+        if (seenIndicators.has(indKey)) continue;
+        const ind = qr.evidenceRubric.find(r => r.indicator === indKey && r.positive);
+        if (ind) { behaviourDescriptions.push(ind.label); seenIndicators.add(indKey); }
+      }
+    }
+    const observedBehaviours = behaviourDescriptions.slice(0, 8);
+
     const report: ReportData = {
       participantName: name,
       assessmentDate: savedData?.completedAt ?? new Date().toISOString(),
@@ -82,7 +98,8 @@ export function ACIACareerProfile({ alignments, evidence, responses, onReset, on
         confidence: String(obs.observationCount),
       })),
       developmentAreas: devOps.map(o => COMPETENCY_LABELS[o.key as CompetencyKey] ?? o.key),
-      observedStrengths: reliableTop?.observedStrengths ?? [],
+      // G6: Prefer specific observed behaviour descriptions over generic competency labels
+      observedStrengths: observedBehaviours.length > 0 ? observedBehaviours : (reliableTop?.observedStrengths ?? []),
       emergingCapabilities: devOps.map(o => COMPETENCY_LABELS[o.key as CompetencyKey] ?? o.key),
       recommendedNextSteps: reliableTop?.nextSteps ?? [],
       badgeId: savedData?.badgeId,

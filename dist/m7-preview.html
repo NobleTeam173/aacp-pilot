@@ -1,0 +1,869 @@
+<title>M7 ATC Workstation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ── Single-theme: committed dark aviation workstation ── */
+:root {
+  color-scheme: dark;
+  --bg:      #05080f;
+  --panel:   #0a1120;
+  --card:    #0d1626;
+  --border:  #162340;
+  --borderL: #1e3a5f;
+  --text:    #d8e4f0;
+  --dim:     #526070;
+  --dimM:    #7a8fa0;
+  --blue:    #2563eb;
+  --blueL:   #60a5fa;
+  --blueXL:  #bfdbfe;
+  --green:   #16a34a;
+  --greenL:  #4ade80;
+  --amber:   #d97706;
+  --amberL:  #fbbf24;
+  --red:     #dc2626;
+  --action:  #1d4ed8;
+  --actionH: #1e40af;
+  --radar:   #020a04;
+  --rg:      74,222,128;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+  min-height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+}
+textarea, input, button { font-family: inherit; }
+img { max-width: 100%; display: block; }
+#app {
+  width: 100%; max-width: 680px;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  min-height: 100vh;
+}
+
+/* ── Nav tabs ── */
+.tabs {
+  position: sticky; top: 0; z-index: 20;
+  background: #050912; border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; padding: 9px 14px;
+  font-size: 9px; font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px; color: var(--dim); cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.tab:hover { color: var(--dimM); }
+.tab.active { color: var(--blueL); border-bottom-color: var(--blue); }
+
+/* ── Screen panels ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Welcome ── */
+.welcome {
+  position: relative; min-height: 480px; overflow: hidden;
+  /* Simulated tower interior: blue-lit dark gradient */
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(30,80,160,0.45) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 20% 70%, rgba(10,40,100,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(60,130,220,0.2) 0%, transparent 60%),
+    linear-gradient(175deg, #06101e 0%, #020710 55%, #05080f 100%);
+}
+/* Simulated window pane reflections */
+.welcome::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, transparent 15%, rgba(60,120,220,0.04) 20%, transparent 25%),
+    linear-gradient(90deg, transparent 40%, rgba(60,120,220,0.03) 45%, transparent 50%),
+    linear-gradient(90deg, transparent 65%, rgba(60,120,220,0.04) 70%, transparent 75%);
+  pointer-events: none;
+}
+.welcome-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(5,8,15,0) 0%, rgba(5,8,15,0.4) 40%, rgba(5,8,15,0.95) 75%, rgba(5,8,15,1) 100%);
+}
+/* Horizon glow — simulating tarmac lights beyond tower glass */
+.welcome-glow {
+  position: absolute; bottom: 40%; left: 0; right: 0;
+  height: 60px;
+  background: radial-gradient(ellipse 70% 100% at 50% 100%, rgba(40,90,200,0.18) 0%, transparent 100%);
+  pointer-events: none;
+}
+.welcome-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; min-height: 480px;
+  padding: 32px 24px 36px; gap: 18px; text-align: center;
+}
+.badge {
+  background: rgba(37,99,235,.15); border: 1px solid rgba(37,99,235,.35);
+  border-radius: 6px; padding: 4px 14px;
+  color: var(--blueXL); font-size: 9px;
+  font-family: 'IBM Plex Mono', monospace; letter-spacing: 2.5px; font-weight: 700;
+}
+.welcome h1 {
+  color: #fff; font-size: clamp(22px, 5vw, 28px); font-weight: 700;
+  line-height: 1.2; text-shadow: 0 2px 20px rgba(0,0,0,0.95);
+  text-wrap: balance;
+}
+.welcome .sub { color: var(--blueL); font-size: 13px; font-style: italic; letter-spacing: .5px; }
+.captain-box {
+  background: rgba(5,8,15,0.88); border: 1px solid rgba(22,35,64,.95);
+  border-radius: 10px; padding: 16px 20px; max-width: 440px;
+  display: flex; flex-direction: column; gap: 10px;
+  backdrop-filter: blur(8px);
+}
+.captain-label { color: var(--blueL); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; font-family: 'IBM Plex Mono', monospace; }
+.p-text { color: var(--text); font-size: 13px; line-height: 1.65; }
+.p-dim  { color: var(--dimM); font-size: 13px; line-height: 1.65; }
+.btn-enter {
+  background: linear-gradient(135deg, var(--action), var(--actionH));
+  color: #fff; border: none; border-radius: 10px; padding: 14px 32px;
+  font-weight: 700; font-size: 14px; cursor: pointer; letter-spacing: .5px;
+  font-family: 'IBM Plex Mono', monospace;
+  box-shadow: 0 4px 24px rgba(29,78,216,.4);
+  transition: transform .1s, box-shadow .1s;
+}
+.btn-enter:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(29,78,216,.5); }
+.btn-enter:active { transform: translateY(0); }
+
+/* ── Console header ── */
+.con-header {
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 6px 14px; display: flex; align-items: center; gap: 8px; min-height: 32px;
+}
+.mono9 { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; }
+.sep { width: 1px; height: 10px; background: var(--border); flex-shrink: 0; }
+.live-wrap { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--greenL); box-shadow: 0 0 5px var(--greenL);
+  display: inline-block; animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── Radar + aircraft grid ── */
+.radar-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+  min-height: 200px;
+}
+.radar-pane {
+  background: var(--radar); border-right: 1px solid var(--border); padding: 10px;
+}
+.pane-label { font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: 1.5px; margin-bottom: 5px; }
+.ac-pane {
+  background: var(--panel); padding: 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ac-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 5px; padding: 6px 9px; cursor: pointer;
+  transition: border-color .15s;
+}
+.ac-card:hover { border-color: var(--borderL); }
+.ac-card.sel { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.35); }
+.ac-card.alert-c { background: rgba(120,53,15,.2); border-color: rgba(217,119,6,.4); }
+.ac-cs { font-size: 10px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+.ac-st { color: var(--dimM); font-size: 10px; margin-top: 2px; }
+.sel-box {
+  margin-top: 4px; background: rgba(37,99,235,.08);
+  border: 1px solid rgba(37,99,235,.25); border-radius: 5px; padding: 6px 9px;
+}
+.sel-label { color: var(--blueL); font-size: 8px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 1px; margin-bottom: 3px; }
+
+/* ── Waveform ── */
+.waveform { display: flex; align-items: center; gap: 2px; height: 14px; }
+.waveform .bar {
+  width: 2px; border-radius: 1px; background: var(--blueL);
+  display: inline-block; transition: height .12s ease-in-out;
+}
+.waveform.quiet .bar { background: var(--dim); }
+
+/* ── Incoming ── */
+.incoming {
+  background: rgba(8,14,28,.9); border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+}
+.in-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.in-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue); box-shadow: 0 0 6px var(--blue);
+  display: inline-block; flex-shrink: 0;
+}
+.in-msg { color: var(--text); font-size: 13px; font-style: italic; line-height: 1.65; }
+
+/* ── Scenario body ── */
+.scen-body { background: var(--bg); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.sit-card {
+  background: rgba(13,22,38,.9); border: 1px solid var(--borderL);
+  border-radius: 8px; padding: 12px 14px;
+}
+.sit-label { color: var(--blueL); font-size: 9px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 1.5px; margin-bottom: 6px; }
+.ctx-text { color: var(--dimM); font-size: 12px; line-height: 1.55; }
+
+/* ── PTT + textarea ── */
+.ptt-row { display: flex; gap: 8px; }
+.ptt-btn {
+  flex: 0 0 auto;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  color: var(--dimM); cursor: pointer;
+  font-weight: 700; font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  touch-action: none; user-select: none;
+  transition: all .12s;
+}
+.ptt-btn.active {
+  background: rgba(220,38,38,.15); border-color: var(--red); color: var(--red);
+}
+.ptt-icon { font-size: 9px; line-height: 1; }
+.msg-area {
+  flex: 1; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); padding: 10px 12px;
+  font-size: 13px; resize: vertical; outline: none; min-width: 0;
+  transition: border-color .12s;
+}
+.msg-area:focus { border-color: var(--borderL); }
+.btn-tx {
+  width: 100%; background: linear-gradient(135deg, var(--action), var(--actionH));
+  color: #fff; border: none; border-radius: 8px; padding: 11px 16px;
+  font-weight: 700; font-size: 12px; letter-spacing: .5px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; transition: transform .1s;
+}
+.btn-tx:hover { transform: translateY(-1px); }
+
+/* ── Setup ── */
+.setup-photo {
+  position: relative;
+  background:
+    radial-gradient(ellipse 50% 60% at 30% 50%, rgba(30,60,120,0.5) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 50% at 70% 30%, rgba(20,100,180,0.25) 0%, transparent 60%),
+    linear-gradient(160deg, #08101e 0%, #040c18 100%);
+  height: 140px;
+  overflow: hidden;
+}
+/* Simulated console screen glow */
+.setup-photo::before {
+  content: '';
+  position: absolute;
+  left: 10%; top: 20%; width: 40%; height: 60%;
+  background: radial-gradient(ellipse, rgba(40,100,200,0.25) 0%, transparent 70%);
+  border-radius: 4px;
+}
+.setup-photo::after {
+  content: '';
+  position: absolute;
+  left: 55%; top: 30%; width: 30%; height: 50%;
+  background: radial-gradient(ellipse, rgba(20,160,100,0.15) 0%, transparent 70%);
+  border-radius: 4px;
+}
+.setup-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(5,8,15,.2) 0%, rgba(5,8,15,.92) 100%);
+}
+.setup-text { position: absolute; bottom: 14px; left: 16px; right: 16px; }
+.setup-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.step-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.step-label { color: var(--dimM); font-size: 9px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 1.5px; margin-bottom: 8px; }
+.btn-sec {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 16px;
+  color: var(--text); cursor: pointer; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-weight: 600; letter-spacing: .5px;
+  transition: border-color .12s;
+}
+.btn-sec:hover { border-color: var(--borderL); }
+
+/* ── Scenario 5 alert box ── */
+.s5-alert {
+  background: rgba(127,29,29,.1); border: 1px solid rgba(220,38,38,.25);
+  border-radius: 7px; padding: 7px 10px;
+}
+.s5-label { color: var(--red); font-size: 8px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 1.5px; margin-bottom: 3px; }
+.s5-msg { color: #fca5a5; font-size: 12px; font-style: italic; }
+
+/* ── Reflection ── */
+.reflect-photo {
+  position: relative; height: 120px; overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 0%, rgba(15,40,100,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 30% 40% at 20% 80%, rgba(180,120,0,0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #060c1a 0%, #030710 100%);
+}
+/* Simulated city lights / tarmac lights from night tower */
+.reflect-photo::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 40%;
+  background:
+    radial-gradient(circle at 15% 100%, rgba(255,180,30,0.08) 0%, transparent 35%),
+    radial-gradient(circle at 50% 100%, rgba(60,120,220,0.1) 0%, transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(255,180,30,0.06) 0%, transparent 35%);
+}
+.reflect-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(5,8,15,.3) 0%, rgba(5,8,15,.92) 100%);
+}
+.reflect-text { position: absolute; bottom: 14px; left: 16px; right: 16px; }
+.reflect-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.ref-q { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.ref-q-label { color: var(--dimM); font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+.ref-q-text { color: var(--dim); font-size: 12px; margin-bottom: 8px; line-height: 1.55; }
+
+/* ── Feedback card ── */
+.fb-card {
+  background: rgba(22,163,74,.07); border: 1px solid rgba(22,163,74,.2);
+  border-radius: 8px; padding: 12px 14px;
+  color: var(--dimM); font-size: 13px; line-height: 1.6;
+}
+.btn-continue {
+  width: 100%; background: linear-gradient(135deg, var(--action), var(--actionH));
+  color: #fff; border: none; border-radius: 8px; padding: 12px 16px;
+  font-weight: 700; font-size: 12px; cursor: pointer; font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+}
+
+/* ── Blip tooltip on radar ── */
+.radar-hint { color: var(--dim); font-size: 9px; text-align: center; margin-top: 4px; font-family: 'IBM Plex Mono', monospace; }
+
+@media (max-width: 480px) {
+  .radar-grid { grid-template-columns: 1fr; }
+  .ac-pane { border-top: 1px solid var(--border); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot { animation: none; }
+  .waveform .bar { transition: none; }
+  .btn-enter, .btn-tx { transition: none; }
+}
+</style>
+
+<div id="app">
+  <!-- TABS -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" onclick="show('welcome',this)">WELCOME</button>
+    <button class="tab" onclick="show('setup',this)">SETUP</button>
+    <button class="tab" onclick="show('s1',this)">S1 RADIO</button>
+    <button class="tab" onclick="show('s3',this)">S3 CONFLICT</button>
+    <button class="tab" onclick="show('s4',this)">S4 TRAFFIC</button>
+    <button class="tab" onclick="show('s5',this)">S5 EVENT</button>
+    <button class="tab" onclick="show('reflect',this)">REFLECT</button>
+  </nav>
+
+  <!-- ══ WELCOME ══ -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome">
+      <div class="welcome-glow"></div>
+      <div class="welcome-overlay"></div>
+      <div class="welcome-content">
+        <div class="badge">ACIA — MISSION 07 — AVIATION OPERATIONS</div>
+        <div>
+          <h1>Air Traffic Communication</h1>
+          <p class="sub">Listen. Interpret. Communicate. Adapt.</p>
+        </div>
+        <div class="captain-box">
+          <div class="captain-label">CAPTAIN ACIA</div>
+          <p class="p-text">Welcome to Mission 7.</p>
+          <p class="p-dim">You're about to experience how communication, attention and decision-making come together in an airport environment. You'll receive messages from aircraft, monitor changing information and respond to different situations.</p>
+          <p class="p-dim">You don't need aviation experience. Listen carefully, communicate clearly and ask questions whenever something doesn't make sense.</p>
+        </div>
+        <button class="btn-enter" onclick="show('setup', document.querySelector('.tab:nth-child(2)'))">ENTER COMMUNICATIONS CENTRE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETUP ══ -->
+  <div id="screen-setup" class="screen">
+    <div class="setup-photo">
+      <div class="setup-overlay"></div>
+      <div class="setup-text">
+        <div class="mono9" style="color:var(--blueXL);font-weight:700;letter-spacing:2px">COMMUNICATION SETUP</div>
+        <p style="color:var(--dimM);font-size:12px;margin-top:4px;line-height:1.5">For the best experience, use headphones. Voice is optional — you can type all responses.</p>
+      </div>
+    </div>
+    <div class="setup-body">
+      <div class="step-card">
+        <div class="step-label">STEP 01 — AUDIO CHECK</div>
+        <button class="btn-sec" id="audio-btn" onclick="testAudio()">PLAY SAMPLE TRANSMISSION</button>
+      </div>
+      <div class="step-card">
+        <div class="step-label">STEP 02 — MICROPHONE (OPTIONAL)</div>
+        <button class="btn-sec" id="mic-btn" onclick="testMic()">CHECK MICROPHONE</button>
+        <p id="mic-status" style="color:var(--dim);font-size:11px;margin-top:6px;font-family:monospace;display:none"></p>
+      </div>
+      <button class="btn-enter" style="border:none;padding:13px" onclick="show('s1', document.querySelector('.tab:nth-child(3)'))">BEGIN MISSION</button>
+    </div>
+  </div>
+
+  <!-- ══ SCENARIO 1 ══ -->
+  <div id="screen-s1" class="screen">
+    <div class="con-header">
+      <span class="mono9" style="color:var(--blueXL);font-weight:700">ACIA</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--blueL)">MISSION 07</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--dim)">01/05 INITIAL RADIO CONTACT</span>
+      <div class="live-wrap">
+        <span class="live-dot"></span>
+        <span class="mono9" style="color:var(--greenL)">COMMS LIVE</span>
+      </div>
+    </div>
+    <div class="radar-grid">
+      <div class="radar-pane">
+        <div class="pane-label" style="color:rgba(var(--rg),.35)">AIR TRAFFIC DISPLAY</div>
+        <svg id="radar-s1" viewBox="0 0 200 200" style="width:100%;height:auto">
+          <circle cx="100" cy="100" r="88" fill="#020a04" stroke="rgba(74,222,128,.12)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="84" fill="#020a04"/>
+          <circle cx="100" cy="100" r="28" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="56" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <line x1="16" y1="100" x2="184" y2="100" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="16" x2="100" y2="184" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line id="sweep-s1" x1="100" y1="100" x2="100" y2="16" stroke="rgba(74,222,128,.55)" stroke-width="1.8"/>
+          <circle cx="100" cy="100" r="3" fill="#4ade80" opacity=".9"/>
+          <text x="106" y="104" fill="rgba(74,222,128,.45)" font-size="6" font-family="monospace">APT</text>
+          <!-- MAPLE 214 blip — west, selected -->
+          <g id="blip-maple-s1" style="cursor:pointer" onclick="selectAC('s1','maple')">
+            <circle cx="40" cy="90" r="13" fill="none" stroke="#4ade80" stroke-width=".8" opacity=".5"/>
+            <polygon points="40,81 44,87 40,89 36,87" fill="#4ade80" opacity=".95"/>
+            <rect x="46" y="80" width="54" height="14" fill="rgba(5,8,15,.9)" rx="2"/>
+            <text x="50" y="90" fill="#4ade80" font-size="6" font-family="monospace" font-weight="bold">MAPLE 214</text>
+          </g>
+          <text x="4" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">W</text>
+          <text x="93" y="14" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">N</text>
+          <text x="186" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">E</text>
+          <text x="93" y="192" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">S</text>
+        </svg>
+        <div class="radar-hint">SELECT AIRCRAFT FOR DETAILS</div>
+      </div>
+      <div class="ac-pane">
+        <div class="pane-label" style="color:var(--dim)">AIRCRAFT STATUS</div>
+        <div class="ac-card sel" id="ac-maple-s1" onclick="selectAC('s1','maple')">
+          <div class="ac-cs" style="color:var(--blueL)">MAPLE 214</div>
+          <div class="ac-st">Approaching from the west</div>
+        </div>
+        <div class="sel-box">
+          <div class="sel-label">SELECTED</div>
+          <div style="color:var(--blueXL);font-size:10px;font-weight:700;font-family:monospace">MAPLE 214</div>
+          <div style="color:var(--dimM);font-size:10px;margin-top:2px">Approaching from the west · inbound</div>
+        </div>
+      </div>
+    </div>
+    <div class="incoming">
+      <div class="in-hdr">
+        <span class="in-dot"></span>
+        <span class="mono9" style="color:var(--blue)">INCOMING — MAPLE 214</span>
+        <div class="waveform" id="wv-s1">
+          <span class="bar" style="height:5px"></span><span class="bar" style="height:9px"></span>
+          <span class="bar" style="height:13px"></span><span class="bar" style="height:7px"></span>
+          <span class="bar" style="height:11px"></span><span class="bar" style="height:5px"></span>
+          <span class="bar" style="height:9px"></span><span class="bar" style="height:14px"></span>
+          <span class="bar" style="height:6px"></span><span class="bar" style="height:10px"></span>
+          <span class="bar" style="height:4px"></span><span class="bar" style="height:8px"></span>
+          <span class="bar" style="height:12px"></span><span class="bar" style="height:5px"></span>
+          <span class="bar" style="height:7px"></span>
+        </div>
+      </div>
+      <div class="in-msg">"Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."</div>
+    </div>
+    <div class="scen-body">
+      <div class="ctx-text">Acknowledge MAPLE 214's message. Include the aircraft identifier and confirm the key information you received.</div>
+      <div class="ptt-row">
+        <button class="ptt-btn" id="ptt-s1" onpointerdown="pttStart('s1')" onpointerup="pttStop('s1')">
+          <span class="ptt-icon" id="ptt-icon-s1">◎</span>
+          PTT
+          <div class="waveform quiet" id="ptt-wv-s1">
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span>
+          </div>
+        </button>
+        <textarea class="msg-area" rows="2" placeholder="Type your response…" id="txt-s1"></textarea>
+      </div>
+      <button class="btn-tx">TRANSMIT TRANSMISSION</button>
+    </div>
+  </div>
+
+  <!-- ══ SCENARIO 3 ══ -->
+  <div id="screen-s3" class="screen">
+    <div class="con-header">
+      <span class="mono9" style="color:var(--blueXL);font-weight:700">ACIA</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--blueL)">MISSION 07</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--dim)">03/05 CONFLICTING INFORMATION</span>
+      <div class="live-wrap">
+        <span class="live-dot"></span>
+        <span class="mono9" style="color:var(--greenL)">COMMS LIVE</span>
+      </div>
+    </div>
+    <div class="radar-grid">
+      <div class="radar-pane">
+        <div class="pane-label" style="color:rgba(var(--rg),.35)">AIR TRAFFIC DISPLAY</div>
+        <svg viewBox="0 0 200 200" style="width:100%;height:auto">
+          <circle cx="100" cy="100" r="88" fill="#020a04" stroke="rgba(74,222,128,.12)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="84" fill="#020a04"/>
+          <circle cx="100" cy="100" r="28" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="56" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <line x1="16" y1="100" x2="184" y2="100" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="16" x2="100" y2="184" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="100" x2="160" y2="22" stroke="rgba(74,222,128,.55)" stroke-width="1.8"/>
+          <circle cx="100" cy="100" r="3" fill="#4ade80" opacity=".9"/>
+          <text x="106" y="104" fill="rgba(74,222,128,.45)" font-size="6" font-family="monospace">APT</text>
+          <!-- MAPLE 214 EAST on display -->
+          <polygon points="158,81 162,87 158,89 154,87" fill="#4ade80" opacity=".95"/>
+          <text x="164" y="88" fill="rgba(74,222,128,.7)" font-size="6" font-family="monospace">MAPLE 214</text>
+          <text x="4" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">W</text>
+          <text x="93" y="14" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">N</text>
+          <text x="186" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">E</text>
+          <text x="93" y="192" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">S</text>
+        </svg>
+      </div>
+      <div class="ac-pane">
+        <div class="pane-label" style="color:var(--dim)">AIRCRAFT STATUS</div>
+        <div class="ac-card">
+          <div class="ac-cs" style="color:var(--blueL)">MAPLE 214</div>
+          <div class="ac-st">Display: east of airport</div>
+        </div>
+        <p style="color:var(--dim);font-size:10px;font-family:monospace;line-height:1.4;margin-top:4px">Note: pilot has reported a different position in transmission.</p>
+      </div>
+    </div>
+    <div class="incoming">
+      <div class="in-hdr">
+        <span class="in-dot"></span>
+        <span class="mono9" style="color:var(--blue)">INCOMING — MAPLE 214</span>
+        <div class="waveform">
+          <span class="bar" style="height:6px"></span><span class="bar" style="height:10px"></span>
+          <span class="bar" style="height:8px"></span><span class="bar" style="height:13px"></span>
+          <span class="bar" style="height:7px"></span><span class="bar" style="height:11px"></span>
+          <span class="bar" style="height:5px"></span><span class="bar" style="height:9px"></span>
+          <span class="bar" style="height:12px"></span><span class="bar" style="height:4px"></span>
+        </div>
+      </div>
+      <div class="in-msg">"Tower, Maple 214. We're approximately five miles west of the airport."</div>
+    </div>
+    <div class="scen-body">
+      <div class="ctx-text">Respond to MAPLE 214.</div>
+      <div class="ptt-row">
+        <button class="ptt-btn" id="ptt-s3" onpointerdown="pttStart('s3')" onpointerup="pttStop('s3')">
+          <span class="ptt-icon" id="ptt-icon-s3">◎</span>
+          PTT
+          <div class="waveform quiet" id="ptt-wv-s3">
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span>
+          </div>
+        </button>
+        <textarea class="msg-area" rows="2" placeholder="Type your response…"></textarea>
+      </div>
+      <button class="btn-tx">TRANSMIT TRANSMISSION</button>
+    </div>
+  </div>
+
+  <!-- ══ SCENARIO 4 ══ -->
+  <div id="screen-s4" class="screen">
+    <div class="con-header">
+      <span class="mono9" style="color:var(--blueXL);font-weight:700">ACIA</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--blueL)">MISSION 07</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--dim)">04/05 CHANGING TRAFFIC SITUATION</span>
+      <div class="live-wrap">
+        <span class="live-dot"></span>
+        <span class="mono9" style="color:var(--greenL)">COMMS LIVE</span>
+      </div>
+    </div>
+    <div class="radar-grid">
+      <div class="radar-pane">
+        <div class="pane-label" style="color:rgba(var(--rg),.35)">AIR TRAFFIC DISPLAY</div>
+        <svg viewBox="0 0 200 200" style="width:100%;height:auto">
+          <circle cx="100" cy="100" r="88" fill="#020a04" stroke="rgba(74,222,128,.12)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="84" fill="#020a04"/>
+          <circle cx="100" cy="100" r="28" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="56" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <line x1="16" y1="100" x2="184" y2="100" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="16" x2="100" y2="184" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="100" x2="155" y2="100" stroke="rgba(74,222,128,.55)" stroke-width="1.8"/>
+          <circle cx="100" cy="100" r="3" fill="#4ade80" opacity=".9"/>
+          <text x="106" y="104" fill="rgba(74,222,128,.45)" font-size="6" font-family="monospace">APT</text>
+          <polygon points="155,87 159,93 155,95 151,93" fill="#4ade80" opacity=".95"/>
+          <text x="128" y="84" fill="rgba(74,222,128,.65)" font-size="6" font-family="monospace">MAPLE 214</text>
+          <polygon points="106,136 110,142 106,144 102,142" fill="#4ade80" opacity=".95"/>
+          <text x="112" y="142" fill="rgba(74,222,128,.65)" font-size="6" font-family="monospace">NTH 305</text>
+          <text x="4" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">W</text>
+          <text x="93" y="14" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">N</text>
+          <text x="186" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">E</text>
+          <text x="93" y="192" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">S</text>
+        </svg>
+        <div class="radar-hint">SELECT AIRCRAFT FOR DETAILS</div>
+      </div>
+      <div class="ac-pane">
+        <div class="pane-label" style="color:var(--dim)">AIRCRAFT STATUS</div>
+        <div class="ac-card" onclick="selectAC('s4','maple')">
+          <div class="ac-cs" style="color:var(--blueL)">MAPLE 214</div>
+          <div class="ac-st">Arrival updated: earlier than planned</div>
+        </div>
+        <div class="ac-card" onclick="selectAC('s4','nth')">
+          <div class="ac-cs" style="color:var(--blueL)">NORTHERN 305</div>
+          <div class="ac-st">Ground — preparing for departure</div>
+        </div>
+        <div class="sel-box" id="sel-s4" style="display:none">
+          <div class="sel-label">SELECTED</div>
+          <div id="sel-cs-s4" style="color:var(--blueXL);font-size:10px;font-weight:700;font-family:monospace"></div>
+          <div id="sel-st-s4" style="color:var(--dimM);font-size:10px;margin-top:2px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="incoming">
+      <div class="in-hdr">
+        <span class="in-dot"></span>
+        <span class="mono9" style="color:var(--blue)">INCOMING — MAPLE 214</span>
+        <div class="waveform">
+          <span class="bar" style="height:6px"></span><span class="bar" style="height:11px"></span>
+          <span class="bar" style="height:8px"></span><span class="bar" style="height:14px"></span>
+          <span class="bar" style="height:7px"></span><span class="bar" style="height:10px"></span>
+          <span class="bar" style="height:5px"></span><span class="bar" style="height:9px"></span>
+          <span class="bar" style="height:12px"></span>
+        </div>
+      </div>
+      <div class="in-msg">"Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."</div>
+    </div>
+    <div class="scen-body">
+      <div class="ctx-text">Respond to MAPLE 214's updated arrival information.</div>
+      <div class="ptt-row">
+        <button class="ptt-btn" id="ptt-s4" onpointerdown="pttStart('s4')" onpointerup="pttStop('s4')">
+          <span class="ptt-icon" id="ptt-icon-s4">◎</span>
+          PTT
+          <div class="waveform quiet" id="ptt-wv-s4">
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span>
+          </div>
+        </button>
+        <textarea class="msg-area" rows="2" placeholder="Type your response…"></textarea>
+      </div>
+      <button class="btn-tx">TRANSMIT TRANSMISSION</button>
+    </div>
+  </div>
+
+  <!-- ══ SCENARIO 5 ══ -->
+  <div id="screen-s5" class="screen">
+    <div class="con-header">
+      <span class="mono9" style="color:var(--blueXL);font-weight:700">ACIA</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--blueL)">MISSION 07</span>
+      <div class="sep"></div>
+      <span class="mono9" style="color:var(--dim)">05/05 UNEXPECTED EVENT</span>
+      <div class="live-wrap">
+        <span class="live-dot"></span>
+        <span class="mono9" style="color:var(--greenL)">COMMS LIVE</span>
+      </div>
+    </div>
+    <div class="radar-grid">
+      <div class="radar-pane">
+        <div class="pane-label" style="color:rgba(var(--rg),.35)">AIR TRAFFIC DISPLAY</div>
+        <svg viewBox="0 0 200 200" style="width:100%;height:auto">
+          <circle cx="100" cy="100" r="88" fill="#020a04" stroke="rgba(74,222,128,.12)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="84" fill="#020a04"/>
+          <circle cx="100" cy="100" r="28" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="56" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(74,222,128,.07)" stroke-width=".7"/>
+          <line x1="16" y1="100" x2="184" y2="100" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="16" x2="100" y2="184" stroke="rgba(74,222,128,.06)" stroke-width=".5"/>
+          <line x1="100" y1="100" x2="140" y2="100" stroke="rgba(74,222,128,.55)" stroke-width="1.8"/>
+          <circle cx="100" cy="100" r="3" fill="#4ade80" opacity=".9"/>
+          <text x="106" y="104" fill="rgba(74,222,128,.45)" font-size="6" font-family="monospace">APT</text>
+          <!-- MAPLE 214 alert -->
+          <circle cx="140" cy="96" r="10" fill="none" stroke="rgba(220,38,38,.6)" stroke-width="1"/>
+          <polygon points="140,87 144,93 140,95 136,93" fill="#fbbf24" opacity=".95"/>
+          <text x="112" y="84" fill="#fbbf24" font-size="6" font-family="monospace">MAPLE 214</text>
+          <!-- NTH 305 -->
+          <polygon points="106,136 110,142 106,144 102,142" fill="#4ade80" opacity=".95"/>
+          <text x="112" y="142" fill="rgba(74,222,128,.65)" font-size="6" font-family="monospace">NTH 305</text>
+          <text x="4" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">W</text>
+          <text x="93" y="14" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">N</text>
+          <text x="186" y="103" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">E</text>
+          <text x="93" y="192" fill="rgba(74,222,128,.25)" font-size="6" font-family="monospace">S</text>
+        </svg>
+      </div>
+      <div class="ac-pane">
+        <div class="pane-label" style="color:var(--dim)">AIRCRAFT STATUS</div>
+        <div class="ac-card alert-c">
+          <div class="ac-cs" style="color:var(--amberL)">MAPLE 214</div>
+          <div class="ac-st">Technical issue reported</div>
+        </div>
+        <div class="ac-card">
+          <div class="ac-cs" style="color:var(--blueL)">NORTHERN 305</div>
+          <div class="ac-st">Ground — standing by</div>
+        </div>
+      </div>
+    </div>
+    <div class="scen-body" style="gap:8px">
+      <div class="s5-alert">
+        <div class="s5-label">MAPLE 214 — PRIORITY</div>
+        <div class="s5-msg">"We've experienced a technical issue and need assistance. Our arrival plans may change."</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:7px 10px">
+        <div class="mono9" style="color:var(--dim);margin-bottom:3px">NORTHERN 305</div>
+        <div style="color:var(--dimM);font-size:12px;font-style:italic">"Still preparing on the ground, no changes on our end."</div>
+      </div>
+      <div class="ctx-text" style="margin-top:4px">Respond to both transmissions. Address the priority situation first.</div>
+      <div class="ptt-row">
+        <button class="ptt-btn" id="ptt-s5" onpointerdown="pttStart('s5')" onpointerup="pttStop('s5')">
+          <span class="ptt-icon" id="ptt-icon-s5">◎</span>
+          PTT
+          <div class="waveform quiet" id="ptt-wv-s5">
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span><span class="bar" style="height:3px"></span>
+            <span class="bar" style="height:3px"></span>
+          </div>
+        </button>
+        <textarea class="msg-area" rows="2" placeholder="Type your response…"></textarea>
+      </div>
+      <button class="btn-tx">TRANSMIT TRANSMISSION</button>
+    </div>
+  </div>
+
+  <!-- ══ REFLECTION ══ -->
+  <div id="screen-reflect" class="screen">
+    <div class="reflect-photo">
+      <div class="reflect-overlay"></div>
+      <div class="reflect-text">
+        <div class="mono9" style="color:var(--blueXL);font-weight:700;letter-spacing:2px">MISSION COMPLETE — REFLECTION</div>
+        <p style="color:var(--dimM);font-size:12px;margin-top:4px;line-height:1.5">Before we close, take a moment to reflect on what you experienced.</p>
+      </div>
+    </div>
+    <div class="reflect-body">
+      <div class="ref-q">
+        <div class="ref-q-label">Communication in Context</div>
+        <p class="ref-q-text">What did you notice about how information was exchanged in these scenarios? What made some communications clearer or more difficult than others?</p>
+        <textarea class="msg-area" rows="3" placeholder="Reflect on what made the communications effective or challenging…" style="width:100%"></textarea>
+      </div>
+      <div class="ref-q">
+        <div class="ref-q-label">Handling Uncertainty</div>
+        <p class="ref-q-text">At some points, information seemed unclear, incomplete or conflicting. What was your instinct when that happened?</p>
+        <textarea class="msg-area" rows="3" placeholder="Describe how you responded when something was unclear…" style="width:100%"></textarea>
+      </div>
+      <div class="ref-q">
+        <div class="ref-q-label">Setting Priorities</div>
+        <p class="ref-q-text">In the later scenarios, several things were happening at the same time. How did you decide what to respond to first or focus on most?</p>
+        <textarea class="msg-area" rows="3" placeholder="Reflect on how you approached competing priorities…" style="width:100%"></textarea>
+      </div>
+      <button class="btn-continue">COMPLETE MISSION</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab navigation ──────────────────────────────────────────────────────────
+function show(id, tabEl) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+}
+
+// ── PTT demo ────────────────────────────────────────────────────────────────
+const WV_HEIGHTS = [3,6,10,8,13,7,11,5,9,13,6,4,8,12,5];
+function pttStart(id) {
+  const btn = document.getElementById('ptt-' + id);
+  const icon = document.getElementById('ptt-icon-' + id);
+  const wv = document.getElementById('ptt-wv-' + id);
+  btn.classList.add('active');
+  icon.textContent = '◉';
+  wv.classList.remove('quiet');
+  wv.querySelectorAll('.bar').forEach((b, i) => { b.style.height = WV_HEIGHTS[i % WV_HEIGHTS.length] + 'px'; });
+}
+function pttStop(id) {
+  const btn = document.getElementById('ptt-' + id);
+  const icon = document.getElementById('ptt-icon-' + id);
+  const wv = document.getElementById('ptt-wv-' + id);
+  btn.classList.remove('active');
+  icon.textContent = '◎';
+  wv.classList.add('quiet');
+  wv.querySelectorAll('.bar').forEach(b => { b.style.height = '3px'; });
+}
+
+// ── Aircraft selection ───────────────────────────────────────────────────────
+const AC_INFO = {
+  maple: { cs: 'MAPLE 214', st: 'Approaching from east · updated arrival' },
+  nth: { cs: 'NORTHERN 305', st: 'Ground — preparing for departure' }
+};
+function selectAC(scen, id) {
+  const box = document.getElementById('sel-s4');
+  const cs = document.getElementById('sel-cs-s4');
+  const st = document.getElementById('sel-st-s4');
+  if (!box) return;
+  box.style.display = 'block';
+  if (AC_INFO[id]) { cs.textContent = AC_INFO[id].cs; st.textContent = AC_INFO[id].st; }
+}
+
+// ── Radar sweep animation ────────────────────────────────────────────────────
+const sweep = document.getElementById('sweep-s1');
+let angle = 0;
+let lastTs = 0;
+function animateSweep(ts) {
+  if (ts - lastTs > 60) {
+    angle = (angle + 2) % 360;
+    const r = 84;
+    const rad = angle * Math.PI / 180;
+    const ex = 100 + r * Math.sin(rad);
+    const ey = 100 - r * Math.cos(rad);
+    if (sweep) sweep.setAttribute('x2', ex), sweep.setAttribute('y2', ey);
+    lastTs = ts;
+  }
+  requestAnimationFrame(animateSweep);
+}
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduced && sweep) requestAnimationFrame(animateSweep);
+
+// ── Waveform animation on incoming messages ──────────────────────────────────
+const WV_S1 = document.getElementById('wv-s1');
+const WV_LIVE = [5,9,13,7,11,5,9,14,6,10,4,8,12,5,7];
+if (WV_S1 && !reduced) {
+  let wvAngle = 0;
+  setInterval(() => {
+    wvAngle++;
+    WV_S1.querySelectorAll('.bar').forEach((b, i) => {
+      const h = WV_LIVE[(i + wvAngle) % WV_LIVE.length];
+      b.style.height = h + 'px';
+    });
+  }, 150);
+}
+
+// ── Setup demo ───────────────────────────────────────────────────────────────
+function testAudio() {
+  const btn = document.getElementById('audio-btn');
+  if (window.speechSynthesis) {
+    const u = new SpeechSynthesisUtterance('Clearfield Tower. Maple 214, message received. Approach from the west confirmed.');
+    u.pitch = .86; u.rate = .9;
+    window.speechSynthesis.speak(u);
+    btn.textContent = 'AUDIO CONFIRMED';
+    btn.style.color = 'var(--greenL)';
+    btn.style.borderColor = 'rgba(22,163,74,.4)';
+  } else {
+    btn.textContent = 'AUDIO UNAVAILABLE';
+  }
+}
+function testMic() {
+  const btn = document.getElementById('mic-btn');
+  const st = document.getElementById('mic-status');
+  st.style.display = 'block';
+  if (!navigator.mediaDevices) { st.textContent = 'MICROPHONE: NOT SUPPORTED'; return; }
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(() => { st.textContent = 'MICROPHONE READY — VOICE MODE AVAILABLE'; st.style.color = 'var(--greenL)'; })
+    .catch(() => { st.textContent = 'MICROPHONE DENIED — TEXT MODE ONLY'; st.style.color = 'var(--amberL)'; });
+}
+</script>
