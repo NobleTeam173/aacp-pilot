@@ -1,4 +1,4 @@
-import type { EvidenceItem, EvidenceKey, ACIASession } from './types';
+import type { EvidenceItem, EvidenceKey, ACIASession, ShadowEvidenceRecord, MissionId, M1Context } from './types';
 
 export function recordEvidence(session: ACIASession, items: Omit<EvidenceItem, 'mission'>[], missionId: ACIASession['missions'][0]['id']): ACIASession {
   const newItems = items.map(i => ({ ...i, mission: missionId }));
@@ -19,52 +19,212 @@ export function aggregateEvidence(evidence: EvidenceItem[]): Record<EvidenceKey,
   return result as Record<EvidenceKey, number>;
 }
 
-export function evidenceFromChatMessages(
+// ── Shadow evidence helpers ───────────────────────────────────────────────────
+// All AI-classified evidence goes to session.shadowEvidence[] only.
+// It is NOT fed into computeCompetencyIndex() or career pathway calculations
+// until product owner approval and evidenceScoringVersion migration.
+
+function buildShadowClassificationPrompt(
+  missionId: MissionId,
+  sourceType: ShadowEvidenceRecord['sourceType'],
+  contextDescription: string,
+  participantText: string,
+): string {
+  return `You are an evidence classifier for an aviation and aerospace career assessment.
+
+Mission: ${missionId.toUpperCase()}
+Source type: ${sourceType}
+Context: ${contextDescription}
+
+Participant response:
+"""
+${participantText}
+"""
+
+Classify this response by identifying which of the following evidence indicators are present. Return ONLY a JSON object: { "detected": string[], "observedPerformance": string, "explainedReasoning": string }
+
+Evidence indicators to detect:
+- curiosity_initiative: participant asks questions or expresses genuine interest in learning more
+- communication_clarity: ideas are expressed clearly with appropriate structure
+- safety_spontaneous: participant voluntarily references safety, risk, or hazard without being prompted
+- systematic_approach: participant describes or demonstrates a step-by-step or structured approach
+- procedural_awareness: participant references rules, procedures, standards, or compliance requirements
+- reflective_learning: participant demonstrates learning from experience or articulates what they would do differently
+- analytical_reasoning: participant breaks down a problem or situation into components
+- aviation_context_awareness: participant connects their response to aviation or aerospace operational context
+- insufficient_evidence: response is too brief or off-topic to classify meaningfully
+
+Negative indicators (presence of these is meaningful):
+- response_avoidance: participant declines to engage with the question without explanation
+- factual_error_safety: participant states something factually incorrect about safety or procedures
+
+Respond with valid JSON only. No other text.`;
+}
+
+export async function classifyMissionChatForShadow(
   messages: { role: string; content: string }[],
   missionId: 'm1' | 'm9',
-): Omit<EvidenceItem, 'mission'>[] {
+  chatEndpoint: string,
+  token: string | null,
+  interactionRef?: string,
+): Promise<ShadowEvidenceRecord | null> {
   const userMessages = messages.filter(m => m.role === 'user');
-  const items: Omit<EvidenceItem, 'mission'>[] = [];
+  if (userMessages.length === 0) return null;
 
-  if (userMessages.length === 0) return items;
+  const combinedText = userMessages.map(m => m.content).join('\n\n---\n\n');
+  const contextDescription = missionId === 'm1'
+    ? 'Discovery conversation — ACIA advisor exploring participant background and interests'
+    : 'Reflection conversation — participant reviewing their assessment experience and what they learned';
 
-  const totalWords = userMessages.reduce((acc, m) => acc + m.content.split(/\s+/).length, 0);
-  const avgWords = totalWords / userMessages.length;
-  const allText = userMessages.map(m => m.content.toLowerCase()).join(' ');
+  try {
+    const prompt = buildShadowClassificationPrompt(missionId, 'chat', contextDescription, combinedText);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  // Curiosity & Initiative: questions asked, exploratory language
-  const questionCount = (allText.match(/\?/g) || []).length;
-  const curiosityWords = (allText.match(/\b(why|how|what if|wonder|curious|interested|tell me|explain|does that mean|could|would)\b/g) || []).length;
-  items.push({ key: 'curiosity', delta: Math.min(1, (questionCount * 0.2) + (curiosityWords * 0.12)) });
+    const res = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], systemPrompt: '' }),
+    });
 
-  // Communication quality: length, structure, vocabulary
-  const avgWordsScore = Math.min(1, avgWords / 55);
-  items.push({ key: 'communication_quality', delta: avgWordsScore });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const raw = typeof data.content === 'string' ? data.content : data.message ?? '';
 
-  // Safety mindset: spontaneous safety vocabulary (not prompted)
-  const safetyWords = (allText.match(/\b(safe|safety|risk|hazard|checklist|protocol|procedure|emergency|standard|regulation|comply|compliance|airworthy|incident|accident)\b/g) || []).length;
-  items.push({ key: 'safety_mindset', delta: Math.min(1, safetyWords * 0.18) });
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
 
-  // Systematic reasoning: sequential and structured language
-  const sequentialWords = (allText.match(/\b(first|then|next|because|therefore|so|since|which means|that would|step|sequence|order|systematic|process)\b/g) || []).length;
-  items.push({ key: 'systematic_reasoning', delta: Math.min(1, sequentialWords * 0.14) });
-
-  // Procedural compliance: references to rules, procedures, requirements
-  const proceduralWords = (allText.match(/\b(procedure|checklist|manual|regulation|required|requirement|must|standard|approved|certified|authorized|follow|adhere)\b/g) || []).length;
-  items.push({ key: 'procedural_compliance', delta: Math.min(1, proceduralWords * 0.18) });
-
-  // Learning agility & reflection — richer in M9 but present in M1 too
-  if (missionId === 'm9') {
-    const reflectiveWords = (allText.match(/\b(learned|realized|understand|improve|next time|would have|should have|could have|surprised|different|insight|perspective|changed|growth|now i)\b/g) || []).length;
-    const depthScore = Math.min(1, reflectiveWords * 0.18);
-    items.push({ key: 'learning_agility', delta: depthScore });
-    // Longer reflection messages also signal learning engagement
-    items.push({ key: 'attention_to_detail', delta: Math.min(1, avgWords / 70) });
-  } else {
-    // M1: learning agility from how they engage with new information
-    const learningWords = (allText.match(/\b(didn't know|new to me|interesting|hadn't thought|makes sense|i see|now i understand|that explains|builds on)\b/g) || []).length;
-    items.push({ key: 'learning_agility', delta: Math.min(0.7, learningWords * 0.25 + (userMessages.length >= 4 ? 0.2 : 0)) });
+    return {
+      id: `shadow_${missionId}_${Date.now()}`,
+      missionId,
+      sourceType: 'chat',
+      interactionRef,
+      detectedIndicators: Array.isArray(parsed.detected) ? parsed.detected : [],
+      observedPerformance: parsed.observedPerformance ?? undefined,
+      explainedReasoning: parsed.explainedReasoning ?? undefined,
+      classifiedAt: new Date().toISOString(),
+      evidenceScoringVersion: 'shadow_v1',
+    };
+  } catch {
+    return null;
   }
+}
 
-  return items;
+export async function classifyReasoningResponseForShadow(
+  questionId: string,
+  questionVariant: string,
+  responseText: string,
+  missionId: MissionId,
+  chatEndpoint: string,
+  token: string | null,
+): Promise<ShadowEvidenceRecord | null> {
+  const contextDescription = `Question bank item — mission ${missionId.toUpperCase()}: "${questionVariant.substring(0, 120)}"`;
+  try {
+    const prompt = buildShadowClassificationPrompt(missionId, 'reasoning_response', contextDescription, responseText);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], systemPrompt: '' }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const raw = typeof data.content === 'string' ? data.content : data.message ?? '';
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      id: `shadow_${missionId}_${questionId}_${Date.now()}`,
+      missionId,
+      sourceType: 'reasoning_response',
+      interactionRef: questionId,
+      detectedIndicators: Array.isArray(parsed.detected) ? parsed.detected : [],
+      observedPerformance: parsed.observedPerformance ?? undefined,
+      explainedReasoning: parsed.explainedReasoning ?? undefined,
+      classifiedAt: new Date().toISOString(),
+      evidenceScoringVersion: 'shadow_v1',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function appendShadowEvidence(session: ACIASession, record: ShadowEvidenceRecord): ACIASession {
+  return {
+    ...session,
+    shadowEvidence: [...(session.shadowEvidence ?? []), record],
+  };
+}
+
+// ── M1 context extraction ─────────────────────────────────────────────────────
+export async function extractM1Context(
+  messages: { role: string; content: string }[],
+  chatEndpoint: string,
+  token: string | null,
+): Promise<M1Context | null> {
+  const userMessages = messages.filter(m => m.role === 'user');
+  if (userMessages.length === 0) return null;
+
+  const combinedText = userMessages.map(m => m.content).join('\n\n---\n\n');
+  const prompt = `You are analysing a discovery conversation from an aviation career assessment.
+
+Extract the following from the participant's messages. Return ONLY valid JSON: { "interests": string[], "educationSignal": string|null, "motivationType": string|null, "transferableBackground": string|null }
+
+Rules:
+- interests: list of specific aviation/aerospace career areas mentioned (e.g. ["pilot", "atc", "maintenance"]). Empty array if none stated.
+- educationSignal: one of "aviation", "stem", "trades", "other", or null if not determinable
+- motivationType: one of "intrinsic" (passion-driven), "extrinsic" (job/salary), "exploratory" (undecided), or null
+- transferableBackground: brief domain label if participant has relevant prior experience (e.g. "military", "healthcare", "engineering"), otherwise null
+
+Participant messages:
+"""
+${combinedText}
+"""
+
+Respond with valid JSON only.`;
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], systemPrompt: '' }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const raw = typeof data.content === 'string' ? data.content : data.message ?? '';
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      interests: Array.isArray(parsed.interests) ? parsed.interests : [],
+      educationSignal: parsed.educationSignal ?? undefined,
+      motivationType: parsed.motivationType ?? undefined,
+      transferableBackground: parsed.transferableBackground ?? undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Legacy keyword function — disabled for new assessments ───────────────────
+// This function is retained ONLY for historical session compatibility.
+// Do NOT call it for new assessment sessions (2026+).
+// It produced keyword-proxy scores that did not reflect genuine competency evidence.
+export function evidenceFromChatMessages_DEPRECATED(
+  _messages: { role: string; content: string }[],
+  _missionId: 'm1' | 'm9',
+): Omit<EvidenceItem, 'mission'>[] {
+  return [];
 }

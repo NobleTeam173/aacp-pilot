@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage, MissionId } from '../types';
-import { evidenceFromChatMessages } from '../behaviourEngine';
+import { evidenceFromChatMessages_DEPRECATED as evidenceFromChatMessages } from '../behaviourEngine';
 import type { EvidenceItem } from '../types';
 
 const C = {

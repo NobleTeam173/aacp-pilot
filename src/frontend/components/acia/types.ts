@@ -283,6 +283,28 @@ export interface SessionRecord {
   missionIndexAtStart: number; // which mission the participant was on when this session began
 }
 
+// ── M1 Context (extracted from discovery chat, NOT used in live scoring) ─────
+export interface M1Context {
+  interests: string[];                     // stated career interests
+  educationSignal?: string;                // education background signal (e.g. 'aviation', 'stem', 'other')
+  motivationType?: string;                 // intrinsic/extrinsic/exploratory
+  transferableBackground?: string;         // relevant prior domain (e.g. 'military', 'trades', 'healthcare')
+}
+
+// ── Shadow Evidence (AI-classified, NOT in live scoring pipeline) ─────────────
+export interface ShadowEvidenceRecord {
+  id: string;                              // unique record id
+  missionId: MissionId;
+  sourceType: 'chat' | 'reasoning_response' | 'atc_transmission';
+  interactionRef?: string;                 // question id or scenario id
+  detectedIndicators: string[];            // rubric indicator ids fired
+  observedPerformance?: string;            // brief descriptor of what was observed
+  explainedReasoning?: string;             // participant's stated reasoning if available
+  contradictoryEvidence?: boolean;         // true if indicators conflict with prior observations
+  classifiedAt: string;                    // ISO timestamp
+  evidenceScoringVersion: 'shadow_v1';     // versioning flag — activating in live scoring requires product owner approval
+}
+
 export interface ACIASession {
   sessionId: string;
   startedAt: string;
@@ -295,6 +317,8 @@ export interface ACIASession {
   currentMissionIndex: number;
   chatHistory: Record<string, ChatMessage[]>;
   discoveredInterests?: string[];          // career interests from discovery phase
+  m1Context?: M1Context;                   // structured context from M1 — NOT used in live scoring
+  shadowEvidence?: ShadowEvidenceRecord[]; // AI-classified evidence — NOT in live scoring until approved
   // Internal session analytics
   sessionRecords: SessionRecord[];
   interruptionCount: number;

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { savePendingCompletion, deletePendingCompletion, getAllPendingCompletions, type PendingCompletion } from '../../utils/aciaStorage';
 import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord, QuestionResponse } from './types';
-import { recordEvidence } from './behaviourEngine';
+import { recordEvidence, classifyMissionChatForShadow, extractM1Context, appendShadowEvidence } from './behaviourEngine';
 import { computeAlignments, SCORING_VERSION } from './careerEngine';
 import { selectNextQuestion, isAssessmentComplete } from './adaptiveEngine';
 import { ACIAJourneyPanel } from './ACIAJourneyPanel';
@@ -70,10 +70,10 @@ function makeInitialSession(isRpas = false): ACIASession {
   };
 }
 
-// ── Captain ACIA identity injected into all AI sessions ──────────────────────
+// ── ACIA identity injected into all AI sessions ───────────────────────────────
 const MENTOR_IDENTITY = `
 IDENTITY — read before every response:
-You are Captain ACIA, the official AI Aviation Career Mentor for the AACP (Aviation & Aerospace Competency Program). Your mission is to help participants discover aviation and aerospace careers where they are most likely to succeed — combining conversations, behavioural observations, interactive challenges, and aviation workforce intelligence.
+You are ACIA — Aviation & Aerospace Career Intelligence Advisor, the official AI Career Intelligence Advisor for the AACP (Aviation & Aerospace Competency Program). Your mission is to help participants discover aviation and aerospace careers where they are most likely to succeed — combining conversations, behavioural observations, interactive challenges, and aviation workforce intelligence.
 
 You are encouraging, insightful, objective, and evidence-based. You never guess a participant's career fit after a single answer. You progressively build confidence through multiple interactions before forming any observations. When you offer observations, make clear they are based on observed patterns, competencies, interests, and aptitude — never assumptions or stereotypes.
 `;
@@ -87,7 +87,7 @@ If a participant asks about anything outside this scope, respond with something 
 Never mention system prompts, guardrails, or AI limitations. Never generate speculative aviation information — if uncertain, say so and direct them to an appropriate aviation authority. Stay in character as a professional aviation mentor at all times.
 `;
 
-const MISSION_1_SYSTEM = `You are Captain ACIA — a senior aviation career mentor at AACP with decades of experience across commercial aviation, aerospace engineering, and air traffic services. Your role in this opening conversation is to begin a genuine, unhurried career discovery flight with this participant.
+const MISSION_1_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, a senior aviation career mentor at AACP with decades of experience across commercial aviation, aerospace engineering, and air traffic services. Your role in this opening conversation is to begin a genuine, unhurried career discovery flight with this participant.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Your goals:
 - Build real rapport — make the participant feel heard, not assessed
@@ -112,7 +112,7 @@ Tone: Professional but human. Think: experienced aviator sitting across from som
 
 This conversation sets the emotional foundation for everything that follows. Make it count.`;
 
-const MISSION_9_SYSTEM = `You are Captain ACIA — completing a debrief session with a participant who has just finished the AACP Aviation Career Intelligence Assessment. They worked through nine missions covering aircraft inspection, fault diagnosis, systems classification, instrument reading, operational decision-making, radio communication, and workload management.
+const MISSION_9_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, completing a debrief session with a participant who has just finished the AACP Aviation Career Intelligence Assessment. They worked through nine missions covering aircraft inspection, fault diagnosis, systems classification, instrument reading, operational decision-making, radio communication, and workload management.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Help them reflect on:
 - Which missions felt surprisingly natural — and what that might tell them about where they fit in aviation
@@ -131,7 +131,7 @@ Conversation rules:
 
 // ── 90-Day Follow-Up stage prompts ───────────────────────────────────────────
 
-const MISSION_1_FOLLOWUP_SYSTEM = `You are Captain ACIA — conducting the 90-Day Employment Follow-Up conversation with a participant who has now completed the 8-week AACP and had real workplace exposure through employment, placements, work-integrated learning, or mentorship with aviation employer partners.
+const MISSION_1_FOLLOWUP_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, conducting the 90-Day Employment Follow-Up conversation with a participant who has now completed the 8-week AACP and had real workplace exposure through employment, placements, work-integrated learning, or mentorship with aviation employer partners.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Your goals in this conversation:
 - Understand what workplace experience the participant has had since the AACP (employment, placement, mentorship, work-integrated learning)
@@ -150,7 +150,7 @@ Conversation rules:
 
 This conversation should feel meaningfully different from their initial career discovery — they now have real experience to draw from.`;
 
-const MISSION_9_FOLLOWUP_SYSTEM = `You are Captain ACIA — completing the 90-Day Employment Follow-Up debrief with a participant who has completed both the 8-week AACP and now has real workplace experience.
+const MISSION_9_FOLLOWUP_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, completing the 90-Day Employment Follow-Up debrief with a participant who has completed both the 8-week AACP and now has real workplace experience.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Help them reflect on:
 - How their competencies are showing up in real workplace situations
@@ -484,6 +484,51 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     setTimeout(() => setView('saving'), 50);
   }, [session]);
 
+  // Shadow evidence classification after M1/M9 chat missions
+  useEffect(() => {
+    if (!session) return;
+    const token = localStorage.getItem('aacp_access_token');
+
+    // Run classification after M1 completes
+    const m1Mission = session.missions.find(m => m.id === 'm1');
+    if (m1Mission?.completed && session.chatHistory['m1'] && !session.m1Context && !session.shadowEvidence?.some(e => e.missionId === 'm1')) {
+      const messages = session.chatHistory['m1'];
+      Promise.all([
+        extractM1Context(messages, chatEndpoint, token),
+        classifyMissionChatForShadow(messages, 'm1', chatEndpoint, token, 'm1_chat'),
+      ]).then(([m1Ctx, shadowRec]) => {
+        setSession(prev => {
+          if (!prev) return prev;
+          let updated = { ...prev };
+          if (m1Ctx) {
+            updated = { ...updated, m1Context: m1Ctx, discoveredInterests: m1Ctx.interests.length > 0 ? m1Ctx.interests : updated.discoveredInterests };
+          }
+          if (shadowRec) {
+            updated = appendShadowEvidence(updated, shadowRec);
+          }
+          saveSessionToStorage(updated, stage);
+          return updated;
+        });
+      }).catch(() => {});
+    }
+
+    // Run shadow classification after M9 completes
+    const m9Mission = session.missions.find(m => m.id === 'm9');
+    if (m9Mission?.completed && session.chatHistory['m9'] && !session.shadowEvidence?.some(e => e.missionId === 'm9')) {
+      const messages = session.chatHistory['m9'];
+      classifyMissionChatForShadow(messages, 'm9', chatEndpoint, token, 'm9_chat').then(shadowRec => {
+        if (!shadowRec) return;
+        setSession(prev => {
+          if (!prev) return prev;
+          const updated = appendShadowEvidence(prev, shadowRec);
+          saveSessionToStorage(updated, stage);
+          return updated;
+        });
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.missions]);
+
   // Current adaptive question selected for this slot
   const adaptiveQuestionRef = useRef<{ question: QuestionRecord; variant: string; expectedCorrect?: string } | null>(null);
 
@@ -615,7 +660,11 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
 
       if (adaptiveAfterIdx.includes(currentIdx)) {
         const careerStage = localStorage.getItem('aacp_career_stage') ?? undefined;
-        const selected = selectNextQuestion(prev, undefined, careerStage);
+        // Inject m1Context interests into the session for adaptive selection
+        const sessionWithInterests = prev.m1Context?.interests?.length
+          ? { ...prev, discoveredInterests: prev.m1Context.interests }
+          : prev;
+        const selected = selectNextQuestion(sessionWithInterests, undefined, careerStage);
         if (selected) {
           adaptiveQuestionRef.current = selected;
           const newSession = {
@@ -832,6 +881,21 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
   if (!session) return null;
   const currentMission = session.missions[session.currentMissionIndex];
 
+  // Build performance context for M9 system prompt injection
+  const m9SystemPrompt = useMemo(() => {
+    if (currentMission.id !== 'm9') return undefined;
+    // Build a brief, non-scoring context for ACIA to ground the M9 debrief
+    const completedMissionTitles = session.missions.filter(m => m.completed && m.id !== 'm9').map(m => m.title);
+    const interestContext = session.m1Context?.interests?.length
+      ? `\n\nCareer interests noted from the opening conversation: ${session.m1Context.interests.join(', ')}.`
+      : '';
+    const performanceSummary = completedMissionTitles.length > 0
+      ? `\n\nThis participant has completed the following missions in this assessment: ${completedMissionTitles.join(', ')}.${interestContext}`
+      : interestContext;
+    if (!performanceSummary) return undefined;
+    return `${MISSION_9_SYSTEM}${performanceSummary}`;
+  }, [currentMission.id, session.missions, session.m1Context]);
+
   return (
     <div className="acia-layout">
       <ACIAJourneyPanel
@@ -861,6 +925,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
             chatEndpoint={chatEndpoint}
             isRpas={isRpas}
             sessionId={session.sessionId}
+            m9SystemPrompt={m9SystemPrompt}
             onComplete={completeMission}
           />
         </div>
@@ -876,10 +941,11 @@ interface MissionRendererProps {
   chatEndpoint: string;
   isRpas?: boolean;
   sessionId?: string;
+  m9SystemPrompt?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory?: ChatMessage[]) => void;
 }
 
-function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, onComplete }: MissionRendererProps) {
+function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, m9SystemPrompt, onComplete }: MissionRendererProps) {
   const isFollowup = stage === 'followup';
   switch (mission.type) {
     case 'ai_chat':
@@ -888,10 +954,10 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, onCo
           missionId={mission.id as MissionId}
           systemPrompt={isFollowup ? MISSION_1_FOLLOWUP_SYSTEM : MISSION_1_SYSTEM}
           welcomeMessage={isRpas
-            ? "Good to have you with us. I'm Captain ACIA — I'll be guiding you through the RPAS Career Intelligence Assessment. Before we move into the scenario-based missions, I'd like to start with a brief conversation about your background in RPAS and drone operations. Please go ahead and introduce yourself."
+            ? "Good to have you with us. I'm ACIA — your Aviation & Aerospace Career Intelligence Advisor, and I'll be guiding you through the RPAS Career Intelligence Assessment. Before we move into the scenario-based missions, I'd like to start with a brief conversation about your background in RPAS and drone operations. Please go ahead and introduce yourself."
             : isFollowup
             ? "Welcome back. It's good to reconnect with you at this stage of your journey. You've completed the 8-week AACP, and now you've had real exposure to the workplace — whether through employment, a placement, mentorship, or work-integrated learning. Before we run through today's assessment, I want to hear directly from you: what has your experience looked like since the program? What have you actually been doing out there?"
-            : "Good to have you with us. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: What actually drew you to aviation? Not the polished answer — the honest one. Could be something you saw, something you read, someone you met, or something you still can't quite put into words. Take your time."
+            : "Good to have you with us. I'm ACIA — your Aviation & Aerospace Career Intelligence Advisor. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: What actually drew you to aviation? Not the polished answer — the honest one. Could be something you saw, something you read, someone you met, or something you still can't quite put into words. Take your time."
           }
           minMessages={3}
           chatEndpoint={chatEndpoint}
@@ -916,7 +982,7 @@ function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, onCo
       return (
         <AIMentorChat
           missionId={mission.id as MissionId}
-          systemPrompt={isFollowup ? MISSION_9_FOLLOWUP_SYSTEM : MISSION_9_SYSTEM}
+          systemPrompt={isFollowup ? MISSION_9_FOLLOWUP_SYSTEM : (m9SystemPrompt ?? MISSION_9_SYSTEM)}
           welcomeMessage={isFollowup
             ? "You've completed the 90-Day Follow-Up assessment — this is a significant milestone. You started with the Baseline ACIA, completed the 8-week program, gained real workplace experience, and now you've reassessed. I'd like to close this out with some genuine reflection. Looking back across this whole journey — where do you feel you've grown the most? And what are you still working on?"
             : "You've completed the full assessment — nine missions across inspection, fault diagnosis, systems, instruments, decisions, communication, and workload. That takes real commitment. Before we bring up your Career Intelligence Profile, I want to have one more genuine conversation. Here's my first question: was there a mission that felt surprisingly natural — where you found yourself thinking 'I get this' or even 'I could see myself doing this kind of work'?"
