@@ -203,6 +203,67 @@ function analyzeS5(response: string): { dm: number; al: number } {
   return { dm: Math.min(0.65, dm), al: Math.min(0.50, al) };
 }
 
+// ── New competency analysis functions ─────────────────────────────────────────
+
+// S1: attention to detail — catches east/west discrepancy vs. display
+function analyzeS1Detail(response: string): number {
+  const t = response.toLowerCase().trim();
+  if (t.length < 5) return 0.05;
+  let d = 0.05;
+  if (/maple|214/.test(t)) d += 0.10;
+  // Catches the discrepancy (display shows west, pilot said east)
+  const noticesConflict = /east|west|position|show|radar|display|differ|discrepan|conflict|mismatch|not match|opposite|incorrect|that.s not|incorrect/.test(t);
+  const probes = /\?|confirm|verif|clarif|check|correct|right|sure|repeat|say again/.test(t);
+  if (noticesConflict) d += 0.35;
+  if (probes) d += 0.25;
+  if (noticesConflict && probes) d += 0.10; // bonus for both
+  return Math.min(0.70, d);
+}
+
+// S3: composure under pressure — quality of response when two demands arrive simultaneously
+function analyzeS3Pressure(response: string): number {
+  const t = response.toLowerCase().trim();
+  if (t.length < 5) return 0.05;
+  let d = 0.05;
+  const addressesMaple = /maple|214|position|clarif|confirm|east|west/.test(t);
+  const addressesNorthern = /northern|305|fuel|urgent|hold|standby|wait|priority|moment|shortly/.test(t);
+  const showsPrioritization = /first|then|after|and|also|once|follow/.test(t);
+  if (addressesMaple) d += 0.20;
+  if (addressesNorthern) d += 0.20;
+  if (addressesMaple && addressesNorthern) d += 0.15; // handled both
+  if (showsPrioritization) d += 0.10;
+  if (t.length > 30) d += 0.05; // stayed measured, not terse panic
+  return Math.min(0.70, d);
+}
+
+// S4: teamwork — quality of colleague handover (structured, covers both aircraft)
+function analyzeHandover(response: string): number {
+  const t = response.toLowerCase().trim();
+  if (t.length < 10) return 0.05;
+  let d = 0.05;
+  if (/maple|214/.test(t)) d += 0.20;
+  if (/northern|305|nth/.test(t)) d += 0.20;
+  if (/earlier|updated|changed|arrival|depart|fuel|technical|issue/.test(t)) d += 0.15;
+  if (/both|and|also/.test(t)) d += 0.10; // covered multiple items
+  if (t.length > 40) d += 0.10; // sufficient detail
+  return Math.min(0.70, d);
+}
+
+// S5 phase 2: adaptability — revises understanding when MAPLE 214 updates their status
+function analyzeAdaptability(response: string): number {
+  const t = response.toLowerCase().trim();
+  if (t.length < 5) return 0.05;
+  let d = 0.05;
+  // Accepts the update and integrates it
+  if (/copy|roger|confirm|receiv|understand|noted|acknowledged/.test(t)) d += 0.15;
+  // Asks a specific follow-up question about the updated status
+  if (/\?/.test(response)) d += 0.20;
+  if (/approach|clear|path|route|still|certain|sure|confirm|safe|proceed|system|navigation|instrument/.test(t)) d += 0.20;
+  // Notices the uncertainty and probes it
+  if (/think|believe|uncertain|not sure|may|might|possibly/.test(t)) d += 0.15;
+  return Math.min(0.65, d);
+}
+
 // ── Audio waveform indicator ──────────────────────────────────────────────────
 function Waveform({ active }: { active: boolean }) {
   const bars = [3, 5, 8, 6, 9, 7, 4, 8, 5, 3, 7, 9, 6, 4, 8];
@@ -871,28 +932,28 @@ function FeedbackCard({ message, onNext, nextLabel = 'CONTINUE' }: {
   );
 }
 
-// ── Scenario 1 ────────────────────────────────────────────────────────────────
+// ── Scenario 1 — Attention to detail (display vs. pilot position discrepancy) ──
 function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [step, setStep] = useState<'intro' | 'pilot' | 'respond'>('intro');
   const [sel, setSel] = useState<string | undefined>(undefined);
 
+  // Display shows MAPLE 214 WEST — pilot will report EAST (discrepancy to catch)
   const aircraft: Aircraft[] = [
-    { id: 'maple', callsign: 'MAPLE 214', x: 40, y: 90, status: 'Approaching — West', visible: true },
+    { id: 'maple', callsign: 'MAPLE 214', x: 40, y: 90, status: 'Display: West of airport', visible: true },
   ];
-  const info = [{ callsign: 'MAPLE 214', status: 'Approaching from the west' }];
+  const info = [{ callsign: 'MAPLE 214', status: 'Display: west of airport' }];
 
   if (step === 'intro') return (
     <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
       scenarioNum={1} scenarioLabel="Initial Radio Contact">
       <SituationCard>
         <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-          You've just taken your position at the communications console. The display shows one aircraft —
-          <strong style={{ color: C.blueL }}> MAPLE 214</strong> — approaching from the west.
-          A transmission is incoming.
+          You've just taken your position at the communications console. Your display shows
+          <strong style={{ color: C.blueL }}> MAPLE 214</strong> west of the airport.
+          An incoming transmission is arriving.
         </p>
         <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
-          You don't need formal aviation terminology. Listen to the message, identify the key
-          information, and respond clearly.
+          Listen carefully to what the pilot reports and compare it to what you see on your display.
         </p>
       </SituationCard>
       <ActionBtn onClick={() => setStep('pilot')}>Open Channel</ActionBtn>
@@ -904,7 +965,8 @@ function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       scenarioNum={1} scenarioLabel="Initial Radio Contact">
       <PilotMessage
         callsign="MAPLE 214"
-        message="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
+        // Pilot reports EAST — display shows WEST. Participant must notice.
+        message="Tower, Maple 214. We're currently approximately five miles east of the airport. Just checking in and confirming our position."
         onReady={() => setStep('respond')}
       />
     </ATCConsole>
@@ -912,29 +974,41 @@ function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
 
   return (
     <ATCConsole aircraft={aircraft} aircraftInfoRows={info}
-      incomingMsg="Tower, Maple 214. We're approaching from the west and would like to confirm that you received our message."
+      incomingMsg="Tower, Maple 214. We're currently approximately five miles east of the airport. Just checking in and confirming our position."
       pilotCallsign="MAPLE 214" pilotSpeaking={false}
       selectedId={sel} onSelectAircraft={setSel}
       scenarioNum={1} scenarioLabel="Initial Radio Contact">
       <ResponseInput
-        context="Acknowledge MAPLE 214's message. Include the aircraft identifier and confirm the key information you received."
-        onSubmit={text => onComplete([{ key: 'communication_quality', delta: analyzeS1(text) }])}
+        context="Respond to MAPLE 214. Your display shows their current position — pay attention to whether what the pilot reported matches what you see."
+        onSubmit={text => onComplete([
+          { key: 'attention_to_detail', delta: analyzeS1Detail(text) },
+          { key: 'communication_quality', delta: analyzeS1(text) },
+        ])}
       />
     </ATCConsole>
   );
 }
 
-// ── Scenario 3 ────────────────────────────────────────────────────────────────
+// ── Scenario 3 — SA conflict + stress_response (dual demand) ──────────────────
 function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'correction'>('intro');
+  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'correction' | 'pressure' | 'respond2'>('intro');
   const [sel, setSel] = useState<string | undefined>(undefined);
   const responseRef = useRef('');
   const clarifyRef = useRef(false);
+  const pressureRef = useRef('');
 
   const aircraftEast: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position: East', visible: true },
   ];
+  const aircraftBoth: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position unresolved', visible: true },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, status: 'Fuel — Urgent', visible: true, alert: true },
+  ];
   const infoConflict = [{ callsign: 'MAPLE 214', status: 'Display shows east — pilot reports west' }];
+  const infoPressure = [
+    { callsign: 'MAPLE 214', status: 'Position unresolved' },
+    { callsign: 'NORTHERN 305', status: 'Fuel status — urgent', alert: true },
+  ];
   const infoResolved = [{ callsign: 'MAPLE 214', status: 'Position confirmed: East of airport' }];
 
   if (step === 'intro') return (
@@ -970,49 +1044,85 @@ function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       pilotCallsign="MAPLE 214" pilotSpeaking={false}
       selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
       <ResponseInput
-        context="Respond to MAPLE 214."
+        context="Respond to MAPLE 214. Your display and the pilot's report are not consistent."
         onSubmit={text => {
           responseRef.current = text;
           const asked = wantsClarification(text) || notesConflict(text);
           clarifyRef.current = asked;
-          if (asked) setStep('correction');
-          else onComplete([{ key: 'situational_awareness', delta: analyzeS3(text, false) }]);
+          // Whether or not they caught the conflict, NORTHERN 305 now breaks in
+          setStep('correction');
         }}
       />
     </ATCConsole>
   );
 
-  const resolved: Aircraft[] = [{ id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position confirmed: East', visible: true }];
-  return (
-    <ATCConsole aircraft={resolved} aircraftInfoRows={infoResolved}
-      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
-            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
-              MAPLE 214 — CORRECTION
-            </span>
+  // After participant's first response, NORTHERN 305 breaks in with fuel urgency
+  if (step === 'correction') {
+    const resolved: Aircraft[] = [{ id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position confirmed: East', visible: true }];
+    return (
+      <ATCConsole aircraft={resolved} aircraftInfoRows={infoResolved}
+        selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
+              <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>MAPLE 214 — CORRECTION</span>
+            </div>
+            <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+              "Maple 214. Correction — we are east of the airport. Apologies for the confusion."
+            </div>
           </div>
-          <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
-            "Maple 214. Correction — we are east of the airport. Apologies for the confusion."
-          </div>
+          <FeedbackCard
+            message="MAPLE 214 has confirmed their correct position. A new transmission is now arriving."
+            onNext={() => setStep('pressure')}
+            nextLabel="OPEN CHANNEL"
+          />
         </div>
-        <FeedbackCard
-          message="MAPLE 214 has confirmed their correct position. Display updated."
-          onNext={() => onComplete([{ key: 'situational_awareness', delta: analyzeS3(responseRef.current, true) }])}
-          nextLabel="CONTINUE TO SCENARIO 4"
-        />
-      </div>
+      </ATCConsole>
+    );
+  }
+
+  // NORTHERN 305 breaks in simultaneously — dual demand scenario
+  if (step === 'pressure') return (
+    <ATCConsole aircraft={aircraftBoth} aircraftInfoRows={infoPressure}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <PilotMessage
+        callsign="NORTHERN 305"
+        message="Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive."
+        onReady={() => setStep('respond2')}
+      />
+    </ATCConsole>
+  );
+
+  return (
+    <ATCConsole aircraft={aircraftBoth} aircraftInfoRows={infoPressure}
+      incomingMsg="Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive."
+      pilotCallsign="NORTHERN 305" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <ResponseInput
+        context="NORTHERN 305 has a time-sensitive fuel concern. MAPLE 214's position issue was just resolved. Respond to the current situation."
+        onSubmit={text => {
+          pressureRef.current = text;
+          const saDelta = analyzeS3(responseRef.current, clarifyRef.current);
+          const stressDelta = analyzeS3Pressure(text);
+          onComplete([
+            { key: 'situational_awareness', delta: saDelta },
+            { key: 'stress_response', delta: stressDelta },
+          ]);
+        }}
+      />
     </ATCConsole>
   );
 }
 
-// ── Scenario 4 ────────────────────────────────────────────────────────────────
+// ── Scenario 4 — MT (two aircraft) + CM teamwork (colleague handover) ─────────
 function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'pilot1' | 'respond1' | 'pilot2' | 'respond2'>('intro');
+  const [step, setStep] = useState<
+    'intro' | 'colleague_leaves' | 'pilot1' | 'respond1' | 'pilot2' | 'respond2' | 'handover'
+  >('intro');
   const [sel, setSel] = useState<string | undefined>(undefined);
   const r1Ref = useRef('');
+  const r2Ref = useRef('');
 
   const aircraft: Aircraft[] = [
     { id: 'maple', callsign: 'MAPLE 214', x: 155, y: 96, status: 'Approaching', visible: true },
@@ -1036,7 +1146,29 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
           pay attention to what's new or changing and respond to each one.
         </p>
       </SituationCard>
-      <ActionBtn onClick={() => setStep('pilot1')}>Open Channel</ActionBtn>
+      <ActionBtn onClick={() => setStep('colleague_leaves')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'colleague_leaves') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: '#fbbf24' }} />
+            <span style={{ color: '#fbbf24', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              CONTROLLER — ALEX
+            </span>
+          </div>
+          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>
+            "Hey, I need to step away for a few minutes — urgent call. Can you hold the desk?
+            MAPLE 214 and NORTHERN 305 are both active. I'll be back to take over."
+          </div>
+        </div>
+        <StatusNotice>You're now managing both aircraft solo. Handle incoming transmissions.</StatusNotice>
+        <ActionBtn onClick={() => setStep('pilot1')}>Acknowledge and Hold Desk</ActionBtn>
+      </div>
     </ATCConsole>
   );
 
@@ -1075,7 +1207,7 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
     </ATCConsole>
   );
 
-  return (
+  if (step === 'respond2') return (
     <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated}
       incomingMsg="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
       pilotCallsign="MAPLE 214" pilotSpeaking={false}
@@ -1083,15 +1215,44 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       <ResponseInput
         context="Respond to MAPLE 214's updated arrival information."
         label="Respond to MAPLE 214"
-        onSubmit={text => onComplete([{ key: 'multitasking_ability', delta: analyzeS4(r1Ref.current, text) }])}
+        onSubmit={text => { r2Ref.current = text; setStep('handover'); }}
       />
+    </ATCConsole>
+  );
+
+  // Colleague returns — participant must brief them
+  return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: '#fbbf24' }} />
+            <span style={{ color: '#fbbf24', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              CONTROLLER — ALEX
+            </span>
+          </div>
+          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>
+            "Back now — thanks for covering. What's the situation with MAPLE 214 and NORTHERN 305?
+            Anything I should know before I take over?"
+          </div>
+        </div>
+        <ResponseInput
+          context="Brief your colleague on what happened while they were away. Include any changes or developments they'll need to know about."
+          label="Brief your colleague"
+          onSubmit={text => onComplete([
+            { key: 'multitasking_ability', delta: analyzeS4(r1Ref.current, r2Ref.current) },
+            { key: 'communication_quality', delta: analyzeHandover(text) },
+          ])}
+        />
+      </div>
     </ATCConsole>
   );
 }
 
-// ── Scenario 5 ────────────────────────────────────────────────────────────────
+// ── Scenario 5 — DM/AL (dual transmission) + AL adaptability + curiosity ──────
 function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<'intro' | 'maple' | 'northern' | 'respond' | 'ack'>('intro');
+  const [step, setStep] = useState<'intro' | 'maple' | 'northern' | 'respond' | 'ack' | 'update' | 'respond2'>('intro');
   const [sel, setSel] = useState<string | undefined>(undefined);
   const responseRef = useRef('');
 
@@ -1176,10 +1337,7 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
           onSubmit={text => {
             responseRef.current = text;
             if (wantsClarification(text) || text.includes('?')) setStep('ack');
-            else {
-              const { dm, al } = analyzeS5(text);
-              onComplete([{ key: 'decision_quality', delta: dm }, { key: 'learning_agility', delta: al }]);
-            }
+            else setStep('update');
           }}
         />
       </div>
@@ -1203,18 +1361,54 @@ function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
         </div>
         <FeedbackCard
           message="You sought additional information from MAPLE 214. That kind of follow-up communication is a key part of managing uncertainty in operational environments."
-          onNext={() => {
-            const { dm, al } = analyzeS5(responseRef.current);
-            onComplete([
-              { key: 'decision_quality', delta: Math.min(0.65, dm + 0.10) },
-              { key: 'learning_agility', delta: Math.min(0.50, al + 0.05) },
-            ]);
-          }}
+          onNext={() => setStep('update')}
           nextLabel="CONTINUE"
         />
       </div>
     </ATCConsole>
   );
+
+  // Phase 2: MAPLE 214 updates — issue may be resolved, but uncertain
+  const aircraftUpdate: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 140, y: 98, visible: true, status: 'Status Updating' },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, visible: true, status: 'Ground — Standby' },
+  ];
+  const infoUpdate = [
+    { callsign: 'MAPLE 214', status: 'Technical issue — possibly resolved' },
+    { callsign: 'NORTHERN 305', status: 'Ground — standing by' },
+  ];
+
+  if (step === 'update') return (
+    <ATCConsole aircraft={aircraftUpdate} aircraftInfoRows={infoUpdate}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. The technical issue may have cleared — our instruments are reading normally now. We believe we can proceed with our original approach. However, we're not entirely certain the issue is fully resolved."
+        onReady={() => setStep('respond2')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'respond2') {
+    const { dm, al } = analyzeS5(responseRef.current);
+    return (
+      <ATCConsole aircraft={aircraftUpdate} aircraftInfoRows={infoUpdate}
+        incomingMsg="Tower, Maple 214. The technical issue may have cleared. We believe we can proceed, but we're not entirely certain the issue is fully resolved."
+        pilotCallsign="MAPLE 214" pilotSpeaking={false}
+        selectedId={sel} onSelectAircraft={setSel} scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+        <ResponseInput
+          context="MAPLE 214 says the issue may be resolved but they are not certain. How do you respond to this update?"
+          onSubmit={text => onComplete([
+            { key: 'decision_quality', delta: Math.min(0.65, dm + 0.10) },
+            { key: 'learning_agility', delta: Math.min(0.50, al + 0.05) },
+            { key: 'curiosity', delta: analyzeAdaptability(text) },
+          ])}
+        />
+      </ATCConsole>
+    );
+  }
+
+  return null;
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
