@@ -172,6 +172,7 @@ export function MaintenanceInvestigation({ onComplete }: Props) {
   const [allEvidence, setAllEvidence] = useState<TaggedEvidence[]>([]);
   // Carry-forward state
   const [foundDefectIds, setFoundDefectIds] = useState<string[]>([]);
+  const [logbook, setLogbook] = useState<LogbookEntry>(EMPTY_LOGBOOK);
 
   function addEvidence(items: TaggedEvidence[]) {
     setAllEvidence(prev => [...prev, ...items]);
@@ -193,8 +194,9 @@ export function MaintenanceInvestigation({ onComplete }: Props) {
     setPhase('s4');
   }
 
-  function handleS4Complete(items: TaggedEvidence[]) {
+  function handleS4Complete(items: TaggedEvidence[], lb: LogbookEntry) {
     addEvidence(items);
+    setLogbook(lb);
     setPhase('s5');
   }
 
@@ -251,7 +253,7 @@ export function MaintenanceInvestigation({ onComplete }: Props) {
       {phase === 's2' && <S2Records foundDefectIds={foundDefectIds} onComplete={handleS2Complete} />}
       {phase === 's3' && <S3Mechanical foundDefectIds={foundDefectIds} onComplete={handleS3Complete} />}
       {phase === 's4' && <S4Handover foundDefectIds={foundDefectIds} onComplete={handleS4Complete} />}
-      {phase === 's5' && <S5Priorities onComplete={handleS5Complete} />}
+      {phase === 's5' && <S5Priorities logbook={logbook} onComplete={handleS5Complete} />}
     </div>
   );
 }
@@ -617,128 +619,273 @@ function S3Mechanical({ foundDefectIds, onComplete }: { foundDefectIds: string[]
   );
 }
 
-// ── S4: Maintenance Handover ──────────────────────────────────────────────────
-function S4Handover({ foundDefectIds, onComplete }: { foundDefectIds: string[]; onComplete: (items: TaggedEvidence[]) => void }) {
-  const [handover, setHandover] = useState('');
-  const [handoverDone, setHandoverDone] = useState(false);
-  const [supervisorResponse, setSupervisorResponse] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+// ── Logbook entry type ────────────────────────────────────────────────────────
+interface LogbookEntry {
+  activityType: string;
+  observations: string;
+  infoReviewed: string;
+  outstandingConcerns: string;
+  recommendedNextSteps: string;
+  supervisorClarification: string;
+}
 
-  function handleHandoverSubmit() {
-    if (handover.trim().length < 60) return;
-    setHandoverDone(true);
+const EMPTY_LOGBOOK: LogbookEntry = {
+  activityType: '', observations: '', infoReviewed: '',
+  outstandingConcerns: '', recommendedNextSteps: '', supervisorClarification: '',
+};
+
+// ── S4: Digital Maintenance Logbook + Supervisor Handover ────────────────────
+function S4Handover({ foundDefectIds, onComplete }: {
+  foundDefectIds: string[];
+  onComplete: (items: TaggedEvidence[], logbook: LogbookEntry) => void;
+}) {
+  const [phase, setPhase] = useState<'logbook' | 'review' | 'handover' | 'done'>('logbook');
+  const [logbook, setLogbook] = useState<LogbookEntry>(EMPTY_LOGBOOK);
+  const [showRef, setShowRef] = useState(false);
+  const [supervisorResponse, setSupervisorResponse] = useState('');
+
+  const foundDefects = ZONES.filter(z => foundDefectIds.includes(z.id));
+  const foundIssues  = ZONES.filter(z => foundDefectIds.includes(z.id) && z.severity !== 'ok');
+
+  function updateField(field: keyof LogbookEntry, val: string) {
+    setLogbook(prev => ({ ...prev, [field]: val }));
+  }
+
+  const logbookComplete = [
+    logbook.observations, logbook.outstandingConcerns, logbook.recommendedNextSteps,
+  ].every(f => f.trim().length >= 20);
+
+  function handleLogbookSubmit() {
+    if (!logbookComplete) return;
+    setPhase('review');
+  }
+
+  function handleConfirmAndHandover() {
+    setPhase('handover');
   }
 
   function handleFinalSubmit() {
     if (supervisorResponse.trim().length < 30) return;
-    setSubmitted(true);
-    const t = handover.toLowerCase() + ' ' + supervisorResponse.toLowerCase();
-    const ht = handover.toLowerCase();
+    setPhase('done');
+
+    const lb = logbook;
+    const lt = (lb.observations + ' ' + lb.outstandingConcerns + ' ' + lb.recommendedNextSteps + ' ' + lb.supervisorClarification).toLowerCase();
     const st = supervisorResponse.toLowerCase();
 
-    const handoverMentionsCount = [
-      hasConcept(ht, CONCEPTS.navLightMention),
-      hasConcept(ht, CONCEPTS.oilResidueFound),
-      hasConcept(ht, CONCEPTS.tyreMention),
-      hasConcept(ht, CONCEPTS.pitotMention),
+    // How many distinct findings appear in their documentation
+    const docFindings = [
+      hasConcept(lt, CONCEPTS.navLightMention),
+      hasConcept(lt, CONCEPTS.oilResidueFound) || hasConcept(lt, CONCEPTS.oilSystemCause),
+      hasConcept(lt, CONCEPTS.tyreMention),
+      hasConcept(lt, CONCEPTS.pitotMention),
     ].filter(Boolean).length;
 
-    const handoverShowsSafety    = hasConcept(ht, CONCEPTS.safetyGround);
-    const resistsPressure        = hasConcept(st, CONCEPTS.resistPressure);
-    const citesRegulatory        = hasConcept(t, CONCEPTS.regulatoryRef);
-    const mentionsOutstanding    = hasConcept(t, CONCEPTS.handoverComplete);
+    const docOutstanding   = hasConcept(lt, CONCEPTS.handoverComplete) || hasConcept(lt, CONCEPTS.safetyGround);
+    const docNextSteps     = hasConcept(lt, CONCEPTS.oilNextStep);
+    const docSafety        = hasConcept(lt, CONCEPTS.safetyGround);
+    const docRegulatory    = hasConcept(lt, CONCEPTS.regulatoryRef);
+
+    // Supervisor handover quality
+    const handoverConsistent = docFindings >= 2 && hasConcept(st, CONCEPTS.navLightMention || CONCEPTS.oilResidueFound);
+    const handoverSafety     = hasConcept(st, CONCEPTS.safetyGround);
+    const handoverOutstanding = hasConcept(st, CONCEPTS.handoverComplete);
+
+    // Distinguishes confirmed from assumed (uses hedging language)
+    const distinguishesUncertainty = /appear|suggest|possibl|may|might|indicat|further|not.{0,10}confirm/i.test(lt);
 
     const items: TaggedEvidence[] = [];
-    if (handoverMentionsCount >= 3)  items.push(ev('communication_quality', 0.8, 3));
-    else if (handoverMentionsCount >= 2) items.push(ev('communication_quality', 0.5, 3));
-    else if (handoverMentionsCount >= 1) items.push(ev('communication_quality', 0.3, 3));
-    if (handoverShowsSafety)         items.push(ev('safety_mindset', 0.7, 3));
-    if (resistsPressure)             items.push(ev('safety_mindset', 0.7, 3));
-    if (resistsPressure)             items.push(ev('procedural_compliance', 0.6, 3));
-    if (citesRegulatory)             items.push(ev('procedural_compliance', 0.4, 3));
-    if (mentionsOutstanding)         items.push(ev('systematic_reasoning', 0.4, 3));
-    if (!resistsPressure)            items.push(ev('safety_mindset', -0.4, 3));
 
-    onComplete(items);
+    // Documentation quality
+    if (docFindings >= 3) items.push(ev('attention_to_detail', 0.8, 3));
+    else if (docFindings >= 2) items.push(ev('attention_to_detail', 0.5, 3));
+    else if (docFindings >= 1) items.push(ev('attention_to_detail', 0.3, 3));
+
+    if (docOutstanding)           items.push(ev('systematic_reasoning', 0.6, 3));
+    if (docNextSteps)             items.push(ev('systematic_reasoning', 0.4, 3));
+    if (distinguishesUncertainty) items.push(ev('systematic_reasoning', 0.3, 3));
+    if (docSafety)                items.push(ev('safety_mindset', 0.65, 3));
+    if (docRegulatory)            items.push(ev('procedural_compliance', 0.5, 3));
+
+    // Supervisor handover
+    if (docFindings >= 2)         items.push(ev('communication_quality', 0.4 + (docFindings >= 3 ? 0.3 : 0), 3));
+    if (handoverSafety)           items.push(ev('safety_mindset', 0.4, 3));
+    if (handoverOutstanding)      items.push(ev('communication_quality', 0.3, 3));
+
+    onComplete(items, logbook);
   }
+
+  const LOGBOOK_FIELDS: { key: keyof LogbookEntry; label: string; hint: string; rows: number; required: boolean }[] = [
+    { key: 'activityType',          label: 'Inspection / Investigation Activity', hint: 'Describe the type of activity performed.', rows: 2, required: false },
+    { key: 'observations',          label: 'Observations and Findings',           hint: 'What did you observe? Describe each finding. Distinguish confirmed observations from items that require further investigation.', rows: 5, required: true },
+    { key: 'infoReviewed',          label: 'Relevant Information Reviewed',       hint: 'What records, documents or system information did you consult?', rows: 3, required: false },
+    { key: 'outstandingConcerns',   label: 'Outstanding Concerns',                hint: 'List any concerns that remain unresolved and the reason they are open.', rows: 4, required: true },
+    { key: 'recommendedNextSteps',  label: 'Recommended Next Steps',              hint: 'What actions would you recommend before this aircraft returns to service?', rows: 3, required: true },
+    { key: 'supervisorClarification', label: 'Supervisor Review or Clarification Required', hint: 'Are there any items you would flag to a supervisor or that require a decision beyond your current authority?', rows: 3, required: false },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ background: '#1a0a14', border: '1px solid #3d1040', borderRadius: 12, padding: '10px 16px', color: '#d8b4fe', fontSize: 13 }}>
-        <strong>Scenario 4 — Maintenance Handover</strong><br />
-        Your shift is ending. The aircraft has not been released to service. Write a handover note for the lead AME who takes over. Cover all outstanding items and their current status.
+        <strong>Scenario 4 — Maintenance Logbook and Supervisor Handover</strong><br />
+        Complete the digital maintenance logbook for Aircraft 214 based on your investigation. Once submitted, you will present your findings to the AME supervisor.
       </div>
 
-      {!handoverDone && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Handover note to Lead AME</label>
-          <textarea
-            value={handover}
-            onChange={e => setHandover(e.target.value)}
-            rows={7}
-            placeholder="Describe all outstanding maintenance items, their current status, what has been done, and what still needs to be addressed before the aircraft can be released to service…"
-            style={{ background: '#0f0a0b', border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, color: C.white, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-          />
-          <button onClick={handleHandoverSubmit} disabled={handover.trim().length < 60}
-            style={{ background: handover.trim().length < 60 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: handover.trim().length < 60 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: handover.trim().length < 60 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-            {handover.trim().length < 60 ? `Continue — ${60 - handover.trim().length} more characters` : 'Submit Handover Note →'}
+      {/* Reference panel — collapsible */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+        <button onClick={() => setShowRef(v => !v)}
+          style={{ width: '100%', background: 'none', border: 'none', padding: '10px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: C.white }}>
+          <span style={{ fontSize: 12, color: C.grey }}>Reference — Your Investigation Findings (tap to expand)</span>
+          <span style={{ color: C.grey, fontSize: 13 }}>{showRef ? '▲' : '▼'}</span>
+        </button>
+        {showRef && (
+          <div style={{ padding: '0 14px 14px', borderTop: `1px solid ${C.border}` }}>
+            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+              <div>
+                <div style={{ color: C.grey, fontSize: 11, marginBottom: 6, fontWeight: 600 }}>INSPECTION FINDINGS — AIRCRAFT 214</div>
+                {foundIssues.length === 0
+                  ? <div style={{ color: C.grey, fontSize: 12 }}>No defects recorded during inspection.</div>
+                  : foundIssues.map(z => (
+                    <div key={z.id} style={{ display: 'flex', gap: 6, marginBottom: 5 }}>
+                      <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 11, flexShrink: 0 }}>●</span>
+                      <span style={{ color: C.white, fontSize: 12 }}><strong>{z.label}:</strong> {z.issue}</span>
+                    </div>
+                  ))}
+              </div>
+              <div>
+                <div style={{ color: C.grey, fontSize: 11, marginBottom: 6, fontWeight: 600 }}>MAINTENANCE RECORDS REVIEWED</div>
+                {RECORDS.map(r => (
+                  <div key={r.id} style={{ marginBottom: 6 }}>
+                    <div style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>{r.system}</div>
+                    <div style={{ color: C.grey, fontSize: 11 }}>{r.daysAgo} days ago · {r.techName} · {r.status}</div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ color: C.grey, fontSize: 11, marginBottom: 6, fontWeight: 600 }}>OIL SYSTEM INVESTIGATION</div>
+                <div style={{ color: C.white, fontSize: 12 }}>Oil residue noted at pump output fitting and distribution line firewall connection. Return line and reservoir: no external residue. Source not confirmed.</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {phase === 'logbook' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Aircraft ID — display only */}
+          <div style={{ background: '#0f1020', border: `1px solid #1a2a4a`, borderRadius: 10, padding: '10px 14px' }}>
+            <div style={{ color: C.grey, fontSize: 11, marginBottom: 2 }}>Aircraft Identification</div>
+            <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Regional Aircraft 214</div>
+            <div style={{ color: C.grey, fontSize: 11 }}>Date: {new Date().toISOString().slice(0, 10)}</div>
+          </div>
+
+          {LOGBOOK_FIELDS.map(f => (
+            <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>
+                {f.label}{f.required && <span style={{ color: C.red, marginLeft: 4 }}>*</span>}
+              </label>
+              <div style={{ color: C.grey, fontSize: 12 }}>{f.hint}</div>
+              <textarea
+                value={logbook[f.key]}
+                onChange={e => updateField(f.key, e.target.value)}
+                rows={f.rows}
+                placeholder=""
+                style={{ background: '#0f0a0b', border: `1px solid ${logbook[f.key].trim().length > 0 ? '#2d4a6a' : C.border}`, borderRadius: 10, padding: 10, color: C.white, fontSize: 12, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+              />
+            </div>
+          ))}
+
+          <div style={{ color: C.grey, fontSize: 12 }}>Fields marked <span style={{ color: C.red }}>*</span> require at least one sentence to proceed.</div>
+          <button onClick={handleLogbookSubmit} disabled={!logbookComplete}
+            style={{ background: !logbookComplete ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: !logbookComplete ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '12px', cursor: !logbookComplete ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
+            {!logbookComplete ? 'Complete required fields to continue' : 'Review Logbook Entry →'}
           </button>
         </div>
       )}
 
-      {handoverDone && !submitted && (
+      {phase === 'review' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
-            <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Your Handover Note — Submitted</div>
-            <div style={{ color: C.white, fontSize: 12, lineHeight: 1.6, maxHeight: 100, overflow: 'auto' }}>{handover}</div>
-          </div>
+          <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>Review Your Logbook Entry</div>
+          <div style={{ color: C.grey, fontSize: 12 }}>Review and revise any field before submitting for supervisor review.</div>
 
-          <div style={{ background: '#1a1400', border: '1px solid #3a3000', borderRadius: 12, padding: 14 }}>
-            <div style={{ color: C.amber, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>— Lead AME (Supervisor)</div>
-            <div style={{ color: C.white, fontSize: 13, lineHeight: 1.6 }}>
-              "I've read your note. The operations coordinator just called — they need this aircraft for a charter flight this afternoon. So the inspection is complete and all concerns resolved? We can release it?"
+          {LOGBOOK_FIELDS.map(f => logbook[f.key].trim() ? (
+            <div key={f.key} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>{f.label}</div>
+              <textarea
+                value={logbook[f.key]}
+                onChange={e => updateField(f.key, e.target.value)}
+                rows={Math.min(f.rows + 1, 6)}
+                style={{ width: '100%', background: 'transparent', border: 'none', color: C.white, fontSize: 12, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, outline: 'none', padding: 0 }}
+              />
             </div>
-          </div>
+          ) : null)}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Your response to the supervisor</label>
-            <textarea
-              value={supervisorResponse}
-              onChange={e => setSupervisorResponse(e.target.value)}
-              rows={4}
-              placeholder="How do you respond?"
-              style={{ background: '#0f0a0b', border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, color: C.white, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-            />
-            <button onClick={handleFinalSubmit} disabled={supervisorResponse.trim().length < 30}
-              style={{ background: supervisorResponse.trim().length < 30 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: supervisorResponse.trim().length < 30 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: supervisorResponse.trim().length < 30 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-              {supervisorResponse.trim().length < 30 ? `Continue — ${30 - supervisorResponse.trim().length} more characters` : 'Submit Response →'}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => setPhase('logbook')}
+              style={{ background: C.bgCard, color: C.grey, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              ← Back to Edit
+            </button>
+            <button onClick={handleConfirmAndHandover}
+              style={{ background: `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: 'white', border: 'none', borderRadius: 10, padding: '10px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 13, flex: 1 }}>
+              Submit for Supervisor Review →
             </button>
           </div>
         </div>
       )}
 
-      {submitted && (
+      {phase === 'handover' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Logbook submitted — Aircraft 214 · {new Date().toISOString().slice(0, 10)}</div>
+            <div style={{ color: C.green, fontSize: 12 }}>✓ Entry recorded</div>
+          </div>
+
+          <div style={{ background: '#1a1400', border: '1px solid #3a3000', borderRadius: 12, padding: 14 }}>
+            <div style={{ color: C.amber, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>AME Supervisor</div>
+            <div style={{ color: C.white, fontSize: 13, lineHeight: 1.6 }}>
+              "I've reviewed your logbook entry. Please walk me through it — what did you observe, what remains unresolved, and what would you recommend investigating next?"
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Your response</label>
+            <textarea
+              value={supervisorResponse}
+              onChange={e => setSupervisorResponse(e.target.value)}
+              rows={6}
+              placeholder="Walk the supervisor through your findings, what remains open, and your recommended next steps…"
+              style={{ background: '#0f0a0b', border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, color: C.white, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+            />
+            <button onClick={handleFinalSubmit} disabled={supervisorResponse.trim().length < 30}
+              style={{ background: supervisorResponse.trim().length < 30 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: supervisorResponse.trim().length < 30 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: supervisorResponse.trim().length < 30 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
+              {supervisorResponse.trim().length < 30 ? `Continue — ${30 - supervisorResponse.trim().length} more characters` : 'Submit Handover →'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {phase === 'done' && (
         <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: 14, color: '#86efac', fontSize: 13 }}>
-          Handover complete. Proceeding to final scenario.
+          Handover complete. Proceeding to maintenance priorities.
         </div>
       )}
     </div>
   );
 }
 
-// ── S5: Maintenance Priorities ────────────────────────────────────────────────
-function S5Priorities({ onComplete }: { onComplete: (items: TaggedEvidence[]) => void }) {
+// ── S5: Maintenance Priorities (with logbook access) ──────────────────────────
+function S5Priorities({ logbook, onComplete }: { logbook: LogbookEntry; onComplete: (items: TaggedEvidence[]) => void }) {
   const [order, setOrder] = useState<string[]>([]);
   const [priorityDone, setPriorityDone] = useState(false);
   const [pressureResponse, setPressureResponse] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [showLogbook, setShowLogbook] = useState(false);
+  const [suppNote, setSuppNote] = useState('');
+  const [showSuppNote, setShowSuppNote] = useState(false);
+  const [suppSaved, setSuppSaved] = useState(false);
 
   function toggleItem(id: string) {
     if (priorityDone) return;
-    setOrder(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id);
-      return [...prev, id];
-    });
+    setOrder(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   }
 
   function handlePrioritySubmit() {
@@ -751,37 +898,102 @@ function S5Priorities({ onComplete }: { onComplete: (items: TaggedEvidence[]) =>
     setSubmitted(true);
     const pt = pressureResponse.toLowerCase();
 
-    const safetyFirst   = hasConcept(pt, CONCEPTS.prioritySafety);
-    const resists       = hasConcept(pt, CONCEPTS.resistPressure);
-    const citesRegul    = hasConcept(pt, CONCEPTS.regulatoryRef);
+    const safetyFirst        = hasConcept(pt, CONCEPTS.prioritySafety);
+    const resists            = hasConcept(pt, CONCEPTS.resistPressure);
+    const citesRegul         = hasConcept(pt, CONCEPTS.regulatoryRef);
+    const consultedLogbook   = showLogbook;
+    const addedSuppNote      = suppSaved && suppNote.trim().length > 10;
 
-    // Check if safety items placed before admin in their ranking
-    const oilIdx    = order.indexOf('oil');
-    const navIdx    = order.indexOf('nav');
-    const tyreIdx   = order.indexOf('tyre');
-    const adminIdx  = order.indexOf('admin');
-    const safetyBeforeAdmin = [oilIdx, navIdx, tyreIdx].every(i => i === -1 || (adminIdx !== -1 && i < adminIdx) || adminIdx === -1);
+    const oilIdx   = order.indexOf('oil');
+    const navIdx   = order.indexOf('nav');
+    const tyreIdx  = order.indexOf('tyre');
+    const adminIdx = order.indexOf('admin');
+    const safetyBeforeAdmin  = [oilIdx, navIdx, tyreIdx].every(i => i === -1 || adminIdx === -1 || i < adminIdx);
 
     const items: TaggedEvidence[] = [
-      ev('systematic_reasoning', order.length >= 4 ? 0.6 : order.length >= 3 ? 0.4 : 0.2, 4),
+      ev('systematic_reasoning', order.length >= 4 ? 0.65 : order.length >= 3 ? 0.45 : 0.2, 4),
     ];
-    if (safetyBeforeAdmin) items.push(ev('safety_mindset', 0.6, 4));
-    if (safetyFirst)       items.push(ev('safety_mindset', 0.5, 4));
-    if (resists)           items.push(ev('safety_mindset', 0.4, 4));
-    if (resists)           items.push(ev('procedural_compliance', 0.5, 4));
-    if (citesRegul)        items.push(ev('procedural_compliance', 0.3, 4));
+    if (safetyBeforeAdmin)  items.push(ev('safety_mindset', 0.55, 4));
+    if (safetyFirst)        items.push(ev('safety_mindset', 0.45, 4));
+    if (resists)            items.push(ev('safety_mindset', 0.4, 4));
+    if (resists)            items.push(ev('procedural_compliance', 0.5, 4));
+    if (citesRegul)         items.push(ev('procedural_compliance', 0.3, 4));
     if (safetyFirst || resists) items.push(ev('communication_quality', 0.4, 4));
+    if (addedSuppNote)      items.push(ev('procedural_compliance', 0.3, 4));
 
     onComplete(items);
   }
 
   const priorityMap: Record<string, PriorityItem> = Object.fromEntries(PRIORITY_ITEMS.map(p => [p.id, p]));
+  const LOGBOOK_DISPLAY_FIELDS: { key: keyof LogbookEntry; label: string }[] = [
+    { key: 'observations',          label: 'Observations and Findings' },
+    { key: 'outstandingConcerns',   label: 'Outstanding Concerns' },
+    { key: 'recommendedNextSteps',  label: 'Recommended Next Steps' },
+    { key: 'supervisorClarification', label: 'Supervisor Clarification Required' },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ background: '#0a1a0a', border: '1px solid #1a4a1a', borderRadius: 12, padding: '10px 16px', color: '#86efac', fontSize: 13 }}>
-        <strong>Scenario 5 — Maintenance Priorities</strong><br />
-        Four items require attention on this aircraft. Select them in the order you would address them — your first selection is highest priority.
+        <strong>Scenario 5 — Maintenance Priorities and Operational Pressure</strong><br />
+        Your logbook is available for reference. Four items require attention. Rank them by priority, then respond to an operational question.
+      </div>
+
+      {/* Logbook reference panel */}
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+        <button onClick={() => setShowLogbook(v => !v)}
+          style={{ width: '100%', background: 'none', border: 'none', padding: '10px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: C.white }}>
+          <span style={{ fontSize: 12 }}>📋 Your Maintenance Logbook — Aircraft 214 (tap to open)</span>
+          <span style={{ color: C.grey, fontSize: 13 }}>{showLogbook ? '▲' : '▼'}</span>
+        </button>
+        {showLogbook && (
+          <div style={{ padding: '0 14px 14px', borderTop: `1px solid ${C.border}` }}>
+            <div style={{ color: C.grey, fontSize: 11, margin: '10px 0 8px', fontWeight: 600 }}>AIRCRAFT MAINTENANCE LOGBOOK — REGIONAL AIRCRAFT 214</div>
+            {LOGBOOK_DISPLAY_FIELDS.map(f => logbook[f.key].trim() ? (
+              <div key={f.key} style={{ marginBottom: 10 }}>
+                <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>{f.label}</div>
+                <div style={{ color: C.white, fontSize: 12, lineHeight: 1.6, background: '#0f0a0b', padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.border}` }}>{logbook[f.key]}</div>
+              </div>
+            ) : null)}
+
+            {/* Supplementary note */}
+            {!showSuppNote && !suppSaved && (
+              <button onClick={() => setShowSuppNote(true)}
+                style={{ background: 'none', border: `1px dashed ${C.border}`, borderRadius: 8, padding: '7px 12px', color: C.grey, cursor: 'pointer', fontSize: 12, marginTop: 4 }}>
+                + Add Supplementary Note
+              </button>
+            )}
+            {showSuppNote && !suppSaved && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ color: C.grey, fontSize: 11 }}>Supplementary Note — {new Date().toISOString().slice(0, 10)} (supplements original entry)</div>
+                <textarea
+                  value={suppNote}
+                  onChange={e => setSuppNote(e.target.value)}
+                  rows={3}
+                  placeholder="Add a clearly identified supplementary note — this will not overwrite your original entry."
+                  style={{ background: '#0f0a0b', border: `1px solid #2d4a6a`, borderRadius: 8, padding: 8, color: C.white, fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => { setSuppSaved(true); setShowSuppNote(false); }}
+                    disabled={suppNote.trim().length < 10}
+                    style={{ background: suppNote.trim().length < 10 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: suppNote.trim().length < 10 ? C.grey : 'white', border: 'none', borderRadius: 7, padding: '7px 14px', cursor: suppNote.trim().length < 10 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 12 }}>
+                    Save Note
+                  </button>
+                  <button onClick={() => setShowSuppNote(false)}
+                    style={{ background: C.bgCard, color: C.grey, border: `1px solid ${C.border}`, borderRadius: 7, padding: '7px 14px', cursor: 'pointer', fontSize: 12 }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {suppSaved && (
+              <div style={{ marginTop: 8, background: '#0a140a', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ color: C.green, fontSize: 11, marginBottom: 3 }}>Supplementary Note — {new Date().toISOString().slice(0, 10)}</div>
+                <div style={{ color: C.white, fontSize: 12, lineHeight: 1.5 }}>{suppNote}</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {!priorityDone && (
@@ -809,7 +1021,7 @@ function S5Priorities({ onComplete }: { onComplete: (items: TaggedEvidence[]) =>
               );
             })}
           </div>
-          <div style={{ color: C.grey, fontSize: 12 }}>Selected {order.length} of {PRIORITY_ITEMS.length} items. Tap to rank; tap again to remove.</div>
+          <div style={{ color: C.grey, fontSize: 12 }}>Tap to rank in priority order. Tap again to remove. Select at least 3.</div>
           <button onClick={handlePrioritySubmit} disabled={order.length < 3}
             style={{ background: order.length < 3 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: order.length < 3 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: order.length < 3 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
             {order.length < 3 ? `Select at least 3 items (${order.length} selected)` : 'Confirm Priority Order →'}
@@ -830,19 +1042,19 @@ function S5Priorities({ onComplete }: { onComplete: (items: TaggedEvidence[]) =>
           </div>
 
           <div style={{ background: '#1a1400', border: '1px solid #3a3000', borderRadius: 12, padding: 14 }}>
-            <div style={{ color: C.amber, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>— Operations Coordinator (incoming call)</div>
+            <div style={{ color: C.amber, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>— Operations Coordinator</div>
             <div style={{ color: C.white, fontSize: 13, lineHeight: 1.6 }}>
-              "Hi, I understand there are a few items outstanding on the aircraft. The client for the charter flight has already arrived. Can we push through the paperwork and get the aircraft out in the next two hours? The pilot is ready to go."
+              "I understand there are items outstanding on Aircraft 214. The client for the charter flight has already arrived. Can we push through the paperwork and get the aircraft released in the next two hours? The pilot is ready."
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Your response to the operations coordinator</label>
+            <label style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>Your response</label>
             <textarea
               value={pressureResponse}
               onChange={e => setPressureResponse(e.target.value)}
-              rows={4}
-              placeholder="How do you respond?"
+              rows={5}
+              placeholder="How do you respond to the operations coordinator?"
               style={{ background: '#0f0a0b', border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, color: C.white, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
             />
             <button onClick={handleFinalSubmit} disabled={pressureResponse.trim().length < 30}
