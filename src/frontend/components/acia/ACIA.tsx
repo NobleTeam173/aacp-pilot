@@ -196,16 +196,20 @@ function clearSessionStorage() {
 // ── Aviation Ecosystem Context ────────────────────────────────────────────────
 // Short connector lines shown in the mission preamble. These are purely
 // narrative — they generate no competency evidence and do not affect scoring.
+// ── Continuous ecosystem storyline ───────────────────────────────────────────
+// The nine messages follow one fictional operation: a Canadian regional aviation
+// project preparing its first aircraft for revenue service. Each mission is one
+// step in that operation. Messages are narrative only — no evidence is generated.
 const ECOSYSTEM_CONTEXT: Record<string, string> = {
-  'm1': 'You are joining a team exploring the development of a Canadian aviation and aerospace ecosystem — an airport, aircraft maintenance facilities, flight operations, air traffic services, and aerospace engineering and manufacturing. Your journey begins with a conversation about what draws you here.',
-  'm2': 'Your ecosystem needs reliable aircraft maintenance operations. Visit the maintenance facility and explore how technicians investigate aircraft conditions, review maintenance records, and make decisions under operational pressure.',
-  'm3': 'A discrepancy has been flagged in the maintenance facility. Work through the diagnostic process to identify the fault and determine the correct course of action.',
-  'm4': 'Understanding aircraft systems is fundamental across your ecosystem — from maintenance technicians to engineers and inspectors. Classify a set of aircraft components by the systems they belong to.',
-  'm5': 'Your ecosystem\'s flight operations depend on accurate instrument interpretation. Read cockpit instrument data and answer questions about what each reading means for the aircraft\'s condition.',
-  'm6': 'Your ecosystem is preparing for flight operations. Experience the decisions and responsibilities involved in planning and operating a regional flight — from pre-flight review through crew communication and operational go/no-go decisions.',
-  'm7': 'As flight activity increases across your ecosystem, air traffic services become essential. Experience how controllers and flight crew coordinate aircraft movements through precise radio communication.',
-  'm8': 'Across every function in your ecosystem — maintenance, flight operations, air traffic services — teams must manage competing priorities under pressure. Rank operational tasks in the correct order based on the situation.',
-  'm9': 'You have experienced nine functions of a Canadian aviation and aerospace ecosystem. Take a moment to reflect on what you discovered about yourself across this journey.',
+  'm1': 'A new Canadian regional aviation project is getting ready to launch. The team includes aircraft maintenance engineers, flight crew, air traffic services, aerospace manufacturing partners, and operations staff — all working toward the same first departure. You are here to see how it all fits together.',
+  'm2': 'Before the aircraft can fly, the maintenance team needs to confirm it is airworthy. Visit the maintenance facility where technicians are investigating the aircraft\'s condition, reviewing records, and working through the checks that keep every flight safe.',
+  'm3': 'During the maintenance investigation, a discrepancy has been flagged. The maintenance team needs to work through the diagnostic process to identify the fault, understand its cause, and determine the correct course of action before the aircraft can be cleared.',
+  'm4': 'To make sound maintenance and engineering decisions, everyone on the team — from technicians to aerospace engineers — needs to understand how aircraft systems are organized and how they relate to each other. Work through a systems classification exercise using components from the aircraft in service.',
+  'm5': 'The aircraft has been cleared by maintenance. Before flight operations begin, the flight crew needs to verify that the cockpit instruments are reading correctly. Interpret the instrument data and identify what each reading tells you about the aircraft\'s readiness.',
+  'm6': 'With the aircraft confirmed airworthy, the flight crew is preparing for the first departure. Work through the pre-flight review, crew communication, and the operational decisions that determine whether the flight proceeds — the same process that plays out before every commercial flight.',
+  'm7': 'As the aircraft prepares to taxi, air traffic services take over coordination of its movement through the airspace. ATC and flight service specialists are essential to every departure and arrival across the ecosystem. Compose the radio transmissions that connect the flight crew and the controllers.',
+  'm8': 'The operation is now running — maintenance, flight crew, ATC, and ground services are all active at the same time. Operations staff must continuously prioritize competing tasks to keep everything moving safely. Rank the tasks in front of you in the order they need to be handled.',
+  'm9': 'The aircraft has departed. You have moved through the maintenance facility, the engineering systems, the cockpit, the flight deck, the control tower, and the operations centre — nine parts of one Canadian aviation operation. Take a moment to reflect on what you noticed about yourself along the way.',
 };
 
 // Neutral mission preamble text — describes what the participant will do without naming competencies
@@ -1379,10 +1383,10 @@ function WelcomeScreen({
                 🍁 Build Canada's Aviation Future
               </div>
               <p style={{ fontSize: 14, color: '#166534', lineHeight: 1.7, margin: '0 0 10px' }}>
-                You are joining a team exploring the development of a Canadian aviation and aerospace ecosystem.
+                A Canadian regional aviation operation is preparing for its first departure. You are joining the team.
               </p>
               <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, margin: 0 }}>
-                Your project includes an airport, aircraft maintenance facilities, flight operations, air traffic services, and aerospace engineering and manufacturing. Throughout your nine missions, you will experience different aviation workplaces, interact with realistic situations, and make decisions that help you discover your strengths and potential career opportunities.
+                The team includes aircraft maintenance engineers, flight crew, air traffic services, aerospace manufacturing and engineering partners, and operations staff. Across nine missions you will work alongside each of them — inspecting aircraft, diagnosing faults, reading instruments, planning flights, coordinating with ATC, and managing operational priorities. No previous aviation experience is required.
               </p>
             </div>
           )}
