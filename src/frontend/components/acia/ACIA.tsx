@@ -193,6 +193,21 @@ function clearSessionStorage() {
   try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
 }
 
+// ── Aviation Ecosystem Context ────────────────────────────────────────────────
+// Short connector lines shown in the mission preamble. These are purely
+// narrative — they generate no competency evidence and do not affect scoring.
+const ECOSYSTEM_CONTEXT: Record<string, string> = {
+  'm1': 'You are joining a team exploring the development of a Canadian aviation and aerospace ecosystem — an airport, aircraft maintenance facilities, flight operations, air traffic services, and aerospace engineering and manufacturing. Your journey begins with a conversation about what draws you here.',
+  'm2': 'Your ecosystem needs reliable aircraft maintenance operations. Visit the maintenance facility and explore how technicians investigate aircraft conditions, review maintenance records, and make decisions under operational pressure.',
+  'm3': 'A discrepancy has been flagged in the maintenance facility. Work through the diagnostic process to identify the fault and determine the correct course of action.',
+  'm4': 'Understanding aircraft systems is fundamental across your ecosystem — from maintenance technicians to engineers and inspectors. Classify a set of aircraft components by the systems they belong to.',
+  'm5': 'Your ecosystem\'s flight operations depend on accurate instrument interpretation. Read cockpit instrument data and answer questions about what each reading means for the aircraft\'s condition.',
+  'm6': 'Your ecosystem is preparing for flight operations. Experience the decisions and responsibilities involved in planning and operating a regional flight — from pre-flight review through crew communication and operational go/no-go decisions.',
+  'm7': 'As flight activity increases across your ecosystem, air traffic services become essential. Experience how controllers and flight crew coordinate aircraft movements through precise radio communication.',
+  'm8': 'Across every function in your ecosystem — maintenance, flight operations, air traffic services — teams must manage competing priorities under pressure. Rank operational tasks in the correct order based on the situation.',
+  'm9': 'You have experienced nine functions of a Canadian aviation and aerospace ecosystem. Take a moment to reflect on what you discovered about yourself across this journey.',
+};
+
 // Neutral mission preamble text — describes what the participant will do without naming competencies
 const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
   'm1': {
@@ -1143,6 +1158,15 @@ function MissionPreamble({
           <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 28, gap: 20 }}>
+          {/* Ecosystem connector — narrative context only, no evidence generated */}
+          {!isRpas && ECOSYSTEM_CONTEXT[currentMission.id] && (
+            <div style={{ background: '#0d1a0f', border: '1px solid #1a3a20', borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>🍁</span>
+              <p style={{ color: '#86efac', fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+                {ECOSYSTEM_CONTEXT[currentMission.id]}
+              </p>
+            </div>
+          )}
           {/* Standard briefing card */}
           <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 14, padding: '18px 22px' }}>
             <div style={{ color: '#60a5fa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
@@ -1332,20 +1356,36 @@ function WelcomeScreen({
               <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
                 This assessment uses realistic RPAS mission scenarios to build evidence around your operational judgment, safety awareness, regulatory knowledge, and technical aptitude. There are no pass or fail results — your responses generate a personalised RPAS workforce intelligence profile.
               </p>
-            ) : isFirstCareer ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.
-              </p>
             ) : isFollowup ? (
               <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
                 This assessment uses the same competency framework as your Baseline ACIA. Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving competency and career intelligence profile.
               </p>
             ) : (
               <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                Your responses contribute to your evolving competency and career intelligence profile.
+                {isFirstCareer
+                  ? 'No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.'
+                  : 'Your responses contribute to your evolving competency and career intelligence profile.'}
               </p>
             )}
           </div>
+
+          {/* Aviation Ecosystem Introduction — standard pathway only */}
+          {!isRpas && !isFollowup && !isCompletion && (
+            <div style={{
+              background: '#f0fdf4', border: '1px solid #bbf7d0',
+              borderRadius: 14, padding: '18px 22px',
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d', marginBottom: 10 }}>
+                🍁 Build Canada's Aviation Future
+              </div>
+              <p style={{ fontSize: 14, color: '#166534', lineHeight: 1.7, margin: '0 0 10px' }}>
+                You are joining a team exploring the development of a Canadian aviation and aerospace ecosystem.
+              </p>
+              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, margin: 0 }}>
+                Your project includes an airport, aircraft maintenance facilities, flight operations, air traffic services, and aerospace engineering and manufacturing. Throughout your nine missions, you will experience different aviation workplaces, interact with realistic situations, and make decisions that help you discover your strengths and potential career opportunities.
+              </p>
+            </div>
+          )}
 
           {/* Policy chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
