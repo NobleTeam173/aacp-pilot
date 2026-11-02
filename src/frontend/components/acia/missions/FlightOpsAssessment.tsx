@@ -1063,7 +1063,7 @@ export function FlightOpsAssessment({ onComplete }: Props) {
         {scenario >= 5 && (
           <div style={{ padding: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 8 }}>Mission 6 Complete</div>
-            <div style={{ fontSize: 12, color: C.grey }}>Your operational assessment has been recorded. Proceeding to Mission 7.</div>
+            <div style={{ fontSize: 12, color: C.grey }}>All scenarios complete. Continuing to the next mission.</div>
           </div>
         )}
       </div>

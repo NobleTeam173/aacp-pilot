@@ -960,7 +960,7 @@ function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
       selectedId={sel} onSelectAircraft={setSel}
       scenarioNum={1} scenarioLabel="Initial Radio Contact">
       <ResponseInput
-        context="Respond to MAPLE 214. Your display shows their current position — pay attention to whether what the pilot reported matches what you see."
+        context="Respond to MAPLE 214. Your display shows their current position and reported flight level."
         onSubmit={async text => {
           const token = localStorage.getItem('aacp_access_token');
           const s1Indicators: M7Indicator[] = [

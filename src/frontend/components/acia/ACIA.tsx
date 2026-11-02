@@ -209,7 +209,7 @@ const ECOSYSTEM_CONTEXT: Record<string, string> = {
   'm4': 'To make sound maintenance and engineering decisions, everyone on the team — from technicians to aerospace engineers — needs to understand how aircraft systems are organized and how they relate to each other. Work through a systems classification exercise using components from the aircraft in service.',
   'm5': 'The aircraft has been cleared by maintenance. Before flight operations begin, the flight crew needs to verify that the cockpit instruments are reading correctly. Interpret the instrument data and identify what each reading tells you about the aircraft\'s readiness.',
   'm6': 'With the aircraft confirmed airworthy, the flight crew is preparing for the first departure. Work through the pre-flight review, crew communication, and the operational decisions that determine whether the flight proceeds — the same process that plays out before every commercial flight.',
-  'm7': 'As the aircraft prepares to taxi, air traffic services take over coordination of its movement through the airspace. ATC and flight service specialists are essential to every departure and arrival across the ecosystem. Compose the radio transmissions that connect the flight crew and the controllers.',
+  'm7': 'As the aircraft prepares to taxi, air traffic services take over coordination of its movement through the airspace. Controllers and flight service specialists manage the flow of information between the aircraft, the crew, and the ground — responding clearly, tracking changes, and keeping everyone informed.',
   'm8': 'The operation is now running — maintenance, flight crew, ATC, and ground services are all active at the same time. Operations staff must continuously prioritize competing tasks to keep everything moving safely. Rank the tasks in front of you in the order they need to be handled.',
   'm9': 'The aircraft has departed. You have moved through the maintenance facility, the engineering systems, the cockpit, the flight deck, the control tower, and the operations centre — nine parts of one Canadian aviation operation. Take a moment to reflect on what you noticed about yourself along the way.',
 };
@@ -217,7 +217,7 @@ const ECOSYSTEM_CONTEXT: Record<string, string> = {
 // Neutral mission preamble text — describes what the participant will do without naming competencies
 const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
   'm1': {
-    what: 'You will have a conversation with Captain ACIA — an aviation career mentor. Share your background and what draws you to aviation.',
+    what: 'You will have a conversation with ACIA™ — your career intelligence advisor. Share your background and what draws you to aviation and aerospace.',
     interactions: '3 or more exchanges',
     time: '~ 5 minutes',
     note: 'There are no right or wrong answers. Respond naturally.',
@@ -253,10 +253,10 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'All information needed is provided within the simulation. Each scenario builds on the previous one.',
   },
   'm7': {
-    what: 'You will compose radio transmissions and handover messages using scenario information provided to you.',
+    what: 'You will work through four air traffic services scenarios — responding to aircraft, managing information updates, and coordinating with flight crew. All information needed is provided in each scenario.',
     interactions: '4 exercises',
     time: '~ 4 minutes',
-    note: 'Each exercise is locked once submitted. All information needed is provided in the scenario briefing.',
+    note: 'Each exercise is locked once submitted.',
   },
   'm8': {
     what: 'You will rank a set of operational tasks in order of priority based on the situation described.',
@@ -265,7 +265,7 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'Rankings are locked once submitted.',
   },
   'm9': {
-    what: 'You will have a closing conversation with Captain ACIA to reflect on your assessment experience.',
+    what: 'You will have a closing conversation with ACIA™ to reflect on what you noticed across the nine missions.',
     interactions: '3 or more exchanges',
     time: '~ 4 minutes',
     note: 'This is a reflective conversation — there are no correct or incorrect answers.',

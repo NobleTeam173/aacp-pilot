@@ -606,7 +606,7 @@ export function AircraftAssembly({ sessionId, onComplete }: Props) {
       {/* Phase: Spatial Challenge */}
       {phase === 'challenge' && (
         <div style={{ background: '#0f1420', border: '1px solid #1a2a3a', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>Spatial Orientation Challenge</div>
+          <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>Fin Alignment Task</div>
           <div style={{ color: C.grey, fontSize: 13 }}>
             The vertical fin has been rotated 45° out of alignment. Identify the correct mounting orientation and confirm to fit it.
           </div>

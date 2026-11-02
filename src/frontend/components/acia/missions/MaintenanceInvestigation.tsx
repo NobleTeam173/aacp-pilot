@@ -1030,7 +1030,7 @@ function S3Mechanical({ foundDefectIds, onComplete }: { foundDefectIds: string[]
               />
               <button onClick={handleSubmit} disabled={response.trim().length < 50}
                 style={{ background: response.trim().length < 50 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: response.trim().length < 50 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: response.trim().length < 50 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-                {response.trim().length < 50 ? `Continue — ${50 - response.trim().length} more characters` : 'Submit Mechanical Assessment →'}
+                {response.trim().length < 50 ? `Continue — ${50 - response.trim().length} more characters` : 'Submit Investigation Report →'}
               </button>
             </div>
           )}
