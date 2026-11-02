@@ -20,8 +20,8 @@ const M5_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'priority',
     label: 'What Matters Most',
-    prompt: 'If you had to act on one of those readings right now, which would it be and why?',
-    placeholder: 'Which instrument reading felt most important to you and why…',
+    prompt: 'Looking at those four readings — some required immediate action, others required working through the numbers first. What made the difference between acting straight away and stopping to calculate? And if you were responsible for designing how these readings are displayed, what would you change to make the right response more obvious?',
+    placeholder: 'Describe what separated the readings needing immediate action from those needing calculation — and what you would change about how they are displayed…',
     minLength: 60,
   },
 ];

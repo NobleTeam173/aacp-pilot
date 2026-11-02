@@ -20,8 +20,8 @@ const M4_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'reflection',
     label: 'What Interests You',
-    prompt: 'If you were learning about one of these systems in more depth, which would you want to explore and why?',
-    placeholder: 'Which system caught your interest and what draws you to it…',
+    prompt: 'Some of these components come from aircraft systems in operation; others come from aerospace manufacturing and structural engineering. If you were building a career around understanding how these systems work — would it pull you more toward the operational side (systems that have to perform reliably in flight) or the engineering and manufacturing side (systems that have to be built right before the first flight)? Describe what draws you in that direction.',
+    placeholder: 'Which direction interests you more — operational or engineering and manufacturing — and what draws you to it…',
     minLength: 60,
   },
 ];
@@ -60,15 +60,20 @@ const ITEMS: Item[] = [
   { id: 'alternator', label: 'Alternator / Generator', category: 'Electrical Systems', hint: 'Engine-driven primary source of electrical power' },
   { id: 'bus_bar', label: 'Main Bus Bar', category: 'Electrical Systems', hint: 'Distributes electrical power to connected circuits' },
   { id: 'cb', label: 'Circuit Breaker', category: 'Electrical Systems', hint: 'Protects individual circuits from overload' },
+  { id: 'torque_wrench', label: 'Torque Wrench', category: 'Structures & Manufacturing', hint: 'Applies a precisely controlled rotational force to fasteners — used in assembly to meet specified tightening values' },
+  { id: 'load_cell', label: 'Load Cell', category: 'Structures & Manufacturing', hint: 'Measures tensile or compressive force — used in structural testing to verify how much load a component can carry' },
+  { id: 'rivet_gun', label: 'Rivet Gun', category: 'Structures & Manufacturing', hint: 'Drives fasteners through sheets of material to join them permanently — a core tool in airframe and aerospace assembly' },
+  { id: 'ndt_probe', label: 'Ultrasonic NDT Probe', category: 'Structures & Manufacturing', hint: 'Sends sound waves through materials to detect internal cracks or voids without cutting or disassembling the part' },
 ];
 
-const CATEGORIES = ['Air Data Systems', 'Navigation Systems', 'Hydraulic Systems', 'Electrical Systems'];
+const CATEGORIES = ['Air Data Systems', 'Navigation Systems', 'Hydraulic Systems', 'Electrical Systems', 'Structures & Manufacturing'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Air Data Systems': '#2563ab',
   'Navigation Systems': '#0a7060',
   'Hydraulic Systems': '#8F0909',
   'Electrical Systems': '#966000',
+  'Structures & Manufacturing': '#5b3fa6',
 };
 
 const RPAS_ITEMS: Item[] = [

@@ -331,7 +331,7 @@ const M3_REASONING_QUESTIONS: ReasoningQuestion[] = [
   {
     id: 'transferable',
     label: 'Personal Reflection',
-    prompt: 'Does systematic fault investigation like this feel natural to you, or is it something you\'d want to develop further? What does working through this kind of problem feel like?',
+    prompt: 'Does systematic fault investigation like this feel natural to you, or is it something you\'d want to develop further? What does working through this kind of problem feel like? This kind of root-cause thinking appears in aerospace engineering, quality systems, and manufacturing as much as it does in aircraft maintenance — consider whether the appeal is in the problem-solving process itself, not just the aviation context.',
     placeholder: 'Be honest — describe how methodical diagnosis felt, and whether you\'d want more of it...',
     minLength: 60,
   },

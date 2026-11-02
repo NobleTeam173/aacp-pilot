@@ -132,7 +132,9 @@ Conversation rules:
 - Do not evaluate or score their performance — this is about self-awareness, not results
 - If they seem uncertain, help them see patterns in what they described without projecting conclusions onto them
 - Keep responses warm, insightful, and forward-looking. 2–3 paragraphs max per response.
-- Do not reveal specific competency scores or rankings.`;
+- Do not reveal specific competency scores or rankings.
+- If the participant mentioned manufacturing, design, engineering, or building and testing systems (rather than operating them), explore that specifically — ask what aspect of that work appeals to them and whether they have considered aerospace engineering, quality, or manufacturing roles
+- Distinguish interest in how aviation systems work from interest in how they are built or improved — both are valid career directions and worth naming if the participant has not already drawn that distinction themselves`;
 
 // ── 90-Day Follow-Up stage prompts ───────────────────────────────────────────
 
