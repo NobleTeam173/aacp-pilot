@@ -1336,23 +1336,26 @@ function WelcomeScreen({
   savedSessionData: { session: ACIASession; stage: AssessmentStage } | null;
 }) {
   const isRpas = pathwayType === 'rpas' || stage === 'rpas_intake';
-  const isFirstCareer = (() => {
-    const cs = localStorage.getItem('aacp_career_stage') ?? '';
-    return cs !== 'student' && cs !== 'transition' &&
-      cs !== 'aviation_professional' && cs !== 'intl_aviation_professional';
-  })();
-
   const hasProgress = savedSessionData !== null;
   const savedMissions = savedSessionData?.session.missions ?? [];
   const completedMissions = savedMissions.filter(m => m.completed);
   const nextMission = savedMissions.find(m => !m.completed);
-  const lastCompleted = completedMissions.at(-1);
   const totalMissions = savedMissions.length || 9;
   const completedCount = completedMissions.length;
   const progressPct = hasProgress ? Math.round((completedCount / totalMissions) * 100) : 0;
-
   const isFollowup = stage === 'followup';
-  const isCompletion = stage === 'completion';
+
+  const CAREER_AREAS = isRpas ? [
+    { icon: '🛸', label: 'RPAS Operations', desc: 'Drone piloting and mission coordination' },
+    { icon: '🔬', label: 'Inspection & Quality', desc: 'Regulatory compliance and safety checks' },
+    { icon: '📡', label: 'Geomatics & Data', desc: 'Mapping, surveying and data analysis' },
+    { icon: '⚙️', label: 'Engineering & Design', desc: 'Systems development and integration' },
+  ] : [
+    { icon: '🔧', label: 'Aircraft Maintenance', desc: 'AME / AMT — keep aircraft airworthy' },
+    { icon: '✈️', label: 'Pilot & Flight Ops', desc: 'Flight crew and operations management' },
+    { icon: '📡', label: 'Air Traffic Services', desc: 'ATC / FSS — safe separation and flow' },
+    { icon: '🛸', label: 'RPAS & Aerospace', desc: 'Drones, manufacturing and engineering' },
+  ];
 
   return (
     <div style={{ fontFamily: 'DM Sans, sans-serif', maxWidth: 720, marginInline: 'auto' }}>
@@ -1369,106 +1372,111 @@ function WelcomeScreen({
           .acia-journey-panel { display: none; }
         }
         .acia-cta:hover { background: #721010 !important; box-shadow: 0 4px 16px rgba(143,9,9,0.25) !important; }
+        .acia-career-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 600px) { .acia-career-grid { grid-template-columns: repeat(2, 1fr); } }
       `}</style>
 
-      {/* Single Mission Control card */}
       <div className="acia-card" style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 16,
-        overflow: 'hidden',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+        background: '#ffffff', border: '1px solid #e2e8f0',
+        borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
       }}>
-        {/* Card header */}
-        <div style={{
-          padding: '20px 28px',
-          borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
-        }}>
-          <div>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-              textTransform: 'uppercase', color: '#8F0909', marginBottom: 6,
-            }}>
-              AACP™ · {STAGE_LABELS[stage]}
-            </div>
-            <h2 style={{
-              fontFamily: 'Fraunces, serif', fontSize: '1.2rem',
-              fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3,
-            }}>
-              {isRpas ? 'ACIA™ — RPAS Career Intelligence Assessment' : 'ACIA™ — Career Discovery Flight'}
-            </h2>
-          </div>
-          {hasProgress && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{
-                fontSize: 26, fontWeight: 800, color: '#1e293b',
-                fontFamily: 'Fraunces, serif', lineHeight: 1,
-              }}>
-                {completedCount}/{totalMissions}
+
+        {/* Header — progress state changes layout */}
+        {hasProgress ? (
+          /* ── RESUME STATE ── */
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F0909', marginBottom: 6 }}>
+                  AACP™ · Career Intelligence
+                </div>
+                <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3 }}>
+                  Welcome back
+                </h2>
               </div>
-              <div style={{
-                fontSize: 10, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: '#94a3b8', marginTop: 3,
-              }}>
-                Missions Complete
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#1e293b', fontFamily: 'Fraunces, serif', lineHeight: 1 }}>
+                  {completedCount}/{totalMissions}
+                </div>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginTop: 3 }}>
+                  Missions Complete
+                </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Card body */}
-        <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+            {/* Progress bar */}
+            <div style={{ height: 6, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg,#8F0909,#c0032e)', borderRadius: 4, transition: 'width 0.5s ease' }} />
+            </div>
 
-          {/* Purpose statement */}
-          <div>
-            <p style={{ fontSize: 15, color: '#1e293b', fontWeight: 500, lineHeight: 1.65, margin: '0 0 10px' }}>
-              {isRpas
-                ? 'Explore your readiness and aptitude for RPAS (drone) operations careers.'
-                : 'Explore how you naturally approach aviation and aerospace situations.'}
-            </p>
-            {isRpas ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                This assessment uses realistic RPAS mission scenarios to build evidence around your operational judgment, safety awareness, regulatory knowledge, and technical aptitude. There are no pass or fail results — your responses generate a personalised RPAS workforce intelligence profile.
-              </p>
-            ) : isFollowup ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                This assessment uses the same competency framework as your Baseline ACIA. Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving competency and career intelligence profile.
-              </p>
-            ) : (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                {isFirstCareer
-                  ? 'No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.'
-                  : 'Your responses contribute to your evolving competency and career intelligence profile.'}
-              </p>
+            {/* Next mission spotlight */}
+            {nextMission && (
+              <div style={{ background: '#fff7f7', border: '1px solid #fecaca', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8F0909', marginBottom: 4 }}>Up Next</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{nextMission.title}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{nextMission.subtitle}</div>
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>≈ {nextMission.estimatedMinutes} min</div>
+              </div>
             )}
           </div>
-
-          {/* Aviation Ecosystem Introduction — standard pathway only */}
-          {!isRpas && !isFollowup && !isCompletion && (
-            <div style={{
-              background: '#f0fdf4', border: '1px solid #bbf7d0',
-              borderRadius: 14, padding: '18px 22px',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d', marginBottom: 10 }}>
-                🍁 Build Canada's Aviation Future
+        ) : (
+          /* ── FRESH START STATE ── */
+          <div style={{ padding: '24px 28px 0', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F0909', marginBottom: 6 }}>
+                AACP™ · Career Intelligence Assessment
               </div>
-              <p style={{ fontSize: 14, color: '#166534', lineHeight: 1.7, margin: '0 0 10px' }}>
-                A Canadian regional aviation operation is preparing for its first departure. You are joining the team.
+              <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: '0 0 10px', lineHeight: 1.3 }}>
+                {isRpas ? 'Discover your place in RPAS and drone operations.' : 'Discover which aviation and aerospace careers match how you think.'}
+              </h2>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: '0 0 18px' }}>
+                {isFollowup
+                  ? 'Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving career intelligence profile.'
+                  : 'Nine short missions. No experience required. Your responses build a personalised career intelligence report — not a pass/fail exam.'}
               </p>
-              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, margin: 0 }}>
-                The team includes aircraft maintenance engineers, flight crew, air traffic services, aerospace manufacturing and engineering partners, and operations staff. Across nine missions you will work alongside each of them — inspecting aircraft, diagnosing faults, reading instruments, planning flights, coordinating with ATC, and managing operational priorities. No previous aviation experience is required.
-              </p>
+            </div>
+
+            {/* Canadian ecosystem strip — fresh start only, standard pathway */}
+            {!isRpas && !isFollowup && (
+              <div style={{ background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '14px 0 16px', marginInline: -28 /* bleed to card edge */, paddingInline: 28 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d' }}>🍁 The scenario </span>
+                <span style={{ fontSize: 13, color: '#166534', lineHeight: 1.65 }}>
+                  A Canadian regional aviation operation is preparing for its first departure — you're joining the team. Over nine missions you'll work alongside AMEs, flight crew, ATC, and aerospace partners. No aviation background needed.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Card body */}
+        <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Career areas — fresh start only */}
+          {!hasProgress && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#94a3b8', marginBottom: 12 }}>
+                {isRpas ? 'RPAS career areas you may explore' : 'Aviation career areas you may explore'}
+              </div>
+              <div className="acia-career-grid">
+                {CAREER_AREAS.map(({ icon, label, desc }) => (
+                  <div key={label} style={{
+                    background: '#f8fafc', border: '1px solid #e2e8f0',
+                    borderRadius: 12, padding: '14px 12px', textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Policy chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {[
-              'Progress Automatically Saved',
-              'Submitted Responses Locked',
-              'No Pass or Fail',
-            ].map(label => (
+            {['Progress Automatically Saved', 'Submitted Responses Locked', 'No Pass or Fail'].map(label => (
               <div key={label} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: '#f8fafc', border: '1px solid #e2e8f0',
@@ -1483,116 +1491,23 @@ function WelcomeScreen({
             ))}
           </div>
 
-          {/* Progress panel — in-progress only */}
-          {hasProgress && (
-            <div style={{
-              background: '#f8fafc', border: '1px solid #e2e8f0',
-              borderRadius: 12, padding: '18px 20px',
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.09em', color: '#8F0909', marginBottom: 14,
-              }}>
-                Assessment in Progress
-              </div>
-              {/* Progress bar */}
-              <div style={{ height: 4, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{
-                  height: '100%', width: `${progressPct}%`,
-                  background: '#8F0909', borderRadius: 4, transition: 'width 0.5s ease',
-                }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {lastCompleted && (
-                  <div>
-                    <div style={{
-                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: '#94a3b8', marginBottom: 5,
-                    }}>
-                      Last Completed
-                    </div>
-                    <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
-                      {lastCompleted.title}
-                    </div>
-                  </div>
-                )}
-                {nextMission && (
-                  <div>
-                    <div style={{
-                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: '#94a3b8', marginBottom: 5,
-                    }}>
-                      Up Next
-                    </div>
-                    <div style={{ fontSize: 13, color: '#8F0909', fontWeight: 600 }}>
-                      {nextMission.title}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* What you'll receive — fresh start only */}
-          {!hasProgress && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.09em', color: '#94a3b8',
-              }}>
-                Your {isRpas ? 'RPAS Workforce Intelligence' : 'Career Intelligence'} Report will include
-              </div>
-              {(isRpas ? [
-                { label: 'RPAS Career Pathway Alignment', sub: 'Your alignment across 6 RPAS workforce pathways: Operator, Inspector, SAR, Geomatics, Engineering, and Data' },
-                { label: 'Operational Competency Profile', sub: 'Evidence-based observations across RPAS-specific competency dimensions' },
-                { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from realistic RPAS mission scenarios and interactions' },
-                { label: 'Recommended RPAS Pathways', sub: 'Personalised guidance for your strongest RPAS career entry points' },
-              ] : [
-                { label: 'Aviation Career Alignment', sub: 'Your alignment across 13 aviation and aerospace pathways' },
-                { label: 'Competency Evidence Profile', sub: 'Evidence-based observations across 13 competency dimensions' },
-                { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from multiple interactions across the assessment' },
-                { label: 'Recommended Next Steps', sub: 'Personalised guidance for your strongest career pathways' },
-              ]).map(({ label, sub }) => (
-                <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 3, flexShrink: 0, alignSelf: 'stretch',
-                    background: '#8F0909', borderRadius: 2, marginTop: 3,
-                  }} />
-                  <div>
-                    <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{label}</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{sub}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Save notice + CTA */}
-          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.65, margin: 0 }}>
-              Your progress is saved automatically. You may leave and return later. Once you submit a response, it cannot be changed. Some short missions may need to be completed in one sitting — we will let you know before they begin.
-            </p>
+          {/* CTA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 4 }}>
             <button
               onClick={() => onStart(hasProgress)}
               className="acia-cta"
               style={{
-                display: 'inline-block',
-                background: '#8F0909',
-                color: 'white',
-                border: 'none',
-                borderRadius: 10,
-                padding: '14px 32px',
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: 'pointer',
-                letterSpacing: '0.02em',
-                alignSelf: 'flex-start',
-                fontFamily: 'DM Sans, sans-serif',
+                background: '#8F0909', color: 'white', border: 'none', borderRadius: 10,
+                padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                letterSpacing: '0.02em', fontFamily: 'DM Sans, sans-serif',
                 boxShadow: '0 2px 8px rgba(143,9,9,0.18)',
               }}
             >
-              {hasProgress ? 'Resume Assessment' : isRpas ? 'Begin RPAS Assessment' : 'Begin Career Discovery Flight'}
+              {hasProgress ? 'Continue Your Journey →' : isRpas ? 'Begin RPAS Assessment →' : 'Begin Your Journey →'}
             </button>
+            {!hasProgress && (
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>≈ 35 – 45 min total · save and resume any time</span>
+            )}
           </div>
         </div>
       </div>
