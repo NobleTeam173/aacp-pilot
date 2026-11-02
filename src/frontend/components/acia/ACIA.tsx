@@ -798,6 +798,21 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     });
   }, [stage]);
 
+  // useMemo must be called unconditionally before any early returns (React hooks rule)
+  const currentMissionForMemo = session?.missions[session?.currentMissionIndex ?? 0];
+  const m9SystemPrompt = useMemo(() => {
+    if (!session || currentMissionForMemo?.id !== 'm9') return undefined;
+    const completedMissionTitles = session.missions.filter(m => m.completed && m.id !== 'm9').map(m => m.title);
+    const interestContext = session.m1Context?.interests?.length
+      ? `\n\nCareer interests noted from the opening conversation: ${session.m1Context.interests.join(', ')}.`
+      : '';
+    const performanceSummary = completedMissionTitles.length > 0
+      ? `\n\nThis participant has completed the following missions in this assessment: ${completedMissionTitles.join(', ')}.${interestContext}`
+      : interestContext;
+    if (!performanceSummary) return undefined;
+    return `${MISSION_9_SYSTEM}${performanceSummary}`;
+  }, [session, currentMissionForMemo?.id]);
+
   if (view === 'welcome') {
     return <WelcomeScreen stage={stage} pathwayType={pathwayType} onStart={startAssessment} savedSessionData={savedSessionData} />;
   }
@@ -906,7 +921,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         <ACIAJourneyPanel
           missions={session.missions}
           currentIndex={session.currentMissionIndex}
-          startedAt={session.startedAt}
+          sessionRecords={session.sessionRecords}
           adaptiveCount={session.responses.length}
         />
         <div style={{
@@ -979,21 +994,6 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
 
   if (!session) return null;
   const currentMission = session.missions[session.currentMissionIndex];
-
-  // Build performance context for M9 system prompt injection
-  const m9SystemPrompt = useMemo(() => {
-    if (currentMission.id !== 'm9') return undefined;
-    // Build a brief, non-scoring context for ACIA to ground the M9 debrief
-    const completedMissionTitles = session.missions.filter(m => m.completed && m.id !== 'm9').map(m => m.title);
-    const interestContext = session.m1Context?.interests?.length
-      ? `\n\nCareer interests noted from the opening conversation: ${session.m1Context.interests.join(', ')}.`
-      : '';
-    const performanceSummary = completedMissionTitles.length > 0
-      ? `\n\nThis participant has completed the following missions in this assessment: ${completedMissionTitles.join(', ')}.${interestContext}`
-      : interestContext;
-    if (!performanceSummary) return undefined;
-    return `${MISSION_9_SYSTEM}${performanceSummary}`;
-  }, [currentMission.id, session.missions, session.m1Context]);
 
   return (
     <div className="acia-layout">
@@ -1441,7 +1441,7 @@ function WelcomeScreen({
             {/* Canadian ecosystem strip — fresh start only, standard pathway */}
             {!isRpas && !isFollowup && (
               <div style={{ background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '14px 0 16px', marginInline: -28 /* bleed to card edge */, paddingInline: 28 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d' }}>🍁 The scenario </span>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d' }}>The scenario </span>
                 <span style={{ fontSize: 13, color: '#166534', lineHeight: 1.65 }}>
                   A Canadian regional aviation operation is preparing for its first departure — you're joining the team. Over nine missions you'll work alongside AMEs, flight crew, ATC, and aerospace partners. No aviation background needed.
                 </span>
