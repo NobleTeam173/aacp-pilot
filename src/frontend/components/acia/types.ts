@@ -332,4 +332,5 @@ export interface ACIASession {
   // Internal session analytics
   sessionRecords: SessionRecord[];
   interruptionCount: number;
+  backNavigationCount: number; // usability analytics only — never affects scoring
 }

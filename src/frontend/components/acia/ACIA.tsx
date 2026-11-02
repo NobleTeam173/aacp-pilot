@@ -4,6 +4,7 @@ import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord,
 import { recordEvidence, classifyMissionChatForShadow, extractM1Context, appendShadowEvidence, shadowRecordToLiveEvidence } from './behaviourEngine';
 import { computeAlignments, SCORING_VERSION } from './careerEngine';
 import { selectNextQuestion, isAssessmentComplete } from './adaptiveEngine';
+import { QUESTION_BANK } from './questionBank';
 import { ACIAJourneyPanel } from './ACIAJourneyPanel';
 import { ACIACareerProfile } from './ACIACareerProfile';
 import { AIMentorChat } from './missions/AIMentorChat';
@@ -69,6 +70,7 @@ function makeInitialSession(isRpas = false): ACIASession {
       missionIndexAtStart: 0,
     }],
     interruptionCount: 0,
+    backNavigationCount: 0,
     missions,
   };
 }
@@ -586,8 +588,19 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       if (saved && saved.stage === stage) {
         const now = new Date().toISOString();
         const newBrowserSessionId = crypto.randomUUID();
+        // Version-aware recovery: update uncompleted mission definitions without
+        // touching completed missions, evidence, or scores
+        const freshMissions = makeInitialSession(isRpas).missions;
+        const recoveredMissions = saved.session.missions.map((m, i) => {
+          if (m.completed) return m; // never touch a completed mission
+          const fresh = freshMissions[i];
+          if (!fresh) return m;
+          return { ...m, title: fresh.title, subtitle: fresh.subtitle, type: fresh.type, estimatedMinutes: fresh.estimatedMinutes };
+        });
         const resumedSession: ACIASession = {
           ...saved.session,
+          missions: recoveredMissions,
+          backNavigationCount: saved.session.backNavigationCount ?? 0,
           sessionRecords: [
             ...(saved.session.sessionRecords ?? []),
             {
@@ -651,12 +664,22 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const nextIdx = idx + 1;
       const isLast = nextIdx >= updated.missions.length;
 
+      // After M1 completes, seed all family-01 question IDs into askedQuestionIds
+      // so the adaptive engine never re-serves Discovery questions already asked in chat
+      const family01Ids = mission.id === 'm1'
+        ? QUESTION_BANK.filter(q => q.familyCode === '01').map(q => q.questionId)
+        : [];
+      const seededAskedIds = family01Ids.length > 0
+        ? [...new Set([...updated.askedQuestionIds, ...family01Ids])]
+        : updated.askedQuestionIds;
+
       const nextSession = {
         ...updated,
         missions: updatedMissions,
         chatHistory: updatedHistory,
         currentMissionIndex: isLast ? idx : nextIdx,
         completedAt: isLast ? new Date().toISOString() : undefined,
+        askedQuestionIds: seededAskedIds,
       };
 
       // Auto-save progress after each mission
@@ -801,6 +824,16 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
           });
           setView('mission');
         }}
+        onGoBack={session.currentMissionIndex > 0 ? () => {
+          // Record back-navigation for usability analytics — never affects scoring
+          setSession(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, backNavigationCount: (prev.backNavigationCount ?? 0) + 1 };
+            saveSessionToStorage(updated, stage);
+            return updated;
+          });
+          setView('welcome');
+        } : undefined}
       />
     );
   }
@@ -967,7 +1000,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       <ACIAJourneyPanel
         missions={session.missions}
         currentIndex={session.currentMissionIndex}
-        startedAt={session.startedAt}
+        sessionRecords={session.sessionRecords}
         adaptiveCount={session.responses.length}
       />
       <div style={{
@@ -975,13 +1008,40 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, background: '#12080d' }}>
-          <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Mission {session.currentMissionIndex + 1} of {session.missions.length}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Mission {session.currentMissionIndex + 1} of {session.missions.length}
+              </div>
+              <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
+                {currentMission.title}
+              </h3>
+              <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
+            </div>
+            <button
+              onClick={() => {
+                setSession(prev => {
+                  if (!prev) return prev;
+                  const now = new Date().toISOString();
+                  const updatedRecords = prev.sessionRecords.map((r, i) =>
+                    i === prev.sessionRecords.length - 1 && !r.endedAt ? { ...r, endedAt: now } : r,
+                  );
+                  const snapshot = { ...prev, sessionRecords: updatedRecords };
+                  saveSessionToStorage(snapshot, stage);
+                  return snapshot;
+                });
+                setView('welcome');
+              }}
+              style={{
+                background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.grey, fontSize: 11, fontWeight: 600, padding: '6px 12px',
+                cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase',
+                flexShrink: 0, marginLeft: 12,
+              }}
+            >
+              Save &amp; Exit
+            </button>
           </div>
-          <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
-            {currentMission.title}
-          </h3>
-          <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <MissionRenderer
@@ -1129,11 +1189,13 @@ function MissionPreamble({
   stage,
   isRpas,
   onBegin,
+  onGoBack,
 }: {
   session: ACIASession;
   stage: AssessmentStage;
   isRpas: boolean;
   onBegin: () => void;
+  onGoBack?: () => void;
 }) {
   const [oneSittingConfirmed, setOneSittingConfirmed] = useState(false);
   const currentMission = session.missions[session.currentMissionIndex];
@@ -1145,7 +1207,7 @@ function MissionPreamble({
       <ACIAJourneyPanel
         missions={session.missions}
         currentIndex={session.currentMissionIndex}
-        startedAt={session.startedAt}
+        sessionRecords={session.sessionRecords}
         adaptiveCount={session.responses.length}
       />
       <div style={{
@@ -1224,21 +1286,30 @@ function MissionPreamble({
             </div>
           )}
 
-          <button
-            onClick={onBegin}
-            disabled={needsConfirmation}
-            style={{
-              background: needsConfirmation ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-              color: needsConfirmation ? C.grey : 'white',
-              border: 'none', borderRadius: 12,
-              padding: '14px 32px', fontSize: 15, fontWeight: 700,
-              cursor: needsConfirmation ? 'not-allowed' : 'pointer',
-              alignSelf: 'flex-start',
-              transition: 'background 0.2s',
-            }}
-          >
-            {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission →'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              onClick={onBegin}
+              disabled={needsConfirmation}
+              style={{
+                background: needsConfirmation ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+                color: needsConfirmation ? C.grey : 'white',
+                border: 'none', borderRadius: 12,
+                padding: '14px 32px', fontSize: 15, fontWeight: 700,
+                cursor: needsConfirmation ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+              }}
+            >
+              {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission →'}
+            </button>
+            {onGoBack && (
+              <button
+                onClick={onGoBack}
+                style={{ background: 'none', border: 'none', color: C.grey, fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                Go back
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
