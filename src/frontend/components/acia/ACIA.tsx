@@ -49,7 +49,7 @@ function makeInitialSession(isRpas = false): ACIASession {
     { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
     { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
     { id: 'm6', title: 'Pilot & Flight Operations', subtitle: 'Interactive flight preparation simulation', type: 'flight_ops', estimatedMinutes: 12, completed: false },
-    { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
+    { id: 'm7', title: 'ATC Communication', subtitle: 'Communication, coordination and operational response', type: 'atc', estimatedMinutes: 4, completed: false },
     { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
     { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
   ];

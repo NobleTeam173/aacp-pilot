@@ -171,13 +171,13 @@ function ProgramRecommendationCard() {
 }
 
 const STAGE_TITLES: Record<AssessmentStage, string> = {
-  baseline: 'Baseline ACIA™',
+  baseline: 'ACIA™ Career Intelligence Assessment',
   completion: 'AACP™ Completion ACIA™',
   followup: '90-Day Employment Follow-Up ACIA™',
 };
 
 const STAGE_PURPOSES: Record<AssessmentStage, string> = {
-  baseline: 'Establish your initial competency profile and workforce readiness baseline before the AACP.',
+  baseline: 'Explore your strengths, interests and potential aviation and aerospace career pathways.',
   completion: 'Measure competency development and workforce readiness change after completing the 8-week AACP.',
   followup: 'Measure how your competencies are transferring into the workplace after employer exposure.',
 };
