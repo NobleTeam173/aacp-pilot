@@ -667,7 +667,7 @@ function ActionBtn({ onClick, children, secondary }: { onClick: () => void; chil
 function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
   return (
     <div style={{ position: 'relative', minHeight: 480, overflow: 'hidden' }}>
-      {/* Full-bleed tower photo */}
+      {/* Full-bleed ATC environment photo */}
       <img
         src="/images/atc-tower-interior.webp"
         alt=""
@@ -711,17 +711,18 @@ function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
           display: 'flex', flexDirection: 'column', gap: 10,
           backdropFilter: 'blur(8px)',
         }}>
-          <div style={{ color: C.blueL, fontSize: 9, fontWeight: 700, letterSpacing: 1.5, fontFamily: 'monospace' }}>
-            CAPTAIN ACIA
+          <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, fontFamily: 'monospace' }}>
+            ACIA™ — YOUR CAREER INTELLIGENCE ADVISOR
           </div>
-          <p style={{ color: C.text, fontSize: 13, lineHeight: 1.65, margin: 0 }}>Welcome to Mission 7.</p>
-          <p style={{ color: C.dimM, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
-            You're about to experience how communication, attention and decision-making come
-            together in an airport environment. You'll receive messages from aircraft, monitor
-            changing information and respond to different situations.
+          <p style={{ color: '#f1f5f9', fontSize: 14, lineHeight: 1.7, margin: 0, fontWeight: 500 }}>Welcome to Mission 7.</p>
+          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            Air traffic services keep aircraft moving safely — whether from an aerodrome control
+            tower, an approach control facility, or a flight service station. In this mission you
+            will experience how aviation professionals listen, interpret and communicate across
+            different operational situations.
           </p>
-          <p style={{ color: C.dimM, fontSize: 13, lineHeight: 1.65, margin: 0 }}>
-            You don't need aviation experience or specialized terminology. Listen carefully,
+          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            No aviation experience or specialized terminology required. Listen carefully,
             communicate clearly and ask questions whenever something doesn't make sense.
           </p>
         </div>

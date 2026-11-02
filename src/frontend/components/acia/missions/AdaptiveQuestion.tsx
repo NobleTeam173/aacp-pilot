@@ -114,7 +114,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, chatE
           borderRadius: 14, padding: '18px 20px',
         }}>
           <div style={{ color: C.grey, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Captain ACIA
+            ACIA™ — Your Career Intelligence Advisor
           </div>
           <p style={{ color: C.white, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{mentorAck}</p>
         </div>
