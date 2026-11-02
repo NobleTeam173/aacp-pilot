@@ -503,7 +503,7 @@ function AssessmentStep({
             cursor: 'pointer',
           }}
         >
-          Begin {STAGE_TITLES[stage]} →
+          Begin {STAGE_TITLES[stage]}
         </button>
       )}
       {isAvail && active && <ACIA stage={stage} onComplete={onComplete} />}
@@ -1774,7 +1774,7 @@ function ParticipantHandoffSection() {
           </div>
           {h.handoff_status === 'awaiting_consent' && (
             <button onClick={() => openConsentDetail(h)} style={{ marginTop: 10, background: C.amber + '22', border: `1px solid ${C.amber}`, color: C.amber, borderRadius: 6, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              Review & Authorize →
+              Review & Authorize
             </button>
           )}
           {h.handoff_status === 'authorized' && (
