@@ -30,6 +30,7 @@ export interface WMEvidence {
   completedBriefing: boolean;
   completedRecall: boolean;
   elapsedSeconds: number;
+  verificationScenario?: string; // open scenario — not scored, captured for CI review
 }
 
 const BRIEFING_ITEMS = [
@@ -106,12 +107,22 @@ const QUESTIONS: Question[] = [
   },
 ];
 
+const TERMINOLOGY = [
+  { term: 'Runway', def: 'The paved strip aircraft use to take off and land. Identified by a number based on magnetic heading (e.g. 28R = 280° magnetic, right runway).' },
+  { term: 'Taxiway', def: 'The path aircraft use to move between the runway and the terminal or hangar. Each taxiway has a letter designation (e.g. Bravo = B).' },
+  { term: 'NOTAM', def: 'Notice to Air Missions — an official advisory about anything affecting flight operations, such as a closed taxiway or temporary hazard.' },
+  { term: 'ATIS', def: 'Automatic Terminal Information Service — a recorded broadcast of current weather, runway and operational information, updated regularly and identified by a letter (e.g. Information Alpha).' },
+  { term: 'Approach frequency', def: 'The radio frequency pilots use when arriving at an airport to communicate with approach control.' },
+  { term: 'Circuit / downwind', def: 'Aircraft in the circuit are flying a rectangular pattern around the runway. Downwind means the aircraft is flying parallel to the runway, in the opposite direction to landing.' },
+];
+
 type Phase = 'practice' | 'briefing' | 'recall' | 'done';
 
 interface SavedState {
   phase: Phase;
   responses: Record<string, string>;
   clarifications: Record<string, boolean>;
+  verificationScenario: string;
   completedBriefing: boolean;
   savedAt: number;
 }
@@ -153,7 +164,9 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>(saved?.phase ?? 'practice');
   const [responses, setResponses] = useState<Record<string, string>>(saved?.responses ?? {});
   const [clarifications, setClarifications] = useState<Record<string, boolean>>(saved?.clarifications ?? {});
+  const [verificationScenario, setVerificationScenario] = useState(saved?.verificationScenario ?? '');
   const [completedBriefing, setCompletedBriefing] = useState(saved?.completedBriefing ?? false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [presentationMode] = useState<'audio+text' | 'text-only'>(() =>
@@ -170,10 +183,10 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
   useEffect(() => {
     if (phase === 'done') return;
     try {
-      const s: SavedState = { phase, responses, clarifications, completedBriefing, savedAt: Date.now() };
+      const s: SavedState = { phase, responses, clarifications, verificationScenario, completedBriefing, savedAt: Date.now() };
       localStorage.setItem(stateKey, JSON.stringify(s));
     } catch { /* ignore */ }
-  }, [phase, responses, clarifications, completedBriefing, stateKey]);
+  }, [phase, responses, clarifications, verificationScenario, completedBriefing, stateKey]);
 
   // Briefing: read items one by one
   useEffect(() => {
@@ -252,16 +265,16 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
       completedBriefing,
       completedRecall: true,
       elapsedSeconds: elapsed,
+      verificationScenario: verificationScenario.trim() || undefined,
     };
 
     try { localStorage.removeItem(stateKey); } catch { /* ignore */ }
     onComplete(evidence);
   }
 
-  const allAnswered = QUESTIONS.every(q => {
-    if (q.isClarificationItem) return (responses[q.id] ?? '').trim().length > 0 || (clarifications[q.id] ?? false);
-    return (responses[q.id] ?? '').trim().length > 0;
-  });
+  const allAnswered = QUESTIONS.every(q =>
+    (responses[q.id] ?? '').trim().length > 0 || (clarifications[q.id] ?? false)
+  ) && verificationScenario.trim().length > 0;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -378,51 +391,110 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
   if (phase === 'recall') {
     return (
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ background: '#0c1525', border: '1px solid #1a3a5f', borderRadius: 10, padding: '10px 14px' }}>
-          <div style={{ color: C.blue, fontSize: 12, fontWeight: 600 }}>Briefing recall — answer from memory</div>
-          <div style={{ color: C.grey, fontSize: 12, marginTop: 2 }}>The briefing is no longer visible. Answer based on what you remember.</div>
+
+        {/* Header — reframed away from pure memory test */}
+        <div style={{ background: '#0c1525', border: '1px solid #1a3a5f', borderRadius: 10, padding: '12px 16px' }}>
+          <div style={{ color: C.blue, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Briefing review — what do you recall?</div>
+          <div style={{ color: C.grey, fontSize: 13, lineHeight: 1.6 }}>
+            Answer what you remember. If you're unsure about something, select <strong style={{ color: C.amber }}>"I need to verify this"</strong> — in real operations, recognising a gap and checking before acting is the right call.
+          </div>
         </div>
 
-        {QUESTIONS.map((q, idx) => (
-          <div key={q.id} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
-            <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Question {idx + 1} of {QUESTIONS.length}</div>
-            <div style={{ color: C.white, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{q.text}</div>
-            {q.isClarificationItem ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    value={responses[q.id] ?? ''}
-                    onChange={e => { setResponse(q.id, e.target.value); setClarification(q.id, false); }}
-                    placeholder="Type your answer, or request clarification below…"
-                    style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, padding: '9px 12px', fontSize: 13 }}
-                  />
+        {/* Terminology glossary — collapsible */}
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+          <button
+            onClick={() => setGlossaryOpen(v => !v)}
+            style={{ width: '100%', background: C.bgCard, border: 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <span style={{ color: C.grey, fontSize: 12, fontWeight: 600 }}>Aviation terminology — tap to expand</span>
+            <span style={{ color: C.grey, fontSize: 14 }}>{glossaryOpen ? '▲' : '▼'}</span>
+          </button>
+          {glossaryOpen && (
+            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {TERMINOLOGY.map(({ term, def }) => (
+                <div key={term}>
+                  <span style={{ color: C.amber, fontSize: 12, fontWeight: 700 }}>{term}: </span>
+                  <span style={{ color: C.grey, fontSize: 12, lineHeight: 1.6 }}>{def}</span>
                 </div>
-                <button
-                  onClick={() => { setClarification(q.id, true); setResponse(q.id, responses[q.id] ?? ''); }}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recall questions — all with "I need to verify this" option */}
+        {QUESTIONS.map((q, idx) => {
+          const verified = clarifications[q.id] ?? false;
+          return (
+            <div key={q.id} style={{ background: C.bgCard, border: `1px solid ${verified ? C.amber : C.border}`, borderRadius: 12, padding: 14, transition: 'border-color 0.2s' }}>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Question {idx + 1} of {QUESTIONS.length}</div>
+              <div style={{ color: C.white, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{q.text}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input
+                  value={responses[q.id] ?? ''}
+                  onChange={e => { setResponse(q.id, e.target.value); if (e.target.value.trim()) setClarification(q.id, false); }}
+                  disabled={verified}
+                  placeholder={verified ? 'Marked for verification — no answer needed' : 'Type your answer…'}
                   style={{
-                    background: clarifications[q.id] ? '#0f1a0f' : 'transparent',
-                    border: `1px solid ${clarifications[q.id] ? C.green : C.border}`,
+                    width: '100%', background: verified ? '#1a1200' : C.bg,
+                    border: `1px solid ${verified ? C.amber + '44' : C.border}`,
+                    borderRadius: 8, color: verified ? C.grey : C.white,
+                    padding: '9px 12px', fontSize: 13, boxSizing: 'border-box',
+                    opacity: verified ? 0.5 : 1,
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const next = !verified;
+                    setClarification(q.id, next);
+                    if (next) setResponse(q.id, '');
+                  }}
+                  style={{
+                    background: verified ? '#1a1200' : 'transparent',
+                    border: `1px solid ${verified ? C.amber : C.border}`,
                     borderRadius: 8,
-                    color: clarifications[q.id] ? C.green : C.grey,
-                    padding: '8px 14px',
+                    color: verified ? C.amber : C.grey,
+                    padding: '7px 14px',
                     cursor: 'pointer',
                     fontSize: 12,
+                    fontWeight: verified ? 600 : 400,
                     alignSelf: 'flex-start',
+                    transition: 'all 0.15s',
                   }}
                 >
-                  {clarifications[q.id] ? '✓ Clarification requested' : 'Request clarification'}
+                  {verified ? '✓ I need to verify this' : 'I need to verify this'}
                 </button>
               </div>
-            ) : (
-              <input
-                value={responses[q.id] ?? ''}
-                onChange={e => setResponse(q.id, e.target.value)}
-                placeholder="Type your answer…"
-                style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, padding: '9px 12px', fontSize: 13, boxSizing: 'border-box' }}
-              />
-            )}
+            </div>
+          );
+        })}
+
+        {/* Scenario question — operational judgment */}
+        <div style={{ background: '#0a1008', border: '1px solid #1a3a1f', borderRadius: 12, padding: 16 }}>
+          <div style={{ color: C.green, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            Operational Scenario
           </div>
-        ))}
+          <div style={{ color: C.white, fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 6 }}>
+            You're coordinating an aircraft movement and you're not confident about which taxiway is currently available.
+          </div>
+          <div style={{ color: C.grey, fontSize: 13, lineHeight: 1.65, marginBottom: 12 }}>
+            What would you do before communicating the next instruction to the pilot?
+          </div>
+          <textarea
+            value={verificationScenario}
+            onChange={e => setVerificationScenario(e.target.value)}
+            placeholder="Describe what you would do and why…"
+            rows={3}
+            style={{
+              width: '100%', background: C.bg, border: `1px solid ${C.border}`,
+              borderRadius: 8, color: C.white, padding: '10px 12px',
+              fontSize: 13, lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box',
+              fontFamily: 'inherit',
+            }}
+          />
+          <div style={{ color: C.grey, fontSize: 11, marginTop: 6 }}>
+            There is no single correct answer. Explain your thinking.
+          </div>
+        </div>
 
         <button
           onClick={handleSubmit}
@@ -430,15 +502,12 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
           style={{
             background: allAnswered && !submitted ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})` : '#2d1118',
             color: allAnswered && !submitted ? 'white' : C.grey,
-            border: 'none',
-            borderRadius: 12,
-            padding: '14px',
+            border: 'none', borderRadius: 12, padding: '14px',
             cursor: allAnswered && !submitted ? 'pointer' : 'not-allowed',
-            fontWeight: 700,
-            fontSize: 14,
+            fontWeight: 700, fontSize: 14,
           }}
         >
-          Submit Recall →
+          Submit →
         </button>
       </div>
     );
