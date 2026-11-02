@@ -234,7 +234,7 @@ function RpasPreflightInspection({ onComplete }: { onComplete: (evidence: Omit<E
         </div>
       </div>
       <button onClick={handleComplete} disabled={completed || inspected.length < 8} style={{ background: completed || inspected.length < 8 ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: completed || inspected.length < 8 ? C.grey : 'white', border: 'none', borderRadius: 12, padding: '13px', cursor: completed || inspected.length < 8 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Pre-flight Report → (${inspected.length}/${zones.length} zones checked)`}
+        {completed ? 'Mission Complete ✓' : inspected.length < 8 ? `Continue inspecting — ${inspected.length} of ${zones.length} zones checked` : `Submit Pre-flight Report (${inspected.length}/${zones.length} zones checked)`}
       </button>
     </div>
   );

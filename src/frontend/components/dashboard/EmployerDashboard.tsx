@@ -592,7 +592,7 @@ function OperationalRequirementsTab() {
                 boxShadow: canSubmit ? `0 4px 20px ${C.crimson}44` : 'none',
                 whiteSpace: 'nowrap',
               }}
-            >{submitting ? 'Submitting…' : 'Submit Signal →'}</button>
+            >{submitting ? 'Submitting…' : 'Submit Signal'}</button>
           </div>
         </div>
 

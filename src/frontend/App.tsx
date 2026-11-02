@@ -1296,7 +1296,7 @@ function NetworkInviteAcceptForm({ token }: { token: string }) {
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required minLength={8} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
         {errorMsg && <div style={{ color: '#f87171', fontSize: 13 }}>{errorMsg}</div>}
         <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg,#8F0909,#721010)', color: 'white', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer' }}>
-          {submitting ? 'Creating account…' : 'Create Account →'}
+          {submitting ? 'Creating account…' : 'Create Account'}
         </button>
       </form>
     </div>

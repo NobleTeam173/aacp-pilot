@@ -355,7 +355,7 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
                 cursor: 'pointer', fontWeight: 700, fontSize: 13, width: '100%',
               }}
             >
-              Next Round — {rounds[round + 1]?.label ?? 'Round 2'} →
+              Next Round — {rounds[round + 1]?.label ?? 'Round 2'}
             </button>
           ) : (
             <div style={{ color: C.grey, fontSize: 12, marginTop: 10 }}>Advancing to next mission…</div>
@@ -370,7 +370,7 @@ function WorkloadPriorityCore({ rounds, onComplete }: { rounds: Round[]; onCompl
             cursor: 'pointer', fontWeight: 700, fontSize: 14,
           }}
         >
-          Submit Priority Order →
+          Submit Priority Order
         </button>
       )}
     </div>

@@ -454,7 +454,7 @@ export function PilotRegistrationForm({ token, onComplete }: Props) {
               transition: 'opacity 0.2s', opacity: submitting ? 0.7 : 1,
             }}
           >
-            {submitting ? 'Creating your account…' : 'Join the Pilot Program →'}
+            {submitting ? 'Creating your account…' : 'Join the Pilot Program'}
           </button>
         </form>
 

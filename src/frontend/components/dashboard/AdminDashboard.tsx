@@ -2705,7 +2705,7 @@ function PilotTestingInner() {
             color: C.white, border: 'none', borderRadius: 10, padding: '11px 24px',
             fontWeight: 700, fontSize: 13, cursor: creating ? 'not-allowed' : 'pointer',
           }}>
-            {creating ? 'Creating…' : 'Generate Invitation Link →'}
+            {creating ? 'Creating…' : 'Generate Invitation Link'}
           </button>
         </form>
       </div>
@@ -3070,7 +3070,7 @@ function ExternalValidationPanel() {
             fontWeight: 700, fontSize: 13, cursor: creating || !form.instrument ? 'not-allowed' : 'pointer',
             opacity: !form.instrument ? 0.6 : 1,
           }}>
-            {creating ? 'Generating…' : 'Generate Validation Invitation →'}
+            {creating ? 'Generating…' : 'Generate Validation Invitation'}
           </button>
         </form>
       </div>
@@ -4407,14 +4407,14 @@ export function RpasHubAdminPanel() {
                           onClick={() => submitAccess(app, 'enabled')}
                           disabled={accessTarget?.id === app.id && accessSaving}
                           style={{ background: `linear-gradient(135deg, ${C.green}, #16a34a)`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
-                        >{accessTarget?.id === app.id && accessSaving ? 'Enabling…' : 'Enable Access →'}</button>
+                        >{accessTarget?.id === app.id && accessSaving ? 'Enabling…' : 'Enable Access'}</button>
                       )}
                       {app.participantAccess === 'enabled' && (
                         <button
                           onClick={() => handleInvite(app)}
                           disabled={inviting === app.id}
                           style={{ background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: C.white, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: inviting === app.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}
-                        >{inviting === app.id ? 'Issuing…' : (app.invitedAt ? 'Re-issue Invite →' : 'Issue Invite →')}</button>
+                        >{inviting === app.id ? 'Issuing…' : (app.invitedAt ? 'Re-issue Invite' : 'Issue Invite')}</button>
                       )}
                     </div>
                   </div>

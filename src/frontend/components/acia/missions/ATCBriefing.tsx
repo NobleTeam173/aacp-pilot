@@ -334,7 +334,7 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
             onClick={handleStartBriefing}
             style={{ flex: 1, background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`, color: 'white', border: 'none', borderRadius: 12, padding: '13px', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}
           >
-            I'm ready — start the briefing →
+            I'm ready — start the briefing
           </button>
         </div>
       </div>
@@ -507,7 +507,7 @@ export function ATCBriefing({ sessionId, onComplete }: Props) {
             fontWeight: 700, fontSize: 14,
           }}
         >
-          Submit →
+          Submit
         </button>
       </div>
     );

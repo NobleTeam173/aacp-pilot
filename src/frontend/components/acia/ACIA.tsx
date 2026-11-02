@@ -1228,8 +1228,7 @@ function MissionPreamble({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 28, gap: 20 }}>
           {/* Ecosystem connector — narrative context only, no evidence generated */}
           {!isRpas && ECOSYSTEM_CONTEXT[currentMission.id] && (
-            <div style={{ background: '#0d1a0f', border: '1px solid #1a3a20', borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>🍁</span>
+            <div style={{ background: '#0d1a0f', border: '1px solid #1a3a20', borderRadius: 14, padding: '14px 18px' }}>
               <p style={{ color: '#86efac', fontSize: 13, lineHeight: 1.65, margin: 0 }}>
                 {ECOSYSTEM_CONTEXT[currentMission.id]}
               </p>
@@ -1301,7 +1300,7 @@ function MissionPreamble({
                 transition: 'background 0.2s',
               }}
             >
-              {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission →'}
+              {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission'}
             </button>
             {onGoBack && (
               <button
@@ -1505,7 +1504,7 @@ function WelcomeScreen({
                 boxShadow: '0 2px 8px rgba(143,9,9,0.18)',
               }}
             >
-              {hasProgress ? 'Continue Your Journey →' : isRpas ? 'Begin RPAS Assessment →' : 'Begin Your Journey →'}
+              {hasProgress ? 'Continue Your Journey' : isRpas ? 'Begin RPAS Assessment' : 'Begin Your Journey'}
             </button>
             {!hasProgress && (
               <span style={{ fontSize: 12, color: '#94a3b8' }}>≈ 35 – 45 min total · save and resume any time</span>

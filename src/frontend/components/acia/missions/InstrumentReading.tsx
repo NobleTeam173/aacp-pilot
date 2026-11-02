@@ -465,7 +465,7 @@ function InstrumentReadingCore({ questions, onComplete }: { questions: Question[
             cursor: 'pointer', fontWeight: 700, fontSize: 14,
           }}
         >
-          {isLast ? 'Complete Mission →' : 'Next Instrument →'}
+          {isLast ? 'Complete Mission' : 'Next Instrument'}
         </button>
       )}
     </div>

@@ -159,7 +159,7 @@ export function RpasIntakeForm({ onComplete }: Props) {
           opacity: submitting ? 0.7 : 1,
         }}
       >
-        {submitting ? 'Saving…' : 'Continue to Intelligence Assessment →'}
+        {submitting ? 'Saving…' : 'Continue to Intelligence Assessment'}
       </button>
     </form>
   );

@@ -164,7 +164,7 @@ function FollowUpInput({ question, onSubmit, disabled }: { question: string; onS
     <div style={{ marginTop: 14 }}>
       <ACIABubble text={question} />
       <textarea value={val} onChange={e => setVal(e.target.value)} placeholder="Share your thinking…" disabled={disabled} rows={3} style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, padding: '10px 14px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-      <button onClick={() => { if (val.trim()) onSubmit(val.trim()); }} disabled={!val.trim() || disabled} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '9px 20px', cursor: val.trim() ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: val.trim() ? 1 : 0.5 }}>Continue →</button>
+      <button onClick={() => { if (val.trim()) onSubmit(val.trim()); }} disabled={!val.trim() || disabled} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '9px 20px', cursor: val.trim() ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: val.trim() ? 1 : 0.5 }}>Continue</button>
     </div>
   );
 }
@@ -453,7 +453,7 @@ function Scenario1({
             { id: 'clarify', label: 'Request clarification on the departure time before proceeding' },
             { id: 'skip', label: 'Skip the discrepancy — it will resolve at departure' },
           ].map(o => <OptionButton key={o.id} label={o.label} selected={decision === o.id} onClick={() => setDecision(o.id)} />)}
-          <button onClick={() => { if (decision) setPhase('decide'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm →</button>
+          <button onClick={() => { if (decision) setPhase('decide'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm</button>
         </div>
       )}
 
@@ -546,7 +546,7 @@ function Scenario2({
             { id: 'ignore_wind', label: 'C. Ignore the update — the wind change is small' },
             { id: 'skip', label: 'D. Mark the weather review complete without checking criteria' },
           ].map(o => <OptionButton key={o.id} label={o.label} selected={decision === o.id} onClick={() => setDecision(o.id)} />)}
-          <button onClick={() => { if (decision) setPhase('followup1'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm →</button>
+          <button onClick={() => { if (decision) setPhase('followup1'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm</button>
         </div>
       )}
 
@@ -566,7 +566,7 @@ function Scenario2({
             { id: 'revert', label: 'C. Disregard both updates and return to the original conditions' },
             { id: 'no_change', label: 'D. No change needed — conditions were always acceptable' },
           ].map(o => <OptionButton key={o.id} label={o.label} selected={reassess === o.id} onClick={() => setReassess(o.id)} />)}
-          <button onClick={() => { if (reassess) setPhase('followup2'); }} disabled={!reassess} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: reassess ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: reassess ? 1 : 0.4 }}>Confirm →</button>
+          <button onClick={() => { if (reassess) setPhase('followup2'); }} disabled={!reassess} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: reassess ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: reassess ? 1 : 0.4 }}>Confirm</button>
         </div>
       )}
 
@@ -644,7 +644,7 @@ function Scenario3({
           </div>
           <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Compose your operational update to the co-pilot…" rows={5} style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, padding: '10px 14px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginTop: 4 }} />
           <div style={{ fontSize: 11, color: C.greyDim, marginTop: 4 }}>A concise, accurate message demonstrates strong communication.</div>
-          <button onClick={() => { if (message.trim().length >= 20) setPhase('followup'); }} disabled={message.trim().length < 20} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: message.trim().length >= 20 ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: message.trim().length >= 20 ? 1 : 0.4 }}>Send update →</button>
+          <button onClick={() => { if (message.trim().length >= 20) setPhase('followup'); }} disabled={message.trim().length < 20} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: message.trim().length >= 20 ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: message.trim().length >= 20 ? 1 : 0.4 }}>Send update</button>
         </div>
       )}
 
@@ -746,7 +746,7 @@ function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
             );
           })}
           {phase === 'prioritize' && (
-            <button onClick={() => { setInitial([...order]); setPhase('update'); }} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Confirm priority order →</button>
+            <button onClick={() => { setInitial([...order]); setPhase('update'); }} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Confirm priority order</button>
           )}
           {phase === 'update' && (
             <FollowUpInput question="What information influenced your priorities, and did the new update change your approach?" onSubmit={handleFollowUp} />
@@ -855,7 +855,7 @@ function Scenario5({
             { id: 'ignore_outstanding', label: 'C. Ignore the outstanding confirmation — the departure time has been corrected' },
             { id: 'revert_original', label: 'D. Return to the original weather information and disregard subsequent updates' },
           ].map(o => <OptionButton key={o.id} label={o.label} selected={decision === o.id} onClick={() => setDecision(o.id)} />)}
-          <button onClick={() => { if (decision) setPhase('followup'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm →</button>
+          <button onClick={() => { if (decision) setPhase('followup'); }} disabled={!decision} style={{ marginTop: 4, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: decision ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: decision ? 1 : 0.4 }}>Confirm</button>
         </div>
       )}
 
@@ -867,7 +867,7 @@ function Scenario5({
         <div>
           <ACIABubble text="Please send a concise operational update to your co-pilot covering the current situation and any outstanding requirement." />
           <textarea value={finalMsg} onChange={e => setFinalMsg(e.target.value)} placeholder="Compose your final operational message…" rows={4} style={{ width: '100%', background: C.bgDeep, border: `1px solid ${C.border}`, borderRadius: 8, color: C.white, padding: '10px 14px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginTop: 4 }} />
-          <button onClick={handleFinal} disabled={finalMsg.trim().length < 15} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: finalMsg.trim().length >= 15 ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: finalMsg.trim().length >= 15 ? 1 : 0.4 }}>Send final message →</button>
+          <button onClick={handleFinal} disabled={finalMsg.trim().length < 15} style={{ marginTop: 8, background: C.crimson, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: finalMsg.trim().length >= 15 ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13, opacity: finalMsg.trim().length >= 15 ? 1 : 0.4 }}>Send final message</button>
         </div>
       )}
 

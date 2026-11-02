@@ -812,7 +812,7 @@ function S1Inspection({ onComplete }: { onComplete: (zones: Zone[], items: Tagge
 
       <button onClick={handleSubmit} disabled={done || inspected.length < 6}
         style={{ background: done || inspected.length < 6 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: done || inspected.length < 6 ? C.grey : 'white', border: 'none', borderRadius: 12, padding: '13px', cursor: done || inspected.length < 6 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-        {done ? 'Inspection Complete ✓' : inspected.length < 6 ? `Continue walkaround — ${inspected.length}/${zones.length} areas checked` : `Complete Inspection Report → (${inspected.length}/${zones.length} areas inspected)`}
+        {done ? 'Inspection Complete ✓' : inspected.length < 6 ? `Continue walkaround — ${inspected.length}/${zones.length} areas checked` : `Complete Inspection Report (${inspected.length}/${zones.length} areas inspected)`}
       </button>
     </div>
   );
@@ -905,7 +905,7 @@ function S2Records({ foundDefectIds, onComplete }: { foundDefectIds: string[]; o
           />
           <button onClick={handleSubmit} disabled={response.trim().length < 40}
             style={{ background: response.trim().length < 40 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: response.trim().length < 40 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: response.trim().length < 40 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-            {response.trim().length < 40 ? `Continue — ${40 - response.trim().length} more characters` : 'Submit Record Analysis →'}
+            {response.trim().length < 40 ? `Continue — ${40 - response.trim().length} more characters` : 'Submit Record Analysis'}
           </button>
         </div>
       )}
@@ -1030,7 +1030,7 @@ function S3Mechanical({ foundDefectIds, onComplete }: { foundDefectIds: string[]
               />
               <button onClick={handleSubmit} disabled={response.trim().length < 50}
                 style={{ background: response.trim().length < 50 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: response.trim().length < 50 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: response.trim().length < 50 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-                {response.trim().length < 50 ? `Continue — ${50 - response.trim().length} more characters` : 'Submit Investigation Report →'}
+                {response.trim().length < 50 ? `Continue — ${50 - response.trim().length} more characters` : 'Submit Investigation Report'}
               </button>
             </div>
           )}
@@ -1248,7 +1248,7 @@ function S4Handover({ foundDefectIds, onComplete }: {
           <div style={{ color: C.grey, fontSize: 12 }}>Fields marked <span style={{ color: C.red }}>*</span> require at least one sentence to proceed.</div>
           <button onClick={handleLogbookSubmit} disabled={!logbookComplete}
             style={{ background: !logbookComplete ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: !logbookComplete ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '12px', cursor: !logbookComplete ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-            {!logbookComplete ? 'Complete required fields to continue' : 'Review Logbook Entry →'}
+            {!logbookComplete ? 'Complete required fields to continue' : 'Review Logbook Entry'}
           </button>
         </div>
       )}
@@ -1308,7 +1308,7 @@ function S4Handover({ foundDefectIds, onComplete }: {
             />
             <button onClick={handleFinalSubmit} disabled={supervisorResponse.trim().length < 30}
               style={{ background: supervisorResponse.trim().length < 30 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: supervisorResponse.trim().length < 30 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: supervisorResponse.trim().length < 30 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-              {supervisorResponse.trim().length < 30 ? `Continue — ${30 - supervisorResponse.trim().length} more characters` : 'Submit Handover →'}
+              {supervisorResponse.trim().length < 30 ? `Continue — ${30 - supervisorResponse.trim().length} more characters` : 'Submit Handover'}
             </button>
           </div>
         </div>
@@ -1475,7 +1475,7 @@ function S5Priorities({ logbook, onComplete }: { logbook: LogbookEntry; onComple
           <div style={{ color: C.grey, fontSize: 12 }}>Tap to rank in priority order. Tap again to remove. Select at least 3.</div>
           <button onClick={handlePrioritySubmit} disabled={order.length < 3}
             style={{ background: order.length < 3 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: order.length < 3 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: order.length < 3 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-            {order.length < 3 ? `Select at least 3 items (${order.length} selected)` : 'Confirm Priority Order →'}
+            {order.length < 3 ? `Select at least 3 items (${order.length} selected)` : 'Confirm Priority Order'}
           </button>
         </>
       )}
@@ -1510,7 +1510,7 @@ function S5Priorities({ logbook, onComplete }: { logbook: LogbookEntry; onComple
             />
             <button onClick={handleFinalSubmit} disabled={pressureResponse.trim().length < 30}
               style={{ background: pressureResponse.trim().length < 30 ? '#2d1118' : `linear-gradient(135deg,${C.crimson},${C.crimsonD})`, color: pressureResponse.trim().length < 30 ? C.grey : 'white', border: 'none', borderRadius: 10, padding: '11px', cursor: pressureResponse.trim().length < 30 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}>
-              {pressureResponse.trim().length < 30 ? `Continue — ${30 - pressureResponse.trim().length} more characters` : 'Complete Mission 2 →'}
+              {pressureResponse.trim().length < 30 ? `Continue — ${30 - pressureResponse.trim().length} more characters` : 'Complete Mission 2'}
             </button>
           </div>
         </div>

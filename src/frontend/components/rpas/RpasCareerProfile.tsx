@@ -90,7 +90,7 @@ export function RpasCareerProfile({ profile, onEnroll, enrolling }: Props) {
               opacity: enrolling ? 0.7 : 1,
             }}
           >
-            {enrolling ? 'Enrolling…' : 'Enrol in Applied RPAS Workforce Program →'}
+            {enrolling ? 'Enrolling…' : 'Enrol in Applied RPAS Workforce Program'}
           </button>
         </div>
       )}

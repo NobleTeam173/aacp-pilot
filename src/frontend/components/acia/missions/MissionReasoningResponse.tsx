@@ -187,7 +187,7 @@ export function MissionReasoningResponse({ questions, storageKey, sessionId, ser
             fontSize: 14,
           }}
         >
-          {submitted ? 'Responses Saved ✓' : !allAnswered ? `Answer all ${questions.length} questions to continue` : 'Save Responses & Complete Mission →'}
+          {submitted ? 'Responses Saved ✓' : !allAnswered ? `Answer all ${questions.length} questions to continue` : 'Save Responses & Complete Mission'}
         </button>
       </div>
     </div>

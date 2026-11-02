@@ -406,7 +406,7 @@ function OperationalDecisionCore({ scenarios, onComplete }: { scenarios: Scenari
             cursor: 'pointer', fontWeight: 700, fontSize: 14,
           }}
         >
-          {isLast ? 'Complete Mission →' : 'Next Scenario →'}
+          {isLast ? 'Complete Mission' : 'Next Scenario'}
         </button>
       )}
     </div>
