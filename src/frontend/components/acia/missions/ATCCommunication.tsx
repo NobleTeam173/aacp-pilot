@@ -22,8 +22,8 @@ const C = {
   amber: '#d97706',
   amberL: '#fbbf24',
   red: '#dc2626',
-  action: '#1d4ed8',
-  actionH: '#1e40af',
+  action: '#8F0909',
+  actionH: '#721010',
   radarBg: '#020a04',
   radarGreen: 'rgba(74,222,128,',
 };
@@ -733,7 +733,7 @@ function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             color: '#fff', border: 'none', borderRadius: 10, padding: '14px 32px',
             fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
             letterSpacing: 0.5, fontFamily: 'monospace',
-            boxShadow: `0 4px 20px rgba(29,78,216,0.4)`,
+            boxShadow: `0 4px 20px rgba(143,9,9,0.4)`,
           }}
         >
           ENTER COMMUNICATIONS CENTRE
