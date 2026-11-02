@@ -1159,160 +1159,227 @@ function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'missio
   );
 }
 
-// ── Scenario 4 — MT (two aircraft) + CM teamwork (colleague handover) ─────────
+// ── Scenario 4 — Weather Deviation: Traffic Flow Decision ────────────────────
+// Nav Canada TRACON. Convective cell blocking standard arrival. Five aircraft
+// inbound with competing priorities. Participant assigns each an action, then
+// writes a sector coordination message to the adjacent ACC.
+// Targets: multitasking_ability + communication_quality.
+// Scoring rewards defensible priority reasoning, not procedural correctness.
 function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
-  const [step, setStep] = useState<
-    'intro' | 'colleague_leaves' | 'pilot1' | 'respond1' | 'pilot2' | 'respond2' | 'handover'
-  >('intro');
-  const [sel, setSel] = useState<string | undefined>(undefined);
-  const r1Ref = useRef('');
-  const r2Ref = useRef('');
+  type FlowAction = 'direct' | 'hold' | 'alternate' | '';
+  const [step, setStep] = useState<'intro' | 'wx' | 'assign' | 'coordinate'>('intro');
+  const [assignments, setAssignments] = useState<Record<string, FlowAction>>({});
 
-  const aircraft: Aircraft[] = [
-    { id: 'maple', callsign: 'MAPLE 214', x: 155, y: 96, status: 'Approaching', visible: true },
-    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, status: 'Ground', visible: true },
+  const FLIGHT_LIST = [
+    { id: 'mpl401',  callsign: 'MAPLE 401',   detail: 'Fuel reserve 45 min — no priority',    x: 162, y: 55,  alert: false },
+    { id: 'spr22',   callsign: 'SPRUCE 22',    detail: 'Fuel reserve 28 min — low fuel',       x: 145, y: 112, alert: true  },
+    { id: 'cdr7',    callsign: 'CEDAR 7',      detail: 'Medical passenger on board',           x: 130, y: 68,  alert: true  },
+    { id: 'brch55',  callsign: 'BIRCH 55',     detail: 'Fuel adequate — no special status',    x: 172, y: 138, alert: false },
+    { id: 'lrch19',  callsign: 'LARCH 19',     detail: 'Fuel adequate — no special status',    x: 155, y: 170, alert: false },
   ];
-  const info = [
-    { callsign: 'MAPLE 214', status: 'Approaching from east' },
-    { callsign: 'NORTHERN 305', status: 'Preparing for departure' },
-  ];
-  const infoUpdated = [
-    { callsign: 'MAPLE 214', status: 'Arrival: earlier than planned' },
-    { callsign: 'NORTHERN 305', status: 'Preparing for departure' },
-  ];
+
+  const radarAircraft: Aircraft[] = FLIGHT_LIST.map(a => ({
+    id: a.id,
+    callsign: a.callsign.replace('MAPLE', 'MPL').replace('SPRUCE', 'SPR').replace('CEDAR', 'CDR').replace('BIRCH', 'BRH').replace('LARCH', 'LRH'),
+    x: a.x, y: a.y, status: a.detail, visible: true, alert: a.alert,
+  }));
+
+  const infoRows = FLIGHT_LIST.map(a => ({ callsign: a.callsign, status: a.detail, alert: a.alert }));
+
+  const allAssigned = FLIGHT_LIST.every(a => assignments[a.id] && assignments[a.id] !== '');
 
   if (step === 'intro') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
-      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
       <SituationCard>
         <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-          Two aircraft are now on your display. You'll be receiving communications from both —
-          pay attention to what's new or changing and respond to each one.
+          A fast-developing storm cell has moved over the standard arrival route into
+          {' '}<strong style={{ color: C.blueL }}>Calgary (CYYC)</strong>. Five aircraft are
+          inbound and need new routing — the normal approach path is no longer safe.
+        </p>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, marginTop: 8, marginBottom: 0 }}>
+          You'll review the weather situation, then decide how to handle each aircraft.
+          Afterwards you'll write a short message to the area controller who is currently
+          managing these flights before passing them to you.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          No aviation experience required — the information you need is provided.
+          Focus on the situation and think through your priorities.
         </p>
       </SituationCard>
-      <ActionBtn onClick={() => setStep('colleague_leaves')}>Open Channel</ActionBtn>
+      <ActionBtn onClick={() => setStep('wx')}>Review Situation</ActionBtn>
     </ATCConsole>
   );
 
-  if (step === 'colleague_leaves') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
-      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
+  if (step === 'wx') return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: '#fbbf24' }} />
-            <span style={{ color: '#fbbf24', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
-              CONTROLLER — ALEX
-            </span>
+        {/* Weather summary */}
+        <div style={{ background: 'rgba(120,53,15,0.1)', border: `1px solid rgba(217,119,6,0.3)`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ color: C.amberL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 10 }}>
+            NAV CANADA — ACTIVE WEATHER ADVISORY
           </div>
-          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>
-            "Hey, I need to step away for a few minutes — urgent call. Can you hold the desk?
-            MAPLE 214 and NORTHERN 305 are both active. I'll be back to take over."
-          </div>
+          {[
+            { label: 'Storm location',  value: 'Over the standard arrival fix — cannot be flown through' },
+            { label: 'Storm tops',      value: 'Above 32,000 ft — aircraft cannot fly over it' },
+            { label: 'Storm movement',  value: 'Drifting slowly west — situation will not improve in the next 30 minutes' },
+          ].map(r => (
+            <div key={r.label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8, marginBottom: 5 }}>
+              <span style={{ color: C.dim, fontSize: 11, fontFamily: 'monospace' }}>{r.label}</span>
+              <span style={{ color: C.text, fontSize: 11, lineHeight: 1.5 }}>{r.value}</span>
+            </div>
+          ))}
         </div>
-        <StatusNotice>You're now managing both aircraft solo. Handle incoming transmissions.</StatusNotice>
-        <ActionBtn onClick={() => setStep('pilot1')}>Acknowledge and Hold Desk</ActionBtn>
+        {/* Options explanation */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 10 }}>
+            YOUR THREE OPTIONS FOR EACH AIRCRAFT
+          </div>
+          {[
+            { opt: 'DIRECT',    desc: 'A clear path into Calgary that avoids the storm — currently available but limited. Use for the highest-priority aircraft.' },
+            { opt: 'HOLD',      desc: 'The aircraft circles at a fixed point nearby while waiting for conditions to improve or for space to open up. Maximum 2 aircraft can hold at once.' },
+            { opt: 'ALTERNATE', desc: 'A longer routing around the storm — adds fuel burn and time, but gets the aircraft in eventually. Not suitable for aircraft with very limited fuel.' },
+          ].map(r => (
+            <div key={r.opt} style={{ marginBottom: 10 }}>
+              <span style={{ color: C.amberL, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}>{r.opt} — </span>
+              <span style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5 }}>{r.desc}</span>
+            </div>
+          ))}
+        </div>
+        <ActionBtn onClick={() => setStep('assign')}>Assign Aircraft</ActionBtn>
       </div>
     </ATCConsole>
   );
 
-  if (step === 'pilot1') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
-      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-      <PilotMessage
-        callsign="NORTHERN 305"
-        message="Tower, Northern 305. We're preparing to depart and waiting for further information."
-        onReady={() => setStep('respond1')}
-      />
+  if (step === 'assign') return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ color: C.blueL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 2 }}>
+          ASSIGN AN ACTION TO EACH AIRCRAFT
+        </div>
+        <div style={{ background: 'rgba(120,53,15,0.08)', border: `1px solid rgba(217,119,6,0.2)`, borderRadius: 6, padding: '8px 12px', marginBottom: 4 }}>
+          <span style={{ color: C.amberL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 1 }}>REMINDER — </span>
+          <span style={{ color: C.amberL, fontSize: 11 }}>Holding is limited to 2 aircraft at a time. Alternate routing adds significant fuel burn.</span>
+        </div>
+        {FLIGHT_LIST.map(a => (
+          <div key={a.id} style={{
+            background: a.alert ? 'rgba(120,53,15,0.12)' : C.card,
+            border: `1px solid ${a.alert ? 'rgba(217,119,6,0.35)' : C.border}`,
+            borderRadius: 8, padding: '10px 13px',
+          }}>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: a.alert ? C.amberL : C.blueL, fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>
+                {a.callsign}
+              </span>
+              <span style={{ color: C.dimM, fontSize: 11, marginLeft: 10 }}>{a.detail}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              {(['direct', 'hold', 'alternate'] as const).map(opt => (
+                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name={a.id}
+                    value={opt}
+                    checked={assignments[a.id] === opt}
+                    onChange={() => setAssignments(prev => ({ ...prev, [a.id]: opt }))}
+                    style={{ accentColor: C.blueL, cursor: 'pointer' }}
+                  />
+                  <span style={{ color: C.text, fontSize: 12, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                    {opt === 'direct' ? 'Direct' : opt === 'hold' ? 'Hold' : 'Alternate'}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        {allAssigned && (
+          <ActionBtn onClick={() => setStep('coordinate')}>Confirm Assignments — Write Coordination Message</ActionBtn>
+        )}
+      </div>
     </ATCConsole>
   );
 
-  if (step === 'respond1') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={info}
-      incomingMsg="Tower, Northern 305. We're preparing to depart and waiting for further information."
-      pilotCallsign="NORTHERN 305" pilotSpeaking={false}
-      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-      <ResponseInput
-        context="Acknowledge NORTHERN 305. A second transmission from MAPLE 214 will follow."
-        label="Respond to NORTHERN 305"
-        onSubmit={text => { r1Ref.current = text; setStep('pilot2'); }}
-      />
-    </ATCConsole>
-  );
-
-  if (step === 'pilot2') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated} selectedId={sel} onSelectAircraft={setSel}
-      scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-      <PilotMessage
-        callsign="MAPLE 214"
-        message="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
-        onReady={() => setStep('respond2')}
-      />
-    </ATCConsole>
-  );
-
-  if (step === 'respond2') return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated}
-      incomingMsg="Tower, Maple 214. Our arrival estimate has changed. We now expect to arrive earlier than planned."
-      pilotCallsign="MAPLE 214" pilotSpeaking={false}
-      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-      <ResponseInput
-        context="Respond to MAPLE 214's updated arrival information."
-        label="Respond to MAPLE 214"
-        onSubmit={text => { r2Ref.current = text; setStep('handover'); }}
-      />
-    </ATCConsole>
-  );
-
-  // Colleague returns — participant must brief them
+  // Step: write sector coordination message to Edmonton Area Control Centre
   return (
-    <ATCConsole aircraft={aircraft} aircraftInfoRows={infoUpdated}
-      selectedId={sel} onSelectAircraft={setSel} scenarioNum={4} scenarioLabel="Changing Traffic Situation">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: '#fbbf24' }} />
-            <span style={{ color: '#fbbf24', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
-              CONTROLLER — ALEX
-            </span>
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SituationCard>
+          <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+            The Edmonton Area Control Centre (ACC) is currently managing these five aircraft
+            before handing them to you. They need a brief message from you so they can start
+            sequencing aircraft based on your plan.
+          </p>
+          <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+            Write a short coordination message covering the situation and your plan.
+            You don't need aviation jargon — focus on being clear about what's happening
+            and what you're doing with each aircraft.
+          </p>
+        </SituationCard>
+        {/* Assignment summary for reference */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 13px' }}>
+          <div style={{ color: C.dim, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 7 }}>
+            YOUR ASSIGNMENTS — FOR REFERENCE
           </div>
-          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>
-            "Back now — thanks for covering. What's the situation with MAPLE 214 and NORTHERN 305?
-            Anything I should know before I take over?"
-          </div>
+          {FLIGHT_LIST.map(a => (
+            <div key={a.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ color: C.dimM, fontSize: 11, fontFamily: 'monospace', minWidth: 100 }}>{a.callsign}</span>
+              <span style={{
+                color: assignments[a.id] === 'direct' ? C.greenL : assignments[a.id] === 'hold' ? C.amberL : C.blueL,
+                fontSize: 11, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 0.5,
+              }}>
+                {assignments[a.id] === 'direct' ? 'Direct' : assignments[a.id] === 'hold' ? 'Hold' : 'Alternate Route'}
+              </span>
+            </div>
+          ))}
         </div>
         <ResponseInput
-          context="Brief your colleague on what happened while they were away. Include any changes or developments they'll need to know about."
-          label="Brief your colleague"
+          context="Write your coordination message to Edmonton ACC. Cover the weather situation, which aircraft have priority, and what your plan is."
+          label="Send coordination message"
           onSubmit={async text => {
             const token = localStorage.getItem('aacp_access_token');
-            // Multitasking: behavioural — did they actually respond to both pilots?
-            const handledBoth = r1Ref.current.trim().length > 5 && r2Ref.current.trim().length > 5;
-            const mtDelta = handledBoth ? 0.65 : (r1Ref.current.trim().length > 5 || r2Ref.current.trim().length > 5 ? 0.40 : 0.20);
-            // Handover quality: AI classification
-            const hvIndicators: M7Indicator[] = [
-              { id: 'covers_maple', label: 'Mentions MAPLE 214 and its status or relevant update', positive: true },
-              { id: 'covers_northern', label: 'Mentions NORTHERN 305 and its status or relevant update', positive: true },
-              { id: 'includes_changes', label: 'Communicates changes or developments (arrival update, fuel concern)', positive: true },
-              { id: 'structured_briefing', label: 'Briefing is structured and easy to follow — not disorganised or omitting key items', positive: true },
-              { id: 'incomplete_handover', label: 'Omits a key aircraft or critical status change from the briefing', positive: false },
+
+            // ── Multitasking score ─────────────────────────────────────────────
+            // Behavioural: did they engage with all five aircraft under constraints?
+            // Rewards defensible priority reasoning, not a single correct sequence.
+            const holdCount = Object.values(assignments).filter(v => v === 'hold').length;
+            const cdr7Action  = assignments['cdr7'];   // medical — hold is clearly problematic
+            const spr22Action = assignments['spr22'];  // low fuel — alternate adds burn risk
+
+            let mtScore = 0.35; // base: assigned all 5 (demonstrated multitasking)
+            if (holdCount <= 2) mtScore += 0.20;       // respected capacity constraint
+            if (cdr7Action !== 'hold') mtScore += 0.15; // medical not held (defensible: direct or alternate)
+            if (spr22Action !== 'alternate') mtScore += 0.10; // low-fuel not sent on longer route
+            mtScore = Math.min(0.80, mtScore);
+
+            // ── Communication quality score ────────────────────────────────────
+            // AI classification of coordination message.
+            // Rewards clear situational framing, priority flagging, and action clarity.
+            const coordIndicators: M7Indicator[] = [
+              { id: 'names_wx',       label: 'Describes the weather situation or why the normal route is blocked',                               positive: true  },
+              { id: 'states_plan',    label: 'States planned actions (direct / hold / alternate) for at least some of the aircraft',             positive: true  },
+              { id: 'flags_priority', label: 'Explicitly flags one or both priority aircraft (medical or low fuel) as needing attention',        positive: true  },
+              { id: 'clear_message',  label: 'Message is organised and easy to understand — another controller could act on it without guessing', positive: true  },
+              { id: 'vague_missing',  label: 'Message is vague, incomplete, or omits the weather context entirely',                              positive: false },
             ];
-            const hvKeys = [
-              { id: 'covers_maple', competency: 'communication_quality' },
-              { id: 'covers_northern', competency: 'communication_quality' },
-              { id: 'includes_changes', competency: 'communication_quality' },
-              { id: 'structured_briefing', competency: 'communication_quality' },
-              { id: 'incomplete_handover', competency: 'communication_quality' },
+            const coordKeys = [
+              { id: 'names_wx',       competency: 'communication_quality' },
+              { id: 'states_plan',    competency: 'communication_quality' },
+              { id: 'flags_priority', competency: 'communication_quality' },
+              { id: 'clear_message',  competency: 'communication_quality' },
+              { id: 'vague_missing',  competency: 'communication_quality' },
             ];
             const detected = await classifyM7Response(
-              'Controller handing over to a returning colleague after managing two aircraft: MAPLE 214 (arrival earlier than planned) and NORTHERN 305 (preparing for departure, fuel concern noted).',
-              'Back now — thanks for covering. What\'s the situation with MAPLE 214 and NORTHERN 305? Anything I should know before I take over?',
-              text, hvIndicators, '/acia/chat', token,
+              'Nav Canada TRACON — Calgary (CYYC). Storm cell blocking standard arrival. Five inbound aircraft: MAPLE 401 (fuel adequate), SPRUCE 22 (low fuel — priority), CEDAR 7 (medical on board — priority), BIRCH 55 and LARCH 19 (no special status). Holding limited to 2 aircraft. Alternate route available but adds fuel burn. Participant has assigned each aircraft an action and is writing a coordination message to Edmonton Area Control Centre.',
+              'Edmonton ACC: requesting coordination for CYYC arrivals — weather deviation in effect.',
+              text, coordIndicators, '/acia/chat', token,
             );
-            const hvDeltas = indicatorsToDeltas(detected, hvIndicators, hvKeys);
+            const cqDeltas = indicatorsToDeltas(detected, coordIndicators, coordKeys);
             onComplete([
-              { key: 'multitasking_ability', delta: mtDelta },
-              { key: 'communication_quality', delta: Math.min(0.80, hvDeltas['communication_quality'] ?? 0.2) },
+              { key: 'multitasking_ability',  delta: mtScore },
+              { key: 'communication_quality', delta: Math.min(0.80, cqDeltas['communication_quality'] ?? 0.2) },
             ]);
           }}
         />
