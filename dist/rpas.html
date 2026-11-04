@@ -152,7 +152,7 @@
     #rpas-map{width:100%;height:100%}
     /* Leaflet dark overrides */
     .leaflet-container{background:#08020a;font-family:'DM Sans',sans-serif}
-    .leaflet-tile-pane{filter:brightness(.9) saturate(.8)}
+    .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.6) contrast(1.1)}
     .leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important}
     .leaflet-control-zoom a:hover{background:var(--border) !important}
     .leaflet-control-attribution{background:rgba(8,2,10,.7) !important;color:var(--dim) !important;font-size:10px !important}
@@ -660,10 +660,9 @@
       scrollWheelZoom: false
     });
 
-    // CartoDB dark matter tiles — no key required
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
+    // OpenStreetMap tiles — free, no key — darkened via CSS filter on the pane
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 14
     }).addTo(map);
 
