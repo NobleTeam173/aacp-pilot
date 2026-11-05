@@ -92,6 +92,21 @@
     @keyframes telem{from{width:65%}to{width:90%}}
     @media(prefers-reduced-motion:reduce){.telem-bar-fill{animation:none;width:72%}}
     @media(width<=960px){.hero-telem{display:none}}
+    /* ── ANIMATED DRONE ── */
+    .hero-drone{position:absolute;right:4vw;top:50%;transform:translateY(-55%);width:360px;pointer-events:none;z-index:2}
+    .drone-float{animation:drone-hover 5s ease-in-out infinite;transform-origin:250px 230px}
+    @keyframes drone-hover{
+      0%,100%{transform:translateY(0px) rotate(0deg)}
+      28%{transform:translateY(-10px) rotate(.9deg)}
+      55%{transform:translateY(-8px) rotate(-.7deg)}
+      78%{transform:translateY(-13px) rotate(.5deg)}
+    }
+    .d-scan{animation:dscan 3s ease-in-out infinite}
+    @keyframes dscan{0%,100%{opacity:.16}50%{opacity:.4}}
+    .d-scan-line{animation:dscan 3s ease-in-out infinite;animation-delay:.4s}
+    @media(prefers-reduced-motion:reduce){.drone-float,.d-scan,.d-scan-line{animation:none}.d-scan{opacity:.2}}
+    @media(width<=1100px){.hero-drone{width:260px;right:1vw}}
+    @media(width<=768px){.hero-drone{display:none}}
 
     /* ── INTRO STRIP ── */
     .intro-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 6vw}
@@ -307,6 +322,147 @@
   <div class="hero-grid" aria-hidden="true"></div>
   <div class="hero-vignette" aria-hidden="true"></div>
   <div class="hero-sweep" aria-hidden="true"></div>
+
+  <!-- ANIMATED QUADCOPTER DRONE -->
+  <div class="hero-drone" aria-hidden="true">
+    <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="dg-body" cx="40%" cy="35%" r="58%">
+          <stop offset="0%" stop-color="#3a3542"/><stop offset="60%" stop-color="#1c1a26"/><stop offset="100%" stop-color="#0e0c16"/>
+        </radialGradient>
+        <radialGradient id="dg-motor" cx="38%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#403a4c"/><stop offset="100%" stop-color="#161422"/>
+        </radialGradient>
+        <radialGradient id="dg-pdisc" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#b8b4c8" stop-opacity="0"/><stop offset="68%" stop-color="#b8b4c8" stop-opacity=".06"/><stop offset="100%" stop-color="#b8b4c8" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="dg-scan" x1=".5" y1="0" x2=".5" y2="1">
+          <stop offset="0%" stop-color="#80011f" stop-opacity=".55"/><stop offset="100%" stop-color="#80011f" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="f-blur"><feGaussianBlur stdDeviation="1.4"/></filter>
+        <filter id="f-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- SCAN CONE -->
+      <polygon class="d-scan" points="250,310 148,492 352,492" fill="url(#dg-scan)"/>
+      <line class="d-scan-line" x1="250" y1="310" x2="250" y2="492" stroke="#80011f" stroke-width=".8" opacity=".25"/>
+
+      <!-- MAIN FLOATING GROUP -->
+      <g class="drone-float">
+
+        <!-- ARMS -->
+        <path d="M244,237 L316,163 L320,167 L254,243Z" fill="#18161e" stroke="#26243a" stroke-width=".6"/>
+        <path d="M256,237 L184,163 L180,167 L246,243Z" fill="#18161e" stroke="#26243a" stroke-width=".6"/>
+        <path d="M256,223 L320,297 L316,301 L246,217Z" fill="#18161e" stroke="#26243a" stroke-width=".6"/>
+        <path d="M244,223 L180,297 L184,301 L254,217Z" fill="#18161e" stroke="#26243a" stroke-width=".6"/>
+        <!-- Arm highlight lines -->
+        <line x1="248" y1="234" x2="317" y2="162" stroke="#32303e" stroke-width="1" opacity=".6"/>
+        <line x1="252" y1="234" x2="183" y2="162" stroke="#32303e" stroke-width="1" opacity=".6"/>
+        <line x1="252" y1="226" x2="318" y2="299" stroke="#32303e" stroke-width="1" opacity=".6"/>
+        <line x1="248" y1="226" x2="182" y2="299" stroke="#32303e" stroke-width="1" opacity=".6"/>
+
+        <!-- MOTOR HOUSINGS (NE, NW, SE, SW) -->
+        <!-- NE 321,159 -->
+        <circle cx="321" cy="159" r="21" fill="url(#dg-motor)" stroke="#2c2a3a" stroke-width="1.5"/>
+        <circle cx="321" cy="159" r="14" fill="#100e1a" stroke="#38364c" stroke-width="1"/>
+        <circle cx="321" cy="159" r="5"  fill="#1e1c2a"/>
+        <circle cx="317" cy="155" r="2.5" fill="#4a4860" opacity=".7"/>
+        <!-- NW 179,159 -->
+        <circle cx="179" cy="159" r="21" fill="url(#dg-motor)" stroke="#2c2a3a" stroke-width="1.5"/>
+        <circle cx="179" cy="159" r="14" fill="#100e1a" stroke="#38364c" stroke-width="1"/>
+        <circle cx="179" cy="159" r="5"  fill="#1e1c2a"/>
+        <circle cx="175" cy="155" r="2.5" fill="#4a4860" opacity=".7"/>
+        <!-- SE 321,301 -->
+        <circle cx="321" cy="301" r="21" fill="url(#dg-motor)" stroke="#2c2a3a" stroke-width="1.5"/>
+        <circle cx="321" cy="301" r="14" fill="#100e1a" stroke="#38364c" stroke-width="1"/>
+        <circle cx="321" cy="301" r="5"  fill="#1e1c2a"/>
+        <circle cx="317" cy="297" r="2.5" fill="#4a4860" opacity=".7"/>
+        <!-- SW 179,301 -->
+        <circle cx="179" cy="301" r="21" fill="url(#dg-motor)" stroke="#2c2a3a" stroke-width="1.5"/>
+        <circle cx="179" cy="301" r="14" fill="#100e1a" stroke="#38364c" stroke-width="1"/>
+        <circle cx="179" cy="301" r="5"  fill="#1e1c2a"/>
+        <circle cx="175" cy="297" r="2.5" fill="#4a4860" opacity=".7"/>
+
+        <!-- PROP MOTION-BLUR DISCS (static semi-transparent) -->
+        <circle cx="321" cy="159" r="46" fill="url(#dg-pdisc)" stroke="#c0bcd0" stroke-width=".5" stroke-opacity=".14"/>
+        <circle cx="179" cy="159" r="46" fill="url(#dg-pdisc)" stroke="#c0bcd0" stroke-width=".5" stroke-opacity=".14"/>
+        <circle cx="321" cy="301" r="46" fill="url(#dg-pdisc)" stroke="#c0bcd0" stroke-width=".5" stroke-opacity=".14"/>
+        <circle cx="179" cy="301" r="46" fill="url(#dg-pdisc)" stroke="#c0bcd0" stroke-width=".5" stroke-opacity=".14"/>
+
+        <!-- ROTATING PROPELLERS — 2 blades each, blurred for motion -->
+        <!-- NE CW -->
+        <g transform="translate(321,159)"><g><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur=".25s" repeatCount="indefinite"/>
+          <path d="M2,-3 C4,-14 8,-30 5,-43 C3,-47 -2,-46 -4,-41 C-7,-28 -3,-11 2,-3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+          <path d="M-2,3 C-4,14 -8,30 -5,43 C-3,47 2,46 4,41 C7,28 3,11 -2,3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+        </g></g>
+        <!-- NW CCW -->
+        <g transform="translate(179,159)"><g><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur=".25s" repeatCount="indefinite"/>
+          <path d="M2,-3 C4,-14 8,-30 5,-43 C3,-47 -2,-46 -4,-41 C-7,-28 -3,-11 2,-3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+          <path d="M-2,3 C-4,14 -8,30 -5,43 C-3,47 2,46 4,41 C7,28 3,11 -2,3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+        </g></g>
+        <!-- SE CCW -->
+        <g transform="translate(321,301)"><g><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur=".25s" repeatCount="indefinite"/>
+          <path d="M2,-3 C4,-14 8,-30 5,-43 C3,-47 -2,-46 -4,-41 C-7,-28 -3,-11 2,-3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+          <path d="M-2,3 C-4,14 -8,30 -5,43 C-3,47 2,46 4,41 C7,28 3,11 -2,3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+        </g></g>
+        <!-- SW CW -->
+        <g transform="translate(179,301)"><g><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur=".25s" repeatCount="indefinite"/>
+          <path d="M2,-3 C4,-14 8,-30 5,-43 C3,-47 -2,-46 -4,-41 C-7,-28 -3,-11 2,-3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+          <path d="M-2,3 C-4,14 -8,30 -5,43 C-3,47 2,46 4,41 C7,28 3,11 -2,3Z" fill="#cac6d8" opacity=".76" filter="url(#f-blur)"/>
+        </g></g>
+
+        <!-- CENTRAL BODY -->
+        <ellipse cx="250" cy="232" rx="46" ry="37" fill="#0a0810" stroke="#1e1c2a" stroke-width="1"/>
+        <ellipse cx="250" cy="230" rx="46" ry="37" fill="url(#dg-body)" stroke="#2a2838" stroke-width="1.5"/>
+        <!-- Panel lines -->
+        <line x1="220" y1="218" x2="280" y2="218" stroke="#201e2e" stroke-width="1" opacity=".65"/>
+        <line x1="220" y1="242" x2="280" y2="242" stroke="#201e2e" stroke-width="1" opacity=".65"/>
+        <line x1="250" y1="195" x2="250" y2="265" stroke="#201e2e" stroke-width="1" opacity=".35"/>
+        <!-- Specular highlight -->
+        <ellipse cx="244" cy="221" rx="22" ry="11" fill="white" opacity=".03"/>
+        <!-- Instrument bay -->
+        <rect x="232" y="222" width="36" height="16" rx="3" fill="#141222" stroke="#28263c" stroke-width=".8"/>
+        <!-- Forward sensor array -->
+        <rect x="241" y="207" width="18" height="6" rx="2" fill="#0c0a16" stroke="#28263c" stroke-width=".6"/>
+        <circle cx="250" cy="210" r="2"   fill="#c8c8e0" opacity=".35"/>
+        <circle cx="244" cy="210" r="1.5" fill="#c8c8e0" opacity=".25"/>
+        <circle cx="256" cy="210" r="1.5" fill="#c8c8e0" opacity=".25"/>
+
+        <!-- STATUS LEDS -->
+        <circle cx="250" cy="195" r="2.5" fill="#cc0028" filter="url(#f-glow)">
+          <animate attributeName="opacity" values="1;.2;1" dur="1.6s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="250" cy="265" r="2.5" fill="#22aa44" filter="url(#f-glow)">
+          <animate attributeName="opacity" values=".2;1;.2" dur="1.6s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- CAMERA GIMBAL -->
+        <ellipse cx="250" cy="250" rx="12" ry="9" fill="#0e0c1a" stroke="#26243c" stroke-width="1"/>
+        <circle cx="250" cy="252" r="7"   fill="#141222" stroke="#2c2a3c" stroke-width=".8"/>
+        <circle cx="250" cy="252" r="4.5" fill="#06040e"/>
+        <circle cx="250" cy="252" r="4.5" fill="none" stroke="#401838" stroke-width="1"/>
+        <ellipse cx="248" cy="250" rx="1.5" ry="1" fill="#6060b0" opacity=".65"/>
+
+        <!-- NAV LIGHTS on motor pods -->
+        <!-- Front-right: green -->
+        <circle cx="321" cy="159" r="3.5" fill="#00cc44" filter="url(#f-glow)">
+          <animate attributeName="opacity" values=".9;.15;.9" dur="1.3s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Front-left: red -->
+        <circle cx="179" cy="159" r="3.5" fill="#cc0022" filter="url(#f-glow)">
+          <animate attributeName="opacity" values=".15;.9;.15" dur="1.3s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Rear strobes: white -->
+        <circle cx="321" cy="301" r="3" fill="#ffffff" opacity=".55">
+          <animate attributeName="opacity" values=".55;.08;.55" dur=".85s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="179" cy="301" r="3" fill="#ffffff" opacity=".55">
+          <animate attributeName="opacity" values=".08;.55;.08" dur=".85s" repeatCount="indefinite"/>
+        </circle>
+
+      </g><!-- end drone-float -->
+    </svg>
+  </div>
 
   <div class="hero-telem" aria-hidden="true">
     <div class="telem-row">
