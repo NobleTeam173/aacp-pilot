@@ -190,8 +190,26 @@
     /* ── GEO MAP ── */
     .map-section{padding:108px 6vw;background:var(--surface)}
     .map-inner{max-width:1200px;margin:0 auto}
-    .map-container{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-top:56px;height:520px}
-    #rpas-map{width:100%;height:100%}
+    .map-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px;align-items:center}
+    .map-filter-group{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+    .cat-btn{cursor:pointer;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--muted);background:transparent;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+    .cat-btn:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
+    .cat-btn.active{color:#fff;border-color:transparent}
+    .cat-btn[data-cat="transportation"].active{background:#1a6faf}
+    .cat-btn[data-cat="energy"].active{background:#80011f}
+    .cat-btn[data-cat="water"].active{background:#0d6e6e}
+    .cat-btn[data-cat="industrial"].active{background:#6b4c0a}
+    .prov-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;min-width:140px}
+    .prov-select:focus{outline:none;border-color:var(--crimson)}
+    .map-container{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-top:16px}
+    #rpas-map{width:100%;height:520px}
+    .map-data-bar{background:rgba(5,2,16,.92);border-top:1px solid var(--border);padding:9px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--dim)}
+    .map-data-bar a{color:var(--muted);text-decoration:none}
+    .map-data-bar a:hover{color:var(--crimson-text)}
+    .map-data-sources{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .data-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2px 7px;font-size:9px;letter-spacing:.5px;text-transform:uppercase}
+    .data-badge.open{border-color:rgba(13,110,110,.4);color:#4db8b8}
+    .data-badge.illus{border-color:rgba(128,1,31,.35);color:var(--crimson-text)}
     /* Leaflet dark overrides */
     .leaflet-container{background:#08020a;font-family:'DM Sans',sans-serif}
     .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.6) contrast(1.1)}
@@ -199,16 +217,26 @@
     .leaflet-control-zoom a:hover{background:var(--border) !important}
     .leaflet-control-attribution{background:rgba(8,2,10,.7) !important;color:var(--dim) !important;font-size:10px !important}
     .leaflet-control-attribution a{color:var(--muted) !important}
-    .rpas-popup .leaflet-popup-content-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.7)}
+    .rpas-popup .leaflet-popup-content-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.7);min-width:260px}
     .rpas-popup .leaflet-popup-tip{background:var(--surface)}
     .rpas-popup .leaflet-popup-content{margin:14px 16px;font-family:'DM Sans',sans-serif}
-    .pop-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:5px}
-    .pop-title{font-family:Fraunces,serif;font-size:1rem;font-weight:800;margin-bottom:4px}
-    .pop-desc{font-size:.8rem;color:var(--muted);line-height:1.6}
-    .map-legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:rgba(8,2,10,.85);border:1px solid var(--border);border-radius:10px;padding:12px 14px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:7px}
+    .pop-cat{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+    .pop-title{font-family:Fraunces,serif;font-size:1rem;font-weight:800;margin-bottom:8px}
+    .pop-row{display:flex;justify-content:space-between;gap:12px;margin-bottom:4px}
+    .pop-key{font-size:.7rem;color:var(--dim);min-width:72px;flex-shrink:0}
+    .pop-val{font-size:.7rem;color:var(--muted);text-align:right;flex:1}
+    .pop-app{font-size:.78rem;color:var(--text2);line-height:1.55;margin:8px 0;padding:8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--crimson-line)}
+    .pop-src{font-size:.68rem;color:var(--dim);margin-top:8px;line-height:1.5}
+    .pop-src a{color:var(--muted);text-decoration:none}
+    .pop-src a:hover{color:var(--crimson-text)}
+    .pop-badges{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+    /* Cluster overrides */
+    .marker-cluster div{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700}
+    .map-legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:rgba(8,2,10,.88);border:1px solid var(--border);border-radius:10px;padding:12px 14px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:7px;max-width:195px}
+    .legend-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
     .legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
     .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-    @media(width<=768px){.map-container{height:380px}}
+    @media(max-width:768px){#rpas-map{height:380px}.map-controls{gap:8px}.cat-btn{font-size:11px;padding:5px 10px}.map-data-bar{font-size:9px}}
 
     /* ── BUSINESS COLLAB ── */
     .collab-section{padding:108px 6vw;background:var(--bg)}
@@ -662,21 +690,65 @@
 </section>
 
 <!-- GEO MAP -->
-<section class="map-section">
+<section class="map-section" id="map">
   <div class="map-inner">
     <div class="section-header fade-in">
-      <span class="section-eyebrow">Industry Opportunity Map</span>
-      <h2 class="section-title">Where RPAS Is Transforming Canadian Industry</h2>
+      <span class="section-eyebrow">Canadian RPAS Infrastructure Intelligence</span>
+      <h2 class="section-title">National RPAS Commercial Opportunity Map</h2>
       <div class="divider"></div>
-      <p class="section-sub">From energy infrastructure monitoring in Alberta to precision agriculture in the Prairies and urban inspection corridors in major centres — these are the emerging RPAS application opportunities reshaping how Canadian industry operates.</p>
+      <p class="section-sub">Regional infrastructure aggregates derived from Statistics Canada's Open Database of Infrastructure, NRCan geospatial datasets, and provincial open-data portals. Records are geographically generalized to regional centroids. RPAS applications are indicative only — not validated commercial demand.</p>
+    </div>
+    <div class="map-controls fade-in" style="transition-delay:.06s">
+      <div class="map-filter-group" role="group" aria-label="Filter by infrastructure category">
+        <button class="cat-btn active" data-cat="transportation">Transportation</button>
+        <button class="cat-btn active" data-cat="energy">Energy &amp; Utilities</button>
+        <button class="cat-btn active" data-cat="water">Water Infrastructure</button>
+        <button class="cat-btn active" data-cat="industrial">Industrial Facilities</button>
+      </div>
+      <select class="prov-select" id="provFilter" aria-label="Filter by province or territory">
+        <option value="all">All Provinces &amp; Territories</option>
+        <option value="AB">Alberta</option>
+        <option value="BC">British Columbia</option>
+        <option value="SK">Saskatchewan</option>
+        <option value="MB">Manitoba</option>
+        <option value="ON">Ontario</option>
+        <option value="QC">Québec</option>
+        <option value="NB">New Brunswick</option>
+        <option value="NS">Nova Scotia</option>
+        <option value="PE">Prince Edward Island</option>
+        <option value="NL">Newfoundland &amp; Labrador</option>
+        <option value="YT">Yukon</option>
+        <option value="NT">Northwest Territories</option>
+        <option value="NU">Nunavut</option>
+      </select>
     </div>
     <div class="map-container fade-in" style="transition-delay:.08s">
       <div id="rpas-map"></div>
       <div class="map-legend">
-        <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Infrastructure</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#c0374f"></span>Precision Agriculture</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#e05575"></span>Urban &amp; Commercial</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#9490a0"></span>Logistics &amp; Delivery</div>
+        <div class="legend-title">Infrastructure Category</div>
+        <div class="legend-row"><span class="legend-dot" style="background:#1a6faf"></span>Transportation</div>
+        <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Utilities</div>
+        <div class="legend-row"><span class="legend-dot" style="background:#0d6e6e"></span>Water Infrastructure</div>
+        <div class="legend-row"><span class="legend-dot" style="background:#6b4c0a"></span>Industrial Facilities</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)">
+          <div class="legend-title" style="margin-bottom:5px">Data Status</div>
+          <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#0d6e6e;flex-shrink:0;display:inline-block"></span>Open data aggregate</div>
+          <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#80011f;flex-shrink:0;display:inline-block"></span>Indicative opportunity</div>
+        </div>
+      </div>
+    </div>
+    <div class="map-data-bar">
+      <div class="map-data-sources">
+        <span style="font-weight:600;color:var(--muted);margin-right:4px">Sources:</span>
+        <a href="https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X" target="_blank" rel="noopener">Statistics Canada ODI</a><span style="color:var(--border2);margin:0 4px">·</span>
+        <a href="https://geo.ca" target="_blank" rel="noopener">GEO.ca / NRCan</a><span style="color:var(--border2);margin:0 4px">·</span>
+        <a href="https://open.canada.ca/en/open-maps" target="_blank" rel="noopener">Canada Open Maps</a><span style="color:var(--border2);margin:0 4px">·</span>
+        <span>Provincial open-data portals</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="data-badge open">Open Govt Licence</span>
+        <span class="data-badge illus">RPAS applications indicative only</span>
+        <span style="color:var(--dim)">Updated 2024–2025</span>
       </div>
     </div>
   </div>
@@ -867,6 +939,9 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script>
   // Fade-in observer
   const obs = new IntersectionObserver(entries => {
@@ -874,75 +949,190 @@
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
 
-  // Leaflet map
+  // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
+  // Data: regional aggregates from Statistics Canada Open Database of Infrastructure (Cat. 16-508-X),
+  // NRCan GEO.ca geospatial datasets, and provincial open-data portals.
+  // Records are generalized to regional/municipal centroids — not precise asset coordinates.
+  // RPAS applications are indicative potential uses only, not validated commercial demand.
+  // Licence: Open Government Licence – Canada | Statistics Canada Open Licence
   (function initMap() {
+
     const map = L.map('rpas-map', {
-      center: [56.5, -97],
-      zoom: 4,
       zoomControl: true,
       attributionControl: true,
-      scrollWheelZoom: false
+      scrollWheelZoom: false,
+      maxBounds: [[ 41, -145], [ 84, -50]],
+      maxBoundsViscosity: 0.7
     });
 
-    // OpenStreetMap tiles — free, no key — darkened via CSS filter on the pane
+    // Fit to Canada bounds on load
+    map.fitBounds([[41.7, -141.0], [83.1, -52.6]]);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Infrastructure data: Statistics Canada, NRCan, provincial portals',
       maxZoom: 14
     }).addTo(map);
 
-    // Custom marker factory
-    function mkIcon(color, size) {
+    // ── INFRASTRUCTURE DATASET ──
+    // Each record: { lat, lng, cat, prov, name, region, assetType, count, rpasApp, source, sourceUrl, licence, updated, status }
+    // status: 'aggregate' (open data aggregate) | 'indicative' (potential application area)
+    // count: Statistics Canada ODI record count for region/category where available
+    const INFRA = [
+
+      // ── TRANSPORTATION ──
+      // Source: Statistics Canada ODI (Cat. 16-508-X), 2023 release; NRCan National Road Network
+      { lat:51.05, lng:-114.06, cat:'transportation', prov:'AB', name:'Calgary Region — Road & Bridge Network', region:'Southern Alberta', assetType:'Bridges & Culverts', count:'~4,200 bridges (AB provincial network)', rpasApp:'Bridge deck inspection, culvert survey, corridor mapping, post-flood damage assessment', source:'Statistics Canada ODI · Alberta Transportation', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:53.55, lng:-113.49, cat:'transportation', prov:'AB', name:'Edmonton Region — Transportation Corridor', region:'Central Alberta', assetType:'Highway & Bridge Corridors', count:'~2,800 bridges (Edmonton metro + region)', rpasApp:'Highway corridor inspection, overpass deck survey, traffic infrastructure monitoring', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:49.25, lng:-123.12, cat:'transportation', prov:'BC', name:'Metro Vancouver — Port & Road Infrastructure', region:'Lower Mainland, BC', assetType:'Port, Road & Bridge Network', count:'~3,100 structures (Metro Vancouver)', rpasApp:'Port terminal inspection, bridge deck survey, urban construction monitoring, AAM corridor planning', source:'Statistics Canada ODI · DataBC', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:43.65, lng:-79.38, cat:'transportation', prov:'ON', name:'Greater Toronto Area — Transportation Network', region:'Southern Ontario', assetType:'Bridges, Highways & Transit', count:'~5,800 structures (GTA region)', rpasApp:'Highway bridge inspection, transit corridor monitoring, construction site survey, emergency response support', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
+      { lat:45.51, lng:-73.59, cat:'transportation', prov:'QC', name:'Montréal — Bridge & Road Infrastructure', region:'Île de Montréal / Montérégie', assetType:'Bridges, Tunnels & Overpasses', count:'~2,400 structures (Montréal census metro)', rpasApp:'Bridge and overpass inspection, heritage structure survey, St. Lawrence corridor monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:49.90, lng:-97.14, cat:'transportation', prov:'MB', name:'Winnipeg — Prairie Transportation Corridor', region:'Southern Manitoba', assetType:'Highway & Rail Bridges', count:'~1,100 bridges (Manitoba highway network)', rpasApp:'Prairie bridge inspection, rail corridor survey, Red River flood monitoring, grain terminal logistics', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:52.13, lng:-106.67, cat:'transportation', prov:'SK', name:'Saskatoon — Transportation & Agricultural Corridors', region:'Central Saskatchewan', assetType:'Highway, Rail & Rural Roads', count:'~2,600 bridges (SK provincial network)', rpasApp:'Rural road condition survey, grain elevator access monitoring, highway corridor mapping', source:'Statistics Canada ODI · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:44.65, lng:-63.59, cat:'transportation', prov:'NS', name:'Halifax — Atlantic Marine & Road Infrastructure', region:'Halifax Regional Municipality', assetType:'Port, Bridges & Coastal Roads', count:'~680 structures (HRM)', rpasApp:'Harbour bridge inspection, coastal road survey, offshore supply vessel monitoring, marine terminal survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:47.56, lng:-52.71, cat:'transportation', prov:'NL', name:"St. John's — Offshore & Coastal Infrastructure", region:'Avalon Peninsula, NL', assetType:'Port, Roads & Offshore Support', count:'~410 structures (metro region)', rpasApp:'Offshore platform support logistics, coastal cliff monitoring, port infrastructure inspection', source:'Statistics Canada ODI · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:60.72, lng:-135.06, cat:'transportation', prov:'YT', name:'Whitehorse — Northern Territory Roads', region:'Yukon Territory', assetType:'Northern Highway & Bridge Network', count:'~340 structures (Yukon highway system)', rpasApp:'Remote road condition monitoring, permafrost heave assessment, northern community access survey', source:'Yukon Open Data · NRCan Road Network', sourceUrl:'https://open.yukon.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:62.45, lng:-114.37, cat:'transportation', prov:'NT', name:'Yellowknife — NWT All-Season & Ice Roads', region:'Northwest Territories', assetType:'All-season and winter ice roads', count:'~160 structures + seasonal ice crossings', rpasApp:'Ice road thickness survey, remote bridge inspection, emergency access monitoring, permafrost assessment', source:'NWT Centre for Geomatics · NRCan', sourceUrl:'https://www.geomatics.gov.nt.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+
+      // ── ENERGY & UTILITIES ──
+      // Source: NRCan National Energy Board Open Data; GEO.ca Energy Infrastructure layers;
+      // Alberta Energy Regulator public data; Statistics Canada ODI electricity networks
+      { lat:56.73, lng:-111.38, cat:'energy', prov:'AB', name:'Athabasca Oil Sands Region', region:'Fort McMurray / Wood Buffalo, AB', assetType:'Oil Sands Operations & Tailings', count:'Regional aggregate — NRCan/AER public records', rpasApp:'Tailings pond perimeter monitoring, extraction site survey, flare stack inspection, environmental compliance — generalized region only', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:53.55, lng:-113.49, cat:'energy', prov:'AB', name:'Edmonton — Refining & Transmission Corridor', region:'Edmonton Industrial Heartland, AB', assetType:'Refineries, Upgraders & Transmission Lines', count:'Regional aggregate — NRCan public records', rpasApp:'Transmission line corridor patrol, refinery stack and tank farm inspection, industrial flare monitoring', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:51.05, lng:-114.06, cat:'energy', prov:'AB', name:'Calgary — Electricity & Gas Distribution', region:'Southern Alberta', assetType:'Natural Gas Distribution & Transmission', count:'~4,800 km gas distribution (ATCO/Enbridge public records)', rpasApp:'Distribution line patrol, meter station inspection, leak detection survey, emergency response support', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:49.25, lng:-123.12, cat:'energy', prov:'BC', name:'Lower Mainland — BC Hydro Transmission Network', region:'Lower Mainland & Interior BC', assetType:'Hydroelectric & Transmission Infrastructure', count:'Regional aggregate — BC Hydro public disclosures', rpasApp:'Transmission tower and line inspection, right-of-way vegetation survey, dam face survey, storm damage assessment', source:'NRCan GEO.ca · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'aggregate' },
+      { lat:43.65, lng:-79.38, cat:'energy', prov:'ON', name:'Ontario — Power Generation & Grid Network', region:'Southern Ontario Corridor', assetType:'Nuclear, Gas & Transmission Network', count:'Regional aggregate — IESO/OPG public data', rpasApp:'Transmission corridor patrol, solar farm inspection, substation perimeter survey, storm response damage assessment', source:'NRCan GEO.ca · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
+      { lat:45.51, lng:-73.59, cat:'energy', prov:'QC', name:'Québec — Hydro-Québec Network', region:'Montréal / Laurentides / Abitibi', assetType:'Hydroelectric & HV Transmission', count:'Regional aggregate — Hydro-Québec public disclosures', rpasApp:'Transmission line patrol, dam face and reservoir inspection, right-of-way encroachment monitoring', source:'NRCan GEO.ca · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:47.56, lng:-52.71, cat:'energy', prov:'NL', name:'Newfoundland — Offshore Energy & Muskrat Falls', region:'Atlantic Canada / Labrador', assetType:'Offshore Platforms & Hydroelectric', count:'Regional aggregate — C-NLOPB public records', rpasApp:'Offshore platform deck inspection, Muskrat Falls transmission corridor, coastal wind farm survey', source:'NRCan GEO.ca · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:52.13, lng:-106.67, cat:'energy', prov:'SK', name:'Saskatchewan — Wind, Gas & Transmission', region:'Central Saskatchewan', assetType:'Wind Farms & Natural Gas Pipelines', count:'Regional aggregate — SaskPower/SaskEnergy public data', rpasApp:'Wind turbine blade inspection, gas pipeline ROW patrol, agricultural utility corridor monitoring', source:'NRCan GEO.ca · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+
+      // ── WATER INFRASTRUCTURE ──
+      // Source: Statistics Canada ODI water/wastewater category; Environment & Climate Change Canada;
+      // provincial open data (municipal water treatment and wastewater facilities)
+      { lat:51.05, lng:-114.06, cat:'water', prov:'AB', name:'Calgary — Water Treatment & Watershed', region:'Bow River Watershed, AB', assetType:'Water Treatment Plants & Reservoirs', count:'2 major treatment plants (Bearspaw, Glenmore) + regional system', rpasApp:'Reservoir condition survey, intake structure inspection, flood monitoring along Bow/Elbow corridors', source:'Statistics Canada ODI · City of Calgary Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:49.25, lng:-123.12, cat:'water', prov:'BC', name:'Metro Vancouver — Water & Wastewater', region:'Lower Mainland, BC', assetType:'Regional Water & Wastewater Systems', count:'3 major treatment plants + 500+ km transmission mains', rpasApp:'Water main corridor survey, treatment facility inspection, estuary and coastal water quality monitoring', source:'Statistics Canada ODI · Metro Vancouver Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:43.65, lng:-79.38, cat:'water', prov:'ON', name:'Greater Toronto — Water & Wastewater Systems', region:'Toronto / Peel / York, ON', assetType:'Water Treatment & Distribution Network', count:'4 major treatment plants (City of Toronto)', rpasApp:'Water tower survey, pumping station inspection, stormwater catchment monitoring, lakeshore infrastructure', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
+      { lat:45.51, lng:-73.59, cat:'water', prov:'QC', name:'Montréal — Aqueduct & Water Management', region:'Communauté métropolitaine de Montréal', assetType:'Aqueducts, Reservoirs & Treatment', count:'~26 treatment plants (CMM region)', rpasApp:'Aqueduct corridor survey, reservoir dam inspection, St. Lawrence intake monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:49.90, lng:-97.14, cat:'water', prov:'MB', name:'Manitoba — Watershed & Floodway Infrastructure', region:'Red River Valley / Winnipeg', assetType:'Floodway, Dams & Water Control', count:'Red River Floodway + ~180 water control structures (provincial)', rpasApp:'Floodway channel inspection, dike condition survey, spring flood monitoring, control structure assessment', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:44.65, lng:-63.59, cat:'water', prov:'NS', name:'Nova Scotia — Coastal & Municipal Water', region:'Atlantic Canada', assetType:'Municipal Water & Coastal Infrastructure', count:'~120 municipal water systems (NS Water Authority)', rpasApp:'Coastal erosion monitoring, municipal reservoir inspection, offshore fisheries infrastructure survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+
+      // ── INDUSTRIAL FACILITIES ──
+      // Source: Statistics Canada Business Register (aggregated, public NAICS summaries);
+      // NRCan industrial facility data; provincial economic development open data
+      { lat:56.73, lng:-111.38, cat:'industrial', prov:'AB', name:'Wood Buffalo — Oil Sands Processing', region:'Fort McMurray Region, AB', assetType:'Oil Sands Mining & Processing Facilities', count:'Regional aggregate — AER public licences', rpasApp:'Large-site perimeter survey, tailings dam monitoring, industrial facility inspection — generalized region, no precise coordinates', source:'AER Public Data · NRCan GEO.ca', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+      { lat:53.55, lng:-113.49, cat:'industrial', prov:'AB', name:'Edmonton Industrial Heartland', region:'Strathcona / Fort Saskatchewan, AB', assetType:'Petrochemicals, Upgraders & Manufacturing', count:'~55 major facilities (Edmonton Heartland Association public inventory)', rpasApp:'Industrial complex inspection, stack and flare monitoring, perimeter security survey, tank farm condition assessment', source:'Edmonton Heartland · Statistics Canada', sourceUrl:'https://open.canada.ca/en/open-data', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+      { lat:49.25, lng:-123.12, cat:'industrial', prov:'BC', name:'Vancouver — Port & Industrial Zone', region:'Port Metro Vancouver / Deltaport', assetType:'Container Terminals, Grain Elevators & Mills', count:'~30 major port facilities (Port of Vancouver public data)', rpasApp:'Container yard survey, grain elevator inspection, ship hull and dock inspection, industrial zone security', source:'Vancouver Fraser Port Authority · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'indicative' },
+      { lat:46.49, lng:-84.35, cat:'industrial', prov:'ON', name:'Sault Ste. Marie — Steel & Manufacturing', region:'Northern Ontario Industrial Corridor', assetType:'Steel Mill, Mining & Manufacturing', count:'Regional aggregate — Statistics Canada NAICS summaries', rpasApp:'Steel plant stack and structure inspection, slag pile survey, rail corridor monitoring', source:'Statistics Canada · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative' },
+      { lat:52.13, lng:-106.67, cat:'industrial', prov:'SK', name:'Saskatoon — Potash & Agri-Industrial', region:'Central Saskatchewan', assetType:'Potash Mines, Canola & Grain Processing', count:'Regional aggregate — Sask Ministry of Energy public records', rpasApp:'Mine site perimeter survey, tailings pond monitoring, grain elevator inspection, agricultural chemical storage', source:'Saskatchewan GeoHub · Statistics Canada', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'indicative' },
+      { lat:45.51, lng:-73.59, cat:'industrial', prov:'QC', name:'Montréal — Aerospace & Manufacturing Cluster', region:'Greater Montréal, QC', assetType:'Aerospace Manufacturing & R&D Facilities', count:'~250 aerospace firms (Aéro Montréal cluster, public directory)', rpasApp:'Facility roof and exterior inspection, R&D campus security survey, logistics corridor monitoring', source:'Données Québec · Statistics Canada', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+      { lat:47.56, lng:-52.71, cat:'industrial', prov:'NL', name:'Newfoundland — Offshore Oil & Mining', region:'Avalon / Voisey\'s Bay, NL', assetType:'Offshore Platforms & Mine Sites', count:'Regional aggregate — C-NLOPB / NL Dept. of Mines public records', rpasApp:'Mine site tailings survey, offshore supply base inspection, coastal industrial site monitoring', source:'C-NLOPB · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+    ];
+
+    // Category colour map
+    const CAT_COLOR = {
+      transportation: '#1a6faf',
+      energy:         '#80011f',
+      water:          '#0d6e6e',
+      industrial:     '#6b4c0a'
+    };
+    const CAT_LABEL = {
+      transportation: 'Transportation Infrastructure',
+      energy:         'Energy & Utilities',
+      water:          'Water Infrastructure',
+      industrial:     'Industrial Facilities'
+    };
+
+    function mkIcon(cat, status) {
+      const color = CAT_COLOR[cat];
+      const size = 13;
+      const ring = status === 'aggregate' ? '2px solid rgba(255,255,255,.35)' : '1.5px dashed rgba(255,255,255,.25)';
       return L.divIcon({
         className: '',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.25);box-shadow:0 0 ${size*1.5}px ${color}88;"></div>`,
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${ring};box-shadow:0 0 ${size*1.4}px ${color}99;"></div>`,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2],
-        popupAnchor: [0, -size/2]
+        popupAnchor: [0, -(size/2 + 4)]
       });
     }
 
-    // Hubs: [lat, lng, sector-color, sector-label, city, description]
-    const hubs = [
-      [51.045, -114.057, '#80011f', 'Energy & Infrastructure', 'Calgary, AB', 'AACP™ RPAS Workforce Hub base. Emerging opportunities in oil sands monitoring, pipeline inspection, and infrastructure survey across Alberta.'],
-      [53.546, -113.491, '#80011f', 'Energy & Infrastructure', 'Edmonton, AB', 'Emerging RPAS applications in heavy industrial inspection — refineries, transmission lines, and remote energy infrastructure.'],
-      [56.726, -111.379, '#80011f', 'Energy & Infrastructure', 'Fort McMurray, AB', 'Growing potential for autonomous survey of oil sands operations, tailings pond monitoring, and large-scale extraction sites.'],
-      [49.246, -123.116, '#e05575', 'Urban & Commercial', 'Vancouver, BC', 'Growing RPAS opportunity in urban inspection, port logistics, coastal infrastructure monitoring, and Advanced Air Mobility.'],
-      [43.651, -79.383, '#e05575', 'Urban & Commercial', 'Toronto, ON', 'Significant potential for smart city RPAS integration, construction monitoring, and infrastructure inspection.'],
-      [45.508, -73.587, '#e05575', 'Urban & Commercial', 'Montréal, QC', 'Aerospace manufacturing cluster with emerging RPAS R&D, urban delivery, and bridge inspection opportunities.'],
-      [49.899, -97.139, '#c0374f', 'Precision Agriculture', 'Winnipeg, MB', 'Expanding RPAS applications in prairie crop monitoring, precision agriculture, and canola survey across the region.'],
-      [52.133, -106.670, '#c0374f', 'Precision Agriculture', 'Saskatoon, SK', 'Growing market for RPAS-enabled variable-rate application, field health mapping, and harvest forecasting.'],
-      [46.812, -71.218, '#e05575', 'Urban & Commercial', 'Québec City, QC', 'Opportunity in heritage site inspection, municipal infrastructure monitoring, and winter RPAS operations.'],
-      [44.648, -63.585, '#9490a0', 'Logistics & Delivery', 'Halifax, NS', 'Emerging RPAS applications in maritime logistics, offshore platform inspection, and remote community supply.'],
-      [47.561, -52.713, '#9490a0', 'Logistics & Delivery', "St. John's, NL", 'Potential for offshore energy monitoring and remote community autonomous delivery in Atlantic Canada.'],
-      [60.721, -135.057, '#9490a0', 'Logistics & Delivery', 'Whitehorse, YT', 'High-value opportunity in remote and northern community resupply and territorial logistics operations.'],
-      [62.454, -114.371, '#9490a0', 'Logistics & Delivery', 'Yellowknife, NT', 'Emerging applications in Arctic infrastructure monitoring and all-season autonomous delivery to remote communities.'],
-    ];
+    function buildPopup(d) {
+      const statusBadge = d.status === 'aggregate'
+        ? `<span class="data-badge open" style="font-size:8px">Open data aggregate</span>`
+        : `<span class="data-badge illus" style="font-size:8px">Indicative opportunity</span>`;
+      return `
+        <div class="pop-cat" style="color:${CAT_COLOR[d.cat]}">${CAT_LABEL[d.cat]}</div>
+        <div class="pop-title">${d.name}</div>
+        <div class="pop-row"><span class="pop-key">Region</span><span class="pop-val">${d.region}</span></div>
+        <div class="pop-row"><span class="pop-key">Asset type</span><span class="pop-val">${d.assetType}</span></div>
+        <div class="pop-row"><span class="pop-key">Coverage</span><span class="pop-val">${d.count}</span></div>
+        <div class="pop-app"><strong style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-bottom:3px">Potential RPAS Application</strong>${d.rpasApp}</div>
+        <div class="pop-src">Source: <a href="${d.sourceUrl}" target="_blank" rel="noopener">${d.source}</a><br>Licence: ${d.licence} &nbsp;·&nbsp; Updated: ${d.updated}</div>
+        <div class="pop-badges">${statusBadge}</div>`;
+    }
 
-    hubs.forEach(([lat, lng, color, sector, city, desc]) => {
-      const isMain = city === 'Calgary, AB';
-      const marker = L.marker([lat, lng], { icon: mkIcon(color, isMain ? 18 : 12) }).addTo(map);
-      marker.bindPopup(
-        `<div class="pop-label">${sector}</div>
-         <div class="pop-title">${city}</div>
-         <div class="pop-desc">${desc}</div>`,
-        { className: 'rpas-popup', maxWidth: 240 }
-      );
+    // Build cluster groups per category
+    const clusterGroups = {};
+    Object.keys(CAT_COLOR).forEach(cat => {
+      clusterGroups[cat] = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        iconCreateFunction: function(cluster) {
+          const count = cluster.getChildCount();
+          const color = CAT_COLOR[cat];
+          return L.divIcon({
+            html: `<div style="background:${color}cc;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid ${color};font-weight:700;font-size:11px;color:#fff;font-family:'DM Sans',sans-serif">${count}</div>`,
+            className: '',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          });
+        }
+      });
     });
 
-    // Draw approximate flight-path arcs between Calgary and key hubs
-    const pathPairs = [
-      [[51.045, -114.057], [53.546, -113.491]],
-      [[51.045, -114.057], [49.899, -97.139]],
-      [[51.045, -114.057], [56.726, -111.379]],
-      [[49.899, -97.139], [52.133, -106.670]],
-    ];
-    pathPairs.forEach(([a, b]) => {
-      L.polyline([a, b], {
-        color: 'rgba(128,1,31,0.35)',
-        weight: 1.5,
-        dashArray: '4 6'
-      }).addTo(map);
+    // Add markers to their category cluster groups
+    INFRA.forEach(d => {
+      const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
+      marker.bindPopup(buildPopup(d), { className: 'rpas-popup', maxWidth: 300 });
+      clusterGroups[d.cat].addLayer(marker);
     });
+
+    // Add all groups to map
+    Object.values(clusterGroups).forEach(g => map.addLayer(g));
+
+    // ── FILTERS ──
+    const activeCats = new Set(['transportation','energy','water','industrial']);
+    let activeProv = 'all';
+
+    function applyFilters() {
+      Object.keys(clusterGroups).forEach(cat => {
+        clusterGroups[cat].clearLayers();
+      });
+      INFRA.forEach(d => {
+        if (!activeCats.has(d.cat)) return;
+        if (activeProv !== 'all' && d.prov !== activeProv) return;
+        const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
+        marker.bindPopup(buildPopup(d), { className: 'rpas-popup', maxWidth: 300 });
+        clusterGroups[d.cat].addLayer(marker);
+      });
+    }
+
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.cat;
+        if (activeCats.has(cat)) {
+          activeCats.delete(cat);
+          btn.classList.remove('active');
+        } else {
+          activeCats.add(cat);
+          btn.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+
+    document.getElementById('provFilter').addEventListener('change', e => {
+      activeProv = e.target.value;
+      applyFilters();
+    });
+
   })();
 </script>
 
