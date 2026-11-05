@@ -271,6 +271,32 @@
     .ri-live-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(13,110,110,.18);border:1px solid rgba(13,110,110,.35);color:#4db8b8;font-size:.64rem;font-weight:600;letter-spacing:.4px;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
     .ri-live-badge::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#4db8b8;animation:livePulse 2s ease-in-out infinite}
     @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.4}}
+    /* ── Municipal / AACP RI Panel ── */
+    .municipal-marker-pulse{width:22px;height:22px;position:relative}
+    .municipal-marker-core{width:14px;height:14px;border-radius:50%;background:#c8961c;border:2px solid rgba(200,150,28,.85);box-shadow:0 0 10px #c8961c88;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+    .municipal-marker-pulse::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:rgba(200,150,28,.2);animation:municipalPulse 2.2s ease-out infinite}
+    @keyframes municipalPulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:1}100%{transform:translate(-50%,-50%) scale(1.9);opacity:0}}
+    .ri-aacp-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(200,150,28,.1);border:1px solid rgba(200,150,28,.3);color:#c8961c;font-size:.6rem;font-weight:700;letter-spacing:1px;border-radius:4px;padding:2px 7px;margin-bottom:7px;text-transform:uppercase}
+    .ri-municipal-title{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:600;color:var(--text);line-height:1.2;margin-bottom:3px}
+    .ri-municipal-sub{font-size:.71rem;color:var(--muted);margin-bottom:0;padding-bottom:10px;border-bottom:1px solid var(--border)}
+    .ri-domain-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 14px 6px}
+    .ri-domain-card{background:rgba(5,2,16,.7);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+    .ri-domain-label{font-size:.63rem;color:var(--dim);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
+    .ri-domain-status{font-size:.8rem;font-weight:600;color:var(--text2)}
+    .ri-domain-status.ds-established{color:#4db8b8}
+    .ri-domain-status.ds-documented{color:#a8c8e8}
+    .ri-domain-status.ds-route{color:#c8b87a}
+    .ri-domain-status.ds-indicative{color:var(--muted)}
+    .ri-apps-section,.ri-valid-section,.ri-wforce-section,.ri-sources-section{padding:8px 14px}
+    .ri-ms-label{font-size:.63rem;color:var(--dim);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
+    .ri-app-chip{display:inline-block;background:rgba(26,111,175,.1);border:1px solid rgba(26,111,175,.25);color:#7ab8e8;font-size:.67rem;border-radius:4px;padding:3px 8px;margin:0 4px 4px 0}
+    .ri-ms-body{font-size:.71rem;color:var(--muted);line-height:1.6}
+    .ri-source-row{display:block;font-size:.67rem;color:var(--muted);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .ri-source-row:last-child{border-bottom:none}
+    .ri-source-row a{color:#7ab8e8;text-decoration:none}
+    .ri-source-row a:hover{text-decoration:underline}
+    .ri-aacp-note{margin:4px 14px 14px;background:rgba(200,150,28,.05);border:1px solid rgba(200,150,28,.18);border-radius:8px;padding:10px 12px;font-size:.69rem;color:var(--muted);line-height:1.6}
+    .ri-aacp-note strong{color:#c8961c;display:block;font-size:.61rem;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}
     .ri-wf-row{background:rgba(5,2,16,.6);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
     .ri-wf-noc{font-size:.68rem;color:var(--dim);letter-spacing:.5px;margin-bottom:2px}
     .ri-wf-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -1200,7 +1226,57 @@
     return 'outlook-fair';
   }
 
+  function renderMunicipalPanel(d) {
+    const panel = document.getElementById('riPanel');
+    document.getElementById('riEmpty').hidden = true;
+    panel.classList.remove('empty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    riContent.hidden = false;
+
+    riHeader.innerHTML = `
+      <div style="padding:14px 14px 10px">
+        <div class="ri-aacp-badge">◈ &nbsp;AACP™ Regional Intelligence</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div class="ri-municipal-title">${d.name}, ${d.prov}</div>
+          <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+        </div>
+        <div class="ri-municipal-sub">${d.subTitle}</div>
+      </div>`;
+
+    const statusClass = s => s === 'Established' ? 'ds-established' : s === 'Documented' ? 'ds-documented' : s.startsWith('Highway') || s.startsWith('Route') ? 'ds-route' : 'ds-indicative';
+    const domainCards = (d.domains || []).map(dom => `
+      <div class="ri-domain-card">
+        <div class="ri-domain-label">${dom.label}</div>
+        <div class="ri-domain-status ${statusClass(dom.status)}">${dom.status}</div>
+      </div>`).join('');
+    const appChips = (d.rpasApps || []).map(a => `<span class="ri-app-chip">${a}</span>`).join('');
+    const sourceRows = (d.sources || []).map(s => `<div class="ri-source-row"><a href="${s.url}" target="_blank" rel="noopener">${s.label} ↗</a></div>`).join('');
+
+    riBody.innerHTML = `
+      <div class="ri-domain-grid">${domainCards}</div>
+      <div class="ri-apps-section">
+        <div class="ri-ms-label">Potential RPAS Application Areas</div>
+        ${appChips}
+      </div>
+      <div class="ri-valid-section">
+        <div class="ri-ms-label">Commercial Validation</div>
+        <div class="ri-ms-body">${d.validation}</div>
+      </div>
+      <div class="ri-wforce-section">
+        <div class="ri-ms-label">Workforce Intelligence</div>
+        <div class="ri-ms-body">${d.workforce}</div>
+      </div>
+      <div class="ri-sources-section">
+        <div class="ri-ms-label">Sources</div>
+        ${sourceRows}
+      </div>
+      <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>`;
+  }
+
   function renderPanel(d) {
+    if (d.cat === 'municipal') { renderMunicipalPanel(d); return; }
     const panel = document.getElementById('riPanel');
     const riEmpty = document.getElementById('riEmpty');
     const riContent = document.getElementById('riContent');
@@ -1410,6 +1486,41 @@
       { lat:52.13, lng:-106.67, cat:'industrial', prov:'SK', name:'Saskatoon — Potash & Agri-Industrial', region:'Central Saskatchewan', assetType:'Potash Mines, Canola & Grain Processing', count:'Regional aggregate — Sask Ministry of Energy public records', rpasApp:'Mine site perimeter survey, tailings pond monitoring, grain elevator inspection, agricultural chemical storage', source:'Saskatchewan GeoHub · Statistics Canada', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'indicative' },
       { lat:45.51, lng:-73.59, cat:'industrial', prov:'QC', name:'Montréal — Aerospace & Manufacturing Cluster', region:'Greater Montréal, QC', assetType:'Aerospace Manufacturing & R&D Facilities', count:'~250 aerospace firms (Aéro Montréal cluster, public directory)', rpasApp:'Facility roof and exterior inspection, R&D campus security survey, logistics corridor monitoring', source:'Données Québec · Statistics Canada', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
       { lat:47.56, lng:-52.71, cat:'industrial', prov:'NL', name:'Newfoundland — Offshore Oil & Mining', region:'Avalon / Voisey\'s Bay, NL', assetType:'Offshore Platforms & Mine Sites', count:'Regional aggregate — C-NLOPB / NL Dept. of Mines public records', rpasApp:'Mine site tailings survey, offshore supply base inspection, coastal industrial site monitoring', source:'C-NLOPB · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+
+      // ── PHASE 3: ALBERTA REGIONAL DEPTH ──
+      { lat:52.27, lng:-113.81, cat:'transportation', prov:'AB', name:'Red Deer — Central Alberta Transportation Corridor', region:'Central Alberta', assetType:'Highway & Rail Bridges (QEII Corridor)', count:'~620 structures (Red Deer region, AB Transportation)', rpasApp:'QEII highway bridge deck inspection, rail overpass survey, inland port logistics monitoring, agricultural access road condition', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:49.70, lng:-112.84, cat:'water', prov:'AB', name:'Lethbridge — Southern Alberta Irrigation Network', region:'Southern Alberta', assetType:'Irrigation Canals, Dams & Water Conveyance', count:'~1.6M irrigated acres (AIPA open data, largest irrigation district in Canada)', rpasApp:'Canal condition survey, dam crest inspection, crop irrigation efficiency monitoring, water distribution mapping', source:'Alberta Irrigation Projects Association · AENV', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:55.17, lng:-118.80, cat:'energy', prov:'AB', name:'Grande Prairie — Peace Country Energy Infrastructure', region:'Peace Country, Northern Alberta', assetType:'Natural Gas Processing & Pipeline Corridors', count:'Regional aggregate — NRCan / AER public records (Peace River basin)', rpasApp:'Gas plant and compressor station inspection, pipeline ROW patrol, remote facility perimeter survey, forestry-energy corridor monitoring', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+
+      // ── AACP™ MUNICIPAL DEMONSTRATION — CLARESHOLM ──
+      {
+        lat: 50.022, lng: -113.591, cat: 'municipal', prov: 'AB',
+        name: 'Claresholm', region: 'Southern Alberta',
+        subTitle: 'Municipal infrastructure and emerging RPAS applications',
+        assetType: 'Municipal Infrastructure & Aviation',
+        count: 'Population ~3,800 (2021 Census)',
+        domains: [
+          { label: 'Aviation Ecosystem', status: 'Established' },
+          { label: 'Water Infrastructure', status: 'Documented' },
+          { label: 'Transportation', status: 'Highway 2' },
+          { label: 'Industrial Development', status: 'Documented' },
+        ],
+        rpasApps: ['Water monitoring', 'Infrastructure surveys', 'Industrial site mapping', 'Environmental observation'],
+        validation: 'Industry need not yet validated. Municipal and industry engagement required.',
+        workforce: 'Regional technical workforce, aviation training capacity and relevant occupational data to be integrated.',
+        sources: [
+          { label: 'Infrastructure Master Plan — Town of Claresholm (May 2021)', url: 'https://www.claresholm.ca' },
+          { label: 'Town of Claresholm Public GIS (zoning, property, aerial imagery)', url: 'https://www.claresholm.ca' },
+          { label: 'Provincial Water Infrastructure Funding — Claresholm (~$349K, June 2026)', url: 'https://www.claresholm.ca' },
+        ],
+        aacpNote: 'Claresholm is AACP\'s first Municipal Regional Infrastructure & Workforce Intelligence demonstration. Active discussions with the Mayor and a proposed aviation stakeholder meeting are underway. The Infrastructure Master Plan and Town GIS provide the evidence base for a Claresholm Regional Infrastructure Intelligence Profile.',
+        rpasApp: 'Water monitoring, infrastructure surveys, industrial site mapping, environmental observation',
+        source: 'Town of Claresholm · Infrastructure Master Plan (May 2021)',
+        sourceUrl: 'https://www.claresholm.ca',
+        licence: 'Public municipal data',
+        updated: '2021–2026',
+        status: 'indicative',
+      },
     ];
 
     // Category colour map
@@ -1417,16 +1528,25 @@
       transportation: '#1a6faf',
       energy:         '#80011f',
       water:          '#0d6e6e',
-      industrial:     '#6b4c0a'
+      industrial:     '#6b4c0a',
+      municipal:      '#c8961c'
     };
     const CAT_LABEL = {
       transportation: 'Transportation Infrastructure',
       energy:         'Energy & Utilities',
       water:          'Water Infrastructure',
-      industrial:     'Industrial Facilities'
+      industrial:     'Industrial Facilities',
+      municipal:      'AACP™ Regional Intelligence'
     };
 
     function mkIcon(cat, status) {
+      if (cat === 'municipal') {
+        return L.divIcon({
+          className: '',
+          html: `<div class="municipal-marker-pulse"><div class="municipal-marker-core"></div></div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -15]
+        });
+      }
       const color = CAT_COLOR[cat];
       const size = 13;
       const ring = status === 'aggregate' ? '2px solid rgba(255,255,255,.35)' : '1.5px dashed rgba(255,255,255,.25)';
@@ -1502,7 +1622,7 @@
     function applyFilters() {
       Object.keys(clusterGroups).forEach(cat => { clusterGroups[cat].clearLayers(); });
       INFRA.forEach(d => {
-        if (!activeCats.has(d.cat)) return;
+        if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
         if (activeProv !== 'all' && d.prov !== activeProv) return;
         const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
         marker.on('click', () => {
