@@ -268,6 +268,9 @@
     .ri-status-badge.placeholder{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim)}
     .ri-workforce-notice{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--dim);line-height:1.6;margin-top:6px}
     .ri-workforce-notice strong{color:var(--muted);display:block;margin-bottom:3px}
+    .ri-live-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(13,110,110,.18);border:1px solid rgba(13,110,110,.35);color:#4db8b8;font-size:.64rem;font-weight:600;letter-spacing:.4px;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+    .ri-live-badge::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#4db8b8;animation:livePulse 2s ease-in-out infinite}
+    @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.4}}
     .ri-wf-row{background:rgba(5,2,16,.6);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
     .ri-wf-noc{font-size:.68rem;color:var(--dim);letter-spacing:.5px;margin-bottom:2px}
     .ri-wf-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -1141,6 +1144,43 @@
     },
   };
 
+  // ── LIVE LFS FEED — Phase 2 ──
+  // Unemployment rate vectors: Table 14-10-0022-01, all industries, total gender, 15 years and over
+  // Source: Statistics Canada WDS REST API  Licence: Statistics Canada Open Licence
+  const LFS_VECTORS = {
+    NL: 2710756, PE: 2711266, NS: 2711776, NB: 2712286,
+    QC: 2712796, ON: 2719714, MB: 2720224, SK: 2720734,
+    AB: 2721244, BC: 2721754
+  };
+  const lfsLiveCache = {}; // prov → {unemploymentRate, refLabel, releaseTime}
+
+  async function fetchLiveUnemployment(prov) {
+    const vectorId = LFS_VECTORS[prov];
+    if (!vectorId || lfsLiveCache[prov]) return;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const r = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ vectorId, latestN: 1 }]),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if (!r.ok) return;
+      const j = await r.json();
+      const dp = j[0]?.object?.vectorDataPoint?.[0];
+      if (!dp || dp.value == null) return;
+      const refDate = new Date(dp.refPer);
+      const refLabel = refDate.toLocaleDateString('en-CA', { month: 'short', year: 'numeric' });
+      lfsLiveCache[prov] = { unemploymentRate: dp.value.toFixed(1) + '%', refLabel };
+      // Update panel live if workforce tab is open for this province
+      if (window._riCurrentData?.prov === prov && activeTab === 'workforce') {
+        renderPanel(window._riCurrentData);
+      }
+    } catch (_) { /* silent fallback — static data stays */ }
+  }
+
   // ── REGIONAL PANEL CONTROLLER ──
   const CAT_LABEL_FULL = {
     transportation: 'Transportation Infrastructure',
@@ -1186,6 +1226,7 @@
       </div>`;
 
     renderTab(d, wf, riBody);
+    fetchLiveUnemployment(d.prov); // non-blocking; updates panel if workforce tab is active when it resolves
   }
 
   function renderTab(d, wf, riBody) {
@@ -1249,13 +1290,20 @@
           </div>
         </div>`).join('');
 
+      const live = lfsLiveCache[d.prov];
+      const unempDisplay = live
+        ? `${live.unemploymentRate}<span class="ri-live-badge">Live · ${live.refLabel}</span>`
+        : wf.unemploymentRate;
+      const publishedLine = live
+        ? `<div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">Statistics Canada LFS, monthly unadjusted (${live.refLabel})</span></div>`
+        : `<div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">${wf.lfsDate}</span></div>`;
       riBody.innerHTML = `
         <div class="ri-section">
           <div class="ri-section-label">Provincial Labour Market</div>
-          <div class="ri-kv"><span class="ri-k">Employment rate</span><span class="ri-v">${wf.employmentRate}</span></div>
-          <div class="ri-kv"><span class="ri-k">Unemployment rate</span><span class="ri-v">${wf.unemploymentRate}</span></div>
+          <div class="ri-kv"><span class="ri-k">Employment rate</span><span class="ri-v">${wf.employmentRate} <span style="font-size:.67rem;color:var(--dim)">(2024 annual avg)</span></span></div>
+          <div class="ri-kv"><span class="ri-k">Unemployment rate</span><span class="ri-v">${unempDisplay}</span></div>
           <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${wf.lfsUrl}" target="_blank" rel="noopener">Statistics Canada LFS</a></span></div>
-          <div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">${wf.lfsDate}</span></div>
+          ${publishedLine}
         </div>
         <div class="ri-section">
           <div class="ri-section-label">Related Occupational Groups (NOC 2021)</div>
