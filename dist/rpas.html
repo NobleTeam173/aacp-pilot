@@ -206,7 +206,33 @@
     .map-data-bar{background:rgba(5,2,16,.92);border-top:1px solid var(--border);padding:9px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--dim)}
     .map-data-bar a{color:var(--muted);text-decoration:none}
     .map-data-bar a:hover{color:var(--crimson-text)}
-    .map-data-sources{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    #dsv-trigger{display:inline-flex;align-items:center;gap:5px;background:rgba(10,5,20,.75);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 10px;font-size:.67rem;font-weight:600;color:var(--muted);letter-spacing:.4px;cursor:pointer;user-select:none;margin:8px 14px 2px;transition:border-color .15s,color .15s;width:fit-content}
+    #dsv-trigger:hover{border-color:rgba(255,255,255,.22);color:var(--fg)}
+    #dsv-panel{position:absolute;bottom:52px;left:14px;right:14px;z-index:1000;max-width:460px}
+    #dsv-panel-inner{background:rgba(10,5,20,.97);border:1px solid rgba(255,255,255,.1);border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.7)}
+    #dsv-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+    #dsv-title{font-size:.74rem;font-weight:700;color:var(--fg);letter-spacing:.4px}
+    #dsv-header button{background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:0 2px;line-height:1}
+    #dsv-body{max-height:280px;overflow-y:auto;padding:10px 14px}
+    #dsv-body::-webkit-scrollbar{width:4px}
+    #dsv-body::-webkit-scrollbar-track{background:transparent}
+    #dsv-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+    .dsv-row{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:start}
+    .dsv-row:last-child{border-bottom:none}
+    .dsv-name{font-size:.74rem;color:var(--fg);line-height:1.4;grid-column:1;font-weight:500}
+    .dsv-name a{color:#7ab8e8;text-decoration:none}
+    .dsv-name a:hover{text-decoration:underline}
+    .dsv-status{grid-column:2;white-space:nowrap}
+    .dsv-meta{font-size:.64rem;color:var(--dim);grid-column:1/-1;margin-top:1px}
+    .dsv-badge{font-size:.59rem;padding:1px 6px;border-radius:3px;font-weight:700;letter-spacing:.3px}
+    .dsv-badge.dv-open{background:rgba(13,110,110,.18);color:#4db8b8}
+    .dsv-badge.dv-established{background:rgba(13,110,110,.18);color:#4db8b8}
+    .dsv-badge.dv-documented{background:rgba(168,200,232,.12);color:#a8c8e8}
+    .dsv-badge.dv-indicative{background:rgba(200,150,28,.12);color:#c8961c}
+    .dsv-no-select{font-size:.71rem;color:var(--dim);padding:12px 0;text-align:center}
+    #dsv-footer{font-size:.61rem;color:var(--dim);padding:8px 14px;border-top:1px solid rgba(255,255,255,.06);line-height:1.6}
+    #dsv-footer a{color:var(--muted);text-decoration:none}
+    #dsv-footer a:hover{text-decoration:underline}
     .data-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2px 7px;font-size:9px;letter-spacing:.5px;text-transform:uppercase}
     .data-badge.open{border-color:rgba(13,110,110,.4);color:#4db8b8}
     .data-badge.illus{border-color:rgba(128,1,31,.35);color:var(--crimson-text)}
@@ -853,19 +879,25 @@
       </div>
     </div>
 
-    <div class="map-data-bar">
-      <div class="map-data-sources">
-        <span style="font-weight:600;color:var(--muted);margin-right:4px">Sources:</span>
-        <a href="https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X" target="_blank" rel="noopener">Statistics Canada ODI</a><span style="color:var(--border2);margin:0 4px">·</span>
-        <a href="https://geo.ca" target="_blank" rel="noopener">GEO.ca / NRCan</a><span style="color:var(--border2);margin:0 4px">·</span>
-        <a href="https://www.jobbank.gc.ca/trend-analysis" target="_blank" rel="noopener">ESDC Job Bank LMI</a><span style="color:var(--border2);margin:0 4px">·</span>
-        <a href="https://open.canada.ca/en/open-maps" target="_blank" rel="noopener">Canada Open Maps</a>
+    <!-- Discreet data attribution control -->
+    <div id="dsv-trigger" onclick="toggleDSV()" title="Data Sources & Verification" aria-label="Data Sources & Verification" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDSV()">
+      ◈ Data Sources
+    </div>
+    <div id="dsv-panel" hidden>
+      <div id="dsv-panel-inner">
+        <div id="dsv-header">
+          <span id="dsv-title">Data Sources &amp; Verification</span>
+          <button onclick="toggleDSV()" aria-label="Close">✕</button>
+        </div>
+        <div id="dsv-body"></div>
+        <div id="dsv-footer">
+          RPAS applications are indicative; commercial opportunities require validation.<br>
+          Map tiles © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Rendered with <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>
+        </div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span class="data-badge open">Open Govt Licence</span>
-        <span class="data-badge illus">RPAS applications indicative only</span>
-        <span style="color:var(--dim)">Updated 2024–2025</span>
-      </div>
+    </div>
+    <div style="font-size:.62rem;color:var(--dim);padding:5px 14px 7px;line-height:1.5">
+      RPAS applications are indicative; commercial opportunities require validation.
     </div>
   </div>
 </section>
@@ -1294,6 +1326,7 @@
     const riHeader = document.getElementById('riHeader');
     const riBody = document.getElementById('riBody');
     riContent.hidden = false;
+    if (typeof buildDSVBody === 'function' && !document.getElementById('dsv-panel').hidden) buildDSVBody();
 
     riHeader.innerHTML = `
       <div style="padding:14px 14px 10px">
@@ -1389,6 +1422,7 @@
 
     renderTab(d, wf, riBody);
     fetchLiveUnemployment(d.prov); // non-blocking; updates panel if workforce tab is active when it resolves
+    if (!document.getElementById('dsv-panel').hidden) buildDSVBody(); // keep DSV in sync if open
   }
 
   function renderTab(d, wf, riBody) {
@@ -1511,6 +1545,83 @@
   window.switchTab = function(tab) {
     activeTab = tab;
     if (window._riCurrentData) renderPanel(window._riCurrentData);
+  };
+
+  // ── DATA SOURCES & VERIFICATION CONTROL ──
+  const DSV_DEFAULTS = [
+    { name: 'Statistics Canada Open Database of Infrastructure (ODI)', url: 'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', date: '2022–2024', licence: 'Open Govt Licence – Canada', status: 'open' },
+    { name: 'Natural Resources Canada — GEO.ca Geospatial Platform', url: 'https://geo.ca', date: '2024', licence: 'Open Govt Licence – Canada', status: 'open' },
+    { name: 'Statistics Canada Labour Force Survey (Cat. 71-001-X)', url: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm', date: '2024 annual / monthly', licence: 'Statistics Canada Open Licence', status: 'open' },
+    { name: 'ESDC Job Bank — Occupational Outlooks (NOC 2021)', url: 'https://www.jobbank.gc.ca/trend-analysis', date: '2024–2026', licence: 'Open Govt Licence – Canada', status: 'open' },
+  ];
+
+  function dsvBadgeClass(s) {
+    if (s === 'open' || s === 'established') return 'dv-established';
+    if (s === 'documented') return 'dv-documented';
+    return 'dv-indicative';
+  }
+  function dsvBadgeLabel(s) {
+    if (s === 'open') return 'Open data';
+    if (s === 'established') return 'Established';
+    if (s === 'documented') return 'Documented';
+    return 'Indicative';
+  }
+
+  function buildDSVBody() {
+    const d = window._riCurrentData;
+    const body = document.getElementById('dsv-body');
+    const title = document.getElementById('dsv-title');
+    if (!d) {
+      title.textContent = 'Data Sources & Verification';
+      body.innerHTML = `<div class="dsv-no-select">Select a region or infrastructure record on the map to see its specific sources.</div>
+        ${DSV_DEFAULTS.map(s => `<div class="dsv-row">
+          <div class="dsv-name"><a href="${s.url}" target="_blank" rel="noopener">${s.name} ↗</a></div>
+          <div class="dsv-status"><span class="dsv-badge dv-open">${dsvBadgeLabel(s.status)}</span></div>
+          <div class="dsv-meta">${s.date} · ${s.licence}</div>
+        </div>`).join('')}`;
+      return;
+    }
+    title.textContent = `Sources — ${d.name}`;
+    // Municipal: use d.sources array
+    if (d.cat === 'municipal' && d.sources && d.sources.length) {
+      const domainMap = {};
+      (d.domains || []).forEach(dom => { domainMap[dom.label] = dom.status; });
+      body.innerHTML = (d.sources).map((s, i) => {
+        const domStatus = d.domains && d.domains[i] ? d.domains[i].status.toLowerCase() : 'indicative';
+        return `<div class="dsv-row">
+          <div class="dsv-name"><a href="${s.url}" target="_blank" rel="noopener">${s.label} ↗</a></div>
+          <div class="dsv-status"><span class="dsv-badge ${dsvBadgeClass(domStatus)}">${dsvBadgeLabel(domStatus)}</span></div>
+          <div class="dsv-meta">Public municipal data · ${d.updated || '2024'}</div>
+        </div>`;
+      }).join('') +
+      `<div class="dsv-row">
+        <div class="dsv-name"><a href="${DSV_DEFAULTS[2].url}" target="_blank" rel="noopener">Statistics Canada LFS — ${d.prov} province ↗</a></div>
+        <div class="dsv-status"><span class="dsv-badge dv-open">Open data</span></div>
+        <div class="dsv-meta">2024 · Statistics Canada Open Licence</div>
+      </div>`;
+      return;
+    }
+    // Standard infrastructure record
+    const rows = [
+      { name: d.source, url: d.sourceUrl, date: d.updated, licence: d.licence, status: d.status === 'aggregate' ? 'open' : 'indicative' },
+    ];
+    if (WORKFORCE[d.prov]) {
+      const wf = WORKFORCE[d.prov];
+      rows.push({ name: 'Statistics Canada LFS — ' + d.prov + ' provincial aggregate', url: wf.lfsUrl, date: wf.lfsDate, licence: 'Statistics Canada Open Licence', status: 'open' });
+      rows.push({ name: 'ESDC Job Bank — Occupational Outlooks (NOC 2021)', url: 'https://www.jobbank.gc.ca/trend-analysis', date: '2024–2026', licence: 'Open Govt Licence – Canada', status: 'open' });
+    }
+    body.innerHTML = rows.map(s => `<div class="dsv-row">
+      <div class="dsv-name"><a href="${s.url}" target="_blank" rel="noopener">${s.name} ↗</a></div>
+      <div class="dsv-status"><span class="dsv-badge ${dsvBadgeClass(s.status)}">${dsvBadgeLabel(s.status)}</span></div>
+      <div class="dsv-meta">${s.date} · ${s.licence}</div>
+    </div>`).join('');
+  }
+
+  window.toggleDSV = function() {
+    const panel = document.getElementById('dsv-panel');
+    const isHidden = panel.hidden;
+    if (isHidden) { buildDSVBody(); panel.hidden = false; }
+    else { panel.hidden = true; }
   };
 
   window._showRegionalSummary = function() {
