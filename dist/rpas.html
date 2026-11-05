@@ -114,8 +114,8 @@
     .pillar-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-bright));opacity:0;transition:opacity .4s}
     .pillar-card:hover{border-color:var(--crimson-line);transform:translateY(-5px);box-shadow:0 24px 64px rgba(0,0,0,.7),0 0 0 1px var(--crimson-line)}
     .pillar-card:hover::before{opacity:1}
-    .pillar-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .6s;filter:saturate(.65) brightness(.45)}
-    .pillar-card:hover .pillar-bg{transform:scale(1.05);filter:saturate(.8) brightness(.52)}
+    .pillar-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .6s;filter:saturate(.8) brightness(.58)}
+    .pillar-card:hover .pillar-bg{transform:scale(1.05);filter:saturate(.95) brightness(.68)}
     .pillar-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,2,10,.97) 0%,rgba(8,2,10,.6) 55%,rgba(8,2,10,.1) 100%)}
     .pillar-content{position:relative;z-index:2;padding:28px 26px 30px}
     .pillar-num{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--crimson-text);margin-bottom:10px;text-transform:uppercase;opacity:.8}
@@ -441,10 +441,10 @@
 <section class="map-section">
   <div class="map-inner">
     <div class="section-header fade-in">
-      <span class="section-eyebrow">Operational Intelligence</span>
-      <h2 class="section-title">RPAS Industry Coverage Across Canada</h2>
+      <span class="section-eyebrow">Industry Opportunity Map</span>
+      <h2 class="section-title">Where RPAS Is Transforming Canadian Industry</h2>
       <div class="divider"></div>
-      <p class="section-sub">From energy infrastructure monitoring in Alberta to precision agriculture in the Prairies and urban inspection corridors in major centres — RPAS capability is reshaping how industry operates across the country.</p>
+      <p class="section-sub">From energy infrastructure monitoring in Alberta to precision agriculture in the Prairies and urban inspection corridors in major centres — these are the emerging RPAS application opportunities reshaping how Canadian industry operates.</p>
     </div>
     <div class="map-container fade-in" style="transition-delay:.08s">
       <div id="rpas-map"></div>
@@ -679,19 +679,19 @@
 
     // Hubs: [lat, lng, sector-color, sector-label, city, description]
     const hubs = [
-      [51.045, -114.057, '#80011f', 'Energy & Infrastructure', 'Calgary, AB', 'AACP™ RPAS Workforce Hub HQ. Oil sands monitoring, pipeline inspection, and infrastructure survey operations across Alberta.'],
-      [53.546, -113.491, '#80011f', 'Energy & Infrastructure', 'Edmonton, AB', 'Heavy industrial RPAS inspection — refineries, transmission lines, and remote energy infrastructure monitoring.'],
-      [56.726, -111.379, '#80011f', 'Energy & Infrastructure', 'Fort McMurray, AB', 'Oil sands operations and tailings pond monitoring. Autonomous survey of large-scale extraction sites.'],
-      [49.246, -123.116, '#e05575', 'Urban & Commercial', 'Vancouver, BC', 'Urban inspection corridors, port logistics, and coastal infrastructure monitoring. Advanced Air Mobility trial zones.'],
-      [43.651, -79.383, '#e05575', 'Urban & Commercial', 'Toronto, ON', 'Smart city RPAS integration, construction monitoring, and infrastructure inspection in Canada\'s largest metro.'],
-      [45.508, -73.587, '#e05575', 'Urban & Commercial', 'Montréal, QC', 'Aerospace manufacturing cluster. RPAS R&D, urban delivery pilots, and bridge inspection corridors.'],
-      [49.899, -97.139, '#c0374f', 'Precision Agriculture', 'Winnipeg, MB', 'Prairie crop monitoring, precision agriculture, and canola survey operations across Manitoba and Saskatchewan.'],
-      [52.133, -106.670, '#c0374f', 'Precision Agriculture', 'Saskatoon, SK', 'Agricultural intelligence hub. Variable-rate application, field health mapping, and harvest forecasting via RPAS.'],
-      [46.812, -71.218, '#e05575', 'Urban & Commercial', 'Québec City, QC', 'Heritage site inspection, municipal infrastructure monitoring, and winter operations RPAS research.'],
-      [44.648, -63.585, '#9490a0', 'Logistics & Delivery', 'Halifax, NS', 'Maritime and coastal logistics. Offshore platform inspection and remote community supply chain pilots.'],
-      [47.561, -52.713, '#9490a0', 'Logistics & Delivery', "St. John's, NL", 'Offshore energy monitoring and remote community delivery operations in Newfoundland and Labrador.'],
-      [60.721, -135.057, '#9490a0', 'Logistics & Delivery', 'Whitehorse, YT', 'Remote and northern community resupply operations. First Nations partnership programs in the territories.'],
-      [62.454, -114.371, '#9490a0', 'Logistics & Delivery', 'Yellowknife, NT', 'Arctic infrastructure monitoring and remote logistics operations. All-season autonomous delivery trials.'],
+      [51.045, -114.057, '#80011f', 'Energy & Infrastructure', 'Calgary, AB', 'AACP™ RPAS Workforce Hub base. Emerging opportunities in oil sands monitoring, pipeline inspection, and infrastructure survey across Alberta.'],
+      [53.546, -113.491, '#80011f', 'Energy & Infrastructure', 'Edmonton, AB', 'Emerging RPAS applications in heavy industrial inspection — refineries, transmission lines, and remote energy infrastructure.'],
+      [56.726, -111.379, '#80011f', 'Energy & Infrastructure', 'Fort McMurray, AB', 'Growing potential for autonomous survey of oil sands operations, tailings pond monitoring, and large-scale extraction sites.'],
+      [49.246, -123.116, '#e05575', 'Urban & Commercial', 'Vancouver, BC', 'Growing RPAS opportunity in urban inspection, port logistics, coastal infrastructure monitoring, and Advanced Air Mobility.'],
+      [43.651, -79.383, '#e05575', 'Urban & Commercial', 'Toronto, ON', 'Significant potential for smart city RPAS integration, construction monitoring, and infrastructure inspection.'],
+      [45.508, -73.587, '#e05575', 'Urban & Commercial', 'Montréal, QC', 'Aerospace manufacturing cluster with emerging RPAS R&D, urban delivery, and bridge inspection opportunities.'],
+      [49.899, -97.139, '#c0374f', 'Precision Agriculture', 'Winnipeg, MB', 'Expanding RPAS applications in prairie crop monitoring, precision agriculture, and canola survey across the region.'],
+      [52.133, -106.670, '#c0374f', 'Precision Agriculture', 'Saskatoon, SK', 'Growing market for RPAS-enabled variable-rate application, field health mapping, and harvest forecasting.'],
+      [46.812, -71.218, '#e05575', 'Urban & Commercial', 'Québec City, QC', 'Opportunity in heritage site inspection, municipal infrastructure monitoring, and winter RPAS operations.'],
+      [44.648, -63.585, '#9490a0', 'Logistics & Delivery', 'Halifax, NS', 'Emerging RPAS applications in maritime logistics, offshore platform inspection, and remote community supply.'],
+      [47.561, -52.713, '#9490a0', 'Logistics & Delivery', "St. John's, NL", 'Potential for offshore energy monitoring and remote community autonomous delivery in Atlantic Canada.'],
+      [60.721, -135.057, '#9490a0', 'Logistics & Delivery', 'Whitehorse, YT', 'High-value opportunity in remote and northern community resupply and territorial logistics operations.'],
+      [62.454, -114.371, '#9490a0', 'Logistics & Delivery', 'Yellowknife, NT', 'Emerging applications in Arctic infrastructure monitoring and all-season autonomous delivery to remote communities.'],
     ];
 
     hubs.forEach(([lat, lng, color, sector, city, desc]) => {
