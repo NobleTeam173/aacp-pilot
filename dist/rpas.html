@@ -96,6 +96,9 @@
     .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;pointer-events:none;z-index:1;opacity:.78}
     @media(prefers-reduced-motion:reduce){.hero-video{display:none}}
     @media(max-width:640px){.hero-video{object-position:60% 30%}}
+    /* ── INSPECTION HUD ── */
+    #hud-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+    @media(prefers-reduced-motion:reduce){#hud-canvas{display:none}}
     .hero-content{position:relative;z-index:3}
 
     /* ── INTRO STRIP ── */
@@ -316,6 +319,8 @@
   <!-- HERO DRONE VIDEO -->
   <video class="hero-video" autoplay muted loop playsinline aria-hidden="true"
     src="https://dcthj58xklr8p.cloudfront.net/hero-drone.mp4"></video>
+  <!-- INFRASTRUCTURE INSPECTION HUD -->
+  <canvas id="hud-canvas" aria-hidden="true"></canvas>
   <div class="hero-drone-REMOVED-START" style="display:none">
     <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
@@ -879,6 +884,175 @@ if(matchMedia('(prefers-reduced-motion:reduce)').matches){v.pause();return;}
 document.addEventListener('click',()=>{if(v.paused)v.play();},{once:true});
 })();
 /* canvas animation removed */
+</script>
+
+<script>
+/* ── INFRASTRUCTURE INSPECTION HUD ── */
+(function(){
+'use strict';
+const cv=document.getElementById('hud-canvas');
+if(!cv||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+const cx=cv.getContext('2d');
+let W,H,dpr,t=0,scanY=0;
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=cv.getBoundingClientRect();
+  W=r.width;H=r.height;
+  cv.width=W*dpr;cv.height=H*dpr;
+  cx.scale(dpr,dpr);
+}
+resize();
+window.addEventListener('resize',resize);
+
+// ── Target point: right side of frame, mid-height (drone/horizon area)
+function tgt(){return{x:W*.70,y:H*.46};}
+
+// ── Easing
+function eio(v){return v<.5?2*v*v:-1+(4-2*v)*v;}
+function pulse(freq,offset=0){return .5+.5*Math.sin(t*freq+offset);}
+
+// ── Draw thin corner bracket
+function bracket(bx,by,bw,bh,cs,alpha,lw=1){
+  cx.save();
+  cx.strokeStyle=`rgba(224,85,117,${alpha})`;
+  cx.lineWidth=lw;cx.lineCap='square';
+  for(const[ox,oy,sx,sy]of[[0,0,1,1],[bw,0,-1,1],[0,bh,1,-1],[bw,bh,-1,-1]]){
+    cx.beginPath();
+    cx.moveTo(bx+ox,by+oy+sy*cs);cx.lineTo(bx+ox,by+oy);cx.lineTo(bx+ox+sx*cs,by+oy);
+    cx.stroke();
+  }
+  cx.restore();
+}
+
+function frame(){
+  t+=.016;
+  scanY=(scanY+.6)%100;
+  cx.clearRect(0,0,W,H);
+
+  const{x:tx,y:ty}=tgt();
+
+  // Skip HUD on narrow mobile screens
+  if(W<600){requestAnimationFrame(frame);return;}
+
+  // ── Outer acquisition ring (fades in)
+  const ringA=.12+.06*pulse(.8);
+  cx.strokeStyle=`rgba(224,85,117,${ringA})`;
+  cx.lineWidth=.8;cx.setLineDash([4,8]);
+  cx.beginPath();cx.arc(tx,ty,88,0,Math.PI*2);cx.stroke();
+  cx.setLineDash([]);
+
+  // ── Inner dashed ring
+  cx.strokeStyle=`rgba(224,85,117,${ringA*.7})`;
+  cx.lineWidth=.6;cx.setLineDash([2,6]);
+  cx.beginPath();cx.arc(tx,ty,56,0,Math.PI*2);cx.stroke();
+  cx.setLineDash([]);
+
+  // ── Rotating arc accent
+  cx.save();
+  cx.translate(tx,ty);cx.rotate(t*.4);
+  cx.strokeStyle=`rgba(224,85,117,.22)`;cx.lineWidth=1;
+  cx.beginPath();cx.arc(0,0,88,0,Math.PI*.55);cx.stroke();
+  cx.rotate(Math.PI);
+  cx.beginPath();cx.arc(0,0,88,0,Math.PI*.35);cx.stroke();
+  cx.restore();
+
+  // ── Main targeting bracket (60×60)
+  const bw=60,bh=60,cs=12;
+  const bx=tx-bw/2,by=ty-bh/2;
+  bracket(bx,by,bw,bh,cs,.7,1.2);
+
+  // ── Scan line inside bracket
+  const slY=by+(scanY/100)*bh;
+  if(slY>by&&slY<by+bh){
+    const sg=cx.createLinearGradient(bx,slY,bx+bw,slY);
+    sg.addColorStop(0,'rgba(224,85,117,0)');
+    sg.addColorStop(.4,'rgba(224,85,117,.4)');
+    sg.addColorStop(.6,'rgba(224,85,117,.4)');
+    sg.addColorStop(1,'rgba(224,85,117,0)');
+    cx.strokeStyle=sg;cx.lineWidth=.9;
+    cx.beginPath();cx.moveTo(bx,slY);cx.lineTo(bx+bw,slY);cx.stroke();
+  }
+
+  // ── Centre dot
+  const dotA=.4+.4*pulse(2.1);
+  cx.fillStyle=`rgba(224,85,117,${dotA})`;
+  cx.beginPath();cx.arc(tx,ty,2.5,0,Math.PI*2);cx.fill();
+
+  // ── Crosshair ticks
+  cx.strokeStyle=`rgba(224,85,117,.35)`;cx.lineWidth=.8;
+  for(const[dx,dy]of[[-1,0],[1,0],[0,-1],[0,1]]){
+    cx.beginPath();cx.moveTo(tx+dx*7,ty+dy*7);cx.lineTo(tx+dx*14,ty+dy*14);cx.stroke();
+  }
+
+  // ── Lead line to data panel
+  const panW=136,panH=92;
+  const panX=tx+108,panY=ty-panH/2;
+  cx.strokeStyle='rgba(224,85,117,.18)';cx.lineWidth=.8;cx.setLineDash([3,5]);
+  cx.beginPath();cx.moveTo(tx+bw/2,ty);cx.lineTo(panX,ty);cx.stroke();
+  cx.setLineDash([]);
+  // anchor dot
+  cx.fillStyle='rgba(224,85,117,.35)';
+  cx.beginPath();cx.arc(panX,ty,2,0,Math.PI*2);cx.fill();
+
+  // ── Data panel
+  if(panX+panW<W-16){
+    cx.fillStyle='rgba(4,2,14,.82)';
+    cx.strokeStyle='rgba(224,85,117,.3)';cx.lineWidth=.8;
+    cx.fillRect(panX,panY,panW,panH);
+    cx.strokeRect(panX,panY,panW,panH);
+    // top label bar
+    cx.fillStyle='rgba(128,1,31,.5)';
+    cx.fillRect(panX,panY,panW,16);
+    cx.fillStyle='rgba(224,85,117,.9)';
+    cx.font="700 7.5px 'DM Sans',monospace";
+    cx.fillText('INFRASTRUCTURE SCAN',panX+7,panY+11);
+
+    const rows=[
+      ['ASSET','TL-402B'],
+      ['TYPE','PWR TOWER'],
+      ['STATUS','NOMINAL'],
+      ['ALT','94.2 m'],
+      ['GPS','51.04°N 114.07°W'],
+    ];
+    for(let i=0;i<rows.length;i++){
+      const ry=panY+28+i*13;
+      cx.fillStyle='rgba(224,85,117,.55)';cx.font="600 7px 'DM Sans',monospace";
+      cx.fillText(rows[i][0],panX+8,ry);
+      cx.fillStyle='rgba(240,238,242,.88)';cx.font="600 7.5px 'DM Sans',monospace";
+      cx.fillText(rows[i][1],panX+56,ry);
+    }
+
+    // Status pulse dot
+    const sp=.5+.5*pulse(2.4);
+    cx.shadowColor='#22dd55';cx.shadowBlur=5;
+    cx.fillStyle=`rgba(30,210,70,${sp})`;
+    cx.beginPath();cx.arc(panX+panW-10,panY+8,3,0,Math.PI*2);cx.fill();
+    cx.shadowBlur=0;
+  }
+
+  // ── Secondary bracket — upper frame corner (simulates second inspection point)
+  const s2x=W*.58,s2y=H*.28;
+  bracket(s2x-22,s2y-18,44,36,8,.22,.8);
+  cx.fillStyle='rgba(224,85,117,.2)';
+  cx.font="600 7px 'DM Sans',monospace";
+  cx.fillText('SPAN-C',s2x-14,s2y-22);
+
+  // ── HUD corner watermark (top-right)
+  if(W>900){
+    const cr=.18+.06*pulse(.5,1);
+    cx.fillStyle=`rgba(224,85,117,${cr})`;
+    cx.font="600 8px 'DM Sans',monospace";
+    cx.textAlign='right';
+    cx.fillText('RPAS INSPECTION MODE',W-20,32);
+    cx.fillText('ASSET CLASS: ENERGY',W-20,44);
+    cx.textAlign='left';
+  }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
