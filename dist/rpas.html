@@ -297,6 +297,26 @@
     .ri-source-row a:hover{text-decoration:underline}
     .ri-aacp-note{margin:4px 14px 14px;background:rgba(200,150,28,.05);border:1px solid rgba(200,150,28,.18);border-radius:8px;padding:10px 12px;font-size:.69rem;color:var(--muted);line-height:1.6}
     .ri-aacp-note strong{color:#c8961c;display:block;font-size:.61rem;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}
+    .municipal-marker-selected .municipal-marker-pulse::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;border:2px solid rgba(200,150,28,.75);box-shadow:0 0 14px rgba(200,150,28,.35);pointer-events:none}
+    .ri-evidence-box{padding:0 14px 4px}
+    details.ri-evidence-details summary{font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;padding:7px 2px;list-style:none;display:flex;align-items:center;gap:5px;user-select:none}
+    details.ri-evidence-details summary::before{content:'▸';font-size:.65rem;transition:transform .15s;display:inline-block}
+    details.ri-evidence-details[open] summary::before{transform:rotate(90deg)}
+    .ri-ev-row{padding:7px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:3px}
+    .ri-ev-row:last-child{border-bottom:none}
+    .ri-ev-title{font-size:.74rem;color:var(--fg);line-height:1.4}
+    .ri-ev-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .ri-ev-badge{font-size:.6rem;padding:1px 6px;border-radius:3px;font-weight:700;letter-spacing:.3px}
+    .ri-ev-badge.ev-established{background:rgba(13,110,110,.18);color:#4db8b8}
+    .ri-ev-badge.ev-documented{background:rgba(168,200,232,.12);color:#a8c8e8}
+    .ri-ev-badge.ev-indicative{background:rgba(200,150,28,.12);color:#c8961c}
+    .ri-ev-link{font-size:.7rem;color:#7ab8e8;text-decoration:none}
+    .ri-ev-link:hover{text-decoration:underline}
+    .ri-action-bar{display:flex;flex-direction:column;gap:7px;padding:12px 14px 16px;border-top:1px solid var(--border);margin-top:4px}
+    .ri-action-primary{display:flex;align-items:center;justify-content:center;gap:7px;background:#0a0a0f;color:#ece8f8;border:1.5px solid rgba(255,255,255,.13);border-radius:50px;padding:11px 20px;font-size:.81rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:background .15s,border-color .15s}
+    .ri-action-primary:hover{background:#181820;border-color:rgba(255,255,255,.22)}
+    .ri-action-secondary{display:flex;align-items:center;justify-content:center;gap:7px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:50px;padding:10px 20px;font-size:.81rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:border-color .15s,color .15s}
+    .ri-action-secondary:hover{border-color:var(--muted);color:var(--fg)}
     .ri-wf-row{background:rgba(5,2,16,.6);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
     .ri-wf-noc{font-size:.68rem;color:var(--dim);letter-spacing:.5px;margin-bottom:2px}
     .ri-wf-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -1312,7 +1332,32 @@
         <div class="ri-ms-label">Sources</div>
         ${sourceRows}
       </div>
-      <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>`;
+      <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>
+      <div class="ri-evidence-box">
+        <details class="ri-evidence-details">
+          <summary>Data Sources &amp; Verification</summary>
+          ${(d.sources || []).map((s, i) => {
+            const domainStatus = d.domains && d.domains[i] ? d.domains[i].status : 'Indicative';
+            const badgeClass = domainStatus === 'Established' ? 'ev-established' : domainStatus === 'Documented' ? 'ev-documented' : 'ev-indicative';
+            const badgeLabel = domainStatus === 'Established' ? 'Established' : domainStatus === 'Documented' ? 'Documented' : 'Indicative';
+            return `<div class="ri-ev-row">
+              <div class="ri-ev-title">${s.label}</div>
+              <div class="ri-ev-meta">
+                <span class="ri-ev-badge ${badgeClass}">${badgeLabel}</span>
+                <a class="ri-ev-link" href="${s.url}" target="_blank" rel="noopener">View source ↗</a>
+              </div>
+            </div>`;
+          }).join('')}
+        </details>
+      </div>
+      <div class="ri-action-bar">
+        <button class="ri-action-primary" onclick="window._showRegionalSummary && window._showRegionalSummary()" aria-label="View Regional Intelligence Report">
+          ◈ &nbsp;Explore Regional Intelligence Report
+        </button>
+        <a class="ri-action-secondary" href="mailto:info@aviationaerospacecompetency.com?subject=Regional Partnership — ${d.name}, ${d.prov}&body=I would like to discuss a regional RPAS partnership opportunity for ${d.name}, ${d.prov}." rel="noopener">
+          ✉ &nbsp;Discuss a Regional Partnership
+        </a>
+      </div>`;
   }
 
   function renderPanel(d) {
@@ -1466,6 +1511,42 @@
   window.switchTab = function(tab) {
     activeTab = tab;
     if (window._riCurrentData) renderPanel(window._riCurrentData);
+  };
+
+  window._showRegionalSummary = function() {
+    const d = window._riCurrentData;
+    if (!d || d.cat !== 'municipal') return;
+    const riBody = document.getElementById('riBody');
+    const domainRows = (d.domains || []).map(dom => `
+      <div class="ri-kv"><span class="ri-k">${dom.label}</span><span class="ri-v" style="color:${dom.status==='Established'?'#4db8b8':dom.status==='Documented'?'#a8c8e8':'#c8961c'}">${dom.status}</span></div>`).join('');
+    const sourceLinks = (d.sources || []).map(s => `<div class="ri-source-row"><a href="${s.url}" target="_blank" rel="noopener">${s.label} ↗</a></div>`).join('');
+    riBody.innerHTML = `
+      <div style="padding:12px 14px 6px">
+        <div class="ri-ms-label" style="margin-bottom:8px">Regional Evidence Summary</div>
+        <div style="font-size:.7rem;color:var(--dim);margin-bottom:10px">Evidence-based overview compiled from public municipal and provincial sources. This summary represents available documented evidence — not a completed commercial analysis.</div>
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">Infrastructure & Development</div>
+        ${domainRows}
+        <div class="ri-kv"><span class="ri-k">Population</span><span class="ri-v">${d.count}</span></div>
+        <div class="ri-kv"><span class="ri-k">Region</span><span class="ri-v">${d.region}</span></div>
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">Potential RPAS Application Areas</div>
+        <div class="ri-ms-body" style="padding:0">${(d.rpasApps||[]).join(' · ')}</div>
+        <div style="font-size:.67rem;color:var(--dim);margin-top:3px">Indicative only — not validated commercial demand.</div>
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">Commercial Validation Status</div>
+        <div class="ri-ms-body" style="padding:0">${d.validation}</div>
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">Public Data Sources</div>
+        ${sourceLinks}
+      </div>
+      <div style="padding:0 14px 6px">
+        <button onclick="renderPanel(window._riCurrentData)" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">← Back to full profile</button>
+      </div>`;
   };
 
   window.closePanel = function() {
@@ -1794,6 +1875,7 @@
     });
 
     // Add markers to their category cluster groups
+    let _selectedMunicipalMarker = null;
     INFRA.forEach(d => {
       const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
       // On desktop open the side panel; keep popup as fallback for accessibility
@@ -1801,6 +1883,15 @@
         window._riCurrentData = d;
         activeTab = 'overview';
         renderPanel(d);
+        // Municipal marker: highlight selection ring + auto-center map
+        if (d.cat === 'municipal') {
+          if (_selectedMunicipalMarker && _selectedMunicipalMarker._icon) {
+            _selectedMunicipalMarker._icon.classList.remove('municipal-marker-selected');
+          }
+          _selectedMunicipalMarker = marker;
+          if (marker._icon) marker._icon.classList.add('municipal-marker-selected');
+          map.flyTo([d.lat, d.lng], Math.max(map.getZoom(), 10), { duration: 1.1 });
+        }
         // On mobile, scroll panel into view
         if (window.innerWidth <= 900) {
           document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
