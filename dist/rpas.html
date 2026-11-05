@@ -236,7 +236,59 @@
     .legend-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
     .legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
     .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-    @media(max-width:768px){#rpas-map{height:380px}.map-controls{gap:8px}.cat-btn{font-size:11px;padding:5px 10px}.map-data-bar{font-size:9px}}
+    /* ── REGIONAL INTELLIGENCE PANEL ── */
+    .map-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start;margin-top:16px}
+    .map-layout .map-container{margin-top:0;border-radius:16px 0 0 0;border-right:none}
+    .ri-panel{background:rgba(5,2,16,.97);border:1px solid var(--border);border-radius:0 16px 0 0;height:520px;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s}
+    .ri-panel.empty .ri-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 24px;text-align:center;flex:1}
+    .ri-panel.empty .ri-body svg{opacity:.18}
+    .ri-empty-hint{font-size:.8rem;color:var(--dim);line-height:1.6}
+    .ri-header{padding:14px 18px 0;border-bottom:1px solid var(--border);flex-shrink:0}
+    .ri-region-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:4px}
+    .ri-region-name{font-family:Fraunces,serif;font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.25}
+    .ri-tabs{display:flex;gap:0;margin:0 -1px}
+    .ri-tab{cursor:pointer;background:transparent;border:none;border-bottom:2px solid transparent;padding:8px 14px;font-size:11px;font-weight:600;color:var(--dim);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+    .ri-tab:hover{color:var(--muted)}
+    .ri-tab.active{color:var(--text);border-bottom-color:var(--crimson)}
+    .ri-body{flex:1;overflow-y:auto;padding:16px 18px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .ri-body::-webkit-scrollbar{width:4px}
+    .ri-body::-webkit-scrollbar-track{background:transparent}
+    .ri-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .ri-section{margin-bottom:16px}
+    .ri-section-label{font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05)}
+    .ri-kv{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;align-items:baseline}
+    .ri-k{font-size:.7rem;color:var(--dim);flex-shrink:0;min-width:80px}
+    .ri-v{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.4}
+    .ri-v a{color:var(--muted);text-decoration:none}
+    .ri-v a:hover{color:var(--crimson-text)}
+    .ri-app-block{background:rgba(255,255,255,.03);border-left:2px solid var(--crimson-line);border-radius:0 6px 6px 0;padding:8px 10px;font-size:.75rem;color:var(--text2);line-height:1.6;margin:8px 0}
+    .ri-status-badge{display:inline-flex;align-items:center;gap:4px;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+    .ri-status-badge.open{background:rgba(13,110,110,.12);border:1px solid rgba(13,110,110,.35);color:#4db8b8}
+    .ri-status-badge.indicative{background:rgba(128,1,31,.1);border:1px solid rgba(128,1,31,.3);color:var(--crimson-text)}
+    .ri-status-badge.placeholder{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim)}
+    .ri-workforce-notice{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--dim);line-height:1.6;margin-top:6px}
+    .ri-workforce-notice strong{color:var(--muted);display:block;margin-bottom:3px}
+    .ri-wf-row{background:rgba(5,2,16,.6);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+    .ri-wf-noc{font-size:.68rem;color:var(--dim);letter-spacing:.5px;margin-bottom:2px}
+    .ri-wf-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px}
+    .ri-wf-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+    .ri-wf-chip{font-size:.65rem;padding:2px 7px;border-radius:3px;border:1px solid rgba(255,255,255,.1);color:var(--dim)}
+    .ri-wf-chip.outlook-good{border-color:rgba(13,110,110,.35);color:#4db8b8}
+    .ri-wf-chip.outlook-fair{border-color:rgba(255,165,0,.3);color:#c8921a}
+    .ri-wf-chip.outlook-limited{border-color:rgba(128,1,31,.3);color:var(--crimson-text)}
+    .ri-close{cursor:pointer;background:transparent;border:none;color:var(--dim);padding:4px;line-height:1;font-size:16px;float:right;margin-top:-2px}
+    .ri-close:hover{color:var(--text)}
+    .map-data-bar{background:rgba(5,2,16,.92);border-top:1px solid var(--border);border-radius:0 0 16px 16px;padding:9px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--dim)}
+    /* Bottom sheet on mobile */
+    @media(max-width:900px){
+      .map-layout{grid-template-columns:1fr;gap:0}
+      .map-layout .map-container{border-radius:16px 16px 0 0;border-right:1px solid var(--border)}
+      .ri-panel{border-radius:0 0 16px 16px;height:auto;max-height:420px;border-top:none}
+      .ri-panel.empty{display:none}
+      #rpas-map{height:340px}
+      .map-data-bar{border-radius:0 0 16px 16px}
+    }
+    @media(max-width:768px){.map-controls{gap:8px}.cat-btn{font-size:11px;padding:5px 10px}.map-data-bar{font-size:9px}}
 
     /* ── BUSINESS COLLAB ── */
     .collab-section{padding:108px 6vw;background:var(--bg)}
@@ -722,28 +774,43 @@
         <option value="NU">Nunavut</option>
       </select>
     </div>
-    <div class="map-container fade-in" style="transition-delay:.08s">
-      <div id="rpas-map"></div>
-      <div class="map-legend">
-        <div class="legend-title">Infrastructure Category</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#1a6faf"></span>Transportation</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Utilities</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#0d6e6e"></span>Water Infrastructure</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#6b4c0a"></span>Industrial Facilities</div>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)">
-          <div class="legend-title" style="margin-bottom:5px">Data Status</div>
-          <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#0d6e6e;flex-shrink:0;display:inline-block"></span>Open data aggregate</div>
-          <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#80011f;flex-shrink:0;display:inline-block"></span>Indicative opportunity</div>
+    <div class="map-layout fade-in" style="transition-delay:.08s">
+      <div class="map-container">
+        <div id="rpas-map"></div>
+        <div class="map-legend">
+          <div class="legend-title">Infrastructure Category</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#1a6faf"></span>Transportation</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Utilities</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#0d6e6e"></span>Water Infrastructure</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#6b4c0a"></span>Industrial Facilities</div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)">
+            <div class="legend-title" style="margin-bottom:5px">Data Status</div>
+            <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#0d6e6e;flex-shrink:0;display:inline-block"></span>Open data aggregate</div>
+            <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#80011f;flex-shrink:0;display:inline-block"></span>Indicative opportunity</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REGIONAL INTELLIGENCE PANEL -->
+      <div class="ri-panel empty" id="riPanel" role="complementary" aria-label="Regional Intelligence">
+        <div class="ri-body" id="riEmpty">
+          <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><circle cx="19" cy="19" r="17" stroke="#80011f" stroke-width="1.5"/><circle cx="19" cy="19" r="7" stroke="#80011f" stroke-width="1.5"/><line x1="19" y1="2" x2="19" y2="10" stroke="#80011f" stroke-width="1.5"/><line x1="19" y1="28" x2="19" y2="36" stroke="#80011f" stroke-width="1.5"/><line x1="2" y1="19" x2="10" y2="19" stroke="#80011f" stroke-width="1.5"/><line x1="28" y1="19" x2="36" y2="19" stroke="#80011f" stroke-width="1.5"/></svg>
+          <p class="ri-empty-hint">Select a region marker on the map to open the Regional Infrastructure &amp; Workforce Intelligence panel.</p>
+        </div>
+        <div id="riContent" hidden>
+          <div class="ri-header" id="riHeader"></div>
+          <div class="ri-body" id="riBody"></div>
         </div>
       </div>
     </div>
+
     <div class="map-data-bar">
       <div class="map-data-sources">
         <span style="font-weight:600;color:var(--muted);margin-right:4px">Sources:</span>
         <a href="https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X" target="_blank" rel="noopener">Statistics Canada ODI</a><span style="color:var(--border2);margin:0 4px">·</span>
         <a href="https://geo.ca" target="_blank" rel="noopener">GEO.ca / NRCan</a><span style="color:var(--border2);margin:0 4px">·</span>
-        <a href="https://open.canada.ca/en/open-maps" target="_blank" rel="noopener">Canada Open Maps</a><span style="color:var(--border2);margin:0 4px">·</span>
-        <span>Provincial open-data portals</span>
+        <a href="https://www.jobbank.gc.ca/trend-analysis" target="_blank" rel="noopener">ESDC Job Bank LMI</a><span style="color:var(--border2);margin:0 4px">·</span>
+        <a href="https://open.canada.ca/en/open-maps" target="_blank" rel="noopener">Canada Open Maps</a>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span class="data-badge open">Open Govt Licence</span>
@@ -949,6 +1016,276 @@
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
 
+  // ── REGIONAL INTELLIGENCE DATA ──
+  // Province-level Labour Force Survey and ESDC LMI data.
+  // Source: Statistics Canada LFS (Cat. 71-001-X); ESDC Job Bank Occupational Outlooks.
+  // NOC 2021 codes. All figures are published provincial-level aggregates — not RPAS-specific.
+  // Disclaimer shown in panel: not specific to RPAS roles; ACIA™ data is separate and not reflected here.
+  const WORKFORCE = {
+    AB: {
+      pop2021: '4,262,635', area: '661,848 km²', censusDiv: 'Alberta',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '64.8%', unemploymentRate: '6.8%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Good', wage:'$47.60/hr median', scope:'Provincial' },
+        { code:'NOC 2244', title:'Aircraft instrument, electrical & avionics mechanics', outlook:'Good', wage:'$36.54/hr median', scope:'Provincial' },
+        { code:'NOC 2173', title:'Software engineers & designers', outlook:'Good', wage:'$52.88/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$44.23/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Alberta labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    BC: {
+      pop2021: '5,000,879', area: '944,735 km²', censusDiv: 'British Columbia',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '62.3%', unemploymentRate: '5.5%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Good', wage:'$52.31/hr median', scope:'Provincial' },
+        { code:'NOC 2244', title:'Aircraft instrument, electrical & avionics mechanics', outlook:'Good', wage:'$38.46/hr median', scope:'Provincial' },
+        { code:'NOC 2173', title:'Software engineers & designers', outlook:'Good', wage:'$57.69/hr median', scope:'Provincial' },
+        { code:'NOC 7521', title:'Heavy equipment operators (except crane)', outlook:'Fair', wage:'$32.69/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'British Columbia labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    SK: {
+      pop2021: '1,132,505', area: '651,036 km²', censusDiv: 'Saskatchewan',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '65.1%', unemploymentRate: '5.5%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'$43.27/hr median', scope:'Provincial' },
+        { code:'NOC 8411', title:'Underground miners, oil & gas drillers', outlook:'Fair', wage:'$34.62/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$42.31/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Saskatchewan labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    MB: {
+      pop2021: '1,342,153', area: '647,797 km²', censusDiv: 'Manitoba',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '63.7%', unemploymentRate: '5.2%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'$42.31/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$40.87/hr median', scope:'Provincial' },
+        { code:'NOC 8431', title:'Agricultural equipment operators', outlook:'Fair', wage:'$24.04/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Manitoba labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    ON: {
+      pop2021: '14,223,942', area: '1,076,395 km²', censusDiv: 'Ontario',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '62.0%', unemploymentRate: '6.3%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Good', wage:'$54.81/hr median', scope:'Provincial' },
+        { code:'NOC 2244', title:'Aircraft instrument, electrical & avionics mechanics', outlook:'Good', wage:'$39.90/hr median', scope:'Provincial' },
+        { code:'NOC 2173', title:'Software engineers & designers', outlook:'Good', wage:'$59.62/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$46.15/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Ontario labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    QC: {
+      pop2021: '8,501,833', area: '1,542,056 km²', censusDiv: 'Québec',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '61.8%', unemploymentRate: '4.9%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Good', wage:'$51.92/hr median', scope:'Provincial' },
+        { code:'NOC 2244', title:'Aircraft instrument, electrical & avionics mechanics', outlook:'Good', wage:'$36.06/hr median', scope:'Provincial' },
+        { code:'NOC 2173', title:'Software engineers & designers', outlook:'Good', wage:'$53.85/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Québec labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    NS: {
+      pop2021: '969,383', area: '55,284 km²', censusDiv: 'Nova Scotia',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '59.4%', unemploymentRate: '7.3%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'$42.79/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$40.38/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Nova Scotia labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    NL: {
+      pop2021: '510,550', area: '405,212 km²', censusDiv: 'Newfoundland & Labrador',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '55.6%', unemploymentRate: '10.5%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'$48.08/hr median', scope:'Provincial' },
+        { code:'NOC 8412', title:'Oil & gas drillers, servicers, testers & related', outlook:'Fair', wage:'$39.90/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Newfoundland & Labrador labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    YT: {
+      pop2021: '40,232', area: '482,443 km²', censusDiv: 'Yukon',
+      lfsDate: 'Statistics Canada LFS, 2023 (small-area estimate)',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '68.2%', unemploymentRate: '4.0%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'Data unavailable at territory level', scope:'Territorial' },
+      ],
+      lmiNote: 'Yukon labour market data from Statistics Canada LFS. Small-area estimates have higher variability. Figures are not specific to RPAS roles or the AACP™ program.'
+    },
+    NT: {
+      pop2021: '41,786', area: '1,346,106 km²', censusDiv: 'Northwest Territories',
+      lfsDate: 'Statistics Canada LFS, 2023 (small-area estimate)',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '66.1%', unemploymentRate: '5.9%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'Data unavailable at territory level', scope:'Territorial' },
+      ],
+      lmiNote: 'Northwest Territories labour market data from Statistics Canada LFS. Small-area estimates have higher variability. Figures are not specific to RPAS roles or the AACP™ program.'
+    },
+  };
+
+  // ── REGIONAL PANEL CONTROLLER ──
+  const CAT_LABEL_FULL = {
+    transportation: 'Transportation Infrastructure',
+    energy: 'Energy & Utilities',
+    water: 'Water Infrastructure',
+    industrial: 'Industrial Facilities'
+  };
+  const CAT_COLOR = { transportation:'#1a6faf', energy:'#80011f', water:'#0d6e6e', industrial:'#6b4c0a' };
+
+  let activeTab = 'overview';
+
+  function outlookClass(o) {
+    if (!o) return 'outlook-fair';
+    const l = o.toLowerCase();
+    if (l.includes('good')) return 'outlook-good';
+    if (l.includes('limited') || l.includes('poor')) return 'outlook-limited';
+    return 'outlook-fair';
+  }
+
+  function renderPanel(d) {
+    const panel = document.getElementById('riPanel');
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    const wf = WORKFORCE[d.prov] || null;
+
+    panel.classList.remove('empty');
+    riEmpty.hidden = true;
+    riContent.hidden = false;
+
+    // Header
+    riHeader.innerHTML = `
+      <div class="ri-region-label">${d.prov} &nbsp;·&nbsp; ${CAT_LABEL_FULL[d.cat]}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="ri-region-name">${d.name}</div>
+        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+      </div>
+      <div role="tablist" class="ri-tabs">
+        <button role="tab" class="ri-tab${activeTab==='overview'?' active':''}" onclick="switchTab('overview')">Overview</button>
+        <button role="tab" class="ri-tab${activeTab==='infrastructure'?' active':''}" onclick="switchTab('infrastructure')">Infrastructure</button>
+        <button role="tab" class="ri-tab${activeTab==='workforce'?' active':''}" onclick="switchTab('workforce')">Workforce</button>
+      </div>`;
+
+    renderTab(d, wf, riBody);
+  }
+
+  function renderTab(d, wf, riBody) {
+    if (activeTab === 'overview') {
+      riBody.innerHTML = `
+        <div class="ri-section">
+          <div class="ri-section-label">Region</div>
+          <div class="ri-kv"><span class="ri-k">Region</span><span class="ri-v">${d.region}</span></div>
+          <div class="ri-kv"><span class="ri-k">Province / Territory</span><span class="ri-v">${d.prov}</span></div>
+          ${wf ? `<div class="ri-kv"><span class="ri-k">Population (2021)</span><span class="ri-v">${wf.pop2021}</span></div>
+          <div class="ri-kv"><span class="ri-k">Land area</span><span class="ri-v">${wf.area}</span></div>` : ''}
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Infrastructure</div>
+          <div class="ri-kv"><span class="ri-k">Category</span><span class="ri-v" style="color:${CAT_COLOR[d.cat]}">${CAT_LABEL_FULL[d.cat]}</span></div>
+          <div class="ri-kv"><span class="ri-k">Asset type</span><span class="ri-v">${d.assetType}</span></div>
+          <div class="ri-kv"><span class="ri-k">Coverage</span><span class="ri-v">${d.count}</span></div>
+          <div class="ri-kv"><span class="ri-k">Data status</span><span class="ri-v"><span class="ri-status-badge ${d.status==='aggregate'?'open':'indicative'}">${d.status==='aggregate'?'Open data aggregate':'Indicative opportunity'}</span></span></div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Potential RPAS Application</div>
+          <div class="ri-app-block">${d.rpasApp}</div>
+          <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand.</div>
+        </div>`;
+
+    } else if (activeTab === 'infrastructure') {
+      riBody.innerHTML = `
+        <div class="ri-section">
+          <div class="ri-section-label">Infrastructure Record</div>
+          <div class="ri-kv"><span class="ri-k">Asset type</span><span class="ri-v">${d.assetType}</span></div>
+          <div class="ri-kv"><span class="ri-k">Coverage</span><span class="ri-v">${d.count}</span></div>
+          <div class="ri-kv"><span class="ri-k">Geographic scope</span><span class="ri-v">${d.region}</span></div>
+          <div class="ri-kv"><span class="ri-k">Generalization</span><span class="ri-v">Regional centroid — no precise coordinates</span></div>
+          <div class="ri-kv"><span class="ri-k">Status</span><span class="ri-v"><span class="ri-status-badge ${d.status==='aggregate'?'open':'indicative'}">${d.status==='aggregate'?'Open data aggregate':'Indicative opportunity'}</span></span></div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Data Provenance</div>
+          <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${d.sourceUrl}" target="_blank" rel="noopener">${d.source}</a></span></div>
+          <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
+          <div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">${d.updated}</span></div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Potential RPAS Application</div>
+          <div class="ri-app-block">${d.rpasApp}</div>
+          <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand.</div>
+        </div>`;
+
+    } else {
+      // Workforce tab
+      if (!wf) {
+        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Workforce data not available</strong>Province/territory-level LFS data is not available for this region in this release.</div>`;
+        return;
+      }
+      const nocRows = wf.nocs.map(n => `
+        <div class="ri-wf-row">
+          <div class="ri-wf-noc">${n.code} &nbsp;·&nbsp; ${n.scope}</div>
+          <div class="ri-wf-title">${n.title}</div>
+          <div class="ri-wf-meta">
+            <span class="ri-wf-chip ${outlookClass(n.outlook)}">Outlook: ${n.outlook}</span>
+            <span class="ri-wf-chip">Median: ${n.wage}</span>
+          </div>
+        </div>`).join('');
+
+      riBody.innerHTML = `
+        <div class="ri-section">
+          <div class="ri-section-label">Provincial Labour Market</div>
+          <div class="ri-kv"><span class="ri-k">Employment rate</span><span class="ri-v">${wf.employmentRate}</span></div>
+          <div class="ri-kv"><span class="ri-k">Unemployment rate</span><span class="ri-v">${wf.unemploymentRate}</span></div>
+          <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${wf.lfsUrl}" target="_blank" rel="noopener">Statistics Canada LFS</a></span></div>
+          <div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">${wf.lfsDate}</span></div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Related Occupational Groups (NOC 2021)</div>
+          ${nocRows}
+          <div style="font-size:.67rem;color:var(--dim);margin-top:4px">Outlook: ESDC Job Bank 3-year provincial outlook. <a href="https://www.jobbank.gc.ca/trend-analysis" target="_blank" rel="noopener" style="color:var(--muted)">View on Job Bank ↗</a></div>
+        </div>
+        <div class="ri-workforce-notice">
+          <strong>Important — data scope</strong>${wf.lmiNote}
+          <br><br>AACP™ ACIA™ competency intelligence is a separate, proprietary system and is not reflected in this panel.
+        </div>`;
+    }
+  }
+
+  window._riCurrentData = null;
+
+  window.switchTab = function(tab) {
+    activeTab = tab;
+    if (window._riCurrentData) renderPanel(window._riCurrentData);
+  };
+
+  window.closePanel = function() {
+    const panel = document.getElementById('riPanel');
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    panel.classList.add('empty');
+    riEmpty.hidden = false;
+    riContent.hidden = true;
+    window._riCurrentData = null;
+  };
+
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
   // Data: regional aggregates from Statistics Canada Open Database of Infrastructure (Cat. 16-508-X),
   // NRCan GEO.ca geospatial datasets, and provincial open-data portals.
@@ -1090,7 +1427,20 @@
     // Add markers to their category cluster groups
     INFRA.forEach(d => {
       const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
-      marker.bindPopup(buildPopup(d), { className: 'rpas-popup', maxWidth: 300 });
+      // On desktop open the side panel; keep popup as fallback for accessibility
+      marker.on('click', () => {
+        window._riCurrentData = d;
+        activeTab = 'overview';
+        renderPanel(d);
+        // On mobile, scroll panel into view
+        if (window.innerWidth <= 900) {
+          document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+      // Keep a compact tooltip on hover
+      marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${CAT_LABEL[d.cat]}</span>`, {
+        className: 'rpas-popup', direction: 'top', offset: [0, -8]
+      });
       clusterGroups[d.cat].addLayer(marker);
     });
 
@@ -1102,14 +1452,22 @@
     let activeProv = 'all';
 
     function applyFilters() {
-      Object.keys(clusterGroups).forEach(cat => {
-        clusterGroups[cat].clearLayers();
-      });
+      Object.keys(clusterGroups).forEach(cat => { clusterGroups[cat].clearLayers(); });
       INFRA.forEach(d => {
         if (!activeCats.has(d.cat)) return;
         if (activeProv !== 'all' && d.prov !== activeProv) return;
         const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
-        marker.bindPopup(buildPopup(d), { className: 'rpas-popup', maxWidth: 300 });
+        marker.on('click', () => {
+          window._riCurrentData = d;
+          activeTab = 'overview';
+          renderPanel(d);
+          if (window.innerWidth <= 900) {
+            document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+        marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${CAT_LABEL[d.cat]}</span>`, {
+          className: 'rpas-popup', direction: 'top', offset: [0, -8]
+        });
         clusterGroups[d.cat].addLayer(marker);
       });
     }
