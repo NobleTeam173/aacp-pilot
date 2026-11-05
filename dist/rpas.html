@@ -92,21 +92,10 @@
     @keyframes telem{from{width:65%}to{width:90%}}
     @media(prefers-reduced-motion:reduce){.telem-bar-fill{animation:none;width:72%}}
     @media(width<=960px){.hero-telem{display:none}}
-    /* ── ANIMATED DRONE ── */
-    .hero-drone{position:absolute;right:4vw;top:50%;transform:translateY(-55%);width:360px;pointer-events:none;z-index:2}
-    .drone-float{animation:drone-hover 5s ease-in-out infinite;transform-origin:250px 230px}
-    @keyframes drone-hover{
-      0%,100%{transform:translateY(0px) rotate(0deg)}
-      28%{transform:translateY(-10px) rotate(.9deg)}
-      55%{transform:translateY(-8px) rotate(-.7deg)}
-      78%{transform:translateY(-13px) rotate(.5deg)}
-    }
-    .d-scan{animation:dscan 3s ease-in-out infinite}
-    @keyframes dscan{0%,100%{opacity:.16}50%{opacity:.4}}
-    .d-scan-line{animation:dscan 3s ease-in-out infinite;animation-delay:.4s}
-    @media(prefers-reduced-motion:reduce){.drone-float,.d-scan,.d-scan-line{animation:none}.d-scan{opacity:.2}}
-    @media(width<=1100px){.hero-drone{width:260px;right:1vw}}
-    @media(width<=768px){.hero-drone{display:none}}
+    /* ── MISSION SCENE CANVAS ── */
+    #rpas-scene{position:absolute;right:0;top:0;bottom:0;width:56vw;max-width:680px;pointer-events:none;z-index:2}
+    @media(width<=1024px){#rpas-scene{width:48vw}}
+    @media(width<=768px){#rpas-scene{display:none}}
 
     /* ── INTRO STRIP ── */
     .intro-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 6vw}
@@ -323,8 +312,9 @@
   <div class="hero-vignette" aria-hidden="true"></div>
   <div class="hero-sweep" aria-hidden="true"></div>
 
-  <!-- ANIMATED QUADCOPTER DRONE -->
-  <div class="hero-drone" aria-hidden="true">
+  <!-- RPAS MISSION SCENE -->
+  <canvas id="rpas-scene" width="600" height="560" aria-hidden="true"></canvas>
+  <div class="hero-drone-REMOVED-START" style="display:none">
     <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <radialGradient id="dg-body" cx="40%" cy="35%" r="58%">
@@ -876,6 +866,393 @@
       }).addTo(map);
     });
   })();
+</script>
+
+<script>
+/* ── RPAS INFRASTRUCTURE MONITORING MISSION ANIMATION ── */
+(function(){
+'use strict';
+const cv=document.getElementById('rpas-scene');
+if(!cv)return;
+const cx=cv.getContext('2d');
+const W=600,H=560;
+const dpr=Math.min(window.devicePixelRatio||1,2);
+cv.width=W*dpr;cv.height=H*dpr;
+cx.scale(dpr,dpr);
+
+const noAnim=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+// ── SCENE GEOMETRY ──
+const TBX=368,TBY=495; // tower base centre
+const TTX=362,TTY=68;  // tower top centre
+const TOWER_H=TBY-TTY; // 427px
+
+// ── MISSION PHASES ──
+// p0/p1: drone start/end {x,y}; gt: target gimbal angle (°)
+const TOTAL=12400;
+const PH=[
+  {n:'enter',   s:0,    e:1600, p0:{x:-65,y:315},p1:{x:95, y:300},gt:0},
+  {n:'approach',s:1600, e:3900, p0:{x:95, y:300},p1:{x:214,y:272},gt:0},
+  {n:'pos1',    s:3900, e:4300, p0:{x:214,y:272},p1:{x:214,y:272},gt:0},
+  {n:'inspect1',s:4300, e:7300, p0:{x:214,y:272},p1:{x:214,y:272},gt:38},
+  {n:'transit', s:7300, e:9100, p0:{x:214,y:272},p1:{x:454,y:162},gt:0},
+  {n:'pos2',    s:9100, e:9500, p0:{x:454,y:162},p1:{x:454,y:162},gt:0},
+  {n:'inspect2',s:9500, e:11400,p0:{x:454,y:162},p1:{x:454,y:162},gt:-42},
+  {n:'depart',  s:11400,e:12400,p0:{x:454,y:162},p1:{x:670,y:238},gt:0},
+];
+
+function eio(t){return t<.5?2*t*t:-1+(4-2*t)*t;}
+function eout(t){return 1-Math.pow(1-t,3);}
+function ein(t){return t*t*t;}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function getState(ms){
+  ms=((ms%TOTAL)+TOTAL)%TOTAL;
+  let ph=PH[PH.length-1];
+  for(const p of PH){if(ms>=p.s&&ms<p.e){ph=p;break;}}
+  let raw=(ms-ph.s)/(ph.e-ph.s);
+  let t=raw;
+  if(ph.n==='enter')t=eout(raw);
+  else if(ph.n==='approach'||ph.n==='transit')t=eio(raw);
+  else if(ph.n==='depart')t=ein(raw);
+
+  const x=lerp(ph.p0.x,ph.p1.x,t);
+  const y=lerp(ph.p0.y,ph.p1.y,t);
+
+  // Gimbal angle
+  let g=0;
+  const isP1=ph.n==='inspect1',isP2=ph.n==='inspect2';
+  if(isP1||isP2){g=lerp(0,ph.gt,eio(Math.min(raw*3,1)));}
+  else if(ph.n==='transit'){g=lerp(38,0,eio(raw));}
+  else if(ph.n==='depart'){g=lerp(-42,0,eio(raw));}
+
+  // Overlay alpha
+  let oa=0;
+  if(isP1||isP2){oa=eout(Math.min(raw*4,1))*eout(Math.min((1-raw)*8,1));}
+
+  // Heading lean
+  let hd=0;
+  const dx=ph.p1.x-ph.p0.x,dy=ph.p1.y-ph.p0.y;
+  if(Math.abs(dx)+Math.abs(dy)>5){hd=Math.atan2(dy,dx)*(180/Math.PI)*0.12;}
+
+  return{x,y,g,oa,hd,phase:ph.n};
+}
+
+let propR=0,scanF=0,blinkT=0;
+
+function drawBg(){
+  const bg=cx.createRadialGradient(W*.63,H*.42,0,W*.63,H*.45,W*.78);
+  bg.addColorStop(0,'rgba(14,8,20,.22)');
+  bg.addColorStop(1,'rgba(6,2,8,.62)');
+  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+}
+
+function drawGround(){
+  const vpX=TBX,vpY=TBY+8;
+  cx.strokeStyle='rgba(46,16,53,.22)';cx.lineWidth=.6;
+  for(let i=-7;i<=7;i++){
+    cx.beginPath();
+    cx.moveTo(vpX+i*55,vpY);
+    cx.lineTo(vpX+i*220,H);
+    cx.stroke();
+  }
+  for(let j=0;j<5;j++){
+    const f=(j/4)*(j/4);
+    const y=vpY+(H-vpY)*f;
+    cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();
+  }
+  const gnd=cx.createLinearGradient(0,TBY,0,H);
+  gnd.addColorStop(0,'rgba(8,2,10,0)');
+  gnd.addColorStop(1,'rgba(8,2,10,.5)');
+  cx.fillStyle=gnd;cx.fillRect(0,TBY,W,H-TBY);
+}
+
+function drawTower(){
+  const bx=TBX,by=TBY,tx=TTX,ty=TTY;
+  const BW=92,TW=30;
+  const lbx=bx-BW/2,rbx=bx+BW/2;
+  const ltx=tx-TW/2,rtx=tx+TW/2;
+
+  // Leg shadows
+  cx.strokeStyle='rgba(0,0,0,.5)';cx.lineWidth=8;cx.lineCap='round';
+  cx.beginPath();cx.moveTo(lbx+1,by+2);cx.lineTo(ltx+1,ty+2);cx.stroke();
+  cx.beginPath();cx.moveTo(rbx+1,by+2);cx.lineTo(rtx+1,ty+2);cx.stroke();
+
+  // Main legs
+  cx.strokeStyle='#252236';cx.lineWidth=5;cx.lineCap='butt';
+  cx.beginPath();cx.moveTo(lbx,by);cx.lineTo(ltx,ty);cx.stroke();
+  cx.beginPath();cx.moveTo(rbx,by);cx.lineTo(rtx,ty);cx.stroke();
+  // Highlights
+  cx.strokeStyle='#3a3654';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(lbx+2,by);cx.lineTo(ltx+2,ty);cx.stroke();
+  cx.beginPath();cx.moveTo(rbx+2,by);cx.lineTo(rtx+2,ty);cx.stroke();
+
+  // Cross bracing at 5 levels
+  for(let lv=1;lv<=5;lv++){
+    const f=lv/6;
+    const y=ty+(by-ty)*f;
+    const lx=ltx+(lbx-ltx)*f;
+    const rx=rtx+(rbx-rtx)*f;
+    // Horizontal tie
+    cx.strokeStyle='#1e1c2e';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(lx,y);cx.lineTo(rx,y);cx.stroke();
+    // X diagonals to next level
+    if(lv<5){
+      const nf=(lv+1)/6;
+      const ny=ty+(by-ty)*nf;
+      const nlx=ltx+(lbx-ltx)*nf;
+      const nrx=rtx+(rbx-rtx)*nf;
+      cx.strokeStyle='#19172a';cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(lx,y);cx.lineTo(nrx,ny);cx.stroke();
+      cx.beginPath();cx.moveTo(rx,y);cx.lineTo(nlx,ny);cx.stroke();
+    }
+  }
+
+  // Arms at top
+  const armY=ty+24,aSpan=118;
+  cx.strokeStyle='#252236';cx.lineWidth=4;
+  cx.beginPath();cx.moveTo(tx-aSpan,armY);cx.lineTo(tx+aSpan,armY);cx.stroke();
+  cx.strokeStyle='#3a3654';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(tx-aSpan,armY);cx.lineTo(tx+aSpan,armY);cx.stroke();
+  // Arm braces
+  cx.strokeStyle='#1e1c2e';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(ltx,ty+2);cx.lineTo(tx-aSpan+12,armY+2);cx.stroke();
+  cx.beginPath();cx.moveTo(rtx,ty+2);cx.lineTo(tx+aSpan-12,armY+2);cx.stroke();
+
+  // Insulators
+  for(const ix of[tx-aSpan,tx-aSpan*.52,tx,tx+aSpan*.52,tx+aSpan]){
+    cx.fillStyle='#302c44';
+    cx.beginPath();cx.ellipse(ix,armY+7,3.5,7,0,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='#484460';cx.lineWidth=.8;cx.stroke();
+  }
+
+  // Power lines
+  cx.strokeStyle='rgba(38,34,56,.55)';cx.lineWidth=1.2;
+  for(const[sx,ex,ey]of[
+    [tx-aSpan,tx-aSpan-240,armY+28],
+    [tx-aSpan*.52,tx-aSpan*.52-220,armY+32],
+    [tx+aSpan*.52,tx+aSpan*.52+220,armY+28],
+    [tx+aSpan,tx+aSpan+240,armY+28]
+  ]){
+    cx.beginPath();
+    cx.moveTo(sx,armY+14);
+    cx.quadraticCurveTo((sx+ex)/2,armY+58,ex,ey);
+    cx.stroke();
+  }
+
+  // Beacon
+  cx.fillStyle='#1e1c2c';
+  cx.beginPath();cx.arc(tx,ty,5,0,Math.PI*2);cx.fill();
+  const ba=.35+.6*Math.max(0,Math.sin(blinkT*.72));
+  cx.fillStyle=`rgba(190,0,25,${ba})`;
+  cx.shadowColor='#c80020';cx.shadowBlur=ba>.5?10:0;
+  cx.beginPath();cx.arc(tx,ty-9,3.5,0,Math.PI*2);cx.fill();
+  cx.shadowBlur=0;
+}
+
+function drawDrone(x,y,hd,gAngle){
+  cx.save();
+  cx.translate(x,y);
+  cx.rotate(hd*Math.PI/180);
+
+  const ARM=35,MR=11,PR=27,BRX=23,BRY=18;
+  const aRads=[45,135,225,315].map(a=>a*Math.PI/180);
+  const motors=aRads.map(a=>({x:Math.cos(a)*ARM,y:Math.sin(a)*ARM}));
+
+  // Arms
+  for(const m of motors){
+    cx.strokeStyle='#16141e';cx.lineWidth=7;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(0,0);cx.lineTo(m.x,m.y);cx.stroke();
+    cx.strokeStyle='#2c2a3c';cx.lineWidth=1.4;
+    cx.beginPath();cx.moveTo(0,0);cx.lineTo(m.x,m.y);cx.stroke();
+  }
+
+  // Prop discs (blur rings)
+  for(const m of motors){
+    const pg=cx.createRadialGradient(m.x,m.y,0,m.x,m.y,PR);
+    pg.addColorStop(0,'rgba(175,170,195,0)');
+    pg.addColorStop(.65,'rgba(175,170,195,.055)');
+    pg.addColorStop(1,'rgba(175,170,195,0)');
+    cx.fillStyle=pg;
+    cx.beginPath();cx.arc(m.x,m.y,PR,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='rgba(175,170,195,.11)';cx.lineWidth=.5;
+    cx.beginPath();cx.arc(m.x,m.y,PR,0,Math.PI*2);cx.stroke();
+  }
+
+  // Rotating blades (NE+SW: CW, NW+SE: CCW)
+  const dirs=[1,-1,-1,1];
+  for(let i=0;i<4;i++){
+    const m=motors[i];
+    cx.save();
+    cx.translate(m.x,m.y);
+    cx.rotate(propR*dirs[i]);
+    cx.globalAlpha=.7;cx.fillStyle='#cac6d6';
+    for(const flip of[1,-1]){
+      cx.save();cx.scale(flip,flip);
+      cx.beginPath();
+      cx.moveTo(1.5,-2);
+      cx.bezierCurveTo(3.5,-11,6,-22,4,-31);
+      cx.bezierCurveTo(2.5,-35,-1.5,-33,-3,-28);
+      cx.bezierCurveTo(-5,-20,-2,-9,1.5,-2);
+      cx.closePath();cx.fill();cx.restore();
+    }
+    cx.globalAlpha=1;cx.restore();
+  }
+
+  // Motor pods
+  for(const m of motors){
+    cx.fillStyle='rgba(0,0,0,.5)';
+    cx.beginPath();cx.arc(m.x+1,m.y+1,MR,0,Math.PI*2);cx.fill();
+    const mg=cx.createRadialGradient(m.x-3,m.y-3,0,m.x,m.y,MR);
+    mg.addColorStop(0,'#3c384a');mg.addColorStop(1,'#12101c');
+    cx.fillStyle=mg;
+    cx.beginPath();cx.arc(m.x,m.y,MR,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='#2a2838';cx.lineWidth=1.5;
+    cx.beginPath();cx.arc(m.x,m.y,MR,0,Math.PI*2);cx.stroke();
+    cx.fillStyle='#100e1a';
+    cx.beginPath();cx.arc(m.x,m.y,MR*.55,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='#38364a';cx.lineWidth=1;
+    cx.beginPath();cx.arc(m.x,m.y,MR*.55,0,Math.PI*2);cx.stroke();
+  }
+
+  // Body
+  cx.fillStyle='rgba(0,0,0,.45)';
+  cx.beginPath();cx.ellipse(1,2,BRX,BRY,0,0,Math.PI*2);cx.fill();
+  const bodg=cx.createRadialGradient(-7,-6,0,0,0,BRX);
+  bodg.addColorStop(0,'#3a3545');bodg.addColorStop(.5,'#1e1a28');bodg.addColorStop(1,'#0e0c16');
+  cx.fillStyle=bodg;
+  cx.beginPath();cx.ellipse(0,0,BRX,BRY,0,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#2a2838';cx.lineWidth=1.5;
+  cx.beginPath();cx.ellipse(0,0,BRX,BRY,0,0,Math.PI*2);cx.stroke();
+  // Panel lines
+  cx.strokeStyle='rgba(28,24,40,.65)';cx.lineWidth=.8;
+  cx.beginPath();cx.moveTo(-BRX*.7,-4);cx.lineTo(BRX*.7,-4);cx.stroke();
+  cx.beginPath();cx.moveTo(-BRX*.7,5);cx.lineTo(BRX*.7,5);cx.stroke();
+  // Specular
+  cx.fillStyle='rgba(255,255,255,.028)';
+  cx.beginPath();cx.ellipse(-5,-5,14,7,-.2,0,Math.PI*2);cx.fill();
+  // Sensor bay
+  cx.fillStyle='#0c0a14';cx.strokeStyle='#26243c';cx.lineWidth=.6;
+  cx.fillRect(-11,-BRY+1,22,5);cx.strokeRect(-11,-BRY+1,22,5);
+
+  // Status LEDs
+  const la=.4+.55*Math.sin(blinkT*2.6);
+  cx.shadowColor='#cc0028';cx.shadowBlur=5;
+  cx.fillStyle=`rgba(200,0,30,${la})`;
+  cx.beginPath();cx.arc(0,-BRY+1.5,2,0,Math.PI*2);cx.fill();
+  cx.shadowColor='#20aa44';cx.shadowBlur=4;
+  cx.fillStyle=`rgba(30,180,70,${1-la})`;
+  cx.beginPath();cx.arc(0,BRY-1.5,2,0,Math.PI*2);cx.fill();
+  cx.shadowBlur=0;
+
+  // Nav lights on motor pods
+  const nl=.9+.1*Math.sin(blinkT*3);
+  cx.shadowBlur=6;
+  cx.shadowColor='#00cc44';cx.fillStyle=`rgba(0,200,60,${nl})`;
+  cx.beginPath();cx.arc(motors[0].x,motors[0].y,3,0,Math.PI*2);cx.fill();
+  cx.shadowColor='#cc0022';cx.fillStyle=`rgba(200,0,30,${1-nl+.1})`;
+  cx.beginPath();cx.arc(motors[1].x,motors[1].y,3,0,Math.PI*2);cx.fill();
+  cx.shadowBlur=0;
+  const strobe=Math.sin(blinkT*6.5)>.7?.6:.08;
+  cx.fillStyle=`rgba(255,255,255,${strobe})`;
+  cx.beginPath();cx.arc(motors[2].x,motors[2].y,2.5,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.arc(motors[3].x,motors[3].y,2.5,0,Math.PI*2);cx.fill();
+
+  // Camera gimbal
+  cx.save();
+  cx.translate(0,BRY*.7);
+  cx.fillStyle='#0e0c18';cx.beginPath();cx.ellipse(0,0,8,6,0,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#26243c';cx.lineWidth=.8;cx.stroke();
+  cx.rotate(gAngle*Math.PI/180);
+  cx.fillStyle='#141222';cx.beginPath();cx.arc(0,3.5,5,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#2c2a3c';cx.lineWidth=.7;cx.stroke();
+  cx.fillStyle='#040208';cx.beginPath();cx.arc(0,3.5,3,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#3c1434';cx.lineWidth=.8;cx.stroke();
+  cx.fillStyle='rgba(90,70,160,.55)';
+  cx.beginPath();cx.ellipse(-.8,2.6,1,.65,0,0,Math.PI*2);cx.fill();
+  cx.restore();
+
+  cx.restore();
+}
+
+function drawScan(state){
+  if(state.oa<=.01)return;
+  const a=state.oa;
+  const isP1=state.phase==='inspect1';
+  const tx=TTX;
+  const ty=isP1?(TTY+TOWER_H*.42):(TTY+24);
+  const id=isP1?'TL-402B':'TL-402A';
+  const st=isP1?'NOMINAL':'OPTIMAL';
+  const BW=56,BH=62,cl=11;
+  const bx=tx-BW/2,by=ty-BH/2;
+
+  // Corner bracket
+  cx.strokeStyle=`rgba(224,85,117,${a*.65})`;
+  cx.lineWidth=1.5;cx.lineCap='square';
+  for(const[ox,oy,sx,sy]of[[0,0,1,1],[BW,0,-1,1],[0,BH,1,-1],[BW,BH,-1,-1]]){
+    cx.beginPath();
+    cx.moveTo(bx+ox,by+oy+sy*cl);cx.lineTo(bx+ox,by+oy);cx.lineTo(bx+ox+sx*cl,by+oy);
+    cx.stroke();
+  }
+  cx.lineCap='butt';
+
+  // Crosshair
+  cx.fillStyle=`rgba(224,85,117,${a*.45})`;
+  cx.beginPath();cx.arc(tx,ty,2,0,Math.PI*2);cx.fill();
+
+  // Scan line
+  const slY=by+BH*(scanF%1);
+  if(slY>by&&slY<by+BH){
+    const sg=cx.createLinearGradient(bx,slY,bx+BW,slY);
+    sg.addColorStop(0,'rgba(224,85,117,0)');
+    sg.addColorStop(.3,`rgba(224,85,117,${a*.35})`);
+    sg.addColorStop(.7,`rgba(224,85,117,${a*.35})`);
+    sg.addColorStop(1,'rgba(224,85,117,0)');
+    cx.strokeStyle=sg;cx.lineWidth=.9;
+    cx.beginPath();cx.moveTo(bx,slY);cx.lineTo(bx+BW,slY);cx.stroke();
+  }
+
+  // Lead line from drone
+  cx.strokeStyle=`rgba(224,85,117,${a*.18})`;
+  cx.lineWidth=.8;cx.setLineDash([3,5]);
+  cx.beginPath();cx.moveTo(state.x,state.y+15);cx.lineTo(tx,ty);cx.stroke();
+  cx.setLineDash([]);
+
+  // Label
+  cx.fillStyle=`rgba(224,85,117,${a*.75})`;cx.font="700 8.5px 'DM Sans',sans-serif";
+  cx.fillText('ASSET',bx,by+BH+14);
+  cx.fillStyle=`rgba(240,238,242,${a*.9})`;cx.font="700 10px 'DM Sans',sans-serif";
+  cx.fillText(id,bx,by+BH+25);
+  cx.fillStyle=`rgba(148,144,160,${a*.65})`;cx.font="400 8px 'DM Sans',sans-serif";
+  cx.fillText('STATUS: '+st,bx,by+BH+36);
+}
+
+// ── MAIN LOOP ──
+let startT=null;
+function frame(ts){
+  if(!startT)startT=ts;
+  const e=ts-startT;
+  propR+=.44;scanF+=.0075;blinkT=e*.001;
+
+  const state=noAnim
+    ?{x:214,y:272,hd:0,g:28,oa:.8,phase:'inspect1'}
+    :getState(e);
+
+  cx.clearRect(0,0,W,H);
+  drawBg();
+  drawGround();
+  drawTower();
+  drawScan(state);
+  drawDrone(state.x,state.y,state.hd,state.g);
+  // Edge vignette
+  const v=cx.createRadialGradient(W*.62,H*.44,H*.25,W*.62,H*.44,H*.72);
+  v.addColorStop(0,'rgba(8,2,10,0)');v.addColorStop(1,'rgba(8,2,10,.38)');
+  cx.fillStyle=v;cx.fillRect(0,0,W,H);
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
