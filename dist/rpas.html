@@ -1148,6 +1148,29 @@
       ],
       lmiNote: 'Newfoundland & Labrador labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
     },
+    NB: {
+      pop2021: '775,610', area: '71,450 km²', censusDiv: 'New Brunswick',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '59.8%', unemploymentRate: '7.8%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'$43.75/hr median', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$39.90/hr median', scope:'Provincial' },
+        { code:'NOC 2173', title:'Software engineers & designers', outlook:'Fair', wage:'$44.71/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'New Brunswick labour market data from Statistics Canada LFS and ESDC Job Bank. Figures are provincial aggregates and are not specific to RPAS roles or the AACP™ program.'
+    },
+    PE: {
+      pop2021: '154,331', area: '5,660 km²', censusDiv: 'Prince Edward Island',
+      lfsDate: 'Statistics Canada LFS, 2024 annual average',
+      lfsUrl: 'https://www150.statcan.gc.ca/n1/pub/71-001-x/2024001/t012a-eng.htm',
+      employmentRate: '62.1%', unemploymentRate: '7.9%',
+      nocs: [
+        { code:'NOC 2271', title:'Air pilots, flight engineers & flight instructors', outlook:'Fair', wage:'Data limited at provincial level', scope:'Provincial' },
+        { code:'NOC 2131', title:'Civil engineers', outlook:'Fair', wage:'$39.42/hr median', scope:'Provincial' },
+      ],
+      lmiNote: 'Prince Edward Island labour market data from Statistics Canada LFS. Small-province estimates have higher variability. Figures are not specific to RPAS roles or the AACP™ program.'
+    },
     YT: {
       pop2021: '40,232', area: '482,443 km²', censusDiv: 'Yukon',
       lfsDate: 'Statistics Canada LFS, 2023 (small-area estimate)',
@@ -1168,6 +1191,23 @@
       ],
       lmiNote: 'Northwest Territories labour market data from Statistics Canada LFS. Small-area estimates have higher variability. Figures are not specific to RPAS roles or the AACP™ program.'
     },
+  };
+
+  // ── MARKET SIGNALS — Phase 4 ──
+  // Demand signals by province: estimated RPAS pilot certificate counts + active procurement categories
+  // Pilot counts: provincial estimates derived from TC Canada 2024 RPAS registry totals (~83,000 nationally)
+  // Procurement categories: illustrative, based on published federal buyer patterns from Buyandsell.gc.ca
+  const MARKET_SIGNALS = {
+    BC: { pilots:'~12,500', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Environmental Monitoring','Forestry & Wildfire','Emergency Response'], marketNote:'British Columbia is one of Canada\'s most active RPAS commercial markets. Forestry, coastal infrastructure inspection, and emergency response are dominant sectors.' },
+    AB: { pilots:'~10,200', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Energy Sector Inspection','Infrastructure Survey','Agricultural Mapping','Emergency Response','Pipeline ROW Patrol'], marketNote:'Alberta is Canada\'s most active RPAS energy-sector market. Pipeline inspection, precision agriculture, and emergency response are dominant application areas.' },
+    SK: { pilots:'~4,100', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Infrastructure Survey','Pipeline ROW Patrol','Mining & Resource'], marketNote:'Saskatchewan RPAS demand is concentrated in precision agriculture and resource-sector inspection. Growing market in municipal infrastructure survey.' },
+    MB: { pilots:'~3,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Infrastructure Inspection','Emergency Response','Water Infrastructure'], marketNote:'Manitoba demand driven by precision agriculture and municipal infrastructure. Growing interest in emergency response and flood-plain monitoring applications.' },
+    ON: { pilots:'~25,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Emergency Response','Construction Monitoring','Public Safety'], marketNote:'Ontario has the largest RPAS pilot population in Canada. Demand is broad: construction, infrastructure, public safety, and agricultural applications are all active.' },
+    QC: { pilots:'~16,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Forestry & Wildfire','Energy Inspection','Public Safety'], marketNote:'Quebec is a major RPAS market with strong aerospace ecosystem ties. Hydro infrastructure inspection, forestry, and construction monitoring are leading sectors.' },
+    NS: { pilots:'~2,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Coastal & Marine Monitoring','Infrastructure Survey','Emergency Response','Fisheries Observation'], marketNote:'Nova Scotia demand concentrated in coastal and marine applications. DND and Coast Guard procurement activity supports inspection and surveillance use cases.' },
+    NB: { pilots:'~2,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Survey','Coastal Monitoring','Forestry','Emergency Response'], marketNote:'New Brunswick is an emerging RPAS market. Coastal infrastructure, forestry monitoring, and municipal survey represent the strongest near-term opportunities.' },
+    NL: { pilots:'~1,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Offshore & Coastal Inspection','Energy Sector','Infrastructure Survey','Search & Rescue'], marketNote:'Newfoundland & Labrador RPAS demand is driven by offshore energy infrastructure inspection, coastal monitoring, and search and rescue applications.' },
+    PE: { pilots:'~700', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Coastal Monitoring','Infrastructure Survey'], marketNote:'PEI is an early-stage RPAS market with strong agricultural mapping and coastal erosion monitoring potential. Summerside Aerospace Innovation Centre is a key ecosystem anchor.' },
   };
 
   // ── LIVE LFS FEED — Phase 2 ──
@@ -1299,6 +1339,7 @@
         <button role="tab" class="ri-tab${activeTab==='overview'?' active':''}" onclick="switchTab('overview')">Overview</button>
         <button role="tab" class="ri-tab${activeTab==='infrastructure'?' active':''}" onclick="switchTab('infrastructure')">Infrastructure</button>
         <button role="tab" class="ri-tab${activeTab==='workforce'?' active':''}" onclick="switchTab('workforce')">Workforce</button>
+        ${MARKET_SIGNALS[d.prov] ? `<button role="tab" class="ri-tab${activeTab==='market'?' active':''}" onclick="switchTab('market')">Market</button>` : ''}
       </div>`;
 
     renderTab(d, wf, riBody);
@@ -1348,6 +1389,33 @@
           <div class="ri-section-label">Potential RPAS Application</div>
           <div class="ri-app-block">${d.rpasApp}</div>
           <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand.</div>
+        </div>`;
+
+    } else if (activeTab === 'market') {
+      const ms = MARKET_SIGNALS[d.prov];
+      if (!ms) {
+        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Market signals not available</strong>Demand signal data is not available for this province/territory in this release.</div>`;
+        return;
+      }
+      const catChips = ms.categories.map(c => `<span class="ri-app-chip">${c}</span>`).join('');
+      riBody.innerHTML = `
+        <div class="ri-section">
+          <div class="ri-section-label">RPAS Pilot Certificate Density (2024)</div>
+          <div class="ri-kv"><span class="ri-k">Registered pilots (est.)</span><span class="ri-v">${ms.pilots}</span></div>
+          <div class="ri-kv"><span class="ri-k">National rank</span><span class="ri-v">By population weight · TC Canada 2024</span></div>
+          <div style="font-size:.67rem;color:var(--dim);margin-top:3px">${ms.pilotNote}</div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Active Federal Procurement Categories</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;padding:4px 0 6px">${catChips}</div>
+          <div style="font-size:.67rem;color:var(--dim);margin-top:2px">Illustrative categories based on federal buyer patterns. <a href="https://buyandsell.gc.ca/procurement-data/tender-notices" target="_blank" rel="noopener" style="color:var(--muted)">Browse live opportunities ↗</a></div>
+        </div>
+        <div class="ri-section">
+          <div class="ri-section-label">Market Context</div>
+          <div class="ri-ms-body" style="padding:0">${ms.marketNote}</div>
+        </div>
+        <div class="ri-workforce-notice">
+          <strong>Important — data scope</strong>Pilot certificate counts are provincial estimates derived from TC Canada 2024 annual data. Procurement categories are illustrative and not validated commercial demand. This panel does not reflect AACP™ ACIA™ competency intelligence or proprietary market analysis.
         </div>`;
 
     } else {
@@ -1492,6 +1560,11 @@
       { lat:49.70, lng:-112.84, cat:'water', prov:'AB', name:'Lethbridge — Southern Alberta Irrigation Network', region:'Southern Alberta', assetType:'Irrigation Canals, Dams & Water Conveyance', count:'~1.6M irrigated acres (AIPA open data, largest irrigation district in Canada)', rpasApp:'Canal condition survey, dam crest inspection, crop irrigation efficiency monitoring, water distribution mapping', source:'Alberta Irrigation Projects Association · AENV', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
       { lat:55.17, lng:-118.80, cat:'energy', prov:'AB', name:'Grande Prairie — Peace Country Energy Infrastructure', region:'Peace Country, Northern Alberta', assetType:'Natural Gas Processing & Pipeline Corridors', count:'Regional aggregate — NRCan / AER public records (Peace River basin)', rpasApp:'Gas plant and compressor station inspection, pipeline ROW patrol, remote facility perimeter survey, forestry-energy corridor monitoring', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
 
+      // ── PHASE 4: ATLANTIC CANADA INFRASTRUCTURE DEPTH ──
+      { lat:46.09, lng:-64.80, cat:'transportation', prov:'NB', name:'Moncton — Atlantic Transportation Hub', region:'Greater Moncton, NB', assetType:'Rail, Road & Airport Infrastructure', count:'~380 bridges + Moncton Airport (YQM) + CN Rail classification yard', rpasApp:'Rail corridor and yard inspection, airport perimeter survey, bridge deck inspection, tidal river monitoring', source:'Statistics Canada ODI · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:45.27, lng:-66.07, cat:'industrial', prov:'NB', name:'Saint John — Industrial Corridor', region:'Saint John, NB', assetType:'Port, Industrial Facilities & Coastal Infrastructure', count:'Regional aggregate — Port Saint John + industrial cluster (NB GeoNB public data)', rpasApp:'Port perimeter and berth inspection, industrial facility survey, Bay of Fundy tidal infrastructure monitoring, refinery stack observation', source:'NRCan GEO.ca · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+      { lat:46.24, lng:-63.14, cat:'water', prov:'PE', name:'Charlottetown — Coastal & Municipal Infrastructure', region:'Prince Edward Island', assetType:'Municipal Water, Harbour & Coastal Infrastructure', count:'~85 municipal water/wastewater assets + Charlottetown Harbour (PEI Open Data)', rpasApp:'Coastal erosion monitoring, harbour structure inspection, municipal water system survey, storm surge assessment', source:'Statistics Canada ODI · PEI Open Data', sourceUrl:'https://www.princeedwardisland.ca/en/topic/data', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+
       // ── AACP™ MUNICIPAL DEMONSTRATION — CLARESHOLM ──
       {
         lat: 50.022, lng: -113.591, cat: 'municipal', prov: 'AB',
@@ -1520,6 +1593,134 @@
         licence: 'Public municipal data',
         updated: '2021–2026',
         status: 'indicative',
+      },
+
+      // ── PHASE 4: NATIONAL MUNICIPAL INTELLIGENCE EXPANSION ──
+      {
+        lat: 49.973, lng: -98.293, cat: 'municipal', prov: 'MB',
+        name: 'Portage la Prairie', region: 'Central Manitoba',
+        subTitle: 'Regional aviation hub and agricultural manufacturing corridor',
+        assetType: 'Municipal Infrastructure & Military Aviation',
+        count: 'Population ~13,300 (2021 Census)',
+        domains: [
+          { label: 'Aviation Infrastructure', status: 'Established' },
+          { label: 'Military Aviation', status: 'Established' },
+          { label: 'Transportation', status: 'Highway 1 / TCH' },
+          { label: 'Food & Manufacturing', status: 'Documented' },
+        ],
+        rpasApps: ['Airspace intelligence', 'Agricultural survey', 'Infrastructure inspection', 'Training corridor mapping'],
+        validation: 'Adjacent military/civilian aviation base creates airspace considerations. Commercial RPAS demand not yet validated. Municipal and industry engagement required.',
+        workforce: 'Manitoba LFS and ESDC occupational data to be integrated. CFB Portage aviation training cadre relevant to RPAS workforce pipeline.',
+        sources: [
+          { label: 'City of Portage la Prairie — Municipal Data', url: 'https://www.city-plap.com' },
+          { label: '17 Wing Det. Portage / CFB Portage — National Defence', url: 'https://www.canada.ca/en/department-national-defence' },
+        ],
+        aacpNote: 'Portage la Prairie combines civilian and military aviation infrastructure with one of Canada\'s most productive agricultural corridors. AACP sees this as a strategic Manitoba expansion opportunity bridging RPAS pilot training and precision agriculture applications.',
+        rpasApp: 'Airspace intelligence, agricultural survey, infrastructure inspection, training corridor mapping',
+        source: 'City of Portage la Prairie · Manitoba Open Data',
+        sourceUrl: 'https://www.city-plap.com',
+        licence: 'Public municipal data', updated: '2024', status: 'indicative',
+      },
+      {
+        lat: 50.391, lng: -105.535, cat: 'municipal', prov: 'SK',
+        name: 'Moose Jaw', region: 'Southern Saskatchewan',
+        subTitle: 'NATO flight training hub and prairie aviation ecosystem',
+        assetType: 'Municipal Infrastructure & Military Aviation',
+        count: 'Population ~34,000 (2021 Census)',
+        domains: [
+          { label: 'Aviation Infrastructure', status: 'Established' },
+          { label: 'Military Aviation', status: 'Established' },
+          { label: 'Agricultural Corridor', status: 'Documented' },
+          { label: 'Transportation', status: 'Highway 1 / TCH' },
+        ],
+        rpasApps: ['Training airspace monitoring', 'Agricultural mapping', 'Pipeline corridor survey', 'Emergency response support'],
+        validation: '15 Wing NATO training creates regulated airspace. Agricultural and industrial RPAS demand present but not formally validated.',
+        workforce: 'Saskatchewan LFS and ESDC data to be integrated. Military-to-civilian aviation transition pathway relevant to RPAS workforce.',
+        sources: [
+          { label: 'City of Moose Jaw Open Data', url: 'https://www.moosejaw.ca' },
+          { label: '15 Wing Moose Jaw / NATO Flying Training in Canada', url: 'https://www.canada.ca/en/department-national-defence' },
+        ],
+        aacpNote: 'Moose Jaw is home to 15 Wing and the NATO Flying Training in Canada program — one of Canada\'s most significant military aviation training bases. AACP\'s RPAS training curriculum is directly relevant to this aviation ecosystem and its military-to-civilian transition pipeline.',
+        rpasApp: 'Training airspace monitoring, agricultural mapping, pipeline corridor survey, emergency response support',
+        source: 'City of Moose Jaw · Saskatchewan Open Data',
+        sourceUrl: 'https://www.moosejaw.ca',
+        licence: 'Public municipal data', updated: '2024', status: 'indicative',
+      },
+      {
+        lat: 46.396, lng: -63.791, cat: 'municipal', prov: 'PE',
+        name: 'Summerside', region: 'Prince Edward Island',
+        subTitle: 'Aerospace innovation hub and island infrastructure',
+        assetType: 'Municipal Infrastructure & Aerospace Innovation',
+        count: 'Population ~15,900 (2021 Census)',
+        domains: [
+          { label: 'Aviation Infrastructure', status: 'Established' },
+          { label: 'Aerospace Innovation', status: 'Established' },
+          { label: 'Water & Coastal', status: 'Documented' },
+          { label: 'Transportation', status: 'Regional Hub' },
+        ],
+        rpasApps: ['Coastal monitoring', 'Aerospace facility inspection', 'Agricultural island survey', 'Marine infrastructure observation'],
+        validation: 'Aerospace Innovation Centre at Summerside Airport represents a unique RPAS ecosystem. Commercial validation required. Industry engagement recommended.',
+        workforce: 'PEI LFS and ESDC data to be integrated. Aerospace workforce pipeline at Slemon Park relevant to RPAS talent development.',
+        sources: [
+          { label: 'City of Summerside — Open Data', url: 'https://www.summerside.ca' },
+          { label: 'Slemon Park Corporation — Aerospace Innovation Centre', url: 'https://www.slemonpark.com' },
+        ],
+        aacpNote: 'Summerside hosts a significant aerospace innovation ecosystem at the former CFB Summerside. The Slemon Park aerospace cluster is a natural AACP partnership opportunity for Atlantic Canada expansion and RPAS workforce development.',
+        rpasApp: 'Coastal monitoring, aerospace facility inspection, agricultural island survey, marine infrastructure observation',
+        source: 'City of Summerside · PEI Open Data',
+        sourceUrl: 'https://www.summerside.ca',
+        licence: 'Public municipal data', updated: '2024', status: 'indicative',
+      },
+      {
+        lat: 44.100, lng: -77.579, cat: 'municipal', prov: 'ON',
+        name: 'Trenton / Belleville', region: 'Eastern Ontario',
+        subTitle: "Canada's largest air transport base and aerospace manufacturing corridor",
+        assetType: 'Military Aviation & Aerospace Manufacturing',
+        count: 'Regional population ~200,000 (Hastings + Prince Edward County, 2021)',
+        domains: [
+          { label: 'Military Aviation', status: 'Established' },
+          { label: 'Aerospace Manufacturing', status: 'Documented' },
+          { label: 'Water Infrastructure', status: 'Documented' },
+          { label: 'Transportation', status: 'Highway 401 / TCH' },
+        ],
+        rpasApps: ['Search & rescue support', 'Aerospace facility inspection', 'Lake Ontario coastal monitoring', 'Industrial corridor survey'],
+        validation: '8 Wing CFB Trenton is Canada\'s largest air transport base. Commercial RPAS activity subject to DND airspace restrictions. Industry engagement required.',
+        workforce: 'Ontario LFS and ESDC data to be integrated. Military-to-civilian aviation transition pathway highly relevant to RPAS workforce development in this region.',
+        sources: [
+          { label: 'City of Belleville Open Data', url: 'https://www.belleville.ca' },
+          { label: '8 Wing CFB Trenton — National Defence', url: 'https://www.canada.ca/en/department-national-defence' },
+          { label: 'Hastings County — Regional Data', url: 'https://www.hastingscounty.com' },
+        ],
+        aacpNote: 'Trenton/Belleville sits at the intersection of Canada\'s largest military air transport base, an active aerospace manufacturing cluster, and Lake Ontario coastal infrastructure. Military-to-civilian RPAS pilot pathways make this a strategic AACP target market for Eastern Ontario.',
+        rpasApp: 'Search & rescue support, aerospace facility inspection, Lake Ontario coastal monitoring, industrial corridor survey',
+        source: 'City of Belleville · Ontario GeoHub',
+        sourceUrl: 'https://www.belleville.ca',
+        licence: 'Open Govt Licence – Ontario', updated: '2024', status: 'indicative',
+      },
+      {
+        lat: 51.103, lng: -114.374, cat: 'municipal', prov: 'AB',
+        name: 'Springbank', region: 'Rocky View County, AB',
+        subTitle: "Canada's busiest non-towered airport and western Calgary aviation corridor",
+        assetType: 'Business Aviation & Industrial Development',
+        count: 'Rocky View County population ~43,000 (2021 Census)',
+        domains: [
+          { label: 'Aviation Infrastructure', status: 'Established' },
+          { label: 'Business Aviation', status: 'Established' },
+          { label: 'Industrial Development', status: 'Documented' },
+          { label: 'Transportation', status: 'Highway 1 / TCH' },
+        ],
+        rpasApps: ['Business aviation support', 'Calgary western corridor survey', 'Industrial park inspection', 'Emergency services coordination'],
+        validation: 'Springbank Airport (CYBW) is the busiest non-towered airport in Canada. High aviation traffic density creates RPAS integration opportunity and airspace complexity. Commercial validation required.',
+        workforce: 'Alberta LFS and ESDC data to be integrated. Active business aviation community relevant to RPAS service demand and commercial pilot cross-training.',
+        sources: [
+          { label: 'Rocky View County Open Data', url: 'https://www.rockyview.ca' },
+          { label: 'Springbank Airport (CYBW) — TC Canada Aerodrome Directory', url: 'https://tc.canada.ca/en/aviation' },
+        ],
+        aacpNote: "Springbank is AACP's second Alberta municipal demonstration site. As Canada's busiest non-towered airport, it represents a unique urban fringe aviation ecosystem with direct relevance to RPAS commercial operations, pilot training, and integration with Calgary's aerospace supply chain.",
+        rpasApp: 'Business aviation support, Calgary western corridor survey, industrial park inspection, emergency services coordination',
+        source: 'Rocky View County · TC Canada Aerodrome Directory',
+        sourceUrl: 'https://www.rockyview.ca',
+        licence: 'Public municipal data', updated: '2024', status: 'indicative',
       },
     ];
 
