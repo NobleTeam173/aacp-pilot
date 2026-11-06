@@ -2260,6 +2260,46 @@
       });
     }
 
+    // Sync sector buttons to available data for the current province + category state
+    function syncSectorButtons() {
+      const sectorCounts = {};
+      INFRA.forEach(d => {
+        if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
+        if (activeProv !== 'all' && d.prov !== activeProv) return;
+        (d.sectors || []).forEach(s => { sectorCounts[s] = (sectorCounts[s] || 0) + 1; });
+      });
+      document.querySelectorAll('.sector-btn').forEach(btn => {
+        const s = btn.dataset.sector;
+        if (s === 'all') {
+          const total = INFRA.filter(d => {
+            if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return false;
+            if (activeProv !== 'all' && d.prov !== activeProv) return false;
+            return true;
+          }).length;
+          btn.textContent = activeProv !== 'all' ? `All (${total})` : 'All';
+          btn.disabled = false;
+          btn.style.opacity = '';
+          return;
+        }
+        const count = sectorCounts[s] || 0;
+        btn.textContent = count > 0 ? `${s.charAt(0).toUpperCase()+s.slice(1)} (${count})` : s.charAt(0).toUpperCase()+s.slice(1);
+        btn.disabled = count === 0;
+        btn.style.opacity = count === 0 ? '0.3' : '';
+        // If the active sector has no results, reset to all
+        if (activeSector === s && count === 0) {
+          activeSector = 'all';
+          document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.sector-btn[data-sector="all"]').classList.add('active');
+        }
+      });
+    }
+
+    document.getElementById('provFilter').addEventListener('change', e => {
+      activeProv = e.target.value;
+      syncSectorButtons();
+      applyFilters();
+    });
+
     document.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const cat = btn.dataset.cat;
@@ -2270,23 +2310,22 @@
           activeCats.add(cat);
           btn.classList.add('active');
         }
+        syncSectorButtons();
         applyFilters();
       });
     });
 
-    document.getElementById('provFilter').addEventListener('change', e => {
-      activeProv = e.target.value;
-      applyFilters();
-    });
-
     document.querySelectorAll('.sector-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.disabled) return;
         activeSector = btn.dataset.sector;
         document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         applyFilters();
       });
     });
+
+    syncSectorButtons();
 
     // ── 5C: LIGHTWEIGHT ANALYTICS ──
     function _track(event, data) {
