@@ -1116,7 +1116,7 @@
           <div class="p-step-num">03</div>
           <div>
             <h4>Confirm your place and fee</h4>
-            <p>Individuals whose expressions of interest are accepted will receive next-step instructions, including payment arrangements. Your place is confirmed once the $1,200 CAD program fee has been received.</p>
+            <p>Individuals whose expressions of interest are accepted will receive next-step instructions, including payment arrangements. Your place is confirmed once the <span id="process-fee">$795 CAD (early registration rate)</span> program fee has been received.</p>
           </div>
         </div>
         <div class="p-step">
@@ -1144,14 +1144,14 @@
       <div class="date-card fade-in" style="transition-delay:.04s">
         <div class="date-card-label">Cohort 1</div>
         <div class="date-card-date">November 23, 2026</div>
-        <div class="date-card-sub">One week · In-Person · Calgary, Alberta · $1,200 CAD</div>
+        <div class="date-card-sub" id="cohort1-sub">One week · In-Person · Calgary, Alberta · <span id="cohort1-price">$795 CAD</span></div>
         <div class="date-card-note">Spaces are limited and subject to review. Payment is arranged after acceptance.</div>
         <a href="rpas-eoi.html?cohort=nov_23_2026" class="btn-crimson">Express Interest</a>
       </div>
       <div class="date-card fade-in" style="transition-delay:.10s">
         <div class="date-card-label">Cohort 2</div>
         <div class="date-card-date">December 14, 2026</div>
-        <div class="date-card-sub">One week · In-Person · Calgary, Alberta · $1,200 CAD</div>
+        <div class="date-card-sub" id="cohort2-sub">One week · In-Person · Calgary, Alberta · <span id="cohort2-price">$795 CAD</span></div>
         <div class="date-card-note">Spaces are limited and subject to review. Payment is arranged after acceptance.</div>
         <a href="rpas-eoi.html?cohort=dec_14_2026" class="btn-crimson">Express Interest</a>
       </div>
@@ -1179,7 +1179,7 @@
         <a href="rpas-eoi.html" class="btn-eoi">Complete the EOI Form</a>
         <a href="eoi.html?path=partner" class="btn-partner">Industry &amp; Partner Inquiry</a>
         <div class="fee-note">
-          Program fee: $1,200 CAD per participant. Payment is arranged directly with AACP™ once your expression of interest is accepted. Cohort spaces are limited.
+          <span id="fee-note-text">Program fee: <strong>$795 CAD</strong> per participant (early registration — reg. $1,200). Rate locked at time of registration.</span> Payment is arranged directly with AACP™ once your expression of interest is accepted. Cohort spaces are limited.
           <br/><br/>
           Questions? <a href="mailto:partnerships@aviationaerospacecompetency.com">partnerships@aviationaerospacecompetency.com</a>
         </div>
@@ -2529,6 +2529,25 @@ function frame(){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+})();
+</script>
+<script>
+// Promotional pricing time-gate: reverts to $1,200 after Nov 9 2026 MST midnight (Nov 10 07:00 UTC)
+(function(){
+  var PROMO_END = new Date('2026-11-10T07:00:00Z');
+  if (Date.now() >= PROMO_END.getTime()) {
+    var ids = {
+      'cohort1-price': '$1,200 CAD',
+      'cohort2-price': '$1,200 CAD',
+      'process-fee': '$1,200 CAD'
+    };
+    for (var id in ids) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = ids[id];
+    }
+    var feeNote = document.getElementById('fee-note-text');
+    if (feeNote) feeNote.innerHTML = 'Program fee: $1,200 CAD per participant.';
+  }
 })();
 </script>
 </body>

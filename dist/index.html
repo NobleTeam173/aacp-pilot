@@ -135,7 +135,7 @@
         <p>A focused 1-week workforce intelligence program for the RPAS sector — delivering career intelligence, applied learning and a Workforce Profile grounded in remotely piloted aviation.</p>
         <div class="pathway-tags">
           <span class="pathway-tag">1 Week</span>
-          <span class="pathway-tag">$1,200 CAD</span>
+          <span class="pathway-tag" id="idx-pathway-price">$795 CAD</span>
           <span class="pathway-tag">RPAS ACIA™</span>
           <span class="pathway-tag">Ages 18+</span>
         </div>
@@ -408,7 +408,7 @@
       </p>
       <div class="rpas-hub-tags">
         <span class="rpas-hub-tag">1 Week</span>
-        <span class="rpas-hub-tag">$1,200 CAD</span>
+        <span class="rpas-hub-tag" id="idx-hub-price">$795 CAD</span>
       </div>
       <div style="margin-bottom:24px;padding:16px 18px;background:rgba(46,16,53,0.18);border:1px solid rgba(128,1,31,0.25);border-radius:10px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--crimson);margin-bottom:10px;">Upcoming Inaugural Cohorts</div>
@@ -451,7 +451,7 @@
           <div style="font-family:'Fraunces',serif;font-size:11px;font-weight:900;color:var(--crimson);min-width:20px;margin-top:2px;">03</div>
           <div>
             <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text);">Confirm your place</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Individuals whose Expressions of Interest are accepted will receive next-step instructions, including payment arrangements. Your place is confirmed once the $1,200 CAD program fee has been received.</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">Individuals whose Expressions of Interest are accepted will receive next-step instructions, including payment arrangements. Your place is confirmed once the <span id="idx-step3-price">$795 CAD (early registration rate)</span> program fee has been received.</div>
           </div>
         </div>
       </div>
@@ -497,7 +497,7 @@
       <!-- RPAS Workforce Hub -->
       <div style="border-radius:18px; background:rgba(128,1,31,0.06); border:1px solid rgba(128,1,31,0.25); padding:36px 32px; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
-        <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:10px;">1-Week Intensive · $1,200 CAD</div>
+        <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:10px;" id="idx-intensive-label">1-Week Intensive · $795 CAD</div>
         <h3 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.3px;">RPAS Workforce Hub</h3>
         <p style="font-size:0.82rem; color:var(--muted); line-height:1.75; margin-bottom:22px;">Career intelligence, applied RPAS learning and industry direction — purpose-built for the fast-growing remotely piloted aviation sector.</p>
         <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:28px;">
@@ -615,6 +615,24 @@
     <div class="footer-contact-desc">General inquiries, program information &amp; partnerships</div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var PROMO_END = new Date('2026-11-10T07:00:00Z');
+  if (Date.now() >= PROMO_END.getTime()) {
+    var updates = {
+      'idx-pathway-price': '$1,200 CAD',
+      'idx-hub-price': '$1,200 CAD',
+      'idx-step3-price': '$1,200 CAD',
+      'idx-intensive-label': '1-Week Intensive · $1,200 CAD'
+    };
+    for (var id in updates) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = updates[id];
+    }
+  }
+})();
+</script>
 
 </body>
 </html>
