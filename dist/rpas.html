@@ -1923,6 +1923,7 @@
     const W = 215.9, M = 18, cw = W - M * 2;
     let y = 0;
 
+    const prov = d.prov || d.province || '';
     const addPage = () => { doc.addPage(); y = 20; };
     const checkY = (need) => { if (y + need > 265) addPage(); };
 
@@ -1938,7 +1939,7 @@
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 150, 200);
-    doc.text(`${d.name}, ${d.prov}  •  aviationaerospacecompetency.com`, M, 27);
+    doc.text(`${d.name}, ${prov}  •  aviationaerospacecompetency.com`, M, 27);
     y = 42;
 
     // ── Municipality title
@@ -1950,7 +1951,7 @@
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 70, 100);
-    doc.text(`${d.prov}  •  ${d.subTitle || 'Municipal RPAS Intelligence Profile'}`, M, y);
+    doc.text(`${prov}  •  ${d.subTitle || 'Municipal RPAS Intelligence Profile'}`, M, y);
     y += 3;
     doc.setDrawColor(128, 1, 31);
     doc.setLineWidth(0.5);
@@ -2050,12 +2051,19 @@
       doc.text('DATA SOURCES & EVIDENCE LIMITATIONS', M, y);
       y += 5;
       (d.sources || []).forEach(s => {
-        checkY(6);
+        checkY(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 20, 50);
         doc.setFontSize(8);
         doc.text(`•  ${s.label}`, M + 3, y);
-        y += 5;
+        y += 4.5;
+        if (s.url) {
+          doc.setTextColor(90, 60, 160);
+          doc.setFontSize(7);
+          doc.textWithLink(s.url, M + 6, y, { url: s.url });
+          doc.setTextColor(30, 20, 50);
+          y += 5;
+        }
       });
       y += 2;
       doc.setFontSize(7);
@@ -2065,30 +2073,33 @@
       y += limLines.length * 4.5 + 5;
     }
 
-    // ── Commercial callout box
-    checkY(42);
+    // ── Commercial callout box — municipality-specific
+    checkY(52);
+    const calloutText = `AACP™ works directly with municipalities, airport operators, infrastructure owners, agricultural producers, and regional employers to explore practical RPAS applications, develop local workforce pipelines, and structure evidence-based pilot programs. For ${d.name || 'your region'}, AACP can support: infrastructure inspection program design, regional workforce needs assessment, operator training partnerships, and stakeholder engagement facilitation.`;
+    const calloutLines = doc.splitTextToSize(calloutText, cw - 10);
+    const calloutH = Math.max(48, calloutLines.length * 5 + 24);
     doc.setFillColor(240, 235, 255);
     doc.setDrawColor(128, 1, 31);
     doc.setLineWidth(0.4);
-    doc.roundedRect(M, y, cw, 38, 2, 2, 'FD');
+    doc.roundedRect(M, y, cw, calloutH, 2, 2, 'FD');
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(128, 1, 31);
-    doc.text('How AACP™ Can Help Your Organization', M + 5, y + 7);
+    doc.text(`How AACP™ Can Help ${d.name || 'Your Region'}`, M + 5, y + 7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 20, 50);
     doc.setFontSize(8);
-    const calloutText = 'AACP™ supports municipalities, infrastructure owners, employers and technology partners in exploring RPAS applications, workforce development, industry partnerships and evidence-based pilot opportunities. We connect regional intelligence with practical workforce and commercial development needs.';
-    const calloutLines = doc.splitTextToSize(calloutText, cw - 10);
     doc.text(calloutLines, M + 5, y + 13);
+    const ctaY = y + 13 + calloutLines.length * 5 + 4;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(128, 1, 31);
-    doc.text('Explore a Regional Partnership →', M + 5, y + 30);
+    doc.setFontSize(8.5);
+    doc.textWithLink('Discuss a Regional Partnership →  partnerships@aviationaerospacecompetency.com', M + 5, ctaY, { url: 'mailto:partnerships@aviationaerospacecompetency.com' });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 80, 140);
     doc.setFontSize(7.5);
-    doc.text('partnerships@aviationaerospacecompetency.com  •  aviationaerospacecompetency.com', M + 5, y + 35);
-    y += 44;
+    doc.textWithLink('aviationaerospacecompetency.com', M + 5, ctaY + 5, { url: 'https://aviationaerospacecompetency.com' });
+    y += calloutH + 6;
 
     // ── Footer
     const pageCount = doc.internal.getNumberOfPages();
@@ -2100,7 +2111,7 @@
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(130, 120, 160);
-      doc.text(`AACP™ Regional Intelligence  •  ${d.name}, ${d.prov}  •  Generated ${new Date().toLocaleDateString('en-CA')}`, M, 277);
+      doc.text(`AACP™ Regional Intelligence  •  ${d.name}, ${prov}  •  Generated ${new Date().toLocaleDateString('en-CA')}`, M, 277);
       doc.text(`partnerships@aviationaerospacecompetency.com  •  info@aviationaerospacecompetency.com`, M, 281);
       doc.text(`Page ${i} of ${pageCount}`, W - M, 277, { align: 'right' });
     }
@@ -2199,28 +2210,38 @@
       {
         lat: 50.022, lng: -113.591, cat: 'municipal', prov: 'AB',
         name: 'Claresholm', region: 'Southern Alberta',
-        subTitle: 'Municipal infrastructure and emerging RPAS applications',
+        subTitle: 'Aviation-anchored municipality with documented infrastructure and agricultural corridor',
         assetType: 'Municipal Infrastructure & Aviation',
         count: 'Population ~3,800 (2021 Census)',
         domains: [
-          { label: 'Aviation Ecosystem', status: 'Established' },
-          { label: 'Water Infrastructure', status: 'Documented' },
-          { label: 'Transportation', status: 'Highway 2' },
-          { label: 'Industrial Development', status: 'Documented' },
+          { label: 'Claresholm Airport (CFQ2) — 1,463 m paved runway', status: 'Established' },
+          { label: 'Water & Wastewater Infrastructure (~$349K prov. funding, 2026)', status: 'Documented' },
+          { label: 'Highway 2 Corridor — primary freight & emergency route', status: 'Active' },
+          { label: 'Industrial Land & Agricultural Processing', status: 'Documented' },
+          { label: 'Municipal Road & Bridge Network', status: 'Under IMP review' },
         ],
-        rpasApps: ['Water monitoring', 'Infrastructure surveys', 'Industrial site mapping', 'Environmental observation'],
-        validation: 'Industry need not yet validated. Municipal and industry engagement required.',
-        workforce: 'Regional technical workforce, aviation training capacity and relevant occupational data to be integrated.',
+        rpasApps: [
+          'Airport perimeter & runway surface inspection (CFQ2)',
+          'Water & wastewater asset condition surveys',
+          'Highway 2 corridor and bridge deck inspection',
+          'Precision agriculture and crop health monitoring (Porcupine Hills periphery)',
+          'Industrial site mapping and environmental observation',
+          'Emergency response support — wildfire and flood events',
+        ],
+        validation: 'Commercial RPAS demand in Claresholm has not yet been formally validated with local industry or the Town. The airport operator, municipal engineering, and regional agricultural operators are the primary engagement targets. Provincial infrastructure funding activity (~$349K, June 2026) confirms active asset management priority. AACP has initiated contact with the Mayor and a regional aviation stakeholder meeting is proposed. Validation of operator willingness-to-pay and regulatory acceptance of RPAS operations near CFQ2 is a prerequisite for any commercial deployment.',
+        workforce: 'Southern Alberta regional workforce data is sourced from Statistics Canada Labour Force Survey (LFS) and ESDC occupational projections. The closest technical training concentration is Lethbridge (~90 km), with Lethbridge College offering aviation and technology programs relevant to RPAS operations. No dedicated RPAS training facility currently operates in Claresholm. The Claresholm Airport historically hosted the Claresholm Aviation College — this aviation heritage is an asset for future workforce pipeline development. AACP is assessing RPAS operator training demand in the Southern Alberta agricultural corridor.',
         sources: [
-          { label: 'Infrastructure Master Plan — Town of Claresholm (May 2021)', url: 'https://www.claresholm.ca' },
-          { label: 'Town of Claresholm Public GIS (zoning, property, aerial imagery)', url: 'https://www.claresholm.ca' },
-          { label: 'Provincial Water Infrastructure Funding — Claresholm (~$349K, June 2026)', url: 'https://www.claresholm.ca' },
+          { label: 'Infrastructure Master Plan — Town of Claresholm (May 2021)', url: 'https://www.claresholm.ca/p/infrastructure-master-plan' },
+          { label: 'Town of Claresholm Public GIS — zoning, property, aerial imagery', url: 'https://www.claresholm.ca/p/gis-mapping' },
+          { label: 'Alberta Provincial Water Infrastructure Funding — ~$349K (June 2026)', url: 'https://www.alberta.ca/municipal-water-wastewater' },
+          { label: 'Nav Canada Aerodrome Directory — CFQ2 Claresholm', url: 'https://www.navcanada.ca/en/aeronautical-information/aerodrome-directory.aspx' },
+          { label: 'Statistics Canada — 2021 Census, Claresholm (CSD 4807012)', url: 'https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/page.cfm?DGUIDlist=2021A00054807012' },
         ],
-        aacpNote: 'Claresholm is AACP\'s first Municipal Regional Infrastructure & Workforce Intelligence demonstration. Active discussions with the Mayor and a proposed aviation stakeholder meeting are underway. The Infrastructure Master Plan and Town GIS provide the evidence base for a Claresholm Regional Infrastructure Intelligence Profile.',
-        rpasApp: 'Water monitoring, infrastructure surveys, industrial site mapping, environmental observation',
-        source: 'Town of Claresholm · Infrastructure Master Plan (May 2021)',
+        aacpNote: 'Claresholm is AACP\'s first Municipal Regional Infrastructure & Workforce Intelligence demonstration. Active discussions with the Mayor are underway, and a regional aviation stakeholder meeting is proposed. CFQ2 is a licensed aerodrome with IFR capability — a rare asset for a municipality of this size that creates both RPAS operational context and regulatory considerations. The Infrastructure Master Plan and Town GIS are the primary public evidence base.',
+        rpasApp: 'Airport inspection, water asset surveys, Highway 2 bridge inspection, precision agriculture, emergency response',
+        source: 'Town of Claresholm · Infrastructure Master Plan (May 2021) · Nav Canada · Statistics Canada',
         sourceUrl: 'https://www.claresholm.ca',
-        licence: 'Public municipal data',
+        licence: 'Open Government Licence – Canada · Public municipal data',
         updated: '2021–2026',
         status: 'indicative',
       },
