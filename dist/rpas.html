@@ -275,9 +275,9 @@
     .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
     @media(max-width:900px){.map-legend{bottom:10px;left:10px;padding:9px 11px}.map-legend.collapsed{gap:0}}
     /* ── REGIONAL INTELLIGENCE PANEL ── */
-    .map-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:stretch;margin-top:16px}
+    .map-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start;margin-top:16px}
     .map-layout .map-container{margin-top:0;border-radius:16px 0 0 0;border-right:none}
-    .ri-panel{background:rgba(5,2,16,.97);border:1px solid var(--border);border-radius:0 16px 0 0;height:100%;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s}
+    .ri-panel{background:rgba(5,2,16,.97);border:1px solid var(--border);border-radius:0 16px 0 0;height:420px;min-height:420px;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s}
     .ri-panel.empty .ri-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 24px;text-align:center;flex:1}
     .ri-panel.empty .ri-body svg{opacity:.18}
     .ri-empty-hint{font-size:.8rem;color:var(--dim);line-height:1.6}
@@ -288,7 +288,7 @@
     .ri-tab{cursor:pointer;background:transparent;border:none;border-bottom:2px solid transparent;padding:8px 14px;font-size:11px;font-weight:600;color:var(--dim);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
     .ri-tab:hover{color:var(--muted)}
     .ri-tab.active{color:var(--text);border-bottom-color:var(--crimson)}
-    .ri-body{flex:1;overflow-y:auto;padding:16px 18px 24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .ri-body{flex:1;min-height:0;overflow-y:auto;padding:16px 18px 24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
     .ri-body::-webkit-scrollbar{width:4px}
     .ri-body::-webkit-scrollbar-track{background:transparent}
     .ri-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
