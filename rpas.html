@@ -1916,6 +1916,12 @@
 
   // ── PDF GENERATION (jsPDF) ──────────────────────────────────────────────────
 
+  // ── PUBLIC REPORT CONTENT ALLOWLIST ──────────────────────────────────────
+  // Only these fields are permitted in the public PDF. Never read aacpNote,
+  // internal validation targets, meeting notes, or commercial strategy fields.
+  // Fields: name, prov/province, subTitle, domains (label+status only),
+  //         rpasApps, validation, workforce, sources (label+url only).
+  // ─────────────────────────────────────────────────────────────────────────
   window._generatePDF = function(d) {
     if (typeof window.jspdf === 'undefined') { console.warn('jsPDF not loaded'); return; }
     const { jsPDF } = window.jspdf;
@@ -1923,200 +1929,189 @@
     const W = 215.9, M = 18, cw = W - M * 2;
     let y = 0;
 
-    const prov = d.prov || d.province || '';
+    // Public-only fields — never expose aacpNote or internal strategy content
+    const name  = (d.name  || '').replace(/[^\x20-\x7E]/g, '');
+    const prov  = (d.prov  || d.province || '').replace(/[^\x20-\x7E]/g, '');
+    const sub   = (d.subTitle || 'Municipal RPAS Intelligence Profile').replace(/[^\x20-\x7E]/g, '');
+    const domains    = (d.domains  || []);
+    const rpasApps   = (d.rpasApps || []);
+    const validation = (d.validation || '').replace(/[^\x20-\x7E\n]/g, '');
+    const workforce  = (d.workforce  || '').replace(/[^\x20-\x7E\n]/g, '');
+    const sources    = (d.sources   || []);
+
     const addPage = () => { doc.addPage(); y = 20; };
-    const checkY = (need) => { if (y + need > 265) addPage(); };
+    const checkY  = (need) => { if (y + need > 262) addPage(); };
+    const section = (title) => {
+      checkY(14);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 1, 31);
+      doc.text(title, M, y);
+      y += 5;
+    };
 
     // ── Header band
     doc.setFillColor(10, 1, 20);
-    doc.rect(0, 0, W, 32, 'F');
+    doc.rect(0, 0, W, 30, 'F');
     doc.setTextColor(236, 232, 248);
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
-    doc.text('AACP™  |  AVIATION AEROSPACE COMPETENCY PROGRAM', M, 11);
-    doc.setFontSize(13);
-    doc.text('RPAS Regional Intelligence Brief', M, 20);
-    doc.setFontSize(8);
+    doc.text('AACP(TM)  |  AVIATION AEROSPACE COMPETENCY PROGRAM', M, 10);
+    doc.setFontSize(12.5);
+    doc.text('RPAS Regional Intelligence Brief', M, 19);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 150, 200);
-    doc.text(`${d.name}, ${prov}  •  aviationaerospacecompetency.com`, M, 27);
-    y = 42;
+    doc.text(name + ', ' + prov + '  |  aviationaerospacecompetency.com', M, 26);
+    y = 39;
 
-    // ── Municipality title
+    // ── Municipality title + rule
     doc.setTextColor(10, 1, 20);
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${d.name}`, M, y);
-    y += 7;
-    doc.setFontSize(9);
+    doc.text(name, M, y);
+    y += 6;
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 70, 100);
-    doc.text(`${prov}  •  ${d.subTitle || 'Municipal RPAS Intelligence Profile'}`, M, y);
+    doc.text(prov + '  |  ' + sub, M, y);
     y += 3;
     doc.setDrawColor(128, 1, 31);
     doc.setLineWidth(0.5);
     doc.line(M, y, M + cw, y);
     y += 7;
 
-    // ── Infrastructure domains
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(128, 1, 31);
-    doc.text('INFRASTRUCTURE DOMAINS', M, y);
-    y += 5;
-    (d.domains || []).forEach(dom => {
+    // ── Regional Infrastructure Overview
+    section('REGIONAL INFRASTRUCTURE OVERVIEW');
+    domains.forEach(dom => {
       checkY(6);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 20, 50);
       doc.setFontSize(8.5);
-      doc.text(`•  ${dom.label}`, M + 3, y);
+      const label = (dom.label || '').replace(/[^\x20-\x7E]/g, '');
+      const status = (dom.status || '').replace(/[^\x20-\x7E]/g, '');
+      doc.text('- ' + label, M + 2, y);
       doc.setTextColor(100, 90, 130);
-      doc.text(dom.status, W - M - 2, y, { align: 'right' });
+      doc.text(status, W - M - 2, y, { align: 'right' });
+      doc.setTextColor(30, 20, 50);
       y += 5.5;
     });
     y += 3;
 
     // ── Potential RPAS Applications
-    checkY(14);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(128, 1, 31);
-    doc.text('POTENTIAL RPAS APPLICATION AREAS', M, y);
-    y += 5;
+    section('POTENTIAL RPAS APPLICATIONS');
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 20, 50);
     doc.setFontSize(8.5);
-    const appText = (d.rpasApps || []).join('  •  ');
-    const appLines = doc.splitTextToSize(appText, cw);
-    doc.text(appLines, M, y);
-    y += appLines.length * 5 + 2;
-    doc.setFontSize(7);
+    rpasApps.forEach(app => {
+      checkY(5);
+      const appClean = (app || '').replace(/[^\x20-\x7E]/g, '');
+      doc.text('- ' + appClean, M + 2, y);
+      y += 5;
+    });
+    y += 1;
+    doc.setFontSize(6.5);
     doc.setTextColor(130, 120, 160);
-    doc.text('Indicative potential only — not validated commercial demand.', M, y);
+    doc.text('Indicative potential only. Not validated commercial demand.', M, y);
     y += 7;
 
-    // ── Commercial Validation
-    checkY(14);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(128, 1, 31);
-    doc.text('COMMERCIAL VALIDATION', M, y);
-    y += 5;
+    // ── Commercial Opportunity Context
+    section('COMMERCIAL OPPORTUNITY CONTEXT');
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 20, 50);
     doc.setFontSize(8.5);
-    const valLines = doc.splitTextToSize(d.validation || '', cw);
+    const valLines = doc.splitTextToSize(validation, cw);
     checkY(valLines.length * 5);
     doc.text(valLines, M, y);
     y += valLines.length * 5 + 5;
 
-    // ── Workforce
-    checkY(14);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(128, 1, 31);
-    doc.text('WORKFORCE INTELLIGENCE', M, y);
-    y += 5;
+    // ── Regional Workforce Context
+    section('REGIONAL WORKFORCE CONTEXT');
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 20, 50);
     doc.setFontSize(8.5);
-    const wfLines = doc.splitTextToSize(d.workforce || '', cw);
+    const wfLines = doc.splitTextToSize(workforce, cw);
     checkY(wfLines.length * 5);
     doc.text(wfLines, M, y);
     y += wfLines.length * 5 + 5;
 
-    // ── AACP Note
-    if (d.aacpNote) {
-      checkY(16);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(128, 1, 31);
-      doc.text('AACP™ REGIONAL NOTE', M, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(30, 20, 50);
-      doc.setFontSize(8.5);
-      const noteLines = doc.splitTextToSize(d.aacpNote.replace(/^:\s*/, ''), cw);
-      checkY(noteLines.length * 5);
-      doc.text(noteLines, M, y);
-      y += noteLines.length * 5 + 5;
-    }
-
-    // ── Sources
-    if ((d.sources || []).length) {
-      checkY(14);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(128, 1, 31);
-      doc.text('DATA SOURCES & EVIDENCE LIMITATIONS', M, y);
-      y += 5;
-      (d.sources || []).forEach(s => {
+    // ── Data Sources & Evidence Limitations
+    if (sources.length) {
+      section('DATA SOURCES & EVIDENCE LIMITATIONS');
+      sources.forEach(s => {
         checkY(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 20, 50);
-        doc.setFontSize(8);
-        doc.text(`•  ${s.label}`, M + 3, y);
-        y += 4.5;
+        doc.setFontSize(7.5);
+        const lbl = (s.label || '').replace(/[^\x20-\x7E]/g, '');
+        doc.text('- ' + lbl, M + 2, y);
+        y += 4;
         if (s.url) {
-          doc.setTextColor(90, 60, 160);
-          doc.setFontSize(7);
-          doc.textWithLink(s.url, M + 6, y, { url: s.url });
+          doc.setTextColor(80, 50, 150);
+          doc.setFontSize(6.5);
+          doc.textWithLink(s.url, M + 4, y, { url: s.url });
           doc.setTextColor(30, 20, 50);
-          y += 5;
+          y += 4.5;
         }
       });
-      y += 2;
-      doc.setFontSize(7);
+      y += 1;
+      doc.setFontSize(6.5);
       doc.setTextColor(130, 120, 160);
-      const limLines = doc.splitTextToSize('Data is sourced from public government records and open databases. Infrastructure records are generalized to municipal/regional centroids and are not precise asset coordinates. RPAS applications represent indicative potential uses only and must not be construed as confirmed commercial demand.', cw);
+      const limText = 'Public government records and open databases only. Infrastructure records are generalized to municipal/regional centroids and are not precise asset coordinates. RPAS applications represent indicative potential uses only and must not be construed as confirmed commercial demand.';
+      const limLines = doc.splitTextToSize(limText, cw);
+      checkY(limLines.length * 4);
       doc.text(limLines, M, y);
-      y += limLines.length * 4.5 + 5;
+      y += limLines.length * 4 + 5;
     }
 
-    // ── Commercial callout box — municipality-specific
-    checkY(52);
-    const calloutText = `AACP™ works directly with municipalities, airport operators, infrastructure owners, agricultural producers, and regional employers to explore practical RPAS applications, develop local workforce pipelines, and structure evidence-based pilot programs. For ${d.name || 'your region'}, AACP can support: infrastructure inspection program design, regional workforce needs assessment, operator training partnerships, and stakeholder engagement facilitation.`;
-    const calloutLines = doc.splitTextToSize(calloutText, cw - 10);
-    const calloutH = Math.max(48, calloutLines.length * 5 + 24);
-    doc.setFillColor(240, 235, 255);
+    // ── How AACP Can Help Your Organization (callout box)
+    const eoiUrl = 'https://aviationaerospacecompetency.com/rpas#eoi';
+    const ctaBody = 'AACP(TM) works with municipalities, airport operators, infrastructure owners, agricultural producers and regional employers to explore practical RPAS applications, develop workforce pipelines, and structure evidence-based feasibility programs. Services include infrastructure inspection program design, regional workforce assessment, operator training partnerships, and stakeholder engagement facilitation.';
+    const ctaLines = doc.splitTextToSize(ctaBody, cw - 10);
+    const boxH = Math.max(50, ctaLines.length * 5 + 28);
+    checkY(boxH + 4);
+    doc.setFillColor(242, 237, 255);
     doc.setDrawColor(128, 1, 31);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(M, y, cw, calloutH, 2, 2, 'FD');
+    doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, cw, boxH, 2, 2, 'FD');
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(128, 1, 31);
-    doc.text(`How AACP™ Can Help ${d.name || 'Your Region'}`, M + 5, y + 7);
+    doc.text('How AACP(TM) Can Help Your Organization', M + 5, y + 7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 20, 50);
     doc.setFontSize(8);
-    doc.text(calloutLines, M + 5, y + 13);
-    const ctaY = y + 13 + calloutLines.length * 5 + 4;
+    doc.text(ctaLines, M + 5, y + 13);
+    const ctaY = y + 13 + ctaLines.length * 5 + 5;
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
     doc.setTextColor(128, 1, 31);
-    doc.setFontSize(8.5);
-    doc.textWithLink('Discuss a Regional Partnership →  partnerships@aviationaerospacecompetency.com', M + 5, ctaY, { url: 'mailto:partnerships@aviationaerospacecompetency.com' });
+    doc.textWithLink('Submit an Expression of Interest', M + 5, ctaY, { url: eoiUrl });
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 80, 140);
     doc.setFontSize(7.5);
-    doc.textWithLink('aviationaerospacecompetency.com', M + 5, ctaY + 5, { url: 'https://aviationaerospacecompetency.com' });
-    y += calloutH + 6;
+    doc.setTextColor(80, 50, 150);
+    doc.textWithLink('partnerships@aviationaerospacecompetency.com', M + 5, ctaY + 5, { url: 'mailto:partnerships@aviationaerospacecompetency.com' });
+    doc.textWithLink('info@aviationaerospacecompetency.com', M + 5, ctaY + 10, { url: 'mailto:info@aviationaerospacecompetency.com' });
+    doc.setTextColor(100, 80, 140);
+    doc.textWithLink('aviationaerospacecompetency.com', M + 5, ctaY + 15, { url: 'https://aviationaerospacecompetency.com' });
+    y += boxH + 6;
 
-    // ── Footer
+    // ── Footer (all pages)
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setDrawColor(200, 190, 220);
       doc.setLineWidth(0.3);
-      doc.line(M, 272, M + cw, 272);
-      doc.setFontSize(7);
+      doc.line(M, 271, M + cw, 271);
+      doc.setFontSize(6.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(130, 120, 160);
-      doc.text(`AACP™ Regional Intelligence  •  ${d.name}, ${prov}  •  Generated ${new Date().toLocaleDateString('en-CA')}`, M, 277);
-      doc.text(`partnerships@aviationaerospacecompetency.com  •  info@aviationaerospacecompetency.com`, M, 281);
-      doc.text(`Page ${i} of ${pageCount}`, W - M, 277, { align: 'right' });
+      doc.text('AACP(TM) Regional Intelligence  |  ' + name + ', ' + prov + '  |  Generated ' + new Date().toLocaleDateString('en-CA'), M, 275);
+      doc.text('partnerships@aviationaerospacecompetency.com  |  info@aviationaerospacecompetency.com  |  aviationaerospacecompetency.com', M, 279);
+      doc.text('Page ' + i + ' of ' + pageCount, W - M, 275, { align: 'right' });
     }
 
-    doc.save(`AACP-Regional-Intelligence-${d.name.replace(/\s+/g,'-')}.pdf`);
+    doc.save('AACP-Regional-Intelligence-' + name.replace(/\s+/g, '-') + '.pdf');
   };
 
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
