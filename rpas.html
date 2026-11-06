@@ -199,6 +199,11 @@
     .cat-btn[data-cat="energy"].active{background:#80011f}
     .cat-btn[data-cat="water"].active{background:#0d6e6e}
     .cat-btn[data-cat="industrial"].active{background:#6b4c0a}
+    .sector-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+    .sector-btn{cursor:pointer;border:1px solid var(--border2);border-radius:14px;padding:4px 11px;font-size:11px;font-weight:600;color:var(--dim);background:transparent;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+    .sector-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
+    .sector-btn.active{color:#fff;border-color:transparent;background:rgba(128,1,31,.55)}
+    .sector-label{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--dim);align-self:center;margin-right:2px}
     .prov-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;min-width:140px}
     .prov-select:focus{outline:none;border-color:var(--crimson)}
     .map-container{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-top:16px}
@@ -863,6 +868,16 @@
         <button class="cat-btn active" data-cat="water">Water Infrastructure</button>
         <button class="cat-btn active" data-cat="industrial">Industrial Facilities</button>
       </div>
+      <div class="sector-filter-row" role="group" aria-label="Filter by RPAS application sector">
+        <span class="sector-label">Sector:</span>
+        <button class="sector-btn active" data-sector="all">All</button>
+        <button class="sector-btn" data-sector="aviation">Aviation</button>
+        <button class="sector-btn" data-sector="energy">Energy</button>
+        <button class="sector-btn" data-sector="agriculture">Agriculture</button>
+        <button class="sector-btn" data-sector="infrastructure">Infrastructure</button>
+        <button class="sector-btn" data-sector="emergency">Emergency</button>
+        <button class="sector-btn" data-sector="coastal">Coastal</button>
+      </div>
       <select class="prov-select" id="provFilter" aria-label="Filter by province or territory">
         <option value="all">All Provinces &amp; Territories</option>
         <option value="AB">Alberta</option>
@@ -1314,21 +1329,21 @@
     },
   };
 
-  // ── MARKET SIGNALS — Phase 4 ──
-  // Demand signals by province: estimated RPAS pilot certificate counts + active procurement categories
-  // Pilot counts: provincial estimates derived from TC Canada 2024 RPAS registry totals (~83,000 nationally)
+  // ── MARKET SIGNALS — Phase 5A ──
+  // National total: 83,000+ registered RPAS pilots (TC Canada, 2023 — Transport Canada Advanced/Basic RPAS Pilot Certificate registry)
+  // Provincial figures are illustrative proportional estimates only. TC Canada does not publish provincial breakdowns.
   // Procurement categories: illustrative, based on published federal buyer patterns from Buyandsell.gc.ca
   const MARKET_SIGNALS = {
-    BC: { pilots:'~12,500', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Environmental Monitoring','Forestry & Wildfire','Emergency Response'], marketNote:'British Columbia is one of Canada\'s most active RPAS commercial markets. Forestry, coastal infrastructure inspection, and emergency response are dominant sectors.' },
-    AB: { pilots:'~10,200', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Energy Sector Inspection','Infrastructure Survey','Agricultural Mapping','Emergency Response','Pipeline ROW Patrol'], marketNote:'Alberta is Canada\'s most active RPAS energy-sector market. Pipeline inspection, precision agriculture, and emergency response are dominant application areas.' },
-    SK: { pilots:'~4,100', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Infrastructure Survey','Pipeline ROW Patrol','Mining & Resource'], marketNote:'Saskatchewan RPAS demand is concentrated in precision agriculture and resource-sector inspection. Growing market in municipal infrastructure survey.' },
-    MB: { pilots:'~3,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Infrastructure Inspection','Emergency Response','Water Infrastructure'], marketNote:'Manitoba demand driven by precision agriculture and municipal infrastructure. Growing interest in emergency response and flood-plain monitoring applications.' },
-    ON: { pilots:'~25,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Emergency Response','Construction Monitoring','Public Safety'], marketNote:'Ontario has the largest RPAS pilot population in Canada. Demand is broad: construction, infrastructure, public safety, and agricultural applications are all active.' },
-    QC: { pilots:'~16,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Inspection','Survey & Mapping','Forestry & Wildfire','Energy Inspection','Public Safety'], marketNote:'Quebec is a major RPAS market with strong aerospace ecosystem ties. Hydro infrastructure inspection, forestry, and construction monitoring are leading sectors.' },
-    NS: { pilots:'~2,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Coastal & Marine Monitoring','Infrastructure Survey','Emergency Response','Fisheries Observation'], marketNote:'Nova Scotia demand concentrated in coastal and marine applications. DND and Coast Guard procurement activity supports inspection and surveillance use cases.' },
-    NB: { pilots:'~2,000', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Infrastructure Survey','Coastal Monitoring','Forestry','Emergency Response'], marketNote:'New Brunswick is an emerging RPAS market. Coastal infrastructure, forestry monitoring, and municipal survey represent the strongest near-term opportunities.' },
-    NL: { pilots:'~1,600', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Offshore & Coastal Inspection','Energy Sector','Infrastructure Survey','Search & Rescue'], marketNote:'Newfoundland & Labrador RPAS demand is driven by offshore energy infrastructure inspection, coastal monitoring, and search and rescue applications.' },
-    PE: { pilots:'~700', pilotNote:'Est. from TC Canada 2024 RPAS pilot certificate data, proportional to population and aviation activity.', categories:['Agricultural Mapping','Coastal Monitoring','Infrastructure Survey'], marketNote:'PEI is an early-stage RPAS market with strong agricultural mapping and coastal erosion monitoring potential. Summerside Aerospace Innovation Centre is a key ecosystem anchor.' },
+    BC: { pilots:'~12,500', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Infrastructure Inspection','Survey & Mapping','Environmental Monitoring','Forestry & Wildfire','Emergency Response'], marketNote:'British Columbia is one of Canada\'s most active RPAS commercial markets. Forestry, coastal infrastructure inspection, and emergency response are dominant sectors.' },
+    AB: { pilots:'~10,200', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Energy Sector Inspection','Infrastructure Survey','Agricultural Mapping','Emergency Response','Pipeline ROW Patrol'], marketNote:'Alberta is Canada\'s most active RPAS energy-sector market. Pipeline inspection, precision agriculture, and emergency response are dominant application areas.' },
+    SK: { pilots:'~4,100', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Agricultural Mapping','Infrastructure Survey','Pipeline ROW Patrol','Mining & Resource'], marketNote:'Saskatchewan RPAS demand is concentrated in precision agriculture and resource-sector inspection. Growing market in municipal infrastructure survey.' },
+    MB: { pilots:'~3,600', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Agricultural Mapping','Infrastructure Inspection','Emergency Response','Water Infrastructure'], marketNote:'Manitoba demand driven by precision agriculture and municipal infrastructure. Growing interest in emergency response and flood-plain monitoring applications.' },
+    ON: { pilots:'~25,000', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Infrastructure Inspection','Survey & Mapping','Emergency Response','Construction Monitoring','Public Safety'], marketNote:'Ontario has the largest RPAS pilot population in Canada. Demand is broad: construction, infrastructure, public safety, and agricultural applications are all active.' },
+    QC: { pilots:'~16,000', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Infrastructure Inspection','Survey & Mapping','Forestry & Wildfire','Energy Inspection','Public Safety'], marketNote:'Quebec is a major RPAS market with strong aerospace ecosystem ties. Hydro infrastructure inspection, forestry, and construction monitoring are leading sectors.' },
+    NS: { pilots:'~2,600', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Coastal & Marine Monitoring','Infrastructure Survey','Emergency Response','Fisheries Observation'], marketNote:'Nova Scotia demand concentrated in coastal and marine applications. DND and Coast Guard procurement activity supports inspection and surveillance use cases.' },
+    NB: { pilots:'~2,000', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Infrastructure Survey','Coastal Monitoring','Forestry','Emergency Response'], marketNote:'New Brunswick is an emerging RPAS market. Coastal infrastructure, forestry monitoring, and municipal survey represent the strongest near-term opportunities.' },
+    NL: { pilots:'~1,600', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Offshore & Coastal Inspection','Energy Sector','Infrastructure Survey','Search & Rescue'], marketNote:'Newfoundland & Labrador RPAS demand is driven by offshore energy infrastructure inspection, coastal monitoring, and search and rescue applications.' },
+    PE: { pilots:'~700', pilotNote:'Proportional provincial estimate. National total: 83,000+ registered RPAS pilots (TC Canada, 2023). TC Canada does not publish provincial breakdowns; this figure is illustrative.', categories:['Agricultural Mapping','Coastal Monitoring','Infrastructure Survey'], marketNote:'PEI is an early-stage RPAS market with strong agricultural mapping and coastal erosion monitoring potential. Summerside Aerospace Innovation Centre is a key ecosystem anchor.' },
   };
 
   // ── LIVE LFS FEED — Phase 2 ──
@@ -1610,7 +1625,10 @@
 
   window.switchTab = function(tab) {
     activeTab = tab;
-    if (window._riCurrentData) renderPanel(window._riCurrentData);
+    if (window._riCurrentData) {
+      renderPanel(window._riCurrentData);
+      if (typeof _track === 'function') _track('report_explored', { name: window._riCurrentData.name, tab });
+    }
   };
 
   // ── DATA SOURCES & VERIFICATION CONTROL ──
@@ -1741,6 +1759,7 @@
   window._openPartnerEOI = function() {
     const d = window._riCurrentData;
     if (!d) return;
+    if (typeof _track === 'function') _track('partnership_intent', { name: d.name, prov: d.prov });
     const sub = document.getElementById('eoi-partner-sub');
     if (sub) sub.textContent = `Express your interest in a regional RPAS partnership for ${d.name}, ${d.prov}. Our partnerships team will be in touch.`;
     document.getElementById('eoi-partner-form-wrap').hidden = false;
@@ -1799,30 +1818,6 @@
     }
   };
 
-  // ── PDF export removed — lead collection via EOI only ───────────────────────
-
-  // window._openPDFLeadGate = function() {
-    const d = window._riCurrentData;
-    if (!d) return;
-
-    // Session dedup: skip form if already submitted for this municipality
-    let submitted = {};
-    try { submitted = JSON.parse(localStorage.getItem('aacp_pdf_leads') || '{}'); } catch(_) {}
-    if (submitted[d.name]) {
-      window._generatePDF(d);
-      return;
-    }
-
-    const title = document.getElementById('eoi-pdf-title');
-    if (title) title.textContent = `Get the ${d.name} Regional Intelligence Brief`;
-    const sub = document.getElementById('eoi-pdf-sub');
-    if (sub) sub.textContent = `Complete your details to download the complimentary AACP™ Regional Intelligence Brief for ${d.name}, ${d.prov}.`;
-    document.getElementById('eoi-pdf-form-wrap').hidden = false;
-    document.getElementById('eoi-pdf-success').hidden = true;
-    document.getElementById('eoi-pdf-err').style.display = 'none';
-    document.getElementById('eoi-pdf-submit').disabled = false;
-    document.getElementById('eoi-pdf-submit').innerHTML = '⬇ &nbsp;Download Brief';
-    document.getElementById('eoi-pdf-modal').hidden = false;
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
   // Data: regional aggregates from Statistics Canada Open Database of Infrastructure (Cat. 16-508-X),
   // NRCan GEO.ca geospatial datasets, and provincial open-data portals.
@@ -1855,60 +1850,60 @@
 
       // ── TRANSPORTATION ──
       // Source: Statistics Canada ODI (Cat. 16-508-X), 2023 release; NRCan National Road Network
-      { lat:51.05, lng:-114.06, cat:'transportation', prov:'AB', name:'Calgary Region — Road & Bridge Network', region:'Southern Alberta', assetType:'Bridges & Culverts', count:'~4,200 bridges (AB provincial network)', rpasApp:'Bridge deck inspection, culvert survey, corridor mapping, post-flood damage assessment', source:'Statistics Canada ODI · Alberta Transportation', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:53.55, lng:-113.49, cat:'transportation', prov:'AB', name:'Edmonton Region — Transportation Corridor', region:'Central Alberta', assetType:'Highway & Bridge Corridors', count:'~2,800 bridges (Edmonton metro + region)', rpasApp:'Highway corridor inspection, overpass deck survey, traffic infrastructure monitoring', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:49.25, lng:-123.12, cat:'transportation', prov:'BC', name:'Metro Vancouver — Port & Road Infrastructure', region:'Lower Mainland, BC', assetType:'Port, Road & Bridge Network', count:'~3,100 structures (Metro Vancouver)', rpasApp:'Port terminal inspection, bridge deck survey, urban construction monitoring, AAM corridor planning', source:'Statistics Canada ODI · DataBC', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:43.65, lng:-79.38, cat:'transportation', prov:'ON', name:'Greater Toronto Area — Transportation Network', region:'Southern Ontario', assetType:'Bridges, Highways & Transit', count:'~5,800 structures (GTA region)', rpasApp:'Highway bridge inspection, transit corridor monitoring, construction site survey, emergency response support', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
-      { lat:45.51, lng:-73.59, cat:'transportation', prov:'QC', name:'Montréal — Bridge & Road Infrastructure', region:'Île de Montréal / Montérégie', assetType:'Bridges, Tunnels & Overpasses', count:'~2,400 structures (Montréal census metro)', rpasApp:'Bridge and overpass inspection, heritage structure survey, St. Lawrence corridor monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:49.90, lng:-97.14, cat:'transportation', prov:'MB', name:'Winnipeg — Prairie Transportation Corridor', region:'Southern Manitoba', assetType:'Highway & Rail Bridges', count:'~1,100 bridges (Manitoba highway network)', rpasApp:'Prairie bridge inspection, rail corridor survey, Red River flood monitoring, grain terminal logistics', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:52.13, lng:-106.67, cat:'transportation', prov:'SK', name:'Saskatoon — Transportation & Agricultural Corridors', region:'Central Saskatchewan', assetType:'Highway, Rail & Rural Roads', count:'~2,600 bridges (SK provincial network)', rpasApp:'Rural road condition survey, grain elevator access monitoring, highway corridor mapping', source:'Statistics Canada ODI · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:44.65, lng:-63.59, cat:'transportation', prov:'NS', name:'Halifax — Atlantic Marine & Road Infrastructure', region:'Halifax Regional Municipality', assetType:'Port, Bridges & Coastal Roads', count:'~680 structures (HRM)', rpasApp:'Harbour bridge inspection, coastal road survey, offshore supply vessel monitoring, marine terminal survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:47.56, lng:-52.71, cat:'transportation', prov:'NL', name:"St. John's — Offshore & Coastal Infrastructure", region:'Avalon Peninsula, NL', assetType:'Port, Roads & Offshore Support', count:'~410 structures (metro region)', rpasApp:'Offshore platform support logistics, coastal cliff monitoring, port infrastructure inspection', source:'Statistics Canada ODI · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:60.72, lng:-135.06, cat:'transportation', prov:'YT', name:'Whitehorse — Northern Territory Roads', region:'Yukon Territory', assetType:'Northern Highway & Bridge Network', count:'~340 structures (Yukon highway system)', rpasApp:'Remote road condition monitoring, permafrost heave assessment, northern community access survey', source:'Yukon Open Data · NRCan Road Network', sourceUrl:'https://open.yukon.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:62.45, lng:-114.37, cat:'transportation', prov:'NT', name:'Yellowknife — NWT All-Season & Ice Roads', region:'Northwest Territories', assetType:'All-season and winter ice roads', count:'~160 structures + seasonal ice crossings', rpasApp:'Ice road thickness survey, remote bridge inspection, emergency access monitoring, permafrost assessment', source:'NWT Centre for Geomatics · NRCan', sourceUrl:'https://www.geomatics.gov.nt.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:51.05, lng:-114.06, cat:'transportation', prov:'AB', name:'Calgary Region — Road & Bridge Network', region:'Southern Alberta', assetType:'Bridges & Culverts', count:'~4,200 bridges (AB provincial network)', rpasApp:'Bridge deck inspection, culvert survey, corridor mapping, post-flood damage assessment', source:'Statistics Canada ODI · Alberta Transportation', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','emergency'] },
+      { lat:53.55, lng:-113.49, cat:'transportation', prov:'AB', name:'Edmonton Region — Transportation Corridor', region:'Central Alberta', assetType:'Highway & Bridge Corridors', count:'~2,800 bridges (Edmonton metro + region)', rpasApp:'Highway corridor inspection, overpass deck survey, traffic infrastructure monitoring', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure'] },
+      { lat:49.25, lng:-123.12, cat:'transportation', prov:'BC', name:'Metro Vancouver — Port & Road Infrastructure', region:'Lower Mainland, BC', assetType:'Port, Road & Bridge Network', count:'~3,100 structures (Metro Vancouver)', rpasApp:'Port terminal inspection, bridge deck survey, urban construction monitoring, AAM corridor planning', source:'Statistics Canada ODI · DataBC', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','coastal'] },
+      { lat:43.65, lng:-79.38, cat:'transportation', prov:'ON', name:'Greater Toronto Area — Transportation Network', region:'Southern Ontario', assetType:'Bridges, Highways & Transit', count:'~5,800 structures (GTA region)', rpasApp:'Highway bridge inspection, transit corridor monitoring, construction site survey, emergency response support', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate', sectors:['infrastructure','emergency'] },
+      { lat:45.51, lng:-73.59, cat:'transportation', prov:'QC', name:'Montréal — Bridge & Road Infrastructure', region:'Île de Montréal / Montérégie', assetType:'Bridges, Tunnels & Overpasses', count:'~2,400 structures (Montréal census metro)', rpasApp:'Bridge and overpass inspection, heritage structure survey, St. Lawrence corridor monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure'] },
+      { lat:49.90, lng:-97.14, cat:'transportation', prov:'MB', name:'Winnipeg — Prairie Transportation Corridor', region:'Southern Manitoba', assetType:'Highway & Rail Bridges', count:'~1,100 bridges (Manitoba highway network)', rpasApp:'Prairie bridge inspection, rail corridor survey, Red River flood monitoring, grain terminal logistics', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','agriculture','emergency'] },
+      { lat:52.13, lng:-106.67, cat:'transportation', prov:'SK', name:'Saskatoon — Transportation & Agricultural Corridors', region:'Central Saskatchewan', assetType:'Highway, Rail & Rural Roads', count:'~2,600 bridges (SK provincial network)', rpasApp:'Rural road condition survey, grain elevator access monitoring, highway corridor mapping', source:'Statistics Canada ODI · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','agriculture'] },
+      { lat:44.65, lng:-63.59, cat:'transportation', prov:'NS', name:'Halifax — Atlantic Marine & Road Infrastructure', region:'Halifax Regional Municipality', assetType:'Port, Bridges & Coastal Roads', count:'~680 structures (HRM)', rpasApp:'Harbour bridge inspection, coastal road survey, offshore supply vessel monitoring, marine terminal survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','coastal'] },
+      { lat:47.56, lng:-52.71, cat:'transportation', prov:'NL', name:"St. John's — Offshore & Coastal Infrastructure", region:'Avalon Peninsula, NL', assetType:'Port, Roads & Offshore Support', count:'~410 structures (metro region)', rpasApp:'Offshore platform support logistics, coastal cliff monitoring, port infrastructure inspection', source:'Statistics Canada ODI · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','coastal','energy'] },
+      { lat:60.72, lng:-135.06, cat:'transportation', prov:'YT', name:'Whitehorse — Northern Territory Roads', region:'Yukon Territory', assetType:'Northern Highway & Bridge Network', count:'~340 structures (Yukon highway system)', rpasApp:'Remote road condition monitoring, permafrost heave assessment, northern community access survey', source:'Yukon Open Data · NRCan Road Network', sourceUrl:'https://open.yukon.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','emergency'] },
+      { lat:62.45, lng:-114.37, cat:'transportation', prov:'NT', name:'Yellowknife — NWT All-Season & Ice Roads', region:'Northwest Territories', assetType:'All-season and winter ice roads', count:'~160 structures + seasonal ice crossings', rpasApp:'Ice road thickness survey, remote bridge inspection, emergency access monitoring, permafrost assessment', source:'NWT Centre for Geomatics · NRCan', sourceUrl:'https://www.geomatics.gov.nt.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','emergency'] },
 
       // ── ENERGY & UTILITIES ──
       // Source: NRCan National Energy Board Open Data; GEO.ca Energy Infrastructure layers;
       // Alberta Energy Regulator public data; Statistics Canada ODI electricity networks
-      { lat:56.73, lng:-111.38, cat:'energy', prov:'AB', name:'Athabasca Oil Sands Region', region:'Fort McMurray / Wood Buffalo, AB', assetType:'Oil Sands Operations & Tailings', count:'Regional aggregate — NRCan/AER public records', rpasApp:'Tailings pond perimeter monitoring, extraction site survey, flare stack inspection, environmental compliance — generalized region only', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:53.55, lng:-113.49, cat:'energy', prov:'AB', name:'Edmonton — Refining & Transmission Corridor', region:'Edmonton Industrial Heartland, AB', assetType:'Refineries, Upgraders & Transmission Lines', count:'Regional aggregate — NRCan public records', rpasApp:'Transmission line corridor patrol, refinery stack and tank farm inspection, industrial flare monitoring', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:51.05, lng:-114.06, cat:'energy', prov:'AB', name:'Calgary — Electricity & Gas Distribution', region:'Southern Alberta', assetType:'Natural Gas Distribution & Transmission', count:'~4,800 km gas distribution (ATCO/Enbridge public records)', rpasApp:'Distribution line patrol, meter station inspection, leak detection survey, emergency response support', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:49.25, lng:-123.12, cat:'energy', prov:'BC', name:'Lower Mainland — BC Hydro Transmission Network', region:'Lower Mainland & Interior BC', assetType:'Hydroelectric & Transmission Infrastructure', count:'Regional aggregate — BC Hydro public disclosures', rpasApp:'Transmission tower and line inspection, right-of-way vegetation survey, dam face survey, storm damage assessment', source:'NRCan GEO.ca · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'aggregate' },
-      { lat:43.65, lng:-79.38, cat:'energy', prov:'ON', name:'Ontario — Power Generation & Grid Network', region:'Southern Ontario Corridor', assetType:'Nuclear, Gas & Transmission Network', count:'Regional aggregate — IESO/OPG public data', rpasApp:'Transmission corridor patrol, solar farm inspection, substation perimeter survey, storm response damage assessment', source:'NRCan GEO.ca · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
-      { lat:45.51, lng:-73.59, cat:'energy', prov:'QC', name:'Québec — Hydro-Québec Network', region:'Montréal / Laurentides / Abitibi', assetType:'Hydroelectric & HV Transmission', count:'Regional aggregate — Hydro-Québec public disclosures', rpasApp:'Transmission line patrol, dam face and reservoir inspection, right-of-way encroachment monitoring', source:'NRCan GEO.ca · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:47.56, lng:-52.71, cat:'energy', prov:'NL', name:'Newfoundland — Offshore Energy & Muskrat Falls', region:'Atlantic Canada / Labrador', assetType:'Offshore Platforms & Hydroelectric', count:'Regional aggregate — C-NLOPB public records', rpasApp:'Offshore platform deck inspection, Muskrat Falls transmission corridor, coastal wind farm survey', source:'NRCan GEO.ca · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:52.13, lng:-106.67, cat:'energy', prov:'SK', name:'Saskatchewan — Wind, Gas & Transmission', region:'Central Saskatchewan', assetType:'Wind Farms & Natural Gas Pipelines', count:'Regional aggregate — SaskPower/SaskEnergy public data', rpasApp:'Wind turbine blade inspection, gas pipeline ROW patrol, agricultural utility corridor monitoring', source:'NRCan GEO.ca · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:56.73, lng:-111.38, cat:'energy', prov:'AB', name:'Athabasca Oil Sands Region', region:'Fort McMurray / Wood Buffalo, AB', assetType:'Oil Sands Operations & Tailings', count:'Regional aggregate — NRCan/AER public records', rpasApp:'Tailings pond perimeter monitoring, extraction site survey, flare stack inspection, environmental compliance — generalized region only', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy'] },
+      { lat:53.55, lng:-113.49, cat:'energy', prov:'AB', name:'Edmonton — Refining & Transmission Corridor', region:'Edmonton Industrial Heartland, AB', assetType:'Refineries, Upgraders & Transmission Lines', count:'Regional aggregate — NRCan public records', rpasApp:'Transmission line corridor patrol, refinery stack and tank farm inspection, industrial flare monitoring', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy','infrastructure'] },
+      { lat:51.05, lng:-114.06, cat:'energy', prov:'AB', name:'Calgary — Electricity & Gas Distribution', region:'Southern Alberta', assetType:'Natural Gas Distribution & Transmission', count:'~4,800 km gas distribution (ATCO/Enbridge public records)', rpasApp:'Distribution line patrol, meter station inspection, leak detection survey, emergency response support', source:'NRCan GEO.ca · Statistics Canada ODI', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy'] },
+      { lat:49.25, lng:-123.12, cat:'energy', prov:'BC', name:'Lower Mainland — BC Hydro Transmission Network', region:'Lower Mainland & Interior BC', assetType:'Hydroelectric & Transmission Infrastructure', count:'Regional aggregate — BC Hydro public disclosures', rpasApp:'Transmission tower and line inspection, right-of-way vegetation survey, dam face survey, storm damage assessment', source:'NRCan GEO.ca · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'aggregate', sectors:['energy','infrastructure'] },
+      { lat:43.65, lng:-79.38, cat:'energy', prov:'ON', name:'Ontario — Power Generation & Grid Network', region:'Southern Ontario Corridor', assetType:'Nuclear, Gas & Transmission Network', count:'Regional aggregate — IESO/OPG public data', rpasApp:'Transmission corridor patrol, solar farm inspection, substation perimeter survey, storm response damage assessment', source:'NRCan GEO.ca · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate', sectors:['energy','infrastructure'] },
+      { lat:45.51, lng:-73.59, cat:'energy', prov:'QC', name:'Québec — Hydro-Québec Network', region:'Montréal / Laurentides / Abitibi', assetType:'Hydroelectric & HV Transmission', count:'Regional aggregate — Hydro-Québec public disclosures', rpasApp:'Transmission line patrol, dam face and reservoir inspection, right-of-way encroachment monitoring', source:'NRCan GEO.ca · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy'] },
+      { lat:47.56, lng:-52.71, cat:'energy', prov:'NL', name:'Newfoundland — Offshore Energy & Muskrat Falls', region:'Atlantic Canada / Labrador', assetType:'Offshore Platforms & Hydroelectric', count:'Regional aggregate — C-NLOPB public records', rpasApp:'Offshore platform deck inspection, Muskrat Falls transmission corridor, coastal wind farm survey', source:'NRCan GEO.ca · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy','coastal'] },
+      { lat:52.13, lng:-106.67, cat:'energy', prov:'SK', name:'Saskatchewan — Wind, Gas & Transmission', region:'Central Saskatchewan', assetType:'Wind Farms & Natural Gas Pipelines', count:'Regional aggregate — SaskPower/SaskEnergy public data', rpasApp:'Wind turbine blade inspection, gas pipeline ROW patrol, agricultural utility corridor monitoring', source:'NRCan GEO.ca · Saskatchewan GeoHub', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy','agriculture'] },
 
       // ── WATER INFRASTRUCTURE ──
       // Source: Statistics Canada ODI water/wastewater category; Environment & Climate Change Canada;
       // provincial open data (municipal water treatment and wastewater facilities)
-      { lat:51.05, lng:-114.06, cat:'water', prov:'AB', name:'Calgary — Water Treatment & Watershed', region:'Bow River Watershed, AB', assetType:'Water Treatment Plants & Reservoirs', count:'2 major treatment plants (Bearspaw, Glenmore) + regional system', rpasApp:'Reservoir condition survey, intake structure inspection, flood monitoring along Bow/Elbow corridors', source:'Statistics Canada ODI · City of Calgary Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:49.25, lng:-123.12, cat:'water', prov:'BC', name:'Metro Vancouver — Water & Wastewater', region:'Lower Mainland, BC', assetType:'Regional Water & Wastewater Systems', count:'3 major treatment plants + 500+ km transmission mains', rpasApp:'Water main corridor survey, treatment facility inspection, estuary and coastal water quality monitoring', source:'Statistics Canada ODI · Metro Vancouver Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:43.65, lng:-79.38, cat:'water', prov:'ON', name:'Greater Toronto — Water & Wastewater Systems', region:'Toronto / Peel / York, ON', assetType:'Water Treatment & Distribution Network', count:'4 major treatment plants (City of Toronto)', rpasApp:'Water tower survey, pumping station inspection, stormwater catchment monitoring, lakeshore infrastructure', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate' },
-      { lat:45.51, lng:-73.59, cat:'water', prov:'QC', name:'Montréal — Aqueduct & Water Management', region:'Communauté métropolitaine de Montréal', assetType:'Aqueducts, Reservoirs & Treatment', count:'~26 treatment plants (CMM region)', rpasApp:'Aqueduct corridor survey, reservoir dam inspection, St. Lawrence intake monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:49.90, lng:-97.14, cat:'water', prov:'MB', name:'Manitoba — Watershed & Floodway Infrastructure', region:'Red River Valley / Winnipeg', assetType:'Floodway, Dams & Water Control', count:'Red River Floodway + ~180 water control structures (provincial)', rpasApp:'Floodway channel inspection, dike condition survey, spring flood monitoring, control structure assessment', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:44.65, lng:-63.59, cat:'water', prov:'NS', name:'Nova Scotia — Coastal & Municipal Water', region:'Atlantic Canada', assetType:'Municipal Water & Coastal Infrastructure', count:'~120 municipal water systems (NS Water Authority)', rpasApp:'Coastal erosion monitoring, municipal reservoir inspection, offshore fisheries infrastructure survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:51.05, lng:-114.06, cat:'water', prov:'AB', name:'Calgary — Water Treatment & Watershed', region:'Bow River Watershed, AB', assetType:'Water Treatment Plants & Reservoirs', count:'2 major treatment plants (Bearspaw, Glenmore) + regional system', rpasApp:'Reservoir condition survey, intake structure inspection, flood monitoring along Bow/Elbow corridors', source:'Statistics Canada ODI · City of Calgary Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','emergency'] },
+      { lat:49.25, lng:-123.12, cat:'water', prov:'BC', name:'Metro Vancouver — Water & Wastewater', region:'Lower Mainland, BC', assetType:'Regional Water & Wastewater Systems', count:'3 major treatment plants + 500+ km transmission mains', rpasApp:'Water main corridor survey, treatment facility inspection, estuary and coastal water quality monitoring', source:'Statistics Canada ODI · Metro Vancouver Open Data', sourceUrl:'https://www150.statcan.gc.ca/n1/en/catalogue/16-508-X', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','coastal'] },
+      { lat:43.65, lng:-79.38, cat:'water', prov:'ON', name:'Greater Toronto — Water & Wastewater Systems', region:'Toronto / Peel / York, ON', assetType:'Water Treatment & Distribution Network', count:'4 major treatment plants (City of Toronto)', rpasApp:'Water tower survey, pumping station inspection, stormwater catchment monitoring, lakeshore infrastructure', source:'Statistics Canada ODI · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'aggregate', sectors:['infrastructure'] },
+      { lat:45.51, lng:-73.59, cat:'water', prov:'QC', name:'Montréal — Aqueduct & Water Management', region:'Communauté métropolitaine de Montréal', assetType:'Aqueducts, Reservoirs & Treatment', count:'~26 treatment plants (CMM region)', rpasApp:'Aqueduct corridor survey, reservoir dam inspection, St. Lawrence intake monitoring', source:'Statistics Canada ODI · Données Québec', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure'] },
+      { lat:49.90, lng:-97.14, cat:'water', prov:'MB', name:'Manitoba — Watershed & Floodway Infrastructure', region:'Red River Valley / Winnipeg', assetType:'Floodway, Dams & Water Control', count:'Red River Floodway + ~180 water control structures (provincial)', rpasApp:'Floodway channel inspection, dike condition survey, spring flood monitoring, control structure assessment', source:'Statistics Canada ODI · Manitoba Geoportal', sourceUrl:'https://geoportal.gov.mb.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','emergency'] },
+      { lat:44.65, lng:-63.59, cat:'water', prov:'NS', name:'Nova Scotia — Coastal & Municipal Water', region:'Atlantic Canada', assetType:'Municipal Water & Coastal Infrastructure', count:'~120 municipal water systems (NS Water Authority)', rpasApp:'Coastal erosion monitoring, municipal reservoir inspection, offshore fisheries infrastructure survey', source:'Statistics Canada ODI · Nova Scotia Open Data', sourceUrl:'https://data.novascotia.ca', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','coastal'] },
 
       // ── INDUSTRIAL FACILITIES ──
       // Source: Statistics Canada Business Register (aggregated, public NAICS summaries);
       // NRCan industrial facility data; provincial economic development open data
-      { lat:56.73, lng:-111.38, cat:'industrial', prov:'AB', name:'Wood Buffalo — Oil Sands Processing', region:'Fort McMurray Region, AB', assetType:'Oil Sands Mining & Processing Facilities', count:'Regional aggregate — AER public licences', rpasApp:'Large-site perimeter survey, tailings dam monitoring, industrial facility inspection — generalized region, no precise coordinates', source:'AER Public Data · NRCan GEO.ca', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
-      { lat:53.55, lng:-113.49, cat:'industrial', prov:'AB', name:'Edmonton Industrial Heartland', region:'Strathcona / Fort Saskatchewan, AB', assetType:'Petrochemicals, Upgraders & Manufacturing', count:'~55 major facilities (Edmonton Heartland Association public inventory)', rpasApp:'Industrial complex inspection, stack and flare monitoring, perimeter security survey, tank farm condition assessment', source:'Edmonton Heartland · Statistics Canada', sourceUrl:'https://open.canada.ca/en/open-data', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
-      { lat:49.25, lng:-123.12, cat:'industrial', prov:'BC', name:'Vancouver — Port & Industrial Zone', region:'Port Metro Vancouver / Deltaport', assetType:'Container Terminals, Grain Elevators & Mills', count:'~30 major port facilities (Port of Vancouver public data)', rpasApp:'Container yard survey, grain elevator inspection, ship hull and dock inspection, industrial zone security', source:'Vancouver Fraser Port Authority · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'indicative' },
-      { lat:46.49, lng:-84.35, cat:'industrial', prov:'ON', name:'Sault Ste. Marie — Steel & Manufacturing', region:'Northern Ontario Industrial Corridor', assetType:'Steel Mill, Mining & Manufacturing', count:'Regional aggregate — Statistics Canada NAICS summaries', rpasApp:'Steel plant stack and structure inspection, slag pile survey, rail corridor monitoring', source:'Statistics Canada · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative' },
-      { lat:52.13, lng:-106.67, cat:'industrial', prov:'SK', name:'Saskatoon — Potash & Agri-Industrial', region:'Central Saskatchewan', assetType:'Potash Mines, Canola & Grain Processing', count:'Regional aggregate — Sask Ministry of Energy public records', rpasApp:'Mine site perimeter survey, tailings pond monitoring, grain elevator inspection, agricultural chemical storage', source:'Saskatchewan GeoHub · Statistics Canada', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'indicative' },
-      { lat:45.51, lng:-73.59, cat:'industrial', prov:'QC', name:'Montréal — Aerospace & Manufacturing Cluster', region:'Greater Montréal, QC', assetType:'Aerospace Manufacturing & R&D Facilities', count:'~250 aerospace firms (Aéro Montréal cluster, public directory)', rpasApp:'Facility roof and exterior inspection, R&D campus security survey, logistics corridor monitoring', source:'Données Québec · Statistics Canada', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
-      { lat:47.56, lng:-52.71, cat:'industrial', prov:'NL', name:'Newfoundland — Offshore Oil & Mining', region:'Avalon / Voisey\'s Bay, NL', assetType:'Offshore Platforms & Mine Sites', count:'Regional aggregate — C-NLOPB / NL Dept. of Mines public records', rpasApp:'Mine site tailings survey, offshore supply base inspection, coastal industrial site monitoring', source:'C-NLOPB · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
+      { lat:56.73, lng:-111.38, cat:'industrial', prov:'AB', name:'Wood Buffalo — Oil Sands Processing', region:'Fort McMurray Region, AB', assetType:'Oil Sands Mining & Processing Facilities', count:'Regional aggregate — AER public licences', rpasApp:'Large-site perimeter survey, tailings dam monitoring, industrial facility inspection — generalized region, no precise coordinates', source:'AER Public Data · NRCan GEO.ca', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy'] },
+      { lat:53.55, lng:-113.49, cat:'industrial', prov:'AB', name:'Edmonton Industrial Heartland', region:'Strathcona / Fort Saskatchewan, AB', assetType:'Petrochemicals, Upgraders & Manufacturing', count:'~55 major facilities (Edmonton Heartland Association public inventory)', rpasApp:'Industrial complex inspection, stack and flare monitoring, perimeter security survey, tank farm condition assessment', source:'Edmonton Heartland · Statistics Canada', sourceUrl:'https://open.canada.ca/en/open-data', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy','infrastructure'] },
+      { lat:49.25, lng:-123.12, cat:'industrial', prov:'BC', name:'Vancouver — Port & Industrial Zone', region:'Port Metro Vancouver / Deltaport', assetType:'Container Terminals, Grain Elevators & Mills', count:'~30 major port facilities (Port of Vancouver public data)', rpasApp:'Container yard survey, grain elevator inspection, ship hull and dock inspection, industrial zone security', source:'Vancouver Fraser Port Authority · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'indicative', sectors:['infrastructure','coastal','agriculture'] },
+      { lat:46.49, lng:-84.35, cat:'industrial', prov:'ON', name:'Sault Ste. Marie — Steel & Manufacturing', region:'Northern Ontario Industrial Corridor', assetType:'Steel Mill, Mining & Manufacturing', count:'Regional aggregate — Statistics Canada NAICS summaries', rpasApp:'Steel plant stack and structure inspection, slag pile survey, rail corridor monitoring', source:'Statistics Canada · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative', sectors:['infrastructure'] },
+      { lat:52.13, lng:-106.67, cat:'industrial', prov:'SK', name:'Saskatoon — Potash & Agri-Industrial', region:'Central Saskatchewan', assetType:'Potash Mines, Canola & Grain Processing', count:'Regional aggregate — Sask Ministry of Energy public records', rpasApp:'Mine site perimeter survey, tailings pond monitoring, grain elevator inspection, agricultural chemical storage', source:'Saskatchewan GeoHub · Statistics Canada', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'indicative', sectors:['agriculture','infrastructure'] },
+      { lat:45.51, lng:-73.59, cat:'industrial', prov:'QC', name:'Montréal — Aerospace & Manufacturing Cluster', region:'Greater Montréal, QC', assetType:'Aerospace Manufacturing & R&D Facilities', count:'~250 aerospace firms (Aéro Montréal cluster, public directory)', rpasApp:'Facility roof and exterior inspection, R&D campus security survey, logistics corridor monitoring', source:'Données Québec · Statistics Canada', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['aviation','infrastructure'] },
+      { lat:47.56, lng:-52.71, cat:'industrial', prov:'NL', name:'Newfoundland — Offshore Oil & Mining', region:'Avalon / Voisey\'s Bay, NL', assetType:'Offshore Platforms & Mine Sites', count:'Regional aggregate — C-NLOPB / NL Dept. of Mines public records', rpasApp:'Mine site tailings survey, offshore supply base inspection, coastal industrial site monitoring', source:'C-NLOPB · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy','coastal'] },
 
       // ── PHASE 3: ALBERTA REGIONAL DEPTH ──
-      { lat:52.27, lng:-113.81, cat:'transportation', prov:'AB', name:'Red Deer — Central Alberta Transportation Corridor', region:'Central Alberta', assetType:'Highway & Rail Bridges (QEII Corridor)', count:'~620 structures (Red Deer region, AB Transportation)', rpasApp:'QEII highway bridge deck inspection, rail overpass survey, inland port logistics monitoring, agricultural access road condition', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
-      { lat:49.70, lng:-112.84, cat:'water', prov:'AB', name:'Lethbridge — Southern Alberta Irrigation Network', region:'Southern Alberta', assetType:'Irrigation Canals, Dams & Water Conveyance', count:'~1.6M irrigated acres (AIPA open data, largest irrigation district in Canada)', rpasApp:'Canal condition survey, dam crest inspection, crop irrigation efficiency monitoring, water distribution mapping', source:'Alberta Irrigation Projects Association · AENV', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:55.17, lng:-118.80, cat:'energy', prov:'AB', name:'Grande Prairie — Peace Country Energy Infrastructure', region:'Peace Country, Northern Alberta', assetType:'Natural Gas Processing & Pipeline Corridors', count:'Regional aggregate — NRCan / AER public records (Peace River basin)', rpasApp:'Gas plant and compressor station inspection, pipeline ROW patrol, remote facility perimeter survey, forestry-energy corridor monitoring', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate' },
+      { lat:52.27, lng:-113.81, cat:'transportation', prov:'AB', name:'Red Deer — Central Alberta Transportation Corridor', region:'Central Alberta', assetType:'Highway & Rail Bridges (QEII Corridor)', count:'~620 structures (Red Deer region, AB Transportation)', rpasApp:'QEII highway bridge deck inspection, rail overpass survey, inland port logistics monitoring, agricultural access road condition', source:'Statistics Canada ODI · GeoDiscover Alberta', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['infrastructure','agriculture'] },
+      { lat:49.70, lng:-112.84, cat:'water', prov:'AB', name:'Lethbridge — Southern Alberta Irrigation Network', region:'Southern Alberta', assetType:'Irrigation Canals, Dams & Water Conveyance', count:'~1.6M irrigated acres (AIPA open data, largest irrigation district in Canada)', rpasApp:'Canal condition survey, dam crest inspection, crop irrigation efficiency monitoring, water distribution mapping', source:'Alberta Irrigation Projects Association · AENV', sourceUrl:'https://open.alberta.ca/opendata', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['agriculture','infrastructure'] },
+      { lat:55.17, lng:-118.80, cat:'energy', prov:'AB', name:'Grande Prairie — Peace Country Energy Infrastructure', region:'Peace Country, Northern Alberta', assetType:'Natural Gas Processing & Pipeline Corridors', count:'Regional aggregate — NRCan / AER public records (Peace River basin)', rpasApp:'Gas plant and compressor station inspection, pipeline ROW patrol, remote facility perimeter survey, forestry-energy corridor monitoring', source:'NRCan GEO.ca · AER Public Data', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'aggregate', sectors:['energy'] },
 
       // ── PHASE 4: ATLANTIC CANADA INFRASTRUCTURE DEPTH ──
-      { lat:46.09, lng:-64.80, cat:'transportation', prov:'NB', name:'Moncton — Atlantic Transportation Hub', region:'Greater Moncton, NB', assetType:'Rail, Road & Airport Infrastructure', count:'~380 bridges + Moncton Airport (YQM) + CN Rail classification yard', rpasApp:'Rail corridor and yard inspection, airport perimeter survey, bridge deck inspection, tidal river monitoring', source:'Statistics Canada ODI · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
-      { lat:45.27, lng:-66.07, cat:'industrial', prov:'NB', name:'Saint John — Industrial Corridor', region:'Saint John, NB', assetType:'Port, Industrial Facilities & Coastal Infrastructure', count:'Regional aggregate — Port Saint John + industrial cluster (NB GeoNB public data)', rpasApp:'Port perimeter and berth inspection, industrial facility survey, Bay of Fundy tidal infrastructure monitoring, refinery stack observation', source:'NRCan GEO.ca · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative' },
-      { lat:46.24, lng:-63.14, cat:'water', prov:'PE', name:'Charlottetown — Coastal & Municipal Infrastructure', region:'Prince Edward Island', assetType:'Municipal Water, Harbour & Coastal Infrastructure', count:'~85 municipal water/wastewater assets + Charlottetown Harbour (PEI Open Data)', rpasApp:'Coastal erosion monitoring, harbour structure inspection, municipal water system survey, storm surge assessment', source:'Statistics Canada ODI · PEI Open Data', sourceUrl:'https://www.princeedwardisland.ca/en/topic/data', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate' },
+      { lat:46.09, lng:-64.80, cat:'transportation', prov:'NB', name:'Moncton — Atlantic Transportation Hub', region:'Greater Moncton, NB', assetType:'Rail, Road & Airport Infrastructure', count:'~380 bridges + Moncton Airport (YQM) + CN Rail classification yard', rpasApp:'Rail corridor and yard inspection, airport perimeter survey, bridge deck inspection, tidal river monitoring', source:'Statistics Canada ODI · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['infrastructure','aviation'] },
+      { lat:45.27, lng:-66.07, cat:'industrial', prov:'NB', name:'Saint John — Industrial Corridor', region:'Saint John, NB', assetType:'Port, Industrial Facilities & Coastal Infrastructure', count:'Regional aggregate — Port Saint John + industrial cluster (NB GeoNB public data)', rpasApp:'Port perimeter and berth inspection, industrial facility survey, Bay of Fundy tidal infrastructure monitoring, refinery stack observation', source:'NRCan GEO.ca · NB GeoNB', sourceUrl:'https://www.snb.ca/geonb', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy','coastal','infrastructure'] },
+      { lat:46.24, lng:-63.14, cat:'water', prov:'PE', name:'Charlottetown — Coastal & Municipal Infrastructure', region:'Prince Edward Island', assetType:'Municipal Water, Harbour & Coastal Infrastructure', count:'~85 municipal water/wastewater assets + Charlottetown Harbour (PEI Open Data)', rpasApp:'Coastal erosion monitoring, harbour structure inspection, municipal water system survey, storm surge assessment', source:'Statistics Canada ODI · PEI Open Data', sourceUrl:'https://www.princeedwardisland.ca/en/topic/data', licence:'Open Govt Licence – Canada', updated:'2023', status:'aggregate', sectors:['coastal','infrastructure'] },
 
       // ── AACP™ MUNICIPAL DEMONSTRATION — CLARESHOLM ──
       {
@@ -1948,6 +1943,7 @@
         licence: 'Open Government Licence – Canada · Public municipal data',
         updated: '2021–2026',
         status: 'indicative',
+        sectors: ['aviation','infrastructure','agriculture','emergency'],
       },
 
       // ── PHASE 4: NATIONAL MUNICIPAL INTELLIGENCE EXPANSION ──
@@ -1958,23 +1954,27 @@
         assetType: 'Municipal Infrastructure & Military Aviation',
         count: 'Population ~13,300 (2021 Census)',
         domains: [
-          { label: 'Aviation Infrastructure', status: 'Established' },
-          { label: 'Military Aviation', status: 'Established' },
-          { label: 'Transportation', status: 'Highway 1 / TCH' },
-          { label: 'Food & Manufacturing', status: 'Documented' },
+          { label: 'Portage la Prairie Airport (CYPG) — licensed aerodrome, paved runway', status: 'Established' },
+          { label: '17 Wing Detachment Portage / CFB Portage la Prairie — military flight training', status: 'Established' },
+          { label: 'Highway 1 / Trans-Canada Corridor — primary freight route', status: 'Documented' },
+          { label: 'Food & Agri-Processing (Simplot, Maple Leaf Foods, grain handling)', status: 'Documented' },
+          { label: 'Municipal Water & Wastewater Infrastructure', status: 'Indicative' },
         ],
-        rpasApps: ['Airspace intelligence', 'Agricultural survey', 'Infrastructure inspection', 'Training corridor mapping'],
-        validation: 'Adjacent military/civilian aviation base creates airspace considerations. Commercial RPAS demand not yet validated. Municipal and industry engagement required.',
-        workforce: 'Manitoba LFS and ESDC occupational data to be integrated. CFB Portage aviation training cadre relevant to RPAS workforce pipeline.',
+        rpasApps: ['Military airspace monitoring and transition corridor mapping', 'Precision agriculture and crop health survey (Portage Plains)', 'Food processing facility inspection and logistics monitoring', 'Highway 1 corridor and bridge inspection', 'Emergency response — Red River flood monitoring'],
+        validation: 'Portage la Prairie\'s dual civilian-military aviation infrastructure and position within one of Canada\'s most productive agricultural regions present documented RPAS application vectors. The military aviation training cadre and surrounding precision agriculture sector are the strongest near-term demand indicators. Commercial validation and airspace coordination with 17 Wing Detachment required before operations.',
+        workforce: 'Manitoba\'s agricultural and manufacturing sectors support RPAS operator demand in precision agriculture and logistics monitoring. The CFB Portage military-to-civilian aviation transition pipeline is a viable RPAS workforce pathway. Manitoba LFS data (Statistics Canada, 2024) indicates good employment outlook for transportation and agricultural equipment operators in the region.',
         sources: [
-          { label: 'City of Portage la Prairie — Municipal Data', url: 'https://www.city-plap.com' },
-          { label: '17 Wing Det. Portage / CFB Portage — National Defence', url: 'https://www.canada.ca/en/department-national-defence' },
+          { label: 'City of Portage la Prairie — Municipal Services & Infrastructure', url: 'https://www.city-plap.com' },
+          { label: '17 Wing Detachment Portage — National Defence Canada', url: 'https://www.canada.ca/en/department-national-defence/services/bases/portage-la-prairie.html' },
+          { label: 'Nav Canada Aerodrome Directory — CYPG Portage la Prairie', url: 'https://www.navcanada.ca/en/aeronautical-information/aerodrome-directory.aspx' },
+          { label: 'Statistics Canada — 2021 Census, Portage la Prairie (CSD 4607052)', url: 'https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/page.cfm?DGUIDlist=2021A00024607052' },
         ],
         aacpNote: 'Portage la Prairie combines civilian and military aviation infrastructure with one of Canada\'s most productive agricultural corridors. AACP sees this as a strategic Manitoba expansion opportunity bridging RPAS pilot training and precision agriculture applications.',
         rpasApp: 'Airspace intelligence, agricultural survey, infrastructure inspection, training corridor mapping',
-        source: 'City of Portage la Prairie · Manitoba Open Data',
+        source: 'City of Portage la Prairie · Manitoba Open Data · Nav Canada',
         sourceUrl: 'https://www.city-plap.com',
         licence: 'Public municipal data', updated: '2024', status: 'indicative',
+        sectors: ['aviation','agriculture','infrastructure','emergency'],
       },
       {
         lat: 50.391, lng: -105.535, cat: 'municipal', prov: 'SK',
@@ -1983,48 +1983,56 @@
         assetType: 'Municipal Infrastructure & Military Aviation',
         count: 'Population ~34,000 (2021 Census)',
         domains: [
-          { label: 'Aviation Infrastructure', status: 'Established' },
-          { label: 'Military Aviation', status: 'Established' },
-          { label: 'Agricultural Corridor', status: 'Documented' },
-          { label: 'Transportation', status: 'Highway 1 / TCH' },
+          { label: '15 Wing Moose Jaw — NATO Flying Training in Canada program', status: 'Established' },
+          { label: 'Moose Jaw Airport (CYMJ) — military aerodrome with controlled airspace', status: 'Established' },
+          { label: 'Prairie Agricultural Corridor — grain and canola production zone', status: 'Documented' },
+          { label: 'Highway 1 / Trans-Canada Corridor and CN Rail', status: 'Documented' },
+          { label: 'Municipal Water & Wastewater (Moose Jaw River watershed)', status: 'Indicative' },
         ],
-        rpasApps: ['Training airspace monitoring', 'Agricultural mapping', 'Pipeline corridor survey', 'Emergency response support'],
-        validation: '15 Wing NATO training creates regulated airspace. Agricultural and industrial RPAS demand present but not formally validated.',
-        workforce: 'Saskatchewan LFS and ESDC data to be integrated. Military-to-civilian aviation transition pathway relevant to RPAS workforce.',
+        rpasApps: ['Training airspace integration and corridor monitoring', 'Precision agriculture and crop survey (Qu\'Appelle Valley periphery)', 'Pipeline and energy corridor patrol (TransCanada Mainline proximity)', 'Emergency response and wildfire monitoring (prairie sector)', 'Municipal infrastructure and bridge inspection'],
+        validation: 'Moose Jaw\'s aviation ecosystem, anchored by 15 Wing and the NATO Flying Training in Canada program, represents Canada\'s most significant military flight training cluster. RPAS integration into this airspace requires coordination with DND. Agricultural and industrial demand in the surrounding prairie corridor is documented but requires commercial validation before RPAS service deployment.',
+        workforce: 'Saskatchewan\'s aviation workforce is concentrated in military and agricultural sectors. The military-to-civilian transition pipeline at 15 Wing is a viable RPAS operator talent source. Saskatchewan LFS data (Statistics Canada, 2024) supports fair employment outlook for air transportation and agricultural equipment occupations relevant to RPAS workforce development.',
         sources: [
-          { label: 'City of Moose Jaw Open Data', url: 'https://www.moosejaw.ca' },
-          { label: '15 Wing Moose Jaw / NATO Flying Training in Canada', url: 'https://www.canada.ca/en/department-national-defence' },
+          { label: 'City of Moose Jaw — Open Data & Municipal Services', url: 'https://www.moosejaw.ca' },
+          { label: '15 Wing Moose Jaw / NATO Flying Training in Canada', url: 'https://www.canada.ca/en/department-national-defence/services/bases/moose-jaw.html' },
+          { label: 'Nav Canada Aerodrome Directory — CYMJ Moose Jaw', url: 'https://www.navcanada.ca/en/aeronautical-information/aerodrome-directory.aspx' },
+          { label: 'Statistics Canada — 2021 Census, Moose Jaw (CSD 4711066)', url: 'https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/page.cfm?DGUIDlist=2021A00024711066' },
         ],
         aacpNote: 'Moose Jaw is home to 15 Wing and the NATO Flying Training in Canada program — one of Canada\'s most significant military aviation training bases. AACP\'s RPAS training curriculum is directly relevant to this aviation ecosystem and its military-to-civilian transition pipeline.',
         rpasApp: 'Training airspace monitoring, agricultural mapping, pipeline corridor survey, emergency response support',
-        source: 'City of Moose Jaw · Saskatchewan Open Data',
+        source: 'City of Moose Jaw · Saskatchewan Open Data · Nav Canada',
         sourceUrl: 'https://www.moosejaw.ca',
         licence: 'Public municipal data', updated: '2024', status: 'indicative',
+        sectors: ['aviation','agriculture','energy','emergency'],
       },
       {
         lat: 46.396, lng: -63.791, cat: 'municipal', prov: 'PE',
         name: 'Summerside', region: 'Prince Edward Island',
-        subTitle: 'Aerospace innovation hub and island infrastructure',
+        subTitle: 'Aerospace innovation hub and island infrastructure corridor',
         assetType: 'Municipal Infrastructure & Aerospace Innovation',
         count: 'Population ~15,900 (2021 Census)',
         domains: [
-          { label: 'Aviation Infrastructure', status: 'Established' },
-          { label: 'Aerospace Innovation', status: 'Established' },
-          { label: 'Water & Coastal', status: 'Documented' },
-          { label: 'Transportation', status: 'Regional Hub' },
+          { label: 'Summerside Airport (CYSU) — Slemon Park Aerospace Innovation Centre', status: 'Established' },
+          { label: 'Slemon Park Aerospace Cluster — active aerospace tenants and R&D', status: 'Established' },
+          { label: 'Summerside Harbour & Coastal Infrastructure — Confederation Bridge corridor', status: 'Documented' },
+          { label: 'PEI Agricultural Land — mixed farming and potato corridor', status: 'Documented' },
+          { label: 'Municipal Water & Wastewater (Summerside Electric)', status: 'Indicative' },
         ],
-        rpasApps: ['Coastal monitoring', 'Aerospace facility inspection', 'Agricultural island survey', 'Marine infrastructure observation'],
-        validation: 'Aerospace Innovation Centre at Summerside Airport represents a unique RPAS ecosystem. Commercial validation required. Industry engagement recommended.',
-        workforce: 'PEI LFS and ESDC data to be integrated. Aerospace workforce pipeline at Slemon Park relevant to RPAS talent development.',
+        rpasApps: ['Coastal and shoreline erosion monitoring (Northumberland Strait)', 'Aerospace facility inspection and perimeter survey (Slemon Park)', 'Agricultural crop health monitoring and island field survey', 'Marine infrastructure observation (Confederation Bridge approach)', 'Search & rescue coordination support (Gulf of St. Lawrence approaches)'],
+        validation: 'Summerside\'s Slemon Park aerospace cluster provides a documented RPAS-ready industrial ecosystem. The combination of active aerospace tenants, an operational aerodrome, coastal access, and island-scale agriculture presents multiple documented RPAS application vectors. Commercial validation is recommended before service deployment, with particular attention to Confederation Bridge airspace restrictions.',
+        workforce: 'PEI\'s aerospace workforce is concentrated at Slemon Park, with active training and maintenance operations. The island\'s agricultural workforce supports demand for precision agriculture RPAS services. PEI LFS data (Statistics Canada, 2024) reflects a small-province labour market; small-area estimates carry higher variability.',
         sources: [
-          { label: 'City of Summerside — Open Data', url: 'https://www.summerside.ca' },
+          { label: 'City of Summerside — Open Data & Municipal Services', url: 'https://www.summerside.ca' },
           { label: 'Slemon Park Corporation — Aerospace Innovation Centre', url: 'https://www.slemonpark.com' },
+          { label: 'Nav Canada Aerodrome Directory — CYSU Summerside', url: 'https://www.navcanada.ca/en/aeronautical-information/aerodrome-directory.aspx' },
+          { label: 'Statistics Canada — 2021 Census, Summerside (CSD 1102075)', url: 'https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/page.cfm?DGUIDlist=2021A00021102075' },
         ],
         aacpNote: 'Summerside hosts a significant aerospace innovation ecosystem at the former CFB Summerside. The Slemon Park aerospace cluster is a natural AACP partnership opportunity for Atlantic Canada expansion and RPAS workforce development.',
         rpasApp: 'Coastal monitoring, aerospace facility inspection, agricultural island survey, marine infrastructure observation',
-        source: 'City of Summerside · PEI Open Data',
+        source: 'City of Summerside · Slemon Park · Nav Canada',
         sourceUrl: 'https://www.summerside.ca',
         licence: 'Public municipal data', updated: '2024', status: 'indicative',
+        sectors: ['aviation','coastal','agriculture','infrastructure'],
       },
       {
         lat: 44.100, lng: -77.579, cat: 'municipal', prov: 'ON',
@@ -2033,24 +2041,27 @@
         assetType: 'Military Aviation & Aerospace Manufacturing',
         count: 'Regional population ~200,000 (Hastings + Prince Edward County, 2021)',
         domains: [
-          { label: 'Military Aviation', status: 'Established' },
-          { label: 'Aerospace Manufacturing', status: 'Documented' },
-          { label: 'Water Infrastructure', status: 'Documented' },
-          { label: 'Transportation', status: 'Highway 401 / TCH' },
+          { label: '8 Wing CFB Trenton — Canada\'s largest air transport base', status: 'Established' },
+          { label: 'Trenton Airport (CYTR) — controlled airspace, SAR and transport operations', status: 'Established' },
+          { label: 'Aerospace Manufacturing Corridor — Belleville & Bay of Quinte region', status: 'Documented' },
+          { label: 'Lake Ontario Shoreline & Trent-Severn Waterway', status: 'Documented' },
+          { label: 'Highway 401 Corridor and CN / CP Rail', status: 'Documented' },
         ],
-        rpasApps: ['Search & rescue support', 'Aerospace facility inspection', 'Lake Ontario coastal monitoring', 'Industrial corridor survey'],
-        validation: '8 Wing CFB Trenton is Canada\'s largest air transport base. Commercial RPAS activity subject to DND airspace restrictions. Industry engagement required.',
-        workforce: 'Ontario LFS and ESDC data to be integrated. Military-to-civilian aviation transition pathway highly relevant to RPAS workforce development in this region.',
+        rpasApps: ['Search & rescue coordination support (Lake Ontario, SAR proximity)', 'Aerospace manufacturing facility inspection (Bay of Quinte corridor)', 'Lake Ontario shoreline and coastal infrastructure monitoring', 'Highway 401 and bridge deck inspection (Hastings County)', 'Industrial logistics and warehouse facility survey'],
+        validation: 'CFB Trenton\'s role as Canada\'s primary military air transport hub creates significant airspace restrictions for commercial RPAS operations. The Bay of Quinte aerospace manufacturing cluster and Lake Ontario coastal infrastructure represent documented RPAS application areas. DND coordination and commercial validation are prerequisites for any RPAS service deployment in this region.',
+        workforce: 'Eastern Ontario\'s workforce benefits from a strong military aviation talent pool at 8 Wing CFB Trenton. The military-to-civilian transition pathway is well-established in Hastings County. Ontario LFS data (Statistics Canada, 2024) supports good employment outlook for aviation and manufacturing occupations relevant to RPAS workforce development.',
         sources: [
-          { label: 'City of Belleville Open Data', url: 'https://www.belleville.ca' },
-          { label: '8 Wing CFB Trenton — National Defence', url: 'https://www.canada.ca/en/department-national-defence' },
-          { label: 'Hastings County — Regional Data', url: 'https://www.hastingscounty.com' },
+          { label: 'City of Belleville — Open Data & Municipal Services', url: 'https://www.belleville.ca' },
+          { label: '8 Wing CFB Trenton — National Defence Canada', url: 'https://www.canada.ca/en/department-national-defence/services/bases/trenton.html' },
+          { label: 'Hastings County — Regional Economic Data', url: 'https://www.hastingscounty.com' },
+          { label: 'Statistics Canada — 2021 Census, Belleville (CSD 3512005)', url: 'https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/page.cfm?DGUIDlist=2021A00023512005' },
         ],
         aacpNote: 'Trenton/Belleville sits at the intersection of Canada\'s largest military air transport base, an active aerospace manufacturing cluster, and Lake Ontario coastal infrastructure. Military-to-civilian RPAS pilot pathways make this a strategic AACP target market for Eastern Ontario.',
         rpasApp: 'Search & rescue support, aerospace facility inspection, Lake Ontario coastal monitoring, industrial corridor survey',
-        source: 'City of Belleville · Ontario GeoHub',
+        source: 'City of Belleville · Ontario GeoHub · Nav Canada',
         sourceUrl: 'https://www.belleville.ca',
         licence: 'Open Govt Licence – Ontario', updated: '2024', status: 'indicative',
+        sectors: ['aviation','coastal','infrastructure','emergency'],
       },
       {
         lat: 51.103, lng: -114.374, cat: 'municipal', prov: 'AB',
@@ -2059,10 +2070,10 @@
         assetType: 'Business Aviation & Industrial Development',
         count: 'Rocky View County population ~43,000 (2021 Census)',
         domains: [
-          { label: 'Aviation Infrastructure', status: 'Established' },
-          { label: 'Business Aviation', status: 'Established' },
-          { label: 'Industrial Development', status: 'Documented' },
-          { label: 'Transportation', status: 'Highway 1 / TCH' },
+          { label: 'Springbank Airport (CYBW) — Canada\'s busiest non-towered aerodrome', status: 'Established' },
+          { label: 'Business Aviation Operations — FBOs, charter, maintenance tenants', status: 'Established' },
+          { label: 'Rocky View Industrial Parks — western Calgary fringe development', status: 'Documented' },
+          { label: 'Highway 1 / Trans-Canada Corridor — primary freight access', status: 'Documented' },
         ],
         rpasApps: ['Business aviation support', 'Calgary western corridor survey', 'Industrial park inspection', 'Emergency services coordination'],
         validation: 'Springbank Airport (CYBW) is the busiest non-towered airport in Canada. High aviation traffic density creates RPAS integration opportunity and airspace complexity. Commercial validation required.',
@@ -2076,6 +2087,7 @@
         source: 'Rocky View County · TC Canada Aerodrome Directory',
         sourceUrl: 'https://www.rockyview.ca',
         licence: 'Public municipal data', updated: '2024', status: 'indicative',
+        sectors: ['aviation','infrastructure','energy','emergency'],
       },
     ];
 
@@ -2157,6 +2169,8 @@
         window._riCurrentData = d;
         activeTab = 'overview';
         renderPanel(d);
+        location.hash = encodeURIComponent(d.name);
+        if (typeof _track === 'function') _track('panel_view', { name: d.name, cat: d.cat, prov: d.prov });
         // Municipal marker: highlight selection ring + auto-center map
         if (d.cat === 'municipal') {
           if (_selectedMunicipalMarker && _selectedMunicipalMarker._icon) {
@@ -2184,17 +2198,21 @@
     // ── FILTERS ──
     const activeCats = new Set(['transportation','energy','water','industrial']);
     let activeProv = 'all';
+    let activeSector = 'all';
 
     function applyFilters() {
       Object.keys(clusterGroups).forEach(cat => { clusterGroups[cat].clearLayers(); });
       INFRA.forEach(d => {
         if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
         if (activeProv !== 'all' && d.prov !== activeProv) return;
+        if (activeSector !== 'all' && !(d.sectors && d.sectors.includes(activeSector))) return;
         const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
         marker.on('click', () => {
           window._riCurrentData = d;
           activeTab = 'overview';
           renderPanel(d);
+          location.hash = encodeURIComponent(d.name);
+          if (typeof _track === 'function') _track('panel_view', { name: d.name, cat: d.cat, prov: d.prov });
           if (window.innerWidth <= 900) {
             document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
@@ -2224,6 +2242,39 @@
       activeProv = e.target.value;
       applyFilters();
     });
+
+    document.querySelectorAll('.sector-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeSector = btn.dataset.sector;
+        document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+      });
+    });
+
+    // ── 5C: LIGHTWEIGHT ANALYTICS ──
+    function _track(event, data) {
+      try {
+        fetch('/eoi/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, data, ts: Date.now() }),
+          keepalive: true,
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // ── 5E: SHAREABLE URLS — open pinned location from hash on load ──
+    (function() {
+      const hash = location.hash ? decodeURIComponent(location.hash.slice(1)) : '';
+      if (!hash) return;
+      const target = INFRA.find(d => d.name === hash);
+      if (!target) return;
+      window._riCurrentData = target;
+      activeTab = 'overview';
+      renderPanel(target);
+      map.flyTo([target.lat, target.lng], 10, { duration: 1.2 });
+    })();
 
   })();
 </script>
