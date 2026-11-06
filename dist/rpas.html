@@ -277,7 +277,7 @@
     /* ── REGIONAL INTELLIGENCE PANEL ── */
     .map-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start;margin-top:16px}
     .map-layout .map-container{margin-top:0;border-radius:16px 0 0 0;border-right:none}
-    .ri-panel{background:rgba(5,2,16,.97);border:1px solid var(--border);border-radius:0 16px 0 0;height:620px;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s}
+    .ri-panel{background:rgba(5,2,16,.97);border:1px solid var(--border);border-radius:0 16px 0 0;min-height:420px;max-height:680px;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s}
     .ri-panel.empty .ri-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 24px;text-align:center;flex:1}
     .ri-panel.empty .ri-body svg{opacity:.18}
     .ri-empty-hint{font-size:.8rem;color:var(--dim);line-height:1.6}
@@ -370,7 +370,7 @@
     @media(max-width:900px){
       .map-layout{grid-template-columns:1fr;gap:0}
       .map-layout .map-container{border-radius:16px 16px 0 0;border-right:1px solid var(--border)}
-      .ri-panel{border-radius:0 0 16px 16px;height:auto;max-height:560px;border-top:none}
+      .ri-panel{border-radius:0 0 16px 16px;height:auto;min-height:300px;max-height:600px;border-top:none}
       .ri-panel.empty{display:none}
       #rpas-map{height:420px}
       .map-data-bar{border-radius:0 0 16px 16px}
@@ -1513,7 +1513,6 @@
         <div class="ri-ms-label">Sources</div>
         ${sourceRows}
       </div>
-      <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>
       <div class="ri-evidence-box">
         <details class="ri-evidence-details">
           <summary>Data Sources &amp; Verification</summary>
