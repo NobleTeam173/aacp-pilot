@@ -370,12 +370,24 @@
     @media(max-width:900px){
       .map-layout{grid-template-columns:1fr;gap:0}
       .map-layout .map-container{border-radius:16px 16px 0 0;border-right:1px solid var(--border)}
-      .ri-panel{border-radius:0 0 16px 16px;height:auto;max-height:420px;border-top:none}
+      .ri-panel{border-radius:0 0 16px 16px;height:auto;max-height:460px;border-top:none}
       .ri-panel.empty{display:none}
-      #rpas-map{height:340px}
+      #rpas-map{height:420px}
       .map-data-bar{border-radius:0 0 16px 16px}
+      /* Controls: stack cleanly */
+      .map-controls{flex-direction:column;gap:10px;margin-top:20px}
+      .map-filter-group{gap:7px}
+      .cat-btn{font-size:11px;padding:5px 11px}
+      /* Sector row: wrap tightly, hide label, 2-col grid feel */
+      .sector-filter-row{gap:5px;padding-top:8px;margin-top:2px}
+      .sector-label{display:none}
+      .sector-btn{font-size:10px;padding:4px 9px}
+      /* Province: full width */
+      .prov-select{width:100%;min-width:0;box-sizing:border-box}
+      /* Tighten section padding */
+      .map-section{padding:72px 5vw}
     }
-    @media(max-width:768px){.map-controls{gap:8px}.cat-btn{font-size:11px;padding:5px 10px}.map-data-bar{font-size:9px}}
+    @media(max-width:768px){.map-data-bar{font-size:9px}}
 
     /* ── BUSINESS COLLAB ── */
     .collab-section{padding:108px 6vw;background:var(--bg)}
