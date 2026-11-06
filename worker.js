@@ -10046,12 +10046,90 @@ async function handleRpasEnroll(request, user, env) {
   return json({ enrolled: true, message: 'You have been enrolled in the Applied RPAS Workforce Program.' });
 }
 
+// ── EOI email helpers ─────────────────────────────────────────────────────────
+
+const EOI_PARTNERSHIPS_EMAIL = 'partnerships@aviationaerospacecompetency.com';
+const EOI_INFO_EMAIL         = 'info@aviationaerospacecompetency.com';
+
+function emailEoiIndividualReceived(env, { name, email, interests = [], city, province, utmSource }) {
+  const interestLabel = interests.length ? interests.join(', ') : 'not specified';
+  const isPdfLead = interests.includes('pdf_lead');
+  const subjectPrefix = isPdfLead ? 'New AACP PDF Lead' : 'New EOI — Individual';
+  const locationStr = [city, province].filter(Boolean).join(', ') || 'not provided';
+
+  const confirmHtml = emailLayout({
+    heading: isPdfLead ? 'Your Regional Intelligence Brief Is Downloading' : 'Expression of Interest Received',
+    body:
+      eP(`Hi ${name},`) +
+      (isPdfLead
+        ? eP('Thank you for downloading the AACP™ Regional Intelligence Brief. Your PDF download will begin automatically.')
+        : eP('Thank you for your Expression of Interest in AACP™. We’ve received your submission and will be in touch shortly.')) +
+      eDivider() +
+      eNote(`Questions? Contact us at <a href="mailto:${EOI_INFO_EMAIL}" style="color:#80011f">${EOI_INFO_EMAIL}</a>`),
+  });
+  const confirmText = `Hi ${name},\n\n${isPdfLead ? 'Thank you for downloading the AACP™ Regional Intelligence Brief. Your PDF download will begin automatically.' : 'Thank you for your Expression of Interest in AACP™. We’ve received your submission and will be in touch shortly.'}\n\nQuestions? ${EOI_INFO_EMAIL}`;
+
+  const staffHtml = emailLayout({
+    heading: `${subjectPrefix}: ${name}`,
+    body:
+      eP(`<strong>Name:</strong> ${name}`) +
+      eP(`<strong>Email:</strong> ${email}`) +
+      eP(`<strong>Location:</strong> ${locationStr}`) +
+      eP(`<strong>Interests:</strong> ${interestLabel}`) +
+      (utmSource ? eP(`<strong>Source:</strong> ${utmSource}`) : '') +
+      eDivider() +
+      eBtn('Review in Admin Dashboard →', 'https://aviationaerospacecompetency.com/app.html'),
+  });
+  const staffText = `${subjectPrefix}: ${name}\n\nEmail: ${email}\nLocation: ${locationStr}\nInterests: ${interestLabel}${utmSource ? `\nSource: ${utmSource}` : ''}\n\nReview: https://aviationaerospacecompetency.com/app.html`;
+
+  return Promise.all([
+    sendEmail(env, { event: 'eoi_individual_received_confirm', to: email, subject: isPdfLead ? 'Your AACP™ Regional Intelligence Brief' : 'AACP™ — Expression of Interest Received', text: confirmText, html: confirmHtml }),
+    sendEmail(env, { event: 'eoi_individual_received_staff', to: EOI_PARTNERSHIPS_EMAIL, subject: `${subjectPrefix} | ${name}`, text: staffText, html: staffHtml }),
+    sendEmail(env, { event: 'eoi_individual_received_staff', to: EOI_INFO_EMAIL, subject: `${subjectPrefix} | ${name}`, text: staffText, html: staffHtml }),
+  ]);
+}
+
+function emailEoiPartnerReceived(env, { name, email, orgName, city, province, interests = [], utmSource }) {
+  const interestLabel = interests.length ? interests.join(', ') : 'not specified';
+  const locationStr = [city, province].filter(Boolean).join(', ') || 'not provided';
+
+  const confirmHtml = emailLayout({
+    heading: 'Partnership Expression of Interest Received',
+    body:
+      eP(`Hi ${name},`) +
+      eP(`Thank you for your interest in a regional partnership with AACP™. We’ve received your submission and a member of our partnerships team will be in touch shortly.`) +
+      eDivider() +
+      eNote(`Questions? Contact us at <a href="mailto:${EOI_PARTNERSHIPS_EMAIL}" style="color:#80011f">${EOI_PARTNERSHIPS_EMAIL}</a>`),
+  });
+  const confirmText = `Hi ${name},\n\nThank you for your interest in a regional partnership with AACP™. We’ve received your submission and a member of our partnerships team will be in touch shortly.\n\nQuestions? ${EOI_PARTNERSHIPS_EMAIL}`;
+
+  const staffHtml = emailLayout({
+    heading: `New Partner EOI | ${orgName}`,
+    body:
+      eP(`<strong>Name:</strong> ${name}`) +
+      eP(`<strong>Organization:</strong> ${orgName}`) +
+      eP(`<strong>Email:</strong> ${email}`) +
+      eP(`<strong>Location:</strong> ${locationStr}`) +
+      eP(`<strong>Partnership Interests:</strong> ${interestLabel}`) +
+      (utmSource ? eP(`<strong>Source:</strong> ${utmSource}`) : '') +
+      eDivider() +
+      eBtn('Review in Admin Dashboard →', 'https://aviationaerospacecompetency.com/app.html'),
+  });
+  const staffText = `New Partner EOI | ${orgName}\n\nName: ${name}\nOrganization: ${orgName}\nEmail: ${email}\nLocation: ${locationStr}\nInterests: ${interestLabel}${utmSource ? `\nSource: ${utmSource}` : ''}\n\nReview: https://aviationaerospacecompetency.com/app.html`;
+
+  return Promise.all([
+    sendEmail(env, { event: 'eoi_partner_received_confirm', to: email, subject: 'AACP™ — Partnership Expression of Interest Received', text: confirmText, html: confirmHtml }),
+    sendEmail(env, { event: 'eoi_partner_received_staff', to: EOI_PARTNERSHIPS_EMAIL, subject: `New Partner EOI | ${orgName} | ${name}`, text: staffText, html: staffHtml }),
+    sendEmail(env, { event: 'eoi_partner_received_staff', to: EOI_INFO_EMAIL, subject: `New Partner EOI | ${orgName} | ${name}`, text: staffText, html: staffHtml }),
+  ]);
+}
+
 // ── EOI handlers ──────────────────────────────────────────────────────────────
 
 const EOI_STATUSES = new Set(['new', 'contacted', 'follow_up', 'moved_forward', 'closed']);
 
 const EOI_INDIVIDUAL_INTERESTS = new Set([
-  'workforce_readiness', 'rpas_workforce_hub', 'future_aviation_aerospace', 'not_sure',
+  'workforce_readiness', 'rpas_workforce_hub', 'future_aviation_aerospace', 'not_sure', 'pdf_lead',
 ]);
 
 const EOI_PARTNER_INTERESTS = new Set([
@@ -10091,7 +10169,7 @@ const REFERRAL_SOURCE_KEYS = new Set([
 ]);
 
 // POST /eoi/individual
-async function handleEoiIndividual(request, env) {
+async function handleEoiIndividual(request, env, ctx) {
   const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const rateKey = `eoi_individual:${ip}`;
   const recent = await countAllAttempts(env.DB, rateKey, 3600000); // 1 hour window
@@ -10155,11 +10233,21 @@ async function handleEoiIndividual(request, env) {
 
   await recordAttempt(env.DB, rateKey, true);
 
+  const fullName = `${firstName} ${lastName}`;
+  ctx.waitUntil(
+    emailEoiIndividualReceived(env, {
+      name: fullName, email, interests,
+      city: sanitizeText(body.city, 100) ?? null,
+      province: sanitizeText(body.province, 100) ?? null,
+      utmSource: sanitizeText(body.utmSource, 200) ?? null,
+    }).catch(() => {})
+  );
+
   return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
 }
 
 // POST /eoi/partner
-async function handleEoiPartner(request, env) {
+async function handleEoiPartner(request, env, ctx) {
   const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const rateKey = `eoi_partner:${ip}`;
   const recent = await countAllAttempts(env.DB, rateKey, 3600000);
@@ -10221,6 +10309,18 @@ async function handleEoiPartner(request, env) {
   ).run().catch(e => { throw new Error('Submission failed: ' + e.message); });
 
   await recordAttempt(env.DB, rateKey, true);
+
+  const fullName = `${firstName} ${lastName}`;
+  ctx.waitUntil(
+    emailEoiPartnerReceived(env, {
+      name: fullName, email,
+      orgName: orgName ?? '',
+      city: sanitizeText(body.city, 100) ?? null,
+      province: sanitizeText(body.province, 100) ?? null,
+      interests,
+      utmSource: sanitizeText(body.utmSource, 200) ?? null,
+    }).catch(() => {})
+  );
 
   return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
 }
@@ -14698,8 +14798,8 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/rpas/apply/status-request' && request.method === 'POST') return handleRpasApplicationStatusRequest(request, env);
 
     // ── EOI public routes ─────────────────────────────────────────────────────
-    if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env);
-    if (path === '/eoi/partner'         && request.method === 'POST') return handleEoiPartner(request, env);
+    if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env, ctx);
+    if (path === '/eoi/partner'         && request.method === 'POST') return handleEoiPartner(request, env, ctx);
 
     // /app → serve the React dashboard
     if (path === '/app' || path === '/app/') {

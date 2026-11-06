@@ -459,6 +459,37 @@
     .fade-in{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s ease}
     .fade-in.visible{opacity:1;transform:translateY(0)}
     @media(prefers-reduced-motion:reduce){.fade-in{opacity:1;transform:none;transition:none}}
+
+    /* ── EOI / LEAD-GATE MODAL ── */
+    .ri-modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+    .ri-modal-overlay[hidden]{display:none!important}
+    .ri-modal{background:#0d0b18;border:1px solid rgba(255,255,255,.12);border-radius:14px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto;padding:24px 22px 20px;box-shadow:0 16px 48px rgba(0,0,0,.8)}
+    .ri-modal-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:4px}
+    .ri-modal-sub{font-size:.75rem;color:var(--muted);margin-bottom:18px;line-height:1.5}
+    .ri-modal label{display:block;font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.4px;margin-bottom:5px;text-transform:uppercase}
+    .ri-modal input,.ri-modal select,.ri-modal textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 11px;font-size:.82rem;color:var(--text);font-family:'DM Sans',sans-serif;box-sizing:border-box;margin-bottom:13px;transition:border-color .15s}
+    .ri-modal input:focus,.ri-modal select:focus,.ri-modal textarea:focus{outline:none;border-color:rgba(255,255,255,.3)}
+    .ri-modal textarea{resize:vertical;min-height:70px}
+    .ri-modal-row{display:flex;gap:10px}
+    .ri-modal-row>div{flex:1;min-width:0}
+    .ri-modal-privacy{font-size:.67rem;color:var(--dim);line-height:1.6;margin-bottom:14px}
+    .ri-modal-privacy a{color:var(--muted);text-decoration:underline}
+    .ri-modal-consent{display:flex;gap:8px;align-items:flex-start;margin-bottom:16px}
+    .ri-modal-consent input[type=checkbox]{width:14px;height:14px;margin-top:2px;flex-shrink:0;accent-color:#8060d0}
+    .ri-modal-consent span{font-size:.7rem;color:var(--dim);line-height:1.5}
+    .ri-modal-submit{width:100%;background:#0a0a0f;color:#ece8f8;border:1.5px solid rgba(255,255,255,.18);border-radius:50px;padding:12px 20px;font-size:.84rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s;margin-bottom:8px}
+    .ri-modal-submit:hover:not(:disabled){background:#181820;border-color:rgba(255,255,255,.3)}
+    .ri-modal-submit:disabled{opacity:.5;cursor:not-allowed}
+    .ri-modal-cancel{width:100%;background:transparent;color:var(--muted);border:none;padding:8px;font-size:.77rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+    .ri-modal-cancel:hover{color:var(--fg)}
+    .ri-modal-err{font-size:.72rem;color:#e05;margin:-8px 0 10px;display:none}
+    .ri-modal-success{text-align:center;padding:24px 0 8px}
+    .ri-modal-success-icon{font-size:2rem;margin-bottom:10px}
+    .ri-modal-success-title{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:6px}
+    .ri-modal-success-body{font-size:.77rem;color:var(--muted);line-height:1.6}
+    .ri-modal-callout{background:rgba(128,96,208,.1);border:1px solid rgba(128,96,208,.25);border-radius:9px;padding:14px 15px;margin-bottom:16px}
+    .ri-modal-callout-title{font-size:.72rem;font-weight:700;color:#a090d8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .ri-modal-callout-body{font-size:.74rem;color:var(--muted);line-height:1.6}
   </style>
 </head>
 <body>
@@ -902,6 +933,74 @@
   </div>
 </section>
 
+<!-- ── PARTNER EOI MODAL ── -->
+<div id="eoi-partner-modal" class="ri-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="eoi-partner-title">
+  <div class="ri-modal">
+    <div id="eoi-partner-form-wrap">
+      <div class="ri-modal-title" id="eoi-partner-title">Discuss a Regional Partnership</div>
+      <div class="ri-modal-sub" id="eoi-partner-sub">Express your interest in a regional RPAS partnership opportunity with AACP™. Our partnerships team will be in touch.</div>
+      <div class="ri-modal-callout">
+        <div class="ri-modal-callout-title">How AACP™ Can Help Your Organization</div>
+        <div class="ri-modal-callout-body">AACP™ supports municipalities, infrastructure owners, employers and technology partners in exploring RPAS applications, workforce development, industry partnerships and evidence-based pilot opportunities. We connect regional intelligence with practical workforce and commercial development needs.</div>
+      </div>
+      <div class="ri-modal-row">
+        <div><label for="eoi-p-first">First Name *</label><input id="eoi-p-first" type="text" autocomplete="given-name" placeholder="First name"></div>
+        <div><label for="eoi-p-last">Last Name *</label><input id="eoi-p-last" type="text" autocomplete="family-name" placeholder="Last name"></div>
+      </div>
+      <label for="eoi-p-org">Organization *</label>
+      <input id="eoi-p-org" type="text" autocomplete="organization" placeholder="Organization name">
+      <label for="eoi-p-email">Work Email *</label>
+      <input id="eoi-p-email" type="email" autocomplete="email" placeholder="you@organization.com">
+      <label for="eoi-p-phone">Phone</label>
+      <input id="eoi-p-phone" type="tel" autocomplete="tel" placeholder="Optional">
+      <label for="eoi-p-comment">How can we help? (optional)</label>
+      <textarea id="eoi-p-comment" placeholder="Describe your interest or the opportunity you have in mind…"></textarea>
+      <div class="ri-modal-privacy">By submitting this form you authorize AACP™ to contact you about this partnership inquiry. See our <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+      <div class="ri-modal-consent"><input type="checkbox" id="eoi-p-marketing"><span>I would like to receive occasional AACP™ news and program updates (optional).</span></div>
+      <div class="ri-modal-err" id="eoi-p-err"></div>
+      <button class="ri-modal-submit" id="eoi-p-submit" onclick="window._submitPartnerEOI && window._submitPartnerEOI()">Send Partnership Inquiry</button>
+      <button class="ri-modal-cancel" onclick="document.getElementById('eoi-partner-modal').hidden=true">Cancel</button>
+    </div>
+    <div id="eoi-partner-success" class="ri-modal-success" hidden>
+      <div class="ri-modal-success-icon">◈</div>
+      <div class="ri-modal-success-title">Inquiry Received</div>
+      <div class="ri-modal-success-body">Thank you. A member of AACP™'s partnerships team will be in touch shortly.<br><br><a href="mailto:partnerships@aviationaerospacecompetency.com" style="color:var(--muted)">partnerships@aviationaerospacecompetency.com</a></div>
+      <button class="ri-modal-cancel" style="margin-top:16px" onclick="document.getElementById('eoi-partner-modal').hidden=true">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PDF LEAD-GATE MODAL ── -->
+<div id="eoi-pdf-modal" class="ri-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="eoi-pdf-title">
+  <div class="ri-modal">
+    <div id="eoi-pdf-form-wrap">
+      <div class="ri-modal-title" id="eoi-pdf-title">Get the Regional Intelligence Brief</div>
+      <div class="ri-modal-sub" id="eoi-pdf-sub">Complete your details to download the complimentary AACP™ Regional Intelligence Brief for this municipality.</div>
+      <div class="ri-modal-row">
+        <div><label for="eoi-pdf-first">First Name *</label><input id="eoi-pdf-first" type="text" autocomplete="given-name" placeholder="First name"></div>
+        <div><label for="eoi-pdf-last">Last Name *</label><input id="eoi-pdf-last" type="text" autocomplete="family-name" placeholder="Last name"></div>
+      </div>
+      <label for="eoi-pdf-email">Email Address *</label>
+      <input id="eoi-pdf-email" type="email" autocomplete="email" placeholder="you@example.com">
+      <label for="eoi-pdf-phone">Phone</label>
+      <input id="eoi-pdf-phone" type="tel" autocomplete="tel" placeholder="Optional">
+      <label for="eoi-pdf-org">Organization</label>
+      <input id="eoi-pdf-org" type="text" autocomplete="organization" placeholder="Optional">
+      <div class="ri-modal-privacy">By downloading this report you authorize AACP™ to follow up regarding the information in it. See our <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+      <div class="ri-modal-consent"><input type="checkbox" id="eoi-pdf-marketing"><span>I would like to receive occasional AACP™ news and program updates (optional).</span></div>
+      <div class="ri-modal-err" id="eoi-pdf-err"></div>
+      <button class="ri-modal-submit" id="eoi-pdf-submit" onclick="window._submitPDFLead && window._submitPDFLead()">⬇ &nbsp;Download Brief</button>
+      <button class="ri-modal-cancel" onclick="document.getElementById('eoi-pdf-modal').hidden=true">Cancel</button>
+    </div>
+    <div id="eoi-pdf-success" class="ri-modal-success" hidden>
+      <div class="ri-modal-success-icon">⬇</div>
+      <div class="ri-modal-success-title">Your Brief Is Downloading</div>
+      <div class="ri-modal-success-body">The AACP™ Regional Intelligence Brief has been generated and is downloading now.<br><br>A member of our team may follow up about regional opportunities.<br><br><a href="mailto:info@aviationaerospacecompetency.com" style="color:var(--muted)">info@aviationaerospacecompetency.com</a></div>
+      <button class="ri-modal-cancel" style="margin-top:16px" onclick="document.getElementById('eoi-pdf-modal').hidden=true">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- BUSINESS COLLABORATION -->
 <section class="collab-section">
   <div class="collab-inner">
@@ -1087,6 +1186,7 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
@@ -1384,12 +1484,12 @@
         </details>
       </div>
       <div class="ri-action-bar">
-        <button class="ri-action-primary" onclick="window._showRegionalSummary && window._showRegionalSummary()" aria-label="View Regional Intelligence Report">
-          ◈ &nbsp;Explore Regional Intelligence Report
+        <button class="ri-action-primary" onclick="window._openPDFLeadGate && window._openPDFLeadGate()" aria-label="Download Regional Intelligence Brief">
+          ⬇ &nbsp;Download Regional Intelligence Brief
         </button>
-        <a class="ri-action-secondary" href="mailto:info@aviationaerospacecompetency.com?subject=Regional Partnership — ${d.name}, ${d.prov}&body=I would like to discuss a regional RPAS partnership opportunity for ${d.name}, ${d.prov}." rel="noopener">
+        <button class="ri-action-secondary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">
           ✉ &nbsp;Discuss a Regional Partnership
-        </a>
+        </button>
       </div>`;
   }
 
@@ -1668,6 +1768,344 @@
     riEmpty.hidden = false;
     riContent.hidden = true;
     window._riCurrentData = null;
+  };
+
+  // ── PARTNER EOI MODAL ───────────────────────────────────────────────────────
+
+  window._openPartnerEOI = function() {
+    const d = window._riCurrentData;
+    if (!d) return;
+    const sub = document.getElementById('eoi-partner-sub');
+    if (sub) sub.textContent = `Express your interest in a regional RPAS partnership for ${d.name}, ${d.prov}. Our partnerships team will be in touch.`;
+    document.getElementById('eoi-partner-form-wrap').hidden = false;
+    document.getElementById('eoi-partner-success').hidden = true;
+    document.getElementById('eoi-p-err').style.display = 'none';
+    document.getElementById('eoi-p-submit').disabled = false;
+    document.getElementById('eoi-p-submit').textContent = 'Send Partnership Inquiry';
+    document.getElementById('eoi-partner-modal').hidden = false;
+    document.getElementById('eoi-p-first').focus();
+  };
+
+  window._submitPartnerEOI = async function() {
+    const d = window._riCurrentData || {};
+    const firstName = document.getElementById('eoi-p-first').value.trim();
+    const lastName  = document.getElementById('eoi-p-last').value.trim();
+    const org       = document.getElementById('eoi-p-org').value.trim();
+    const email     = document.getElementById('eoi-p-email').value.trim();
+    const phone     = document.getElementById('eoi-p-phone').value.trim();
+    const comment   = document.getElementById('eoi-p-comment').value.trim();
+    const errEl     = document.getElementById('eoi-p-err');
+    errEl.style.display = 'none';
+
+    if (!firstName) { errEl.textContent = 'First name is required.'; errEl.style.display = 'block'; return; }
+    if (!lastName)  { errEl.textContent = 'Last name is required.'; errEl.style.display = 'block'; return; }
+    if (!org)       { errEl.textContent = 'Organization name is required.'; errEl.style.display = 'block'; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'A valid email address is required.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('eoi-p-submit');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+      const res = await fetch('/eoi/partner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName, lastName, orgName: org, email,
+          phone: phone || null,
+          comment: comment || null,
+          city: d.prov ? null : null,
+          province: d.prov || null,
+          partnershipInterests: ['rpas_workforce_opportunities'],
+          utmSource: 'rpas_map',
+          utmMedium: 'panel_action',
+          utmCampaign: d.name ? `municipal_${d.name.replace(/\s+/g,'_').toLowerCase()}` : 'rpas_map',
+        }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Submission failed'); }
+      document.getElementById('eoi-partner-form-wrap').hidden = true;
+      document.getElementById('eoi-partner-success').hidden = false;
+    } catch(e) {
+      errEl.textContent = e.message || 'Submission failed. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Partnership Inquiry';
+    }
+  };
+
+  // ── PDF LEAD-GATE MODAL ─────────────────────────────────────────────────────
+
+  window._openPDFLeadGate = function() {
+    const d = window._riCurrentData;
+    if (!d) return;
+
+    // Session dedup: skip form if already submitted for this municipality
+    let submitted = {};
+    try { submitted = JSON.parse(localStorage.getItem('aacp_pdf_leads') || '{}'); } catch(_) {}
+    if (submitted[d.name]) {
+      window._generatePDF(d);
+      return;
+    }
+
+    const title = document.getElementById('eoi-pdf-title');
+    if (title) title.textContent = `Get the ${d.name} Regional Intelligence Brief`;
+    const sub = document.getElementById('eoi-pdf-sub');
+    if (sub) sub.textContent = `Complete your details to download the complimentary AACP™ Regional Intelligence Brief for ${d.name}, ${d.prov}.`;
+    document.getElementById('eoi-pdf-form-wrap').hidden = false;
+    document.getElementById('eoi-pdf-success').hidden = true;
+    document.getElementById('eoi-pdf-err').style.display = 'none';
+    document.getElementById('eoi-pdf-submit').disabled = false;
+    document.getElementById('eoi-pdf-submit').innerHTML = '⬇ &nbsp;Download Brief';
+    document.getElementById('eoi-pdf-modal').hidden = false;
+    document.getElementById('eoi-pdf-first').focus();
+  };
+
+  window._submitPDFLead = async function() {
+    const d = window._riCurrentData || {};
+    const firstName = document.getElementById('eoi-pdf-first').value.trim();
+    const lastName  = document.getElementById('eoi-pdf-last').value.trim();
+    const email     = document.getElementById('eoi-pdf-email').value.trim();
+    const phone     = document.getElementById('eoi-pdf-phone').value.trim();
+    const org       = document.getElementById('eoi-pdf-org').value.trim();
+    const errEl     = document.getElementById('eoi-pdf-err');
+    errEl.style.display = 'none';
+
+    if (!firstName) { errEl.textContent = 'First name is required.'; errEl.style.display = 'block'; return; }
+    if (!lastName)  { errEl.textContent = 'Last name is required.'; errEl.style.display = 'block'; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'A valid email address is required.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('eoi-pdf-submit');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const res = await fetch('/eoi/individual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName, lastName, email,
+          phone: phone || null,
+          orgName: org || null,
+          province: d.prov || null,
+          areasOfInterest: ['pdf_lead'],
+          comment: `PDF Download Lead — ${d.name || 'unknown'}, ${d.prov || ''}`,
+          utmSource: 'rpas_pdf_download',
+          utmMedium: 'panel_action',
+          utmCampaign: d.name ? `pdf_${d.name.replace(/\s+/g,'_').toLowerCase()}` : 'rpas_map',
+        }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Submission failed'); }
+
+      // Record session dedup
+      try {
+        const leads = JSON.parse(localStorage.getItem('aacp_pdf_leads') || '{}');
+        leads[d.name] = new Date().toISOString();
+        localStorage.setItem('aacp_pdf_leads', JSON.stringify(leads));
+      } catch(_) {}
+
+      document.getElementById('eoi-pdf-form-wrap').hidden = true;
+      document.getElementById('eoi-pdf-success').hidden = false;
+      window._generatePDF(d);
+    } catch(e) {
+      errEl.textContent = e.message || 'Submission failed. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '⬇ &nbsp;Download Brief';
+    }
+  };
+
+  // ── PDF GENERATION (jsPDF) ──────────────────────────────────────────────────
+
+  window._generatePDF = function(d) {
+    if (typeof window.jspdf === 'undefined') { console.warn('jsPDF not loaded'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+    const W = 215.9, M = 18, cw = W - M * 2;
+    let y = 0;
+
+    const addPage = () => { doc.addPage(); y = 20; };
+    const checkY = (need) => { if (y + need > 265) addPage(); };
+
+    // ── Header band
+    doc.setFillColor(10, 1, 20);
+    doc.rect(0, 0, W, 32, 'F');
+    doc.setTextColor(236, 232, 248);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AACP™  |  AVIATION AEROSPACE COMPETENCY PROGRAM', M, 11);
+    doc.setFontSize(13);
+    doc.text('RPAS Regional Intelligence Brief', M, 20);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(160, 150, 200);
+    doc.text(`${d.name}, ${d.prov}  •  aviationaerospacecompetency.com`, M, 27);
+    y = 42;
+
+    // ── Municipality title
+    doc.setTextColor(10, 1, 20);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${d.name}`, M, y);
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 70, 100);
+    doc.text(`${d.prov}  •  ${d.subTitle || 'Municipal RPAS Intelligence Profile'}`, M, y);
+    y += 3;
+    doc.setDrawColor(128, 1, 31);
+    doc.setLineWidth(0.5);
+    doc.line(M, y, M + cw, y);
+    y += 7;
+
+    // ── Infrastructure domains
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('INFRASTRUCTURE DOMAINS', M, y);
+    y += 5;
+    (d.domains || []).forEach(dom => {
+      checkY(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 20, 50);
+      doc.setFontSize(8.5);
+      doc.text(`•  ${dom.label}`, M + 3, y);
+      doc.setTextColor(100, 90, 130);
+      doc.text(dom.status, W - M - 2, y, { align: 'right' });
+      y += 5.5;
+    });
+    y += 3;
+
+    // ── Potential RPAS Applications
+    checkY(14);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('POTENTIAL RPAS APPLICATION AREAS', M, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 20, 50);
+    doc.setFontSize(8.5);
+    const appText = (d.rpasApps || []).join('  •  ');
+    const appLines = doc.splitTextToSize(appText, cw);
+    doc.text(appLines, M, y);
+    y += appLines.length * 5 + 2;
+    doc.setFontSize(7);
+    doc.setTextColor(130, 120, 160);
+    doc.text('Indicative potential only — not validated commercial demand.', M, y);
+    y += 7;
+
+    // ── Commercial Validation
+    checkY(14);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('COMMERCIAL VALIDATION', M, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 20, 50);
+    doc.setFontSize(8.5);
+    const valLines = doc.splitTextToSize(d.validation || '', cw);
+    checkY(valLines.length * 5);
+    doc.text(valLines, M, y);
+    y += valLines.length * 5 + 5;
+
+    // ── Workforce
+    checkY(14);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('WORKFORCE INTELLIGENCE', M, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 20, 50);
+    doc.setFontSize(8.5);
+    const wfLines = doc.splitTextToSize(d.workforce || '', cw);
+    checkY(wfLines.length * 5);
+    doc.text(wfLines, M, y);
+    y += wfLines.length * 5 + 5;
+
+    // ── AACP Note
+    if (d.aacpNote) {
+      checkY(16);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 1, 31);
+      doc.text('AACP™ REGIONAL NOTE', M, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 20, 50);
+      doc.setFontSize(8.5);
+      const noteLines = doc.splitTextToSize(d.aacpNote.replace(/^:\s*/, ''), cw);
+      checkY(noteLines.length * 5);
+      doc.text(noteLines, M, y);
+      y += noteLines.length * 5 + 5;
+    }
+
+    // ── Sources
+    if ((d.sources || []).length) {
+      checkY(14);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 1, 31);
+      doc.text('DATA SOURCES & EVIDENCE LIMITATIONS', M, y);
+      y += 5;
+      (d.sources || []).forEach(s => {
+        checkY(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 20, 50);
+        doc.setFontSize(8);
+        doc.text(`•  ${s.label}`, M + 3, y);
+        y += 5;
+      });
+      y += 2;
+      doc.setFontSize(7);
+      doc.setTextColor(130, 120, 160);
+      const limLines = doc.splitTextToSize('Data is sourced from public government records and open databases. Infrastructure records are generalized to municipal/regional centroids and are not precise asset coordinates. RPAS applications represent indicative potential uses only and must not be construed as confirmed commercial demand.', cw);
+      doc.text(limLines, M, y);
+      y += limLines.length * 4.5 + 5;
+    }
+
+    // ── Commercial callout box
+    checkY(42);
+    doc.setFillColor(240, 235, 255);
+    doc.setDrawColor(128, 1, 31);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(M, y, cw, 38, 2, 2, 'FD');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('How AACP™ Can Help Your Organization', M + 5, y + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 20, 50);
+    doc.setFontSize(8);
+    const calloutText = 'AACP™ supports municipalities, infrastructure owners, employers and technology partners in exploring RPAS applications, workforce development, industry partnerships and evidence-based pilot opportunities. We connect regional intelligence with practical workforce and commercial development needs.';
+    const calloutLines = doc.splitTextToSize(calloutText, cw - 10);
+    doc.text(calloutLines, M + 5, y + 13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(128, 1, 31);
+    doc.text('Explore a Regional Partnership →', M + 5, y + 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 80, 140);
+    doc.setFontSize(7.5);
+    doc.text('partnerships@aviationaerospacecompetency.com  •  aviationaerospacecompetency.com', M + 5, y + 35);
+    y += 44;
+
+    // ── Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(200, 190, 220);
+      doc.setLineWidth(0.3);
+      doc.line(M, 272, M + cw, 272);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(130, 120, 160);
+      doc.text(`AACP™ Regional Intelligence  •  ${d.name}, ${d.prov}  •  Generated ${new Date().toLocaleDateString('en-CA')}`, M, 277);
+      doc.text(`partnerships@aviationaerospacecompetency.com  •  info@aviationaerospacecompetency.com`, M, 281);
+      doc.text(`Page ${i} of ${pageCount}`, W - M, 277, { align: 'right' });
+    }
+
+    doc.save(`AACP-Regional-Intelligence-${d.name.replace(/\s+/g,'-')}.pdf`);
   };
 
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
