@@ -264,9 +264,16 @@
     /* Cluster overrides */
     .marker-cluster div{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700}
     .map-legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:rgba(8,2,10,.88);border:1px solid var(--border);border-radius:10px;padding:12px 14px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:7px;max-width:195px}
+    .legend-header{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
     .legend-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+    .legend-header .legend-title{margin-bottom:0}
+    .legend-toggle{font-size:10px;color:var(--dim);line-height:1;transition:transform .2s;flex-shrink:0}
+    .map-legend.collapsed .legend-toggle{transform:rotate(-90deg)}
+    .legend-body{display:flex;flex-direction:column;gap:7px;overflow:hidden;transition:max-height .25s ease,opacity .2s}
+    .map-legend.collapsed .legend-body{max-height:0!important;opacity:0;pointer-events:none}
     .legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
     .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    @media(max-width:900px){.map-legend{bottom:10px;left:10px;padding:9px 11px}.map-legend.collapsed{gap:0}}
     /* ── REGIONAL INTELLIGENCE PANEL ── */
     .map-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start;margin-top:16px}
     .map-layout .map-container{margin-top:0;border-radius:16px 0 0 0;border-right:none}
@@ -898,18 +905,38 @@
     <div class="map-layout fade-in" style="transition-delay:.08s">
       <div class="map-container">
         <div id="rpas-map"></div>
-        <div class="map-legend">
-          <div class="legend-title">Infrastructure Category</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#1a6faf"></span>Transportation</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Utilities</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#0d6e6e"></span>Water Infrastructure</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#6b4c0a"></span>Industrial Facilities</div>
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)">
-            <div class="legend-title" style="margin-bottom:5px">Data Status</div>
-            <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#0d6e6e;flex-shrink:0;display:inline-block"></span>Open data aggregate</div>
-            <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#80011f;flex-shrink:0;display:inline-block"></span>Indicative opportunity</div>
+        <div class="map-legend" id="mapLegend">
+          <div class="legend-header" onclick="(function(){var l=document.getElementById('mapLegend');l.classList.toggle('collapsed');})()" role="button" aria-expanded="true" aria-controls="legendBody" title="Toggle legend">
+            <span class="legend-title">Legend</span>
+            <span class="legend-toggle">▾</span>
+          </div>
+          <div class="legend-body" id="legendBody">
+            <div class="legend-title" style="margin-bottom:0">Infrastructure Category</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#1a6faf"></span>Transportation</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#80011f"></span>Energy &amp; Utilities</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#0d6e6e"></span>Water Infrastructure</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#6b4c0a"></span>Industrial Facilities</div>
+            <div style="margin-top:5px;padding-top:6px;border-top:1px solid rgba(255,255,255,.07)">
+              <div class="legend-title" style="margin-bottom:5px">Data Status</div>
+              <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#0d6e6e;flex-shrink:0;display:inline-block"></span>Open data aggregate</div>
+              <div class="legend-row"><span style="width:9px;height:9px;border-radius:2px;background:#80011f;flex-shrink:0;display:inline-block"></span>Indicative opportunity</div>
+            </div>
           </div>
         </div>
+        <script>
+          (function(){
+            var l=document.getElementById('mapLegend');
+            var b=document.getElementById('legendBody');
+            function setHeight(){b.style.maxHeight=l.classList.contains('collapsed')?'0':(b.scrollHeight+40)+'px';}
+            setHeight();
+            l.querySelector('.legend-header').addEventListener('click',function(){
+              var expanded=!l.classList.contains('collapsed');
+              l.querySelector('.legend-header').setAttribute('aria-expanded',String(!expanded));
+              setHeight();
+            });
+            if(window.innerWidth<=900){l.classList.add('collapsed');l.querySelector('.legend-header').setAttribute('aria-expanded','false');setHeight();}
+          })();
+        </script>
       </div>
 
       <!-- REGIONAL INTELLIGENCE PANEL -->
