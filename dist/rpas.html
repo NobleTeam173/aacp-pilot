@@ -1637,9 +1637,7 @@
           <div class="ri-section-label">Market Context</div>
           <div class="ri-ms-body" style="padding:0">${ms.marketNote}</div>
         </div>
-        <div class="ri-workforce-notice">
-          <strong>Important — data scope</strong>Pilot certificate counts are provincial estimates derived from TC Canada 2024 annual data. Procurement categories are illustrative and not validated commercial demand. This panel does not reflect AACP™ ACIA™ competency intelligence or proprietary market analysis.
-        </div>`;
+        <div class="ri-workforce-notice" style="padding:7px 10px;font-size:.67rem">Provincial pilot estimates · TC 2024. Procurement categories illustrative only. ACIA™ intelligence not reflected here.</div>`;
 
     } else {
       // Workforce tab
@@ -1677,10 +1675,7 @@
           ${nocRows}
           <div style="font-size:.67rem;color:var(--dim);margin-top:4px">Outlook: ESDC Job Bank 3-year provincial outlook. <a href="https://www.jobbank.gc.ca/trend-analysis" target="_blank" rel="noopener" style="color:var(--muted)">View on Job Bank ↗</a></div>
         </div>
-        <div class="ri-workforce-notice">
-          <strong>Important — data scope</strong>${wf.lmiNote}
-          <br><br>AACP™ ACIA™ competency intelligence is a separate, proprietary system and is not reflected in this panel.
-        </div>`;
+        <div class="ri-workforce-notice" style="padding:7px 10px;font-size:.67rem">Provincial LFS aggregates only — not RPAS-specific. ACIA™ competency intelligence not reflected here.</div>`;
     }
     riBody.innerHTML += `<div class="ri-action-bar"><button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">✉ &nbsp;Discuss a Regional Partnership</button></div>`;
   }
