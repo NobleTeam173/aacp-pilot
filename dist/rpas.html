@@ -2241,7 +2241,11 @@
     let activeSector = 'all';
 
     function applyFilters() {
-      Object.keys(clusterGroups).forEach(cat => { clusterGroups[cat].clearLayers(); });
+      // Remove all cluster groups from map, clear, re-add — forces Leaflet redraw on mobile
+      Object.keys(clusterGroups).forEach(cat => {
+        map.removeLayer(clusterGroups[cat]);
+        clusterGroups[cat].clearLayers();
+      });
       INFRA.forEach(d => {
         if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
         if (activeProv !== 'all' && d.prov !== activeProv) return;
@@ -2269,6 +2273,12 @@
           className: 'rpas-popup', direction: 'top', offset: [0, -8]
         });
         clusterGroups[d.cat].addLayer(marker);
+      });
+      // Re-add active cluster groups to map and force redraw
+      Object.keys(clusterGroups).forEach(cat => {
+        if (cat === 'municipal' || activeCats.has(cat)) {
+          map.addLayer(clusterGroups[cat]);
+        }
       });
     }
 
@@ -2306,11 +2316,13 @@
       });
     }
 
-    document.getElementById('provFilter').addEventListener('change', e => {
+    function onProvChange(e) {
       activeProv = e.target.value;
       syncSectorButtons();
       applyFilters();
-    });
+    }
+    document.getElementById('provFilter').addEventListener('change', onProvChange);
+    document.getElementById('provFilter').addEventListener('input', onProvChange);
 
     document.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
