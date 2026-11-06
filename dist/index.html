@@ -394,6 +394,13 @@
   </div>
 </div>
 
+<!-- PROMO STRIP -->
+<div id="idx-promo-strip" style="background:linear-gradient(135deg,#2a0a0e,#1a0510);border-top:1px solid #80011f60;border-bottom:1px solid #80011f60;padding:14px 6vw;display:flex;align-items:center;flex-wrap:wrap;gap:12px 24px;">
+  <span style="display:inline-block;background:#80011f;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-radius:4px;padding:2px 8px;white-space:nowrap;">Limited-Time Offer</span>
+  <span style="font-size:13px;color:#f0eef2;">Early Registration: <strong>$795 CAD</strong> <span style="color:#9490a0;text-decoration:line-through;font-size:12px;">$1,200</span> — Save $405. Register by <strong>Nov 9, 2026.</strong></span>
+  <a href="rpas-eoi.html" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#80011f,#5c0116);color:#fff;text-decoration:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:.3px;white-space:nowrap;transition:opacity .2s;">Register Now — $795 →</a>
+</div>
+
 <!-- RPAS WORKFORCE HUB -->
 <section class="rpas-hub" id="rpas-workforce-hub">
   <div class="rpas-hub-inner">
@@ -630,6 +637,8 @@
       var el = document.getElementById(id);
       if (el) el.textContent = updates[id];
     }
+    var strip = document.getElementById('idx-promo-strip');
+    if (strip) strip.hidden = true;
   }
 })();
 </script>
