@@ -2169,14 +2169,15 @@
         <div class="pop-badges">${statusBadge}</div>`;
     }
 
-    // Build cluster groups per category
+    // Build cluster groups per category (including municipal)
     const clusterGroups = {};
-    Object.keys(CAT_COLOR).forEach(cat => {
+    const ALL_CATS = Object.assign({}, CAT_COLOR, { municipal: '#80011f' });
+    Object.keys(ALL_CATS).forEach(cat => {
       clusterGroups[cat] = L.markerClusterGroup({
         maxClusterRadius: 50,
         iconCreateFunction: function(cluster) {
           const count = cluster.getChildCount();
-          const color = CAT_COLOR[cat];
+          const color = ALL_CATS[cat];
           return L.divIcon({
             html: `<div style="background:${color}cc;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid ${color};font-weight:700;font-size:11px;color:#fff;font-family:'DM Sans',sans-serif">${count}</div>`,
             className: '',
@@ -2240,6 +2241,14 @@
           renderPanel(d);
           location.hash = encodeURIComponent(d.name);
           if (typeof _track === 'function') _track('panel_view', { name: d.name, cat: d.cat, prov: d.prov });
+          if (d.cat === 'municipal') {
+            if (_selectedMunicipalMarker && _selectedMunicipalMarker._icon) {
+              _selectedMunicipalMarker._icon.classList.remove('municipal-marker-selected');
+            }
+            _selectedMunicipalMarker = marker;
+            if (marker._icon) marker._icon.classList.add('municipal-marker-selected');
+            map.flyTo([d.lat, d.lng], Math.max(map.getZoom(), 10), { duration: 1.1 });
+          }
           if (window.innerWidth <= 900) {
             document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
