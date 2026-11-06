@@ -1617,7 +1617,7 @@
     } else if (activeTab === 'market') {
       const ms = MARKET_SIGNALS[d.prov];
       if (!ms) {
-        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Market signals not available</strong>Demand signal data is not available for this province/territory in this release.</div>`;
+        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Market signals not available</strong>Demand signal data is not available for this province/territory in this release.</div><div class="ri-action-bar"><button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">✉ &nbsp;Discuss a Regional Partnership</button></div>`;
         return;
       }
       const catChips = ms.categories.map(c => `<span class="ri-app-chip">${c}</span>`).join('');
@@ -1644,7 +1644,7 @@
     } else {
       // Workforce tab
       if (!wf) {
-        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Workforce data not available</strong>Province/territory-level LFS data is not available for this region in this release.</div>`;
+        riBody.innerHTML = `<div class="ri-workforce-notice"><strong>Workforce data not available</strong>Province/territory-level LFS data is not available for this region in this release.</div><div class="ri-action-bar"><button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">✉ &nbsp;Discuss a Regional Partnership</button></div>`;
         return;
       }
       const nocRows = wf.nocs.map(n => `
@@ -1682,6 +1682,7 @@
           <br><br>AACP™ ACIA™ competency intelligence is a separate, proprietary system and is not reflected in this panel.
         </div>`;
     }
+    riBody.innerHTML += `<div class="ri-action-bar"><button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">✉ &nbsp;Discuss a Regional Partnership</button></div>`;
   }
 
   window._riCurrentData = null;
