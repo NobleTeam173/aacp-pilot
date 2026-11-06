@@ -2280,6 +2280,19 @@
           map.addLayer(clusterGroups[cat]);
         }
       });
+      // Auto-pan to fit visible markers when province changes
+      if (activeProv !== 'all') {
+        const pts = INFRA.filter(d => {
+          if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return false;
+          if (d.prov !== activeProv) return false;
+          if (activeSector !== 'all' && !(d.sectors && d.sectors.includes(activeSector))) return false;
+          return true;
+        });
+        if (pts.length > 0) {
+          const bounds = L.latLngBounds(pts.map(d => [d.lat, d.lng]));
+          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 10, animate: true });
+        }
+      }
     }
 
     // Sync sector buttons to available data for the current province + category state
@@ -2318,6 +2331,7 @@
 
     function onProvChange(e) {
       activeProv = e.target.value;
+      history.replaceState(null, '', location.pathname); // clear hash so old marker doesn't pin the view
       syncSectorButtons();
       applyFilters();
     }
