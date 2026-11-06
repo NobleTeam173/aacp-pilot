@@ -110,7 +110,7 @@
           <li>RPAS-specific career intelligence throughout</li>
           <li>Workforce Profile focused on RPAS-relevant capabilities</li>
           <li>RPAS career and application alignment</li>
-          <li>Included in the RPAS Workforce Hub ($1,200 CAD)</li>
+          <li>Included in the RPAS Workforce Hub (<span id="acia-rpas-price">$795 CAD</span>)</li>
         </ul>
       </div>
     </div>
@@ -220,6 +220,14 @@
     <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
   </div>
 </footer>
-
+<script>
+(function(){
+  var PROMO_END = new Date('2026-11-10T07:00:00Z');
+  if (Date.now() >= PROMO_END.getTime()) {
+    var el = document.getElementById('acia-rpas-price');
+    if (el) el.textContent = '$1,200 CAD';
+  }
+})();
+</script>
 </body>
 </html>
