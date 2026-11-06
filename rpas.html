@@ -970,36 +970,6 @@
   </div>
 </div>
 
-<!-- ── PDF LEAD-GATE MODAL ── -->
-<div id="eoi-pdf-modal" class="ri-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="eoi-pdf-title">
-  <div class="ri-modal">
-    <div id="eoi-pdf-form-wrap">
-      <div class="ri-modal-title" id="eoi-pdf-title">Get the Regional Intelligence Brief</div>
-      <div class="ri-modal-sub" id="eoi-pdf-sub">Complete your details to download the complimentary AACP™ Regional Intelligence Brief for this municipality.</div>
-      <div class="ri-modal-row">
-        <div><label for="eoi-pdf-first">First Name *</label><input id="eoi-pdf-first" type="text" autocomplete="given-name" placeholder="First name"></div>
-        <div><label for="eoi-pdf-last">Last Name *</label><input id="eoi-pdf-last" type="text" autocomplete="family-name" placeholder="Last name"></div>
-      </div>
-      <label for="eoi-pdf-email">Email Address *</label>
-      <input id="eoi-pdf-email" type="email" autocomplete="email" placeholder="you@example.com">
-      <label for="eoi-pdf-phone">Phone</label>
-      <input id="eoi-pdf-phone" type="tel" autocomplete="tel" placeholder="Optional">
-      <label for="eoi-pdf-org">Organization</label>
-      <input id="eoi-pdf-org" type="text" autocomplete="organization" placeholder="Optional">
-      <div class="ri-modal-privacy">By downloading this report you authorize AACP™ to follow up regarding the information in it. See our <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
-      <div class="ri-modal-consent"><input type="checkbox" id="eoi-pdf-marketing"><span>I would like to receive occasional AACP™ news and program updates (optional).</span></div>
-      <div class="ri-modal-err" id="eoi-pdf-err"></div>
-      <button class="ri-modal-submit" id="eoi-pdf-submit" onclick="window._submitPDFLead && window._submitPDFLead()">⬇ &nbsp;Download Brief</button>
-      <button class="ri-modal-cancel" onclick="document.getElementById('eoi-pdf-modal').hidden=true">Cancel</button>
-    </div>
-    <div id="eoi-pdf-success" class="ri-modal-success" hidden>
-      <div class="ri-modal-success-icon">⬇</div>
-      <div class="ri-modal-success-title">Your Brief Is Downloading</div>
-      <div class="ri-modal-success-body">The AACP™ Regional Intelligence Brief has been generated and is downloading now.<br><br>A member of our team may follow up about regional opportunities.<br><br><a href="mailto:info@aviationaerospacecompetency.com" style="color:var(--muted)">info@aviationaerospacecompetency.com</a></div>
-      <button class="ri-modal-cancel" style="margin-top:16px" onclick="document.getElementById('eoi-pdf-modal').hidden=true">Close</button>
-    </div>
-  </div>
-</div>
 
 <!-- BUSINESS COLLABORATION -->
 <section class="collab-section">
@@ -1186,7 +1156,6 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
@@ -1484,10 +1453,7 @@
         </details>
       </div>
       <div class="ri-action-bar">
-        <button class="ri-action-primary" onclick="window._openPDFLeadGate && window._openPDFLeadGate()" aria-label="Download Regional Intelligence Brief">
-          ⬇ &nbsp;Download Regional Intelligence Brief
-        </button>
-        <button class="ri-action-secondary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">
+        <button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">
           ✉ &nbsp;Discuss a Regional Partnership
         </button>
       </div>`;
@@ -1833,9 +1799,9 @@
     }
   };
 
-  // ── PDF LEAD-GATE MODAL ─────────────────────────────────────────────────────
+  // ── PDF export removed — lead collection via EOI only ───────────────────────
 
-  window._openPDFLeadGate = function() {
+  // window._openPDFLeadGate = function() {
     const d = window._riCurrentData;
     if (!d) return;
 
@@ -1857,313 +1823,6 @@
     document.getElementById('eoi-pdf-submit').disabled = false;
     document.getElementById('eoi-pdf-submit').innerHTML = '⬇ &nbsp;Download Brief';
     document.getElementById('eoi-pdf-modal').hidden = false;
-    document.getElementById('eoi-pdf-first').focus();
-  };
-
-  window._submitPDFLead = async function() {
-    const d = window._riCurrentData || {};
-    const firstName = document.getElementById('eoi-pdf-first').value.trim();
-    const lastName  = document.getElementById('eoi-pdf-last').value.trim();
-    const email     = document.getElementById('eoi-pdf-email').value.trim();
-    const phone     = document.getElementById('eoi-pdf-phone').value.trim();
-    const org       = document.getElementById('eoi-pdf-org').value.trim();
-    const errEl     = document.getElementById('eoi-pdf-err');
-    errEl.style.display = 'none';
-
-    if (!firstName) { errEl.textContent = 'First name is required.'; errEl.style.display = 'block'; return; }
-    if (!lastName)  { errEl.textContent = 'Last name is required.'; errEl.style.display = 'block'; return; }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'A valid email address is required.'; errEl.style.display = 'block'; return; }
-
-    const btn = document.getElementById('eoi-pdf-submit');
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-
-    try {
-      const res = await fetch('/eoi/individual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName, lastName, email,
-          phone: phone || null,
-          orgName: org || null,
-          province: d.prov || null,
-          areasOfInterest: ['pdf_lead'],
-          comment: `PDF Download Lead — ${d.name || 'unknown'}, ${d.prov || ''}`,
-          utmSource: 'rpas_pdf_download',
-          utmMedium: 'panel_action',
-          utmCampaign: d.name ? `pdf_${d.name.replace(/\s+/g,'_').toLowerCase()}` : 'rpas_map',
-        }),
-      });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Submission failed'); }
-
-      // Record session dedup
-      try {
-        const leads = JSON.parse(localStorage.getItem('aacp_pdf_leads') || '{}');
-        leads[d.name] = new Date().toISOString();
-        localStorage.setItem('aacp_pdf_leads', JSON.stringify(leads));
-      } catch(_) {}
-
-      document.getElementById('eoi-pdf-form-wrap').hidden = true;
-      document.getElementById('eoi-pdf-success').hidden = false;
-      window._generatePDF(d);
-    } catch(e) {
-      errEl.textContent = e.message || 'Submission failed. Please try again.';
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.innerHTML = '⬇ &nbsp;Download Brief';
-    }
-  };
-
-  // ── PDF GENERATION (jsPDF) ──────────────────────────────────────────────────
-
-  // ── PUBLIC REPORT CONTENT ALLOWLIST ──────────────────────────────────────
-  // Permitted fields: name, prov/province, subTitle, count, domains
-  //   (label+status), rpasApps, validation, workforce, sources (label+url).
-  // Never read aacpNote, internal notes, engagement targets, strategy fields.
-  // ─────────────────────────────────────────────────────────────────────────
-  window._generatePDF = function(d) {
-    if (typeof window.jspdf === 'undefined') { console.warn('jsPDF not loaded'); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-    const W = 215.9, PH = 279.4;
-
-    // ── Public-only fields (allowlist — never read aacpNote or internal fields)
-    const clean = s => (s || '').replace(/[^\x20-\x7E\n]/g, '').trim();
-    // Split a paragraph into bullet points (split on '. ' then trim)
-    const bullets = txt => txt.split(/\.\s+/).map(s => s.trim().replace(/\.$/, '')).filter(s => s.length > 8);
-    const name       = clean(d.name);
-    const prov       = clean(d.prov || d.province);
-    const sub        = clean(d.subTitle) || 'Municipal RPAS Intelligence Profile';
-    const pop        = clean(d.count);
-    const domains    = (d.domains  || []);
-    const rpasApps   = (d.rpasApps || []);
-    const validation = clean(d.validation);
-    const workforce  = clean(d.workforce);
-    const sources    = (d.sources  || []);
-
-    // ── Colour palette
-    const C = {
-      navy:   [10,  1,  20],
-      navyMid:[28,  5,  50],
-      red:    [128, 1,  31],
-      purple: [80,  50, 150],
-      muted:  [130, 120,160],
-      ink:    [30,  20, 50],
-      mid:    [80,  70, 100],
-      lavBg:  [242, 237,255],
-      colBg:  [245, 243,252],
-      hlBg:   [250, 247,255],
-      white:  [255, 255,255],
-    };
-
-    // helpers
-    const fg  = (r,g,b) => doc.setTextColor(r,g,b);
-    const bg  = (r,g,b) => doc.setFillColor(r,g,b);
-    const str = (r,g,b) => doc.setDrawColor(r,g,b);
-    const lw  = w        => doc.setLineWidth(w);
-    const fnt = (f,s)    => { doc.setFont('helvetica',f); doc.setFontSize(s); };
-    const GM  = 10;
-
-    // ── HEADER BAND
-    bg(...C.navy); doc.rect(0, 0, W, 30, 'F');
-    bg(...C.red);  doc.rect(0, 30, W, 2, 'F');
-    fg(255,255,255); fnt('bold', 10);
-    doc.text('AACP(TM)', GM, 11);
-    fnt('normal', 6.5); fg(200,190,230);
-    doc.text('AVIATION & AEROSPACE COMPETENCY PROGRAM', GM + 25, 8.5);
-    doc.text('RPAS Regional Intelligence Brief', GM + 25, 13.5);
-    str(80,60,120); lw(0.2); doc.line(GM + 23, 5, GM + 23, 26);
-    // Right: confidential badge
-    bg(...C.red); doc.roundedRect(W - GM - 36, 6, 36, 7, 1, 1, 'F');
-    fg(255,255,255); fnt('bold', 6);
-    doc.text('PUBLIC RELEASE', W - GM - 18, 10.5, { align: 'center' });
-    fg(180,170,210); fnt('normal', 6.5);
-    doc.text(name + ', ' + prov + '  |  aviationaerospacecompetency.com', GM, 21);
-    doc.text('Generated ' + new Date().toLocaleDateString('en-CA'), W - GM, 21, { align: 'right' });
-    fg(130,120,160); fnt('normal', 6);
-    doc.text('Intelligence data is indicative only and requires independent validation before commercial application.', GM, 26);
-
-    // ── MUNICIPALITY TITLE BAND
-    let y = 34;
-    bg(249,247,254); doc.rect(0, y, W, 16, 'F');
-    str(...C.red); lw(0.4); doc.line(GM, y + 15.5, W - GM, y + 15.5);
-    fg(...C.navy); fnt('bold', 15);
-    doc.text(name, GM, y + 7);
-    const nw = doc.getTextWidth(name);
-    fg(...C.red); fnt('bold', 9);
-    doc.text(',  ' + prov, GM + nw, y + 7);
-    fg(...C.mid); fnt('normal', 7);
-    doc.text(sub, GM, y + 12.5);
-    if (pop) { fg(...C.muted); fnt('normal', 6.5); doc.text(pop, W - GM, y + 12.5, { align: 'right' }); }
-    y += 18;
-
-    // ── EXECUTIVE SUMMARY STRIP (3 key highlight boxes)
-    const HL_H = 18, hlW = (W - GM*2 - 4) / 3;
-    const highlights = [
-      { label: 'Infrastructure Assets', value: domains.length + ' Identified', sub: 'Aviation, transport, agri, industrial' },
-      { label: 'RPAS Opportunity Areas', value: rpasApps.length + ' Applications', sub: 'Indicative — pending validation' },
-      { label: 'Development Stage', value: 'Early Exploration', sub: 'Feasibility & stakeholder engagement needed' },
-    ];
-    highlights.forEach((h, i) => {
-      const hx = GM + i * (hlW + 2);
-      const hc = i === 0 ? C.navy : i === 1 ? [20, 2, 42] : [35, 3, 60];
-      bg(...hc);
-      doc.rect(hx, y, hlW, HL_H, 'F');
-      bg(...C.red); doc.rect(hx, y + HL_H - 2, hlW, 2, 'F');
-      fg(255,255,255); fnt('bold', 8.5);
-      doc.text(h.value, hx + 3, y + 7);
-      fg(200,185,230); fnt('bold', 5.5);
-      doc.text(h.label.toUpperCase(), hx + 3, y + 12);
-      fg(150,135,185); fnt('normal', 5);
-      doc.text(h.sub, hx + 3, y + 16);
-    });
-    y += HL_H + 4;
-
-    // ── THREE COLUMN GRID ──────────────────────────────────────────────────
-    const GAP = 3;
-    const colW = (W - GM * 2 - GAP * 2) / 3;
-    const col = i => GM + i * (colW + GAP);
-    const BOX_TOP = y, BOX_H = 90;
-
-    bg(...C.colBg); [0,1,2].forEach(i => doc.rect(col(i), BOX_TOP, colW, BOX_H, 'F'));
-    bg(...C.navy);  [0,1,2].forEach(i => doc.rect(col(i), BOX_TOP, colW, 7,    'F'));
-    fg(255,255,255); fnt('bold', 6);
-    doc.text('REGIONAL SNAPSHOT',          col(0) + 2, BOX_TOP + 4.8);
-    doc.text('INFRASTRUCTURE INTELLIGENCE', col(1) + 2, BOX_TOP + 4.8);
-    doc.text('RPAS APPLICATIONS',           col(2) + 2, BOX_TOP + 4.8);
-
-    // Col 0: snapshot key-value pairs
-    let yc0 = BOX_TOP + 11;
-    [
-      ['Location',  name + ', ' + prov],
-      ['Region',    'Southern Alberta'],
-      ['Sector Mix','Aviation  |  Agriculture  |  Industrial  |  Municipal'],
-      ['Profile',   'Regional service centre with established aviation and transportation corridors'],
-    ].forEach(([lbl, val]) => {
-      if (yc0 > BOX_TOP + BOX_H - 3) return;
-      fnt('bold', 5.8); fg(...C.red); doc.text(lbl.toUpperCase(), col(0) + 2, yc0);
-      yc0 += 3.2;
-      fnt('normal', 6.2); fg(...C.ink);
-      const ls = doc.splitTextToSize(val, colW - 4);
-      doc.text(ls, col(0) + 2, yc0);
-      yc0 += ls.length * 3.3 + 2.5;
-    });
-
-    // Col 1: Infrastructure with status badges
-    let yc1 = BOX_TOP + 11;
-    domains.forEach(dom => {
-      if (yc1 > BOX_TOP + BOX_H - 3) return;
-      const lbl = clean(dom.label), st = clean(dom.status);
-      const bc = st === 'Established' ? [0,120,60] : st === 'Active' ? [0,100,160] : st === 'Documented' ? [80,50,150] : [100,80,40];
-      fnt('normal', 6.2); fg(...C.ink);
-      const dl = doc.splitTextToSize(lbl, colW - 24);
-      doc.text(dl, col(1) + 2, yc1);
-      bg(...bc); doc.roundedRect(col(1) + colW - 22, yc1 - 3.5, 20, 4.5, 1, 1, 'F');
-      fg(255,255,255); fnt('bold', 5);
-      doc.text(st, col(1) + colW - 12, yc1 - 0.5, { align: 'center' });
-      yc1 += dl.length * 3.3 + 3;
-    });
-
-    // Col 2: RPAS apps with bullet dots
-    let yc2 = BOX_TOP + 11;
-    rpasApps.forEach(app => {
-      if (yc2 > BOX_TOP + BOX_H - 5) return;
-      fnt('normal', 6.2); fg(...C.ink);
-      const al = doc.splitTextToSize(clean(app), colW - 5);
-      doc.text(al, col(2) + 4.5, yc2);
-      bg(...C.red); doc.circle(col(2) + 2.5, yc2 - 1.2, 0.7, 'F');
-      yc2 += al.length * 3.3 + 2.2;
-    });
-    if (yc2 < BOX_TOP + BOX_H - 5) {
-      fnt('normal', 5); fg(...C.muted);
-      doc.text('Indicative potential only. Not confirmed demand.', col(2) + 2, BOX_TOP + BOX_H - 2);
-    }
-    y = BOX_TOP + BOX_H + 3;
-
-    // ── INTELLIGENCE BRIEF (2-column: Commercial Context | Workforce Context)
-    const IB_H = 48, ibW = (W - GM*2 - 4) / 2;
-    // Section bar
-    bg(...C.navy); doc.rect(GM, y, W - GM*2, 7, 'F');
-    bg(...C.red);  doc.rect(GM, y, 2, 7, 'F');
-    fg(255,255,255); fnt('bold', 7);
-    doc.text('REGIONAL INTELLIGENCE BRIEF', GM + 5, y + 4.8);
-    y += 7;
-
-    // Left column: Commercial Opportunity
-    const ibL = GM, ibR = GM + ibW + 4;
-    bg(...C.hlBg); doc.rect(ibL, y, ibW, IB_H, 'F');
-    bg(...C.colBg); doc.rect(ibR, y, ibW, IB_H, 'F');
-
-    // Left header
-    fg(...C.red); fnt('bold', 6.5);
-    doc.text('COMMERCIAL OPPORTUNITY CONTEXT', ibL + 3, y + 5);
-    str(...C.red); lw(0.3); doc.line(ibL + 3, y + 6.5, ibL + ibW - 3, y + 6.5);
-
-    // Left bullet points
-    const valBullets = bullets(validation);
-    let bY = y + 10;
-    valBullets.slice(0, 4).forEach(b => {
-      if (bY > y + IB_H - 3) return;
-      fg(...C.ink); fnt('normal', 6.5);
-      const bl = doc.splitTextToSize(b, ibW - 8);
-      doc.text(bl, ibL + 7, bY);
-      bg(...C.red); doc.circle(ibL + 4, bY - 1.2, 0.8, 'F');
-      bY += bl.length * 3.5 + 2;
-    });
-
-    // Right header
-    fg(...C.red); fnt('bold', 6.5);
-    doc.text('REGIONAL WORKFORCE CONTEXT', ibR + 3, y + 5);
-    str(...C.red); lw(0.3); doc.line(ibR + 3, y + 6.5, ibR + ibW - 3, y + 6.5);
-
-    // Right bullet points
-    const wfBullets = bullets(workforce);
-    let wY = y + 10;
-    wfBullets.slice(0, 4).forEach(b => {
-      if (wY > y + IB_H - 3) return;
-      fg(...C.ink); fnt('normal', 6.5);
-      const bl = doc.splitTextToSize(b, ibW - 8);
-      doc.text(bl, ibR + 7, wY);
-      bg(...C.red); doc.circle(ibR + 4, wY - 1.2, 0.8, 'F');
-      wY += bl.length * 3.5 + 2;
-    });
-
-    y += IB_H + 3;
-
-    // ── CTA BOX
-    const CTA_H = 36;
-    bg(...C.navyMid); doc.rect(GM, y, W - GM*2, CTA_H, 'F');
-    bg(...C.red); doc.rect(GM, y, 3, CTA_H, 'F');
-    fg(255,255,255); fnt('bold', 9);
-    doc.text('How AACP(TM) Can Help Your Organization', GM + 7, y + 7);
-    // Body text
-    fg(200,185,230); fnt('normal', 6.5);
-    const ctaBody = 'AACP(TM) supports municipalities, infrastructure owners, employers and industry partners in exploring RPAS applications, workforce development and regional growth opportunities.';
-    const ctaLines = doc.splitTextToSize(ctaBody, W - GM*2 - 14);
-    doc.text(ctaLines, GM + 7, y + 13);
-    // Invitation line
-    fg(255,255,255); fnt('bold', 7);
-    doc.text('Interested in exploring opportunities in your region?', GM + 7, y + 22);
-    fg(200,185,230); fnt('normal', 6.5);
-    doc.text('Contact our team to discuss potential collaboration.', GM + 7, y + 27);
-    // Email as mailto link
-    fg(255,220,220); fnt('bold', 6.5);
-    doc.textWithLink('partnerships@aviationaerospacecompetency.com', GM + 7, y + 33, { url: 'mailto:partnerships@aviationaerospacecompetency.com' });
-    // Right: website
-    fg(180,165,215); fnt('normal', 6);
-    doc.text('aviationaerospacecompetency.com', W - GM - 2, y + 33, { align: 'right' });
-    y += CTA_H + 3;
-
-    // ── FOOTER
-    const fY = PH - 7;
-    str(...C.muted); lw(0.2); doc.line(GM, fY - 2, W - GM, fY - 2);
-    fg(...C.muted); fnt('normal', 5.5);
-    doc.text('AACP(TM) Regional Intelligence  |  ' + name + ', ' + prov + '  |  Public Release', GM, fY);
-    doc.text('info@aviationaerospacecompetency.com  |  aviationaerospacecompetency.com', GM, fY + 3.5);
-
-    doc.save('AACP-Regional-Intelligence-' + name.replace(/\s+/g, '-') + '.pdf');
-  };
-
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
   // Data: regional aggregates from Statistics Canada Open Database of Infrastructure (Cat. 16-508-X),
   // NRCan GEO.ca geospatial datasets, and provincial open-data portals.
