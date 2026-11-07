@@ -275,14 +275,14 @@ video { width: 100%; display: block; }
   <div id="screen-video" class="screen">
     <div class="round-badge">Opening · One Seed. Many Possibilities.</div>
     <div class="video-wrap">
-      <video id="workshop-video" controls preload="none" poster="">
-        <source id="video-src" src="" type="video/mp4">
+      <video id="workshop-video" controls preload="metadata" style="width:100%;display:block;">
+        <source id="video-src" src="one-seed.mp4" type="video/mp4">
       </video>
-      <div class="video-placeholder" id="video-placeholder">
+      <div class="video-placeholder" id="video-placeholder" style="display:none;">
         <div class="play-icon">▶</div>
         <div>
           <div class="video-title">One Seed. Many Possibilities.</div>
-          <div>Video coming soon — the presenter will play this for the group.</div>
+          <div>Video unavailable — the presenter will play this for the group.</div>
         </div>
       </div>
     </div>
@@ -608,18 +608,11 @@ video { width: 100%; display: block; }
     }
   });
 
-  // ── Video ─────────────────────────────────────────────────────────────
-  const video = document.getElementById('workshop-video');
-  const placeholder = document.getElementById('video-placeholder');
-  const videoSrc = document.getElementById('video-src');
-  // Video URL can be set via ?video= param or left as placeholder
-  const params = new URLSearchParams(location.search);
-  const videoUrl = params.get('video') || '';
-  if (videoUrl) {
-    videoSrc.src = videoUrl;
-    video.load();
-    placeholder.style.display = 'none';
-  }
+  // Show placeholder only if video fails to load
+  document.getElementById('workshop-video').addEventListener('error', () => {
+    document.getElementById('workshop-video').style.display = 'none';
+    document.getElementById('video-placeholder').style.display = 'flex';
+  });
 })();
 </script>
 </body>
