@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCA 2026 Presenter Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08020a; --surface: #130a16; --surface2: #1e1024;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+  --fg: #f0eaf4; --fg2: #a898b4; --fg3: #6a5878;
+  --crimson: #80011f; --crimson-h: #9a0126;
+  --gold: #c8a84b; --green: #2d7a4f; --green-fg: #4aba7e;
+  --radius: 10px;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px}
+
+/* ── Layout ───────────────────── */
+.app { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+header {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:10px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0;
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-mark {
+  width:32px; height:32px; border-radius:7px; background:var(--crimson);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces',serif; font-size:16px; font-weight:700; color:#fff;
+}
+.logo-text h1 { font-size:14px; font-weight:600; }
+.logo-text p { font-size:11px; color:var(--fg2); }
+.header-stats { display:flex; gap:16px; align-items:center; }
+.stat { text-align:right; }
+.stat-val { font-size:20px; font-weight:700; line-height:1; }
+.stat-lbl { font-size:10px; color:var(--fg2); text-transform:uppercase; letter-spacing:.05em; }
+
+.body { display:flex; flex:1; overflow:hidden; }
+
+/* ── Sidebar ─────────────────── */
+aside {
+  width:260px; background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; flex-shrink:0; overflow:hidden;
+}
+.aside-header {
+  padding:12px 14px; border-bottom:1px solid var(--border); font-size:11px;
+  font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--fg2);
+}
+.q-list { flex:1; overflow-y:auto; padding:8px; }
+.q-item {
+  padding:8px 10px; border-radius:8px; cursor:pointer; margin-bottom:3px;
+  display:flex; align-items:flex-start; gap:8px; border:1px solid transparent;
+  transition:background .15s, border-color .15s;
+}
+.q-item:hover { background:var(--surface2); }
+.q-item.active { background:rgba(128,1,31,0.15); border-color:rgba(128,1,31,0.4); }
+.q-num {
+  width:22px; height:22px; border-radius:50%; background:var(--surface2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; flex-shrink:0; color:var(--fg2);
+}
+.q-item.active .q-num { background:var(--crimson); color:#fff; }
+.q-label { font-size:12px; line-height:1.4; color:var(--fg2); }
+.q-item.active .q-label { color:var(--fg); }
+.q-round { font-size:10px; color:var(--fg3); }
+
+/* ── Main panel ──────────────── */
+.panel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.panel-top {
+  padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.round-badge {
+  background:rgba(128,1,31,0.15); border:1px solid rgba(128,1,31,0.4);
+  color:#e8637e; font-size:11px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; padding:3px 10px; border-radius:20px;
+}
+.q-text-display { font-size:16px; font-weight:600; line-height:1.4; flex:1; }
+.panel-controls {
+  padding:12px 20px; border-bottom:1px solid var(--border);
+  display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0; align-items:center;
+}
+.btn {
+  padding:8px 16px; border-radius:8px; font:inherit; font-size:13px; font-weight:600;
+  cursor:pointer; border:none; transition:background .2s, opacity .2s;
+}
+.btn-primary { background:var(--crimson); color:#fff; }
+.btn-primary:hover { background:var(--crimson-h); }
+.btn-secondary { background:var(--surface2); border:1px solid var(--border2); color:var(--fg); }
+.btn-secondary:hover { background:rgba(255,255,255,0.08); }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.btn:disabled { opacity:.4; cursor:default; }
+.btn-green { background:rgba(45,122,79,0.3); border:1px solid rgba(45,122,79,0.5); color:var(--green-fg); }
+.btn-green:hover { background:rgba(45,122,79,0.4); }
+.nav-btns { display:flex; gap:6px; margin-left:auto; }
+
+.panel-body { flex:1; overflow-y:auto; padding:20px; display:flex; gap:16px; }
+.results-col { flex:2; min-width:0; }
+.mod-col { flex:1; min-width:200px; max-width:320px; }
+
+/* ── Results charts ──────────────── */
+.chart-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px; margin-bottom:16px;
+}
+.chart-card h3 { font-size:13px; color:var(--fg2); margin-bottom:14px; }
+.bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.bar-label { width:120px; font-size:12px; color:var(--fg2); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; }
+.bar-track { flex:1; background:var(--surface2); border-radius:4px; height:22px; overflow:hidden; }
+.bar-fill { height:100%; background:var(--crimson); border-radius:4px; transition:width .4s ease; }
+.bar-fill.correct-bar { background:var(--green); }
+.bar-count { font-size:12px; color:var(--fg2); width:36px; text-align:right; flex-shrink:0; }
+.total-label { font-size:11px; color:var(--fg2); margin-top:8px; }
+.reveal-explainer {
+  background:rgba(45,122,79,0.1); border:1px solid rgba(45,122,79,0.3);
+  border-radius:8px; padding:10px 12px; font-size:12px; color:var(--green-fg); margin-top:12px; line-height:1.5;
+}
+
+/* ── Word cloud ──────────────── */
+.wordcloud-wrap {
+  min-height:150px; display:flex; flex-wrap:wrap;
+  align-items:center; justify-content:center; gap:8px; padding:8px;
+}
+.wc-word {
+  display:inline-block; padding:4px 8px; border-radius:6px;
+  background:rgba(128,1,31,0.1); border:1px solid rgba(128,1,31,0.2);
+  color:var(--fg); line-height:1.2; transition:font-size .3s ease;
+}
+
+/* ── Open text responses ──────────── */
+.response-list { display:flex; flex-direction:column; gap:8px; }
+.response-item {
+  background:var(--surface2); border-radius:8px; padding:10px 12px;
+  font-size:13px; line-height:1.5; color:var(--fg);
+}
+.response-meta { font-size:10px; color:var(--fg3); margin-top:4px; }
+
+/* ── Moderation queue ──────────── */
+.mod-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+}
+.mod-header {
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--fg2);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.mod-badge {
+  background:var(--crimson); color:#fff; font-size:10px; font-weight:700;
+  padding:1px 6px; border-radius:10px;
+}
+.mod-items { max-height:360px; overflow-y:auto; }
+.mod-item {
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  font-size:12px; line-height:1.5;
+}
+.mod-item:last-child { border-bottom:none; }
+.mod-actions { display:flex; gap:6px; margin-top:6px; }
+.mod-q-label { font-size:10px; color:var(--fg3); margin-bottom:4px; }
+
+/* ── Login overlay ───────────────── */
+.overlay {
+  position:fixed; inset:0; background:rgba(8,2,10,0.95);
+  display:flex; align-items:center; justify-content:center; z-index:100;
+}
+.login-card {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:14px; padding:28px 24px; width:360px; max-width:90vw;
+  text-align:center;
+}
+.login-card h2 { font-family:'Fraunces',serif; font-size:22px; margin-bottom:6px; }
+.login-card p { color:var(--fg2); font-size:13px; margin-bottom:20px; }
+.field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; text-align:left; }
+.field label { font-size:12px; font-weight:500; color:var(--fg2); }
+.field input {
+  background:var(--bg); border:1.5px solid var(--border2); border-radius:8px;
+  padding:10px 12px; color:var(--fg); font:inherit; font-size:14px;
+  transition:border-color .2s;
+}
+.field input:focus { outline:none; border-color:var(--crimson); }
+.login-err { color:#e8637e; font-size:12px; margin-bottom:10px; display:none; }
+.btn-full { width:100%; padding:12px; font-size:15px; }
+
+/* ── Toast ──────────────────── */
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:#1e1024; border:1px solid var(--border2); border-radius:8px;
+  padding:10px 16px; font-size:13px; color:var(--fg);
+  opacity:0; pointer-events:none; transition:opacity .3s; z-index:50;
+}
+.toast.show { opacity:1; }
+
+/* ── Empty state ──────────────── */
+.empty { text-align:center; padding:30px; color:var(--fg3); font-size:13px; }
+
+/* ── Fullscreen hint ──────────── */
+.fullscreen-btn {
+  background:none; border:1px solid var(--border2); color:var(--fg2);
+  padding:5px 10px; border-radius:6px; font:inherit; font-size:11px;
+  cursor:pointer; transition:border-color .2s;
+}
+.fullscreen-btn:hover { border-color:var(--fg); color:var(--fg); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Login overlay -->
+  <div class="overlay" id="login-overlay">
+    <div class="login-card">
+      <div style="font-size:36px;margin-bottom:12px;">✈</div>
+      <h2>Presenter Dashboard</h2>
+      <p>OSCA 2026 · C-3 Workshop</p>
+      <div class="login-err" id="login-err"></div>
+      <div class="field">
+        <label>Session ID</label>
+        <input type="text" id="login-session" placeholder="osca2026-…" autocapitalize="none">
+      </div>
+      <div class="field">
+        <label>Presenter PIN</label>
+        <input type="password" id="login-pin" placeholder="Enter PIN">
+      </div>
+      <button class="btn btn-primary btn-full" id="login-btn">Enter Dashboard</button>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+        <p style="font-size:12px;color:var(--fg3);margin-bottom:10px;">First time? Create a session:</p>
+        <div class="field">
+          <label>Session Name</label>
+          <input type="text" id="create-name" placeholder="OSCA 2026 Workshop">
+        </div>
+        <div class="field">
+          <label>Choose a PIN (min 4 digits)</label>
+          <input type="password" id="create-pin" placeholder="e.g. 2026">
+        </div>
+        <button class="btn btn-secondary btn-full" id="create-btn" style="margin-top:4px;">Create Session</button>
+        <div id="create-result" style="margin-top:8px;font-size:12px;color:var(--gold);display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div class="logo-text">
+        <h1>OSCA 2026 Presenter</h1>
+        <p id="session-label">Not connected</p>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat"><div class="stat-val" id="stat-participants">—</div><div class="stat-lbl">Participants</div></div>
+      <div class="stat"><div class="stat-val" id="stat-responses">—</div><div class="stat-lbl">Responses</div></div>
+      <div class="stat"><div class="stat-val" id="stat-q">—</div><div class="stat-lbl">Question</div></div>
+      <button class="fullscreen-btn" id="fs-btn">⛶ Fullscreen</button>
+      <button class="btn btn-sm btn-secondary" id="export-btn">↓ CSV</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside>
+      <div class="aside-header">Questions</div>
+      <div class="q-list" id="q-list"></div>
+    </aside>
+
+    <div class="panel">
+      <div class="panel-top">
+        <div>
+          <div class="round-badge" id="panel-round">No question active</div>
+          <div class="q-text-display" id="panel-q-text">Select a question from the sidebar to begin.</div>
+        </div>
+      </div>
+      <div class="panel-controls">
+        <button class="btn btn-primary" id="activate-btn" disabled>▶ Activate Question</button>
+        <button class="btn btn-green" id="reveal-btn" disabled>✓ Reveal Answer</button>
+        <button class="btn btn-secondary btn-sm" id="close-btn">■ Close Session</button>
+        <div class="nav-btns">
+          <button class="btn btn-secondary btn-sm" id="prev-btn">← Prev</button>
+          <button class="btn btn-secondary btn-sm" id="next-btn">Next →</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="results-col" id="results-col">
+          <div class="empty">Activate a question to see live results.</div>
+        </div>
+        <div class="mod-col">
+          <div class="mod-card">
+            <div class="mod-header">
+              Moderation Queue
+              <span class="mod-badge" id="mod-count">0</span>
+            </div>
+            <div class="mod-items" id="mod-items">
+              <div class="empty">No items pending.</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="chart-card">
+              <h3>QR Code — Participant Join</h3>
+              <div id="qr-wrap" style="text-align:center;padding:8px;">
+                <div id="qr-placeholder" style="color:var(--fg3);font-size:12px;">Connect to generate QR code</div>
+                <canvas id="qr-canvas" style="display:none;border-radius:6px;max-width:160px;"></canvas>
+                <div id="join-url" style="font-size:11px;color:var(--fg2);margin-top:8px;word-break:break-all;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+const API = '';
+let sessionId = '', pin = '', selectedQIndex = 0;
+let currentActiveQ = -1, questions = [], modPollInterval = null, statInterval = null;
+let eventSource = null;
+let resultsCache = {};
+
+// ── Questions list ─────────────────────────────────────────────────────
+async function loadQuestions() {
+  const r = await fetch(`${API}/workshop/questions`);
+  questions = await r.json();
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('q-list');
+  list.innerHTML = questions.map((q, i) => `
+    <div class="q-item${i === selectedQIndex ? ' active' : ''}" data-idx="${i}">
+      <div class="q-num">${i + 1}</div>
+      <div>
+        <div class="q-round">${q.round}</div>
+        <div class="q-label">${q.text.length > 60 ? q.text.slice(0,58)+'…' : q.text}</div>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.q-item').forEach(el => {
+    el.addEventListener('click', () => selectQ(+el.dataset.idx));
+  });
+}
+
+function selectQ(idx) {
+  selectedQIndex = idx;
+  document.querySelectorAll('.q-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+  const q = questions[idx];
+  if (!q) return;
+  document.getElementById('panel-round').textContent = q.round || '';
+  document.getElementById('panel-q-text').textContent = q.text;
+  document.getElementById('activate-btn').disabled = false;
+  document.getElementById('reveal-btn').disabled = !(q.correct);
+  // Show cached results if available
+  if (resultsCache[q.id]) renderResults(q, resultsCache[q.id], false);
+  else document.getElementById('results-col').innerHTML = '<div class="empty">Activate this question to see live results.</div>';
+}
+
+// ── Login / Create ─────────────────────────────────────────────────────
+document.getElementById('create-btn').addEventListener('click', async () => {
+  const name = document.getElementById('create-name').value.trim() || 'OSCA 2026 Workshop';
+  const p = document.getElementById('create-pin').value.trim();
+  if (!p || p.length < 4) { showToast('PIN must be at least 4 characters'); return; }
+  const r = await fetch(`${API}/workshop/create`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, pin: p }),
+  });
+  const d = await r.json();
+  if (!r.ok) { showToast(d.error || 'Error'); return; }
+  const result = document.getElementById('create-result');
+  result.textContent = `Session created! ID: ${d.id}`;
+  result.style.display = 'block';
+  document.getElementById('login-session').value = d.id;
+  document.getElementById('login-pin').value = p;
+});
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const sid = document.getElementById('login-session').value.trim();
+  const p = document.getElementById('login-pin').value.trim();
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!sid || !p) { err.textContent = 'Enter session ID and PIN'; err.style.display = 'block'; return; }
+  try {
+    const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sid)}`);
+    if (!r.ok) throw new Error('Session not found');
+    // Verify PIN by calling participants endpoint
+    const r2 = await fetch(`${API}/workshop/session/${encodeURIComponent(sid)}/participants?pin=${encodeURIComponent(p)}`);
+    if (r2.status === 403) throw new Error('Incorrect PIN');
+    sessionId = sid; pin = p;
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('session-label').textContent = `Session: ${sid}`;
+    await loadQuestions();
+    connectSSE();
+    startStatPoll();
+    startModPoll();
+    generateQR();
+    // Restore active question
+    const sess = await r.json();
+    if (sess.currentQ >= 0) {
+      selectQ(sess.currentQ);
+      currentActiveQ = sess.currentQ;
+      refreshResults();
+    } else {
+      selectQ(0);
+    }
+  } catch(e) {
+    err.textContent = e.message; err.style.display = 'block';
+  }
+});
+
+// ── SSE ─────────────────────────────────────────────────────────────────
+function connectSSE() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(`${API}/workshop/session/${encodeURIComponent(sessionId)}/stream`);
+  eventSource.addEventListener('results', e => {
+    const d = JSON.parse(e.data);
+    resultsCache[d.questionId] = d.aggregate;
+    if (questions[selectedQIndex]?.id === d.questionId) {
+      renderResults(questions[selectedQIndex], d.aggregate, false);
+    }
+  });
+  eventSource.addEventListener('question', e => {
+    const d = JSON.parse(e.data);
+    currentActiveQ = questions.findIndex(q => q.id === d.question?.id);
+    document.getElementById('stat-q').textContent = currentActiveQ + 1 || '—';
+  });
+  eventSource.addEventListener('reveal', e => {
+    const d = JSON.parse(e.data);
+    const q = questions[selectedQIndex];
+    if (q && resultsCache[q.id]) renderResults(q, resultsCache[q.id], true);
+  });
+  eventSource.addEventListener('closed', () => { showToast('Session closed'); });
+  eventSource.onerror = () => { setTimeout(connectSSE, 5000); };
+}
+
+// ── Controls ─────────────────────────────────────────────────────────────
+document.getElementById('activate-btn').addEventListener('click', async () => {
+  if (!sessionId) return;
+  const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/question`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ qIndex: selectedQIndex, pin }),
+  });
+  if (r.ok) {
+    currentActiveQ = selectedQIndex;
+    document.getElementById('stat-q').textContent = selectedQIndex + 1;
+    refreshResults();
+    showToast(`Question ${selectedQIndex + 1} activated`);
+  } else { const d = await r.json(); showToast(d.error || 'Error'); }
+});
+
+document.getElementById('reveal-btn').addEventListener('click', async () => {
+  if (!sessionId) return;
+  const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/reveal`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ pin }),
+  });
+  if (r.ok) {
+    const q = questions[selectedQIndex];
+    if (q && resultsCache[q.id]) renderResults(q, resultsCache[q.id], true);
+    showToast('Answer revealed');
+  }
+});
+
+document.getElementById('prev-btn').addEventListener('click', () => { if (selectedQIndex > 0) selectQ(selectedQIndex - 1); });
+document.getElementById('next-btn').addEventListener('click', () => { if (selectedQIndex < questions.length - 1) selectQ(selectedQIndex + 1); });
+
+document.getElementById('close-btn').addEventListener('click', async () => {
+  if (!confirm('Close the session? Participants will see the thank-you screen.')) return;
+  await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/close`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ pin }),
+  });
+  showToast('Session closed');
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  if (!sessionId) return;
+  window.location.href = `${API}/workshop/session/${encodeURIComponent(sessionId)}/export?pin=${encodeURIComponent(pin)}`;
+});
+
+document.getElementById('fs-btn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen().catch(()=>{});
+});
+
+// ── Results rendering ─────────────────────────────────────────────────
+async function refreshResults() {
+  const q = questions[selectedQIndex];
+  if (!q) return;
+  const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/results/${q.id}`);
+  if (!r.ok) return;
+  const agg = await r.json();
+  resultsCache[q.id] = agg;
+  renderResults(q, agg, false);
+}
+
+function renderResults(q, agg, revealed) {
+  const col = document.getElementById('results-col');
+  if (!agg) { col.innerHTML = '<div class="empty">No responses yet.</div>'; return; }
+
+  if (agg.type === 'mcq') {
+    const max = Math.max(...Object.values(agg.counts || {}), 1);
+    const rows = (q.options || []).map(o => {
+      const count = agg.counts?.[o.id] || 0;
+      const pct = Math.round((count / Math.max(agg.total, 1)) * 100);
+      const isCorrect = revealed && o.id === q.correct;
+      return `<div class="bar-row">
+        <div class="bar-label" title="${o.label}">${o.id}. ${o.label}</div>
+        <div class="bar-track">
+          <div class="bar-fill${isCorrect ? ' correct-bar' : ''}" style="width:${pct}%"></div>
+        </div>
+        <div class="bar-count">${count} <span style="color:var(--fg3)">(${pct}%)</span></div>
+      </div>`;
+    }).join('');
+    const explainer = revealed && q.explanation
+      ? `<div class="reveal-explainer">✓ <strong>Correct: ${q.correct}</strong> — ${q.explanation}</div>` : '';
+    col.innerHTML = `<div class="chart-card">
+      <h3>Responses — ${agg.total} total</h3>
+      ${rows}
+      <div class="total-label">${agg.total} response${agg.total !== 1 ? 's' : ''} received</div>
+      ${explainer}
+      ${q.discussionPrompt ? `<div style="margin-top:12px;padding:10px 12px;background:rgba(200,168,75,0.08);border:1px solid rgba(200,168,75,0.2);border-radius:8px;font-size:12px;color:var(--gold)">💬 ${q.discussionPrompt}</div>` : ''}
+    </div>`;
+
+  } else if (agg.type === 'wordcloud') {
+    const freq = agg.freq || {};
+    const maxFreq = Math.max(...Object.values(freq), 1);
+    const words = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 60);
+    const wordHtml = words.map(([w, c]) => {
+      const size = 12 + Math.round((c / maxFreq) * 24);
+      return `<span class="wc-word" style="font-size:${size}px">${escHtml(w)}</span>`;
+    }).join('');
+    col.innerHTML = `<div class="chart-card">
+      <h3>Word Cloud — ${agg.total} response${agg.total !== 1 ? 's' : ''}</h3>
+      <div class="wordcloud-wrap">${wordHtml || '<span style="color:var(--fg3)">Waiting for responses…</span>'}</div>
+      ${q.discussionPrompt ? `<div style="margin-top:12px;padding:10px 12px;background:rgba(200,168,75,0.08);border:1px solid rgba(200,168,75,0.2);border-radius:8px;font-size:12px;color:var(--gold)">💬 ${q.discussionPrompt}</div>` : ''}
+    </div>`;
+
+  } else {
+    // open text — show approved responses
+    const items = (agg.responses || []).slice(0, 20).map(r =>
+      `<div class="response-item">${escHtml(String(r))}</div>`
+    ).join('');
+    col.innerHTML = `<div class="chart-card">
+      <h3>Responses — ${agg.total} submitted</h3>
+      <div class="response-list">${items || '<div class="empty">No approved responses yet.</div>'}</div>
+    </div>`;
+  }
+}
+
+// ── Moderation ───────────────────────────────────────────────────────────
+async function pollModQueue() {
+  if (!sessionId || !pin) return;
+  const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/modqueue?pin=${encodeURIComponent(pin)}`);
+  if (!r.ok) return;
+  const items = await r.json();
+  document.getElementById('mod-count').textContent = items.length;
+  const container = document.getElementById('mod-items');
+  if (!items.length) { container.innerHTML = '<div class="empty">No items pending.</div>'; return; }
+  container.innerHTML = items.map(item => {
+    const q = questions.find(q => q.id === item.question_id);
+    const text = typeof item.response === 'object' ? (item.response.text || JSON.stringify(item.response)) : String(item.response);
+    return `<div class="mod-item" data-rid="${item.id}">
+      <div class="mod-q-label">Q${item.question_id}: ${q ? q.text.slice(0,40)+'…' : ''}</div>
+      <div>${escHtml(text)}</div>
+      <div class="mod-actions">
+        <button class="btn btn-green btn-sm" onclick="moderateItem(${item.id}, true)">✓ Show</button>
+        <button class="btn btn-secondary btn-sm" onclick="moderateItem(${item.id}, false)">✗ Hide</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.moderateItem = async function(rid, visible) {
+  await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/moderate/${rid}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ pin, visible }),
+  });
+  pollModQueue();
+  refreshResults();
+};
+
+function startModPoll() {
+  pollModQueue();
+  modPollInterval = setInterval(pollModQueue, 8000);
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+async function pollStats() {
+  if (!sessionId || !pin) return;
+  const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/participants?pin=${encodeURIComponent(pin)}`);
+  if (r.ok) {
+    const d = await r.json();
+    document.getElementById('stat-participants').textContent = d.count;
+  }
+  // Response count for current question
+  const q = questions[selectedQIndex];
+  if (q && resultsCache[q.id]) {
+    document.getElementById('stat-responses').textContent = resultsCache[q.id].total || 0;
+  }
+}
+
+function startStatPoll() {
+  pollStats();
+  statInterval = setInterval(pollStats, 10000);
+}
+
+// ── QR code ───────────────────────────────────────────────────────────────
+function generateQR() {
+  const url = `${location.origin}/osca2026/?session=${encodeURIComponent(sessionId)}`;
+  document.getElementById('join-url').textContent = url;
+  const canvas = document.getElementById('qr-canvas');
+  const placeholder = document.getElementById('qr-placeholder');
+  try {
+    new QRCode(canvas, { text: url, width: 150, height: 150, colorDark: '#f0eaf4', colorLight: '#08020a' });
+    canvas.style.display = 'block';
+    placeholder.style.display = 'none';
+  } catch(e) {
+    placeholder.textContent = url;
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') document.getElementById('next-btn').click();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') document.getElementById('prev-btn').click();
+  if (e.key === 'Enter' && !e.shiftKey) document.getElementById('activate-btn').click();
+  if (e.key === 'r' || e.key === 'R') document.getElementById('reveal-btn').click();
+});
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Pre-fill session from URL param if present
+const params = new URLSearchParams(location.search);
+if (params.get('session')) document.getElementById('login-session').value = params.get('session');
+})();
+</script>
+</body>
+</html>

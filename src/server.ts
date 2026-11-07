@@ -7,6 +7,7 @@ import { telemetryRouter } from './backend/routes/telemetryRoutes';
 import { privacyRouter } from './backend/routes/privacyRoutes';
 import { auditRouter } from './backend/routes/auditRoutes';
 import { AuditService } from './backend/audit/auditService';
+import { workshopRouter } from './backend/routes/workshopRoutes';
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -30,6 +31,7 @@ app.use('/dashboard', dashboardRouter);
 app.use('/telemetry', telemetryRouter);
 app.use('/privacy', privacyRouter);
 app.use('/audit', auditRouter);
+app.use('/workshop', workshopRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

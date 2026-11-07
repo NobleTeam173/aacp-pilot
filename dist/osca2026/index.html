@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OSCA 2026 Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08020a;
+  --surface: #130a16;
+  --surface2: #1e1024;
+  --border: rgba(255,255,255,0.08);
+  --fg: #f0eaf4;
+  --fg2: #a898b4;
+  --crimson: #80011f;
+  --crimson-hover: #9a0126;
+  --gold: #c8a84b;
+  --green: #2d7a4f;
+  --radius: 12px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: 'DM Sans', sans-serif; }
+body { display: flex; flex-direction: column; min-height: 100vh; padding: env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0); }
+
+/* ── Header ──────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px max(16px,env(safe-area-inset-left,0px));
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-mark {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--crimson);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.header-text h1 { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.header-text p { font-size: 11px; color: var(--fg2); }
+
+/* ── Main content ─────────────── */
+main { flex: 1; padding: 20px max(16px,env(safe-area-inset-left,0px)); max-width: 540px; width: 100%; margin: 0 auto; }
+
+/* ── Screens ──────────────────── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Welcome screen ─────────────── */
+.welcome-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  margin-top: 20px;
+}
+.welcome-card h2 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 8px; }
+.welcome-card p { color: var(--fg2); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+.privacy-note {
+  background: rgba(200,168,75,0.08);
+  border: 1px solid rgba(200,168,75,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px; color: var(--gold); text-align: left; margin-bottom: 20px; line-height: 1.5;
+}
+
+/* ── Video screen ─────────────── */
+.video-wrap {
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16/9;
+  margin-bottom: 16px;
+}
+.video-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; background: #0a0010;
+  font-size: 13px; color: var(--fg2); text-align: center; padding: 20px;
+}
+.video-placeholder .play-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--crimson);
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+}
+.video-title { font-family: 'Fraunces', serif; font-size: 20px; color: var(--fg); margin-bottom: 4px; }
+video { width: 100%; display: block; }
+
+/* ── Waiting screen ─────────────── */
+.waiting {
+  text-align: center;
+  padding: 40px 20px;
+}
+.waiting .pulse {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--crimson);
+  margin: 0 auto 16px;
+  animation: pulse 2s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.12);opacity:0.8} }
+.waiting h2 { font-size: 18px; margin-bottom: 8px; }
+.waiting p { color: var(--fg2); font-size: 14px; }
+
+/* ── Question screen ─────────────── */
+.round-badge {
+  display: inline-block;
+  background: rgba(128,1,31,0.15);
+  border: 1px solid rgba(128,1,31,0.4);
+  color: #e8637e;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 20px; margin-bottom: 12px;
+}
+.question-text {
+  font-size: 17px; font-weight: 600; line-height: 1.4;
+  margin-bottom: 20px;
+}
+.progress-bar {
+  background: var(--surface2);
+  border-radius: 4px; height: 4px; margin-bottom: 20px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--crimson);
+  transition: width 0.4s ease;
+}
+
+/* ── MCQ options ──────────────── */
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--fg);
+  font: inherit; font-size: 15px;
+  cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.2s, background 0.2s;
+  line-height: 1.4;
+}
+.option-btn:hover:not(:disabled) { border-color: var(--crimson); background: rgba(128,1,31,0.08); }
+.option-btn.selected { border-color: var(--crimson); background: rgba(128,1,31,0.15); }
+.option-btn.correct { border-color: #2d7a4f; background: rgba(45,122,79,0.15); }
+.option-btn.incorrect { border-color: #7a2d2d; background: rgba(122,45,45,0.08); opacity: 0.6; }
+.option-btn:disabled { cursor: default; }
+.option-letter {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.option-btn.selected .option-letter { background: var(--crimson); border-color: var(--crimson); }
+.option-btn.correct .option-letter { background: var(--green); border-color: var(--green); }
+
+/* ── Open text ──────────────── */
+.open-textarea {
+  width: 100%; min-height: 120px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 14px; color: var(--fg);
+  font: inherit; font-size: 15px; line-height: 1.5;
+  resize: vertical; transition: border-color 0.2s;
+}
+.open-textarea:focus { outline: none; border-color: var(--crimson); }
+.char-count { font-size: 12px; color: var(--fg2); text-align: right; margin-top: 6px; }
+
+/* ── Word cloud input ──────────── */
+.word-input {
+  width: 100%;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 14px; color: var(--fg);
+  font: inherit; font-size: 18px; text-align: center;
+  transition: border-color 0.2s;
+}
+.word-input:focus { outline: none; border-color: var(--crimson); }
+.word-hint { font-size: 12px; color: var(--fg2); text-align: center; margin-top: 8px; }
+
+/* ── Answer reveal ──────────────── */
+.reveal-banner {
+  background: rgba(45,122,79,0.12);
+  border: 1px solid rgba(45,122,79,0.4);
+  border-radius: 10px; padding: 14px 16px;
+  font-size: 14px; line-height: 1.5; margin-top: 16px;
+  display: none;
+}
+.reveal-banner.show { display: block; }
+.reveal-banner strong { color: #4aba7e; }
+
+/* ── Buttons ──────────────────── */
+.btn {
+  width: 100%; padding: 15px;
+  background: var(--crimson); color: #fff;
+  border: none; border-radius: 10px;
+  font: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-top: 16px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.btn:hover { background: var(--crimson-hover); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-outline {
+  background: transparent; border: 1.5px solid var(--border);
+  color: var(--fg2);
+}
+.btn-outline:hover { border-color: var(--fg2); background: transparent; }
+
+/* ── Submitted state ──────────────── */
+.submitted-check {
+  text-align: center; padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+.submitted-check .check { font-size: 40px; }
+.submitted-check p { color: var(--fg2); font-size: 14px; margin-top: 8px; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Thank you screen ──────────────── */
+.thankyou { text-align: center; padding: 40px 20px; }
+.thankyou h2 { font-family: 'Fraunces', serif; font-size: 26px; margin-bottom: 12px; }
+.thankyou p { color: var(--fg2); font-size: 14px; line-height: 1.6; }
+
+/* ── Contact form ──────────────── */
+.contact-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px; margin-top: 20px;
+}
+.contact-card h3 { font-size: 16px; margin-bottom: 4px; }
+.contact-card p { font-size: 13px; color: var(--fg2); margin-bottom: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 13px; font-weight: 500; color: var(--fg2); }
+.field input, .field select {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 11px 12px; color: var(--fg);
+  font: inherit; font-size: 14px; transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--crimson); }
+.checkbox-row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--fg2); line-height: 1.5; cursor: pointer; }
+.checkbox-row input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--crimson); cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-mark">A</div>
+  <div class="header-text">
+    <h1>AACP Workshop</h1>
+    <p>OSCA 2026 · C-3 · Nov 9</p>
+  </div>
+</header>
+
+<main>
+  <!-- Welcome screen -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-card">
+      <h2>Welcome</h2>
+      <p>Equipping Counsellors to Guide Students into Aviation &amp; Aerospace Careers</p>
+      <div class="privacy-note">
+        🔒 <strong>Privacy notice:</strong> All responses are anonymous. No personal information is collected unless you choose to share your contact details at the end. Your participation is voluntary and you may skip any question.
+      </div>
+      <div id="join-error" style="color:#e8637e;font-size:13px;margin-bottom:12px;display:none;"></div>
+      <div class="field">
+        <label for="session-id-input">Session ID (provided by presenter)</label>
+        <input id="session-id-input" type="text" placeholder="e.g. osca2026-1234567890" autocapitalize="none">
+      </div>
+      <button class="btn" id="join-btn">Join Workshop</button>
+    </div>
+  </div>
+
+  <!-- Video screen -->
+  <div id="screen-video" class="screen">
+    <div class="round-badge">Opening · One Seed. Many Possibilities.</div>
+    <div class="video-wrap">
+      <video id="workshop-video" controls preload="none" poster="">
+        <source id="video-src" src="" type="video/mp4">
+      </video>
+      <div class="video-placeholder" id="video-placeholder">
+        <div class="play-icon">▶</div>
+        <div>
+          <div class="video-title">One Seed. Many Possibilities.</div>
+          <div>Video coming soon — the presenter will play this for the group.</div>
+        </div>
+      </div>
+    </div>
+    <p style="color:var(--fg2);font-size:13px;margin-bottom:16px;">Watch the opening video, then the presenter will guide you through the questions.</p>
+    <button class="btn btn-outline" id="skip-video-btn">Continue to Workshop</button>
+  </div>
+
+  <!-- Waiting screen -->
+  <div id="screen-waiting" class="screen">
+    <div class="waiting">
+      <div class="pulse">✈</div>
+      <h2>Waiting for the presenter…</h2>
+      <p id="waiting-msg">The next question will appear here automatically.</p>
+    </div>
+  </div>
+
+  <!-- Question screen -->
+  <div id="screen-question" class="screen">
+    <div class="round-badge" id="q-round"></div>
+    <div class="progress-bar"><div class="progress-fill" id="q-progress"></div></div>
+    <div class="question-text" id="q-text"></div>
+    <div id="q-body"></div>
+    <div class="reveal-banner" id="reveal-banner"></div>
+  </div>
+
+  <!-- Thank you screen -->
+  <div id="screen-thankyou" class="screen">
+    <div class="thankyou">
+      <div style="font-size:48px;margin-bottom:16px;">🌱</div>
+      <h2>Thank you!</h2>
+      <p style="margin-bottom:24px;">Your insights will help shape how AACP supports guidance counsellors and students across Canada.</p>
+    </div>
+    <div class="contact-card">
+      <h3>Stay Connected <span style="font-size:12px;color:var(--fg2);font-weight:400;">(optional)</span></h3>
+      <p>If you'd like to receive aviation career resources and hear about AACP school partnership opportunities, leave your details below.</p>
+      <form id="contact-form" novalidate>
+        <div class="field">
+          <label for="c-name">Name</label>
+          <input id="c-name" type="text" placeholder="Your name">
+        </div>
+        <div class="field">
+          <label for="c-org">School or Organization</label>
+          <input id="c-org" type="text" placeholder="School or board name">
+        </div>
+        <div class="field">
+          <label for="c-email">Professional Email</label>
+          <input id="c-email" type="email" placeholder="you@school.ca">
+        </div>
+        <div class="field">
+          <label for="c-interest">Area of Interest</label>
+          <select id="c-interest">
+            <option value="">Select one…</option>
+            <option>Aviation career pathway resources</option>
+            <option>AACP school partnership program</option>
+            <option>Student career discovery tools</option>
+            <option>Professional development for counsellors</option>
+            <option>Industry speaker connections</option>
+          </select>
+        </div>
+        <label class="checkbox-row" style="margin-bottom:16px;">
+          <input type="checkbox" id="c-consent">
+          I consent to being contacted by AACP about aviation career resources and programs.
+        </label>
+        <div id="contact-error" style="color:#e8637e;font-size:13px;margin-bottom:8px;display:none;"></div>
+        <button type="submit" class="btn">Submit</button>
+      </form>
+      <div id="contact-success" style="display:none;text-align:center;padding:16px;">
+        <div style="font-size:28px;margin-bottom:8px;">✅</div>
+        <p style="color:var(--fg2);font-size:14px;">Thanks! We'll be in touch.</p>
+      </div>
+    </div>
+    <div style="margin-top:24px;text-align:center;">
+      <a href="https://aviationaerospacecompetency.com" style="color:var(--fg2);font-size:13px;">Visit aviationaerospacecompetency.com →</a>
+    </div>
+  </div>
+</main>
+
+<script>
+(function() {
+  // ── State ──────────────────────────────────────────────────────────────
+  const API = '';  // same-origin; set to backend URL if hosted separately
+  let sessionId = '';
+  let participantId = localStorage.getItem('osca_pid') || ('p_' + Math.random().toString(36).slice(2, 10));
+  localStorage.setItem('osca_pid', participantId);
+  let currentQId = null;
+  let submitted = new Set(JSON.parse(localStorage.getItem('osca_submitted') || '[]'));
+  let eventSource = null;
+  let currentQuestion = null;
+
+  // ── Routing ───────────────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  // ── Join workshop ─────────────────────────────────────────────────────
+  document.getElementById('join-btn').addEventListener('click', async () => {
+    const id = document.getElementById('session-id-input').value.trim();
+    if (!id) return;
+    document.getElementById('join-btn').disabled = true;
+    document.getElementById('join-error').style.display = 'none';
+    try {
+      const r = await fetch(`${API}/workshop/session/${encodeURIComponent(id)}`);
+      if (!r.ok) throw new Error('Session not found. Check the ID and try again.');
+      const sess = await r.json();
+      sessionId = id;
+      connectSSE();
+      // Show video first if waiting
+      if (sess.status === 'waiting' || sess.currentQ < 0) {
+        showScreen('video');
+      } else {
+        showScreen('waiting');
+        handleQuestion(sess.currentQuestion, sess.revealAnswer);
+      }
+    } catch (e) {
+      document.getElementById('join-error').textContent = e.message;
+      document.getElementById('join-error').style.display = 'block';
+    } finally {
+      document.getElementById('join-btn').disabled = false;
+    }
+  });
+
+  document.getElementById('skip-video-btn').addEventListener('click', () => {
+    showScreen('waiting');
+  });
+
+  // ── SSE connection ────────────────────────────────────────────────────
+  function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource(`${API}/workshop/session/${encodeURIComponent(sessionId)}/stream`);
+
+    eventSource.addEventListener('state', e => {
+      const d = JSON.parse(e.data);
+      if (d.status === 'closed') { showScreen('thankyou'); return; }
+      if (d.currentQuestion) handleQuestion(d.currentQuestion, d.revealAnswer);
+    });
+
+    eventSource.addEventListener('question', e => {
+      const d = JSON.parse(e.data);
+      handleQuestion(d.question, false);
+    });
+
+    eventSource.addEventListener('reveal', e => {
+      const d = JSON.parse(e.data);
+      showReveal(d.correct, d.explanation);
+    });
+
+    eventSource.addEventListener('closed', () => { showScreen('thankyou'); });
+
+    eventSource.onerror = () => {
+      // Reconnect after a delay
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  // ── Render question ───────────────────────────────────────────────────
+  function handleQuestion(q, revealAnswer) {
+    if (!q) return;
+    currentQuestion = q;
+    currentQId = q.id;
+    document.getElementById('q-round').textContent = q.round || '';
+    document.getElementById('q-text').textContent = q.text;
+    document.getElementById('q-progress').style.width = '';
+
+    const body = document.getElementById('q-body');
+    const alreadySubmitted = submitted.has(q.id);
+    const revealBanner = document.getElementById('reveal-banner');
+    revealBanner.classList.remove('show');
+
+    if (q.type === 'mcq') {
+      body.innerHTML = renderMCQ(q, alreadySubmitted);
+      if (!alreadySubmitted) bindMCQ(q);
+      else disableMCQ();
+    } else if (q.type === 'wordcloud') {
+      body.innerHTML = renderWordCloud(alreadySubmitted);
+      if (!alreadySubmitted) bindWordCloud(q);
+    } else {
+      body.innerHTML = renderOpen(alreadySubmitted);
+      if (!alreadySubmitted) bindOpen(q);
+    }
+
+    if (revealAnswer && q.correct) showReveal(q.correct, q.explanation);
+    showScreen('question');
+  }
+
+  // ── MCQ ───────────────────────────────────────────────────────────────
+  function renderMCQ(q, disabled) {
+    return `<div class="options">${(q.options||[]).map(o =>
+      `<button class="option-btn${disabled?'':''}" data-id="${o.id}" ${disabled?'disabled':''}>
+        <span class="option-letter">${o.id}</span><span>${o.label}</span>
+      </button>`
+    ).join('')}</div>
+    ${disabled ? '<div class="submitted-check"><div class="check">✓</div><p>Response submitted</p></div>' : ''}`;
+  }
+
+  function bindMCQ(q) {
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const choice = btn.dataset.id;
+        document.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        await sendResponse(q.id, { choice });
+        markSubmitted(q.id);
+      });
+    });
+  }
+
+  function disableMCQ() {
+    document.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; });
+  }
+
+  // ── Open text ─────────────────────────────────────────────────────────
+  function renderOpen(disabled) {
+    if (disabled) return '<div class="submitted-check"><div class="check">✓</div><p>Response submitted</p></div>';
+    return `<textarea class="open-textarea" id="open-input" maxlength="400" placeholder="Type your response here…"></textarea>
+    <div class="char-count"><span id="char-cnt">0</span>/400</div>
+    <button class="btn" id="submit-open-btn">Submit Response</button>
+    <button class="btn btn-outline" id="skip-open-btn" style="margin-top:8px;">Skip this question</button>`;
+  }
+
+  function bindOpen(q) {
+    const ta = document.getElementById('open-input');
+    const cnt = document.getElementById('char-cnt');
+    if (ta && cnt) ta.addEventListener('input', () => { cnt.textContent = ta.value.length; });
+    const submitBtn = document.getElementById('submit-open-btn');
+    if (submitBtn) submitBtn.addEventListener('click', async () => {
+      const text = (document.getElementById('open-input')?.value || '').trim();
+      if (!text) return;
+      submitBtn.disabled = true;
+      await sendResponse(q.id, { text });
+      markSubmitted(q.id);
+      document.getElementById('q-body').innerHTML = '<div class="submitted-check"><div class="check">✓</div><p>Response submitted</p></div>';
+    });
+    const skipBtn = document.getElementById('skip-open-btn');
+    if (skipBtn) skipBtn.addEventListener('click', () => {
+      markSubmitted(q.id);
+      document.getElementById('q-body').innerHTML = '<div class="submitted-check"><div class="check">↷</div><p>Skipped</p></div>';
+    });
+  }
+
+  // ── Word cloud ────────────────────────────────────────────────────────
+  function renderWordCloud(disabled) {
+    if (disabled) return '<div class="submitted-check"><div class="check">✓</div><p>Response submitted</p></div>';
+    return `<input class="word-input" id="word-input" type="text" maxlength="30" placeholder="e.g. Curiosity" autocapitalize="words">
+    <div class="word-hint">One word or short phrase (max 30 characters)</div>
+    <button class="btn" id="submit-word-btn">Submit</button>`;
+  }
+
+  function bindWordCloud(q) {
+    const input = document.getElementById('word-input');
+    const btn = document.getElementById('submit-word-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const word = (input?.value || '').trim();
+      if (!word) return;
+      btn.disabled = true;
+      await sendResponse(q.id, { word });
+      markSubmitted(q.id);
+      document.getElementById('q-body').innerHTML = '<div class="submitted-check"><div class="check">✓</div><p>Response submitted</p></div>';
+    });
+    if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+  }
+
+  // ── Send response ─────────────────────────────────────────────────────
+  async function sendResponse(qId, response) {
+    try {
+      await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: qId, participantId, response }),
+      });
+    } catch (e) { /* silent; server-side won't update but participant still sees submitted state */ }
+  }
+
+  function markSubmitted(qId) {
+    submitted.add(qId);
+    try { localStorage.setItem('osca_submitted', JSON.stringify([...submitted])); } catch {}
+  }
+
+  // ── Reveal answer ─────────────────────────────────────────────────────
+  function showReveal(correct, explanation) {
+    if (!correct) return;
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.id === correct) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('incorrect');
+    });
+    const banner = document.getElementById('reveal-banner');
+    if (!banner) return;
+    banner.innerHTML = `<strong>✓ Correct answer: ${correct}</strong>${explanation ? `<br>${explanation}` : ''}`;
+    banner.classList.add('show');
+  }
+
+  // ── Contact form ───────────────────────────────────────────────────────
+  document.getElementById('contact-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('c-name')?.value.trim();
+    const org = document.getElementById('c-org')?.value.trim();
+    const email = document.getElementById('c-email')?.value.trim();
+    const interest = document.getElementById('c-interest')?.value;
+    const consent = document.getElementById('c-consent')?.checked;
+    const errEl = document.getElementById('contact-error');
+
+    if (!name || !org || !email || !consent) {
+      errEl.textContent = 'Please fill in all required fields and check the consent box.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    try {
+      const r = await fetch(`${API}/workshop/session/${encodeURIComponent(sessionId)}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, organization: org, email, area_of_interest: interest, consent: true }),
+      });
+      if (!r.ok) throw new Error('Submission failed');
+      document.getElementById('contact-form').style.display = 'none';
+      document.getElementById('contact-success').style.display = 'block';
+    } catch {
+      errEl.textContent = 'Could not submit. Please try again.';
+      errEl.style.display = 'block';
+    }
+  });
+
+  // ── Video ─────────────────────────────────────────────────────────────
+  const video = document.getElementById('workshop-video');
+  const placeholder = document.getElementById('video-placeholder');
+  const videoSrc = document.getElementById('video-src');
+  // Video URL can be set via ?video= param or left as placeholder
+  const params = new URLSearchParams(location.search);
+  const videoUrl = params.get('video') || '';
+  if (videoUrl) {
+    videoSrc.src = videoUrl;
+    video.load();
+    placeholder.style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>
