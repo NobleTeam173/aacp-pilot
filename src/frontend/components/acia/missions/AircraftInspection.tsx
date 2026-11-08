@@ -433,23 +433,23 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
                     {/* Hotspot zones — positions as % of image (aviation-technical validation pending) */}
                     {zones.map(zone => {
                       const color = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
-                      // px% positions derived from labeled dots in Aircraft_Overview.png
+                      // positions calibrated to labeled dots in Aircraft 214 overview image
                       const pct: Record<string, [number, number]> = {
-                        nose:        [7.5,  52],
-                        pitot_tube:  [18.0, 56],
-                        static_port: [12.0, 67],
-                        nose_gear:   [18.0, 85],
-                        l_engine:    [40.0, 77],
-                        l_main_gear: [50.0, 86],
-                        r_main_gear: [60.0, 80],
-                        l_fuel_cap:  [63.0, 44],
-                        fuselage:    [44.0, 50],
-                        tail:        [81.0, 30],
-                        l_wing_tip:  [93.0, 38],
-                        r_wing_tip:  [32.0, 16],
-                        flap_l:      [31.0, 72],
-                        flap_r:      [42.0, 70],
-                        r_engine:    [47.0, 73],
+                        nose:        [4.5,  52],
+                        pitot_tube:  [17.5, 60],
+                        static_port: [11.5, 70],
+                        nose_gear:   [14.0, 86],
+                        l_engine:    [44.0, 80],
+                        l_main_gear: [51.0, 88],
+                        r_main_gear: [62.0, 76],
+                        l_fuel_cap:  [64.0, 40],
+                        fuselage:    [38.0, 48],
+                        tail:        [83.0, 26],
+                        l_wing_tip:  [98.5, 42],
+                        r_wing_tip:  [28.0, 18],
+                        flap_l:      [33.0, 74],
+                        flap_r:      [52.0, 72],
+                        r_engine:    [48.0, 76],
                       };
                       const [left, top] = pct[zone.id] ?? [50, 50];
                       return (
