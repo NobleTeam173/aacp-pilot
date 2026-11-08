@@ -8,12 +8,12 @@ const app  = express();
 const PORT = process.env.PORT || 8080;
 const env  = buildEnv();
 
-// Parse body as raw buffer so worker can re-read it as text/json
-app.use(express.raw({ type: '*/*', limit: '10mb' }));
-
-// Workshop routes need JSON body parsing — apply before mounting
+// Workshop routes — mount before raw body parser so express.json() gets the body
 app.use('/workshop', express.json());
 app.use('/workshop', workshopRouter);
+
+// Parse body as raw buffer so worker can re-read it as text/json (all other routes)
+app.use(express.raw({ type: '*/*', limit: '10mb' }));
 
 // Health check — ALB and ECS use this
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
