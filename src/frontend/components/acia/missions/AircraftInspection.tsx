@@ -1,6 +1,19 @@
 import { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import type { EvidenceItem } from '../types';
 import { AircraftAssembly } from './AircraftAssembly';
+import {
+  IMG_OVERVIEW,
+  IMG_NOSE,
+  IMG_PITOT_TUBE,
+  IMG_STATIC_PORT,
+  IMG_NOSE_GEAR,
+  IMG_L_FUEL_CAP,
+  IMG_L_ENGINE,
+  IMG_L_WING_TIP,
+  IMG_L_MAIN_GEAR,
+  IMG_R_MAIN_GEAR,
+  IMG_TAIL,
+} from './AircraftImages';
 import type { Zone3D } from './Aircraft3DViewer';
 import { ZONE_3D_POSITIONS } from './zone3dPositions';
 import { MissionReasoningResponse, type ReasoningResponses, type ReasoningQuestion } from './MissionReasoningResponse';
@@ -36,25 +49,45 @@ interface InspectionZone {
 }
 
 const ZONES: InspectionZone[] = [
-  { id: 'nose', label: 'Nose Cone', x: 80, y: 120, r: 18, issue: null, severity: 'ok', found: false },
-  { id: 'l_engine', label: 'Left Engine', x: 155, y: 155, r: 20, issue: 'Oil residue on cowling', severity: 'caution', found: false },
-  { id: 'r_engine', label: 'Right Engine', x: 155, y: 85, r: 20, issue: null, severity: 'ok', found: false },
-  { id: 'l_wing_tip', label: 'Left Wing Tip', x: 250, y: 195, r: 15, issue: 'Nav light cracked', severity: 'defect', found: false },
-  { id: 'r_wing_tip', label: 'Right Wing Tip', x: 250, y: 45, r: 15, issue: null, severity: 'ok', found: false },
-  { id: 'l_main_gear', label: 'Left Main Gear', x: 190, y: 175, r: 14, issue: null, severity: 'ok', found: false },
-  { id: 'r_main_gear', label: 'Right Main Gear', x: 190, y: 65, r: 14, issue: null, severity: 'ok', found: false },
-  { id: 'nose_gear', label: 'Nose Gear', x: 95, y: 148, r: 14, issue: 'Low tyre pressure', severity: 'caution', found: false },
-  { id: 'fuselage', label: 'Fuselage Mid', x: 175, y: 120, r: 16, issue: null, severity: 'ok', found: false },
-  { id: 'tail', label: 'Tail Section', x: 310, y: 120, r: 18, issue: 'Antenna loose', severity: 'defect', found: false },
-  { id: 'flap_l', label: 'Left Flap', x: 225, y: 170, r: 13, issue: null, severity: 'ok', found: false },
-  { id: 'flap_r', label: 'Right Flap', x: 225, y: 70, r: 13, issue: null, severity: 'ok', found: false },
+  { id: 'nose', label: 'Nose Cone', x: 52, y: 132, r: 18, issue: null, severity: 'ok', found: false },
+  { id: 'l_engine', label: 'Left Engine', x: 265, y: 197, r: 20, issue: 'Oil residue on cowling', severity: 'caution', found: false },
+  { id: 'r_engine', label: 'Right Engine', x: 324, y: 197, r: 20, issue: null, severity: 'ok', found: false },
+  { id: 'l_wing_tip', label: 'Left Wing Tip', x: 176, y: 55, r: 15, issue: 'Nav light cracked', severity: 'defect', found: false },
+  { id: 'r_wing_tip', label: 'Right Wing Tip', x: 393, y: 55, r: 15, issue: null, severity: 'ok', found: false },
+  { id: 'l_main_gear', label: 'Left Main Gear', x: 316, y: 232, r: 14, issue: null, severity: 'ok', found: false },
+  { id: 'r_main_gear', label: 'Right Main Gear', x: 350, y: 232, r: 14, issue: null, severity: 'ok', found: false },
+  { id: 'nose_gear', label: 'Nose Gear', x: 103, y: 232, r: 14, issue: 'Low tyre pressure', severity: 'caution', found: false },
+  { id: 'fuselage', label: 'Fuselage Mid', x: 390, y: 132, r: 16, issue: null, severity: 'ok', found: false },
+  { id: 'tail', label: 'Tail Section', x: 622, y: 108, r: 18, issue: 'Antenna loose', severity: 'defect', found: false },
+  { id: 'flap_l', label: 'Left Flap', x: 235, y: 183, r: 13, issue: null, severity: 'ok', found: false },
+  { id: 'flap_r', label: 'Right Flap', x: 282, y: 183, r: 13, issue: null, severity: 'ok', found: false },
   // Three additional zones — pitot tube cover is the most critical defect to catch
-  { id: 'pitot_tube', label: 'Pitot Tube', x: 108, y: 138, r: 13, issue: 'Pitot cover installed — not removed post-maintenance', severity: 'defect', found: false },
-  { id: 'static_port', label: 'Static Port', x: 130, y: 112, r: 11, issue: null, severity: 'ok', found: false },
-  { id: 'l_fuel_cap', label: 'Left Fuel Cap', x: 215, y: 163, r: 12, issue: null, severity: 'ok', found: false },
+  { id: 'pitot_tube', label: 'Pitot Tube', x: 84, y: 116, r: 13, issue: 'Pitot cover installed — not removed post-maintenance', severity: 'defect', found: false },
+  { id: 'static_port', label: 'Static Port', x: 116, y: 150, r: 11, issue: null, severity: 'ok', found: false },
+  { id: 'l_fuel_cap', label: 'Left Fuel Cap', x: 224, y: 110, r: 12, issue: null, severity: 'ok', found: false },
 ];
 
 const DEFECTS = ZONES.filter(z => z.severity !== 'ok');
+
+// Close-up photos for each inspection zone (revealed on click)
+// Zones with real photos use data URIs; zones without use SVG fallback
+const ZONE_CLOSEUP: Record<string, string> = {
+  nose: IMG_NOSE,
+  pitot_tube: IMG_PITOT_TUBE,
+  static_port: IMG_STATIC_PORT,
+  nose_gear: IMG_NOSE_GEAR,
+  l_fuel_cap: IMG_L_FUEL_CAP,
+  l_engine: IMG_L_ENGINE,
+  r_engine: IMG_L_ENGINE,
+  l_wing_tip: IMG_L_WING_TIP,
+  r_wing_tip: IMG_L_WING_TIP,
+  l_main_gear: IMG_L_MAIN_GEAR,
+  r_main_gear: IMG_R_MAIN_GEAR,
+  tail: IMG_TAIL,
+  fuselage: `data:image/svg+xml,<svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="80" fill="%230a1020"/><rect x="0" y="15" width="120" height="50" fill="%23c8d2dc" rx="4"/><line x1="0" y1="58" x2="120" y2="58" stroke="%238F0909" stroke-width="3" opacity="0.7"/><rect x="12" y="22" width="22" height="14" rx="3" fill="%231a3a5a" opacity="0.9"/><rect x="40" y="22" width="22" height="14" rx="3" fill="%231a3a5a" opacity="0.9"/><rect x="68" y="22" width="22" height="14" rx="3" fill="%231a3a5a" opacity="0.9"/><rect x="96" y="22" width="22" height="14" rx="3" fill="%231a3a5a" opacity="0.9"/></svg>`,
+  flap_l: `data:image/svg+xml,<svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="80" fill="%230a1020"/><rect x="5" y="20" width="110" height="30" fill="%23b8c2ce" rx="3"/><rect x="5" y="48" width="110" height="10" fill="%23a8b2be" rx="2"/><line x1="35" y1="20" x2="35" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/><line x1="65" y1="20" x2="65" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/><line x1="95" y1="20" x2="95" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/></svg>`,
+  flap_r: `data:image/svg+xml,<svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="80" fill="%230a1020"/><rect x="5" y="20" width="110" height="30" fill="%23b8c2ce" rx="3"/><rect x="5" y="48" width="110" height="10" fill="%23a8b2be" rx="2"/><line x1="35" y1="20" x2="35" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/><line x1="65" y1="20" x2="65" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/><line x1="95" y1="20" x2="95" y2="58" stroke="%239aaabb" stroke-width="1" stroke-dasharray="3,3"/></svg>`,
+};
 
 interface Props {
   isRpas?: boolean;
@@ -384,71 +417,73 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
             .insp-zone:hover circle { filter: brightness(1.4); }
           `}</style>
 
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            {/* Viewer area */}
-            <div style={{ flexShrink: 0, width: viewMode === '3d' ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Viewer area — full width */}
+            <div style={{ width: '100%' }}>
               {viewMode === '2d' ? (
                 <>
-                  <svg width={420} height={260} viewBox="0 0 420 260"
-                    style={{ background: 'linear-gradient(160deg, #050a14 0%, #0a1020 100%)', borderRadius: 16, border: `1px solid ${C.border}`, display: 'block' }}>
-
-                    <ellipse cx={210} cy={242} rx={160} ry={10} fill="#000" opacity={0.4} />
-                    <ellipse cx={210} cy={128} rx={148} ry={24} fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-                    <ellipse cx={210} cy={122} rx={140} ry={8} fill="#2a3f58" opacity={0.4} />
-                    <path d="M 62,128 Q 48,128 44,128 Q 48,116 62,116 Z" fill="#2d4a6a" />
-                    <ellipse cx={66} cy={128} rx={28} ry={14} fill="#253646" stroke="#2d4a6a" strokeWidth={1} />
-                    <ellipse cx={68} cy={124} rx={6} ry={4} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
-                    <ellipse cx={78} cy={124} rx={5} ry={3.5} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.8} opacity={0.9} />
-                    <path d="M 316,128 L 348,80 L 355,80 L 355,128 Z" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-                    <polygon points="318,128 365,108 360,118 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-                    <polygon points="318,128 365,148 360,138 330,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1} />
-                    <polygon points="185,128 272,210 252,210 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-                    <polygon points="185,128 272,46 252,46 205,128" fill="#1e2d3d" stroke="#2d4a6a" strokeWidth={1.5} />
-                    <polygon points="190,126 268,204 260,202 208,126" fill="#253646" opacity={0.3} />
-                    <polygon points="190,130 268,52 260,54 208,130" fill="#253646" opacity={0.3} />
-                    <polygon points="228,128 268,190 258,194 218,132" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-                    <polygon points="228,128 268,66 258,62 218,124" fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-                    <ellipse cx={158} cy={164} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
-                    <ellipse cx={138} cy={164} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
-                    <ellipse cx={178} cy={164} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-                    <ellipse cx={158} cy={92} rx={26} ry={12} fill="#253646" stroke="#2d4a6a" strokeWidth={1.5} />
-                    <ellipse cx={138} cy={92} rx={10} ry={11} fill="#172230" stroke="#2d4a6a" strokeWidth={1} />
-                    <ellipse cx={178} cy={92} rx={6} ry={8} fill="#172230" stroke="#2d4a6a" strokeWidth={0.8} />
-                    <rect x={96} y={140} width={5} height={22} fill="#374151" />
-                    <rect x={90} y={160} width={16} height={5} rx={2} fill="#4b5563" />
-                    <ellipse cx={98} cy={164} rx={8} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-                    <rect x={192} y={182} width={5} height={20} fill="#374151" />
-                    <ellipse cx={194} cy={202} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-                    <rect x={192} y={58} width={5} height={20} fill="#374151" />
-                    <ellipse cx={194} cy={58} rx={9} ry={5} fill="#1f2937" stroke="#374151" strokeWidth={1} />
-                    {[105, 125, 145, 165, 185, 205, 225, 245, 265, 285].map((x, i) => (
-                      <ellipse key={i} cx={x} cy={122} rx={5} ry={3.5} fill="#1a3a5c" stroke="#3b6ea8" strokeWidth={0.7} opacity={0.7} />
-                    ))}
-                    <ellipse cx={190} cy={62} rx={8} ry={4} fill="#374151" />
-
+                  {/* Overview photo with hotspot overlays */}
+                  <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+                    <img
+                      src={IMG_OVERVIEW}
+                      alt="Aircraft 214 — exterior inspection overview"
+                      style={{ width: '100%', display: 'block', filter: 'brightness(1.08) contrast(1.05)' }}
+                      draggable={false}
+                    />
+                    {/* Hotspot zones — positions as % of image (aviation-technical validation pending) */}
                     {zones.map(zone => {
                       const color = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
+                      // px% positions derived from labeled dots in Aircraft_Overview.png
+                      const pct: Record<string, [number, number]> = {
+                        nose:        [7.5,  52],
+                        pitot_tube:  [18.0, 56],
+                        static_port: [12.0, 67],
+                        nose_gear:   [18.0, 85],
+                        l_engine:    [40.0, 77],
+                        l_main_gear: [50.0, 86],
+                        r_main_gear: [60.0, 80],
+                        l_fuel_cap:  [63.0, 44],
+                        fuselage:    [44.0, 50],
+                        tail:        [81.0, 30],
+                        l_wing_tip:  [93.0, 38],
+                        r_wing_tip:  [32.0, 16],
+                        flap_l:      [31.0, 72],
+                        flap_r:      [42.0, 70],
+                        r_engine:    [47.0, 73],
+                      };
+                      const [left, top] = pct[zone.id] ?? [50, 50];
                       return (
-                        <g key={zone.id} className="insp-zone" onClick={() => handleZoneClick2D(zone)} style={{ cursor: 'pointer' }}>
-                          {!zone.found && (
-                            <circle cx={zone.x} cy={zone.y} r={zone.r + 4} fill="none" stroke="#60a5fa" strokeWidth={1.5} opacity={0.4}>
-                              <animate attributeName="r" values={`${zone.r + 2};${zone.r + 8};${zone.r + 2}`} dur="2s" repeatCount="indefinite" />
-                              <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                          )}
-                          {zone.found && zone.severity !== 'ok' && (
-                            <circle cx={zone.x} cy={zone.y} r={zone.r + 6} fill={color} opacity={0.15}>
-                              <animate attributeName="opacity" values="0.15;0.3;0.15" dur="1.2s" repeatCount="indefinite" />
-                            </circle>
-                          )}
-                          <circle cx={zone.x} cy={zone.y} r={zone.r} fill={color} fillOpacity={zone.found ? 0.25 : 0.15} stroke={color} strokeWidth={zone.found ? 2 : 1.5} />
-                          {zone.found && zone.severity !== 'ok' && <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={color} fontSize={13} fontWeight="bold">!</text>}
-                          {zone.found && zone.severity === 'ok' && <text x={zone.x} y={zone.y + 5} textAnchor="middle" fill={C.green} fontSize={11} fontWeight="bold">✓</text>}
-                          {!zone.found && <text x={zone.x} y={zone.y + 4} textAnchor="middle" fill="#93c5fd" fontSize={10}>?</text>}
-                        </g>
+                        <button
+                          key={zone.id}
+                          onClick={() => handleZoneClick2D(zone)}
+                          title={zone.label}
+                          style={{
+                            position: 'absolute',
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 32, height: 32,
+                            borderRadius: '50%',
+                            border: `2px solid ${color}`,
+                            background: zone.found ? `${color}33` : 'rgba(0,0,0,0.45)',
+                            color: zone.found ? color : '#93c5fd',
+                            fontSize: zone.found ? 14 : 13,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: `0 0 0 3px ${color}44, 0 2px 8px rgba(0,0,0,0.6)`,
+                            transition: 'all 0.2s',
+                            lineHeight: 1,
+                            padding: 0,
+                          }}
+                        >
+                          {zone.found
+                            ? (zone.severity === 'ok' ? '✓' : '!')
+                            : '?'}
+                        </button>
                       );
                     })}
-                  </svg>
+                  </div>
 
                   <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                     {[{ color: C.green, label: 'OK' }, { color: C.amber, label: 'Caution' }, { color: C.red, label: 'Defect' }, { color: '#60a5fa', label: 'Not inspected' }].map(({ color, label }) => (
@@ -486,43 +521,83 @@ function AircraftInspectionGeneral({ sessionId, onComplete }: { sessionId?: stri
               )}
             </div>
 
-            {/* Progress sidebar — always visible */}
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-                <div style={{ color: C.grey, fontSize: 12, marginBottom: 8 }}>Inspection Progress</div>
-                <div style={{ color: C.white, fontSize: 22, fontWeight: 700 }}>{inspected.length}/{zones.length}</div>
-                <div style={{ color: C.grey, fontSize: 12 }}>zones checked</div>
-                <div style={{ height: 4, background: C.border, borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${(inspected.length / zones.length) * 100}%`, background: C.crimson, borderRadius: 4, transition: 'width 0.3s' }} />
-                </div>
+            {/* Progress bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 16px' }}>
+              <span style={{ color: C.grey, fontSize: 12, whiteSpace: 'nowrap' }}>Inspection Progress</span>
+              <div style={{ flex: 1, height: 6, background: C.border, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(inspected.length / zones.length) * 100}%`, background: C.crimson, borderRadius: 4, transition: 'width 0.3s' }} />
               </div>
-
-              {selected && (
-                <div style={{
-                  background: selected.severity === 'ok' ? '#0f1a0f' : selected.severity === 'caution' ? '#1a1400' : '#1a0505',
-                  border: `1px solid ${selected.severity === 'ok' ? '#1a3a1a' : selected.severity === 'caution' ? '#3a2a00' : '#3a0505'}`,
-                  borderRadius: 12, padding: 14, marginBottom: 12,
-                }}>
-                  <div style={{ color: C.grey, fontSize: 11, marginBottom: 4 }}>Last Inspected</div>
-                  <div style={{ color: C.white, fontSize: 14, fontWeight: 600 }}>{selected.label}</div>
-                  <div style={{ color: selected.severity === 'ok' ? C.green : selected.severity === 'caution' ? C.amber : C.red, fontSize: 13, marginTop: 6 }}>
-                    {selected.severity === 'ok' ? '✓ No issues found' : `⚠ ${selected.issue}`}
-                  </div>
-                </div>
-              )}
-
-              {defectsFound.length > 0 && (
-                <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
-                  <div style={{ color: C.grey, fontSize: 11, marginBottom: 8 }}>Findings Log</div>
-                  {defectsFound.map(z => (
-                    <div key={z.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                      <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 12, flexShrink: 0 }}>●</span>
-                      <span style={{ color: C.white, fontSize: 12 }}>{z.label}: {z.issue}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <span style={{ color: C.white, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>{inspected.length}/{zones.length}</span>
             </div>
+
+            {/* Close-Up Inspection Findings */}
+            <div>
+              <div style={{ color: C.white, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Close-Up Inspection Findings</div>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
+                {zones.map(zone => {
+                  const badgeColor = !zone.found ? '#60a5fa' : zone.severity === 'ok' ? C.green : zone.severity === 'caution' ? C.amber : C.red;
+                  const badgeLabel = !zone.found ? 'Inspect' : zone.severity === 'ok' ? 'Clear' : zone.severity === 'caution' ? 'Caution' : 'Defect';
+                  const isSelected = selected?.id === zone.id;
+                  return (
+                    <div key={zone.id} onClick={() => handleZoneClick2D(zone)} style={{
+                      flexShrink: 0,
+                      width: 118,
+                      background: isSelected ? (zone.severity === 'ok' ? '#0f1a0f' : zone.severity === 'caution' ? '#1a1400' : '#1a0505') : C.bgCard,
+                      border: `1.5px solid ${isSelected ? badgeColor : C.border}`,
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      overflow: 'hidden',
+                      transition: 'border-color 0.2s',
+                    }}>
+                      {/* Close-up photo — revealed after inspection */}
+                      {zone.found && ZONE_CLOSEUP[zone.id] ? (
+                        <img
+                          src={ZONE_CLOSEUP[zone.id]}
+                          alt={zone.label}
+                          style={{ width: '100%', height: 72, objectFit: 'cover', display: 'block', filter: 'brightness(1.1) contrast(1.08) saturate(1.1)' }}
+                          draggable={false}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: 72, background: '#060c18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                          <span style={{ color: '#60a5fa', opacity: 0.5 }}>?</span>
+                        </div>
+                      )}
+                      <div style={{ padding: '7px 8px' }}>
+                        <div style={{ color: C.white, fontSize: 10, fontWeight: 600, lineHeight: 1.3, marginBottom: 4 }}>{zone.label}</div>
+                        <div style={{
+                          display: 'inline-block',
+                          background: badgeColor + '22',
+                          color: badgeColor,
+                          border: `1px solid ${badgeColor}44`,
+                          borderRadius: 4,
+                          padding: '1px 6px',
+                          fontSize: 9,
+                          fontWeight: 700,
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.04em',
+                        }}>{badgeLabel}</div>
+                        {zone.found && zone.severity !== 'ok' && (
+                          <div style={{ color: badgeColor, fontSize: 9, marginTop: 4, lineHeight: 1.3 }}>{zone.issue}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Findings log — only when defects found */}
+            {defectsFound.length > 0 && (
+              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
+                <div style={{ color: C.grey, fontSize: 11, marginBottom: 8, fontWeight: 600 }}>Findings Log</div>
+                {defectsFound.map(z => (
+                  <div key={z.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
+                    <span style={{ color: z.severity === 'defect' ? C.red : C.amber, fontSize: 12, flexShrink: 0 }}>●</span>
+                    <span style={{ color: C.white, fontSize: 12 }}>{z.label}: {z.issue}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
