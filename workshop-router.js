@@ -151,18 +151,19 @@ router.post('/create', async (req, res) => {
 
 // Activate question
 router.post('/session/:id/question', async (req, res) => {
-  const { pin, questionIndex } = req.body;
+  const { pin, questionIndex, qIndex } = req.body;
+  const questionIndex_ = questionIndex ?? qIndex;
   try {
     const sr = await run('SELECT * FROM workshop_sessions WHERE id = ?', [req.params.id]);
     const sess = sr.rows[0];
     if (!sess || sess.presenter_pin !== String(pin)) return res.status(401).json({ error: 'Unauthorized' });
-    if (questionIndex < 0 || questionIndex >= QUESTIONS.length) return res.status(400).json({ error: 'Invalid question' });
+    if (questionIndex_ < 0 || questionIndex_ >= QUESTIONS.length) return res.status(400).json({ error: 'Invalid question' });
     const mem = getOrCreateMem(req.params.id);
-    mem.currentQ = questionIndex;
+    mem.currentQ = questionIndex_;
     mem.status = 'active';
     mem.revealAnswer = false;
-    await run(`UPDATE workshop_sessions SET current_q = ?, status = 'active' WHERE id = ?`, [questionIndex, req.params.id]);
-    broadcast(req.params.id, 'question', { question: QUESTIONS[questionIndex], revealAnswer: false, totalQuestions: QUESTIONS.length });
+    await run(`UPDATE workshop_sessions SET current_q = ?, status = 'active' WHERE id = ?`, [questionIndex_, req.params.id]);
+    broadcast(req.params.id, 'question', { question: QUESTIONS[questionIndex_], revealAnswer: false, totalQuestions: QUESTIONS.length });
     res.json({ ok: true });
   } catch (e) {
     console.error('[workshop] question', e);
