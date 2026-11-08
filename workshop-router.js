@@ -135,10 +135,10 @@ router.get('/session/:id/results/:qid', async (req, res) => {
 
 // Create session (presenter)
 router.post('/create', async (req, res) => {
-  const { name, pin } = req.body;
+  const { name, pin, id: customId } = req.body;
   if (!name || !pin || String(pin).length < 4) return res.status(400).json({ error: 'name and pin (min 4 chars) required' });
   try {
-    const id = `osca2026-${Date.now()}`;
+    const id = customId ? String(customId).trim() : `osca2026-${Date.now()}`;
     await run(
       `INSERT INTO workshop_sessions (id, name, presenter_pin, status, current_q) VALUES (?, ?, ?, 'waiting', -1)`,
       [id, name, String(pin)]
