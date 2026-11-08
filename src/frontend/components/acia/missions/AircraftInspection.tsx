@@ -1,3 +1,4 @@
+// v2 — Aircraft 214 overview
 import { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import type { EvidenceItem } from '../types';
 import { AircraftAssembly } from './AircraftAssembly';
