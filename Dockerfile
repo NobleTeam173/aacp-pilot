@@ -9,6 +9,7 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # Copy source
 COPY worker.js ./
 COPY server.js ./
+COPY workshop-router.js ./
 COPY src/ ./src/
 
 EXPOSE 8080

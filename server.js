@@ -2,6 +2,7 @@
 import express from 'express';
 import { buildEnv } from './src/env-builder.js';
 import worker from './worker.js';
+import workshopRouter from './workshop-router.js';
 
 const app  = express();
 const PORT = process.env.PORT || 8080;
@@ -10,8 +11,13 @@ const env  = buildEnv();
 // Parse body as raw buffer so worker can re-read it as text/json
 app.use(express.raw({ type: '*/*', limit: '10mb' }));
 
+// Workshop routes need JSON body parsing — apply before mounting
+app.use('/workshop', express.json());
+app.use('/workshop', workshopRouter);
+
 // Health check — ALB and ECS use this
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // All other requests forwarded to the Cloudflare Worker handler
 app.all('*', async (req, res) => {
