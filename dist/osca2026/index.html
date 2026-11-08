@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OSCA 2026 Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08020a; --surface: #120916; --surface2: #1c1024; --surface3: #251530;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --fg: #f0eaf4; --fg2: #b4a4c4; --fg3: #7a6890;
+  --crimson: #80011f; --crimson-h: #9a0126; --crimson-soft: rgba(128,1,31,0.15);
+  --gold: #c8a84b; --green: #2a7a4f; --green-fg: #48ba7c;
+  --radius: 12px; --radius-sm: 8px;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;scroll-behavior:smooth}
+body{
+  min-height:100%;background:var(--bg);color:var(--fg);
+  font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.5;
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);
+  display:flex;flex-direction:column;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:12px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;
+}
+.logo-mark{
+  width:34px;height:34px;border-radius:8px;background:var(--crimson);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:#fff;
+}
+.logo-text{flex:1;min-width:0}
+.logo-text strong{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo-text span{font-size:11px;color:var(--fg3);display:block}
+.phase-badge{
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  background:var(--crimson-soft);border:1px solid rgba(128,1,31,0.35);color:#e06070;
+}
+
+/* ── Tab nav ──────────────────────────────────────────────── */
+.tab-nav{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;scrollbar-width:none;
+  padding:0 max(16px,env(safe-area-inset-left,0px));
+  position:sticky;top:57px;z-index:49;
+  -webkit-overflow-scrolling:touch;
+}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex-shrink:0;padding:11px 16px;font-size:13px;font-weight:500;
+  color:var(--fg3);border:none;background:none;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:color .15s,border-color .15s;display:flex;align-items:center;gap:6px;
+}
+.tab-btn:hover{color:var(--fg2)}
+.tab-btn.active{color:var(--fg);border-bottom-color:var(--crimson)}
+.tab-icon{font-size:14px}
+
+/* ── Tab panels ───────────────────────────────────────────── */
+.tab-panel{display:none;padding:20px max(16px,env(safe-area-inset-left,0px)) 48px;max-width:720px;margin:0 auto;width:100%}
+.tab-panel.active{display:block}
+
+/* ── Section headers ──────────────────────────────────────── */
+.section-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px}
+.section-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;margin-bottom:6px;line-height:1.2}
+.section-sub{font-size:14px;color:var(--fg2);margin-bottom:24px;line-height:1.6}
+
+/* ── Before/During/After banner ───────────────────────────── */
+.bda-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:28px;
+}
+.bda-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px;
+}
+.bda-card h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--crimson);margin-bottom:6px}
+.bda-card p{font-size:12px;color:var(--fg2);line-height:1.5}
+
+/* ── Career cards ─────────────────────────────────────────── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border2);
+  background:transparent;color:var(--fg2);cursor:pointer;transition:all .15s;
+}
+.filter-btn:hover{border-color:var(--crimson);color:var(--fg)}
+.filter-btn.active{background:var(--crimson);border-color:var(--crimson);color:#fff}
+
+.career-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.career-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;cursor:pointer;transition:border-color .15s,background .15s;
+}
+.career-card:hover{border-color:var(--border2);background:var(--surface2)}
+.career-card.open{border-color:rgba(128,1,31,0.4);background:var(--surface2)}
+.career-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.career-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.career-sector{font-size:11px;color:var(--fg3)}
+.demand-pill{
+  font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+}
+.demand-critical{background:rgba(200,168,75,0.15);color:var(--gold);border:1px solid rgba(200,168,75,0.3)}
+.demand-high{background:rgba(42,122,79,0.15);color:var(--green-fg);border:1px solid rgba(42,122,79,0.3)}
+.demand-growing{background:rgba(100,100,220,0.15);color:#a0a0f0;border:1px solid rgba(100,100,220,0.3)}
+
+.career-salary{font-size:14px;font-weight:600;color:var(--gold);margin-top:10px}
+.career-detail{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;display:none}
+.career-card.open .career-detail{display:block}
+.detail-row{display:flex;gap:8px;margin-bottom:8px;font-size:13px}
+.detail-icon{color:var(--fg3);flex-shrink:0;width:18px}
+.detail-text{color:var(--fg2);line-height:1.5}
+.detail-text strong{color:var(--fg);font-weight:500}
+.tip-box{
+  background:var(--crimson-soft);border:1px solid rgba(128,1,31,0.3);
+  border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;
+}
+.tip-box p{font-size:12px;color:#e06070;line-height:1.5}
+.tip-box p::before{content:'Note: ';font-style:normal;font-weight:600;color:inherit}
+
+/* ── Resources tab ────────────────────────────────────────── */
+.resource-section{margin-bottom:32px}
+.resource-section h3{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.talking-points{display:flex;flex-direction:column;gap:8px}
+.tp{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 16px;display:flex;gap:12px;align-items:flex-start;
+}
+.tp-num{
+  width:24px;height:24px;border-radius:50%;background:var(--crimson);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;
+}
+.tp-body strong{font-size:14px;font-weight:600;display:block;margin-bottom:3px}
+.tp-body p{font-size:13px;color:var(--fg2);line-height:1.5}
+
+.objection-grid{display:flex;flex-direction:column;gap:10px}
+.obj{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;
+}
+.obj-q{font-size:13px;font-weight:600;color:var(--fg2);margin-bottom:6px}
+.obj-q::before{content:'"';color:var(--fg3)}
+.obj-q::after{content:'"';color:var(--fg3)}
+.obj-a{font-size:13px;color:var(--fg2);line-height:1.5;padding-left:12px;border-left:2px solid var(--crimson)}
+
+.steps{display:flex;flex-direction:column;gap:10px}
+.step{display:flex;gap:12px;align-items:flex-start}
+.step-num{
+  width:28px;height:28px;border-radius:50%;border:2px solid var(--crimson);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--crimson);
+}
+.step-body strong{font-size:14px;font-weight:600;display:block;margin-bottom:2px}
+.step-body p{font-size:13px;color:var(--fg2)}
+
+/* ── Poll tab ─────────────────────────────────────────────── */
+.poll-wrap{max-width:480px;margin:0 auto}
+.screen{display:none}
+.screen.active{display:block}
+
+/* Join screen */
+.join-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;text-align:center;
+}
+.join-card h2{font-family:'Fraunces',serif;font-size:22px;margin-bottom:8px}
+.join-card p{font-size:14px;color:var(--fg2);margin-bottom:20px;line-height:1.6}
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--fg2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.field input{
+  width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius-sm);color:var(--fg);font-size:14px;font-family:inherit;
+  transition:border-color .15s;
+}
+.field input:focus{outline:none;border-color:var(--crimson)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;
+  font-family:inherit;cursor:pointer;border:none;transition:all .15s;width:100%;
+}
+.btn-primary{background:var(--crimson);color:#fff}
+.btn-primary:hover{background:var(--crimson-h)}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--fg2)}
+.btn-outline:hover{border-color:var(--fg2);color:var(--fg)}
+
+/* Video screen */
+.video-wrap{position:relative;border-radius:var(--radius);overflow:hidden;background:#000;margin-bottom:16px;aspect-ratio:16/9}
+.video-wrap video{width:100%;height:100%;object-fit:cover}
+.video-placeholder{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,#0d0514,#1a0828);
+}
+.video-placeholder .play-icon{font-size:40px;opacity:.4}
+.video-placeholder .video-title{font-family:'Fraunces',serif;font-size:18px;color:var(--fg2);text-align:center;padding:0 16px}
+
+/* Waiting */
+.waiting{text-align:center;padding:32px 0}
+.pulse{font-size:36px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1.05)}}
+.waiting p{color:var(--fg2);font-size:14px;margin-top:12px}
+
+/* Question */
+.round-badge{
+  display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:12px;
+  background:var(--crimson-soft);border:1px solid rgba(128,1,31,0.35);color:#e06070;
+}
+.progress-bar{height:3px;background:var(--surface2);border-radius:3px;margin-bottom:16px;overflow:hidden}
+.progress-fill{height:100%;background:var(--crimson);transition:width .4s ease}
+.question-text{font-size:17px;font-weight:600;line-height:1.4;margin-bottom:20px}
+.options{display:flex;flex-direction:column;gap:8px}
+.option-btn{
+  width:100%;padding:12px 16px;text-align:left;background:var(--surface);
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--fg);font-size:14px;font-family:inherit;cursor:pointer;
+  transition:all .15s;
+}
+.option-btn:hover:not(:disabled){background:var(--surface2);border-color:var(--fg3)}
+.option-btn.selected{background:var(--crimson-soft);border-color:rgba(128,1,31,0.5);color:var(--fg)}
+.option-btn.correct{background:rgba(42,122,79,0.2);border-color:rgba(42,122,79,0.5);color:var(--green-fg)}
+.option-btn.wrong{background:rgba(180,40,40,0.15);border-color:rgba(180,40,40,0.4);opacity:.7}
+.option-btn:disabled{cursor:default}
+.word-input{display:flex;gap:8px;margin-top:4px}
+.word-input input{flex:1;padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--fg);font-size:14px;font-family:inherit}
+.word-input input:focus{outline:none;border-color:var(--crimson)}
+.word-input button{padding:11px 16px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
+.open-input{display:flex;flex-direction:column;gap:8px}
+.open-input textarea{
+  width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius-sm);color:var(--fg);font-size:14px;font-family:inherit;
+  resize:vertical;min-height:90px;line-height:1.5;
+}
+.open-input textarea:focus{outline:none;border-color:var(--crimson)}
+.reveal-banner{
+  background:rgba(42,122,79,0.15);border:1px solid rgba(42,122,79,0.4);
+  border-radius:var(--radius-sm);padding:12px 14px;margin-top:14px;display:none;
+}
+.reveal-banner strong{color:var(--green-fg);display:block;margin-bottom:4px}
+.reveal-banner p{font-size:13px;color:var(--fg2);line-height:1.5}
+.submitted-check{
+  background:rgba(42,122,79,0.1);border:1px solid rgba(42,122,79,0.3);
+  border-radius:var(--radius-sm);padding:12px 14px;text-align:center;
+}
+.submitted-check .check{font-size:22px;margin-bottom:4px}
+.submitted-check p{font-size:13px;color:var(--green-fg)}
+
+/* Thank you */
+.thankyou{text-align:center;padding:24px 0}
+.thankyou h2{font-family:'Fraunces',serif;font-size:22px;margin-bottom:8px}
+.thankyou p{font-size:14px;color:var(--fg2);line-height:1.6;margin-bottom:16px}
+
+/* ── AACP Programs tab ────────────────────────────────────── */
+.program-grid{display:flex;flex-direction:column;gap:14px}
+.program-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;
+}
+.program-card h3{font-size:16px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.program-card .prog-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);margin-bottom:10px}
+.program-card p{font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px}
+.program-card ul{padding-left:16px;font-size:13px;color:var(--fg2);line-height:1.8}
+.cta-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.cta-btn{
+  padding:7px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;border:none;transition:all .15s;text-decoration:none;display:inline-flex;
+}
+.cta-crimson{background:var(--crimson);color:#fff}
+.cta-crimson:hover{background:var(--crimson-h)}
+.cta-outline{background:transparent;border:1px solid var(--border2);color:var(--fg2)}
+.cta-outline:hover{border-color:var(--fg2);color:var(--fg)}
+
+.contact-block{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;text-align:center;margin-top:28px;
+}
+.contact-block h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.contact-block p{font-size:13px;color:var(--fg2);margin-bottom:4px}
+.contact-block a{color:var(--crimson);text-decoration:none}
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:env(safe-area-inset-bottom,16px);left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:10px 18px;font-size:13px;z-index:200;white-space:nowrap;
+  transition:transform .3s;pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">A</div>
+  <div class="logo-text">
+    <strong>Aviation &amp; Aerospace Careers Hub</strong>
+    <span>OSCA 2026 · C-3 · North Studio 2</span>
+  </div>
+  <div class="phase-badge" id="phase-badge">Before</div>
+</header>
+
+<nav class="tab-nav" role="tablist">
+  <button class="tab-btn active" data-tab="careers" role="tab">Career Pathways</button>
+  <button class="tab-btn" data-tab="resources" role="tab">Counsellor Resources</button>
+  <button class="tab-btn" data-tab="poll" role="tab">Workshop Poll</button>
+  <button class="tab-btn" data-tab="programs" role="tab">AACP Programs</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 1 — CAREER PATHWAYS
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-careers">
+  <div class="bda-row">
+    <div class="bda-card">
+      <h4>Before</h4>
+      <p>Explore aviation careers and prepare questions for the workshop</p>
+    </div>
+    <div class="bda-card">
+      <h4>During</h4>
+      <p>Use real data to inform the live poll discussion</p>
+    </div>
+    <div class="bda-card">
+      <h4>After</h4>
+      <p>Share career information directly with students</p>
+    </div>
+  </div>
+
+  <div class="section-label">Career Explorer</div>
+  <h1 class="section-title">Aviation &amp; Aerospace Career Pathways</h1>
+  <p class="section-sub">Click any career to see salary ranges, education requirements, and workforce demand data. Sources: Transport Canada Aviation Workforce Outlook 2024, NAV CANADA, ESDC Labour Market Intelligence 2025.</p>
+
+  <div style="margin-bottom:14px">
+    <input type="search" id="career-search" placeholder="Search careers, e.g. pilot, engineer, drone…"
+      style="width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--fg);font-size:14px;font-family:inherit;"
+      autocomplete="off">
+  </div>
+  <div class="filter-row" id="career-filters">
+    <button class="filter-btn active" data-filter="all">All Careers</button>
+    <button class="filter-btn" data-filter="flight">Flight Operations</button>
+    <button class="filter-btn" data-filter="technical">Technical</button>
+    <button class="filter-btn" data-filter="engineering">Engineering</button>
+    <button class="filter-btn" data-filter="safety">Operations &amp; Safety</button>
+    <button class="filter-btn" data-filter="rpas">RPAS / Unmanned</button>
+  </div>
+
+  <div class="career-grid" id="career-grid"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 2 — COUNSELLOR RESOURCES
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-resources">
+  <div class="bda-row">
+    <div class="bda-card">
+      <h4>Before</h4>
+      <p>Build confidence in aviation career conversations</p>
+    </div>
+    <div class="bda-card">
+      <h4>During</h4>
+      <p>Use talking points to deepen workshop discussions</p>
+    </div>
+    <div class="bda-card">
+      <h4>After</h4>
+      <p>Bring practical guidance back to your school</p>
+    </div>
+  </div>
+
+  <div class="resource-section">
+    <h3>Guides &amp; Resources</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);margin-bottom:6px">Career Guide</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Aviation Career Pathways</div>
+        <p style="font-size:12px;color:var(--fg2);margin-bottom:10px;line-height:1.5">Salary ranges, education requirements and demand data for 40+ roles. Share with students and parents.</p>
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson" style="font-size:12px">Request Guide</a>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);margin-bottom:6px">Counsellor Resource</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Counsellor Engagement Toolkit</div>
+        <p style="font-size:12px;color:var(--fg2);margin-bottom:10px;line-height:1.5">Talking points, objection scripts, referral steps, and links to AACP programs — ready to use in advising sessions.</p>
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson" style="font-size:12px">Request Toolkit</a>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);margin-bottom:6px">School Engagement</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Bring Aviation to Your School</div>
+        <p style="font-size:12px;color:var(--fg2);margin-bottom:10px;line-height:1.5">Step-by-step guide for integrating aviation career awareness into Grade 10–12 programming. Available in EN &amp; FR.</p>
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson" style="font-size:12px">Request Guide</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="resource-section">
+    <h3>Key Talking Points for Students</h3>
+    <div class="talking-points">
+      <div class="tp">
+        <div class="tp-num">1</div>
+        <div class="tp-body">
+          <strong>You don't need a university degree</strong>
+          <p>Most aviation careers — pilot, AME, ATCO, avionics — are entered through college programs or direct licensing. University engineering is one path, not the only path.</p>
+        </div>
+      </div>
+      <div class="tp">
+        <div class="tp-num">2</div>
+        <div class="tp-body">
+          <strong>The industry faces a significant workforce shortage</strong>
+          <p>Canada faces a documented shortage across all aviation roles. Transport Canada projects demand will outpace supply through 2033+. Many programs report strong employment outcomes. (Source: Transport Canada Aviation Workforce Outlook 2024)</p>
+        </div>
+      </div>
+      <div class="tp">
+        <div class="tp-num">3</div>
+        <div class="tp-body">
+          <strong>Salaries are competitive — and growing</strong>
+          <p>AMEs earn $65K–$120K. ATCOs $80K–$160K. Airline captains $180K–$250K+. These aren't entry-level figures — but progression is faster than in most fields. (Source: ESDC Labour Market Intelligence 2025, NAV CANADA salary bands)</p>
+        </div>
+      </div>
+      <div class="tp">
+        <div class="tp-num">4</div>
+        <div class="tp-body">
+          <strong>STEM is a pathway, not a barrier</strong>
+          <p>Strong math and physics open more doors, but many technical roles require trade-level academics, not academic excellence. Curiosity and hands-on aptitude matter more.</p>
+        </div>
+      </div>
+      <div class="tp">
+        <div class="tp-num">5</div>
+        <div class="tp-body">
+          <strong>Aviation is more diverse than it looks</strong>
+          <p>Careers span operations, logistics, IT, safety, management, manufacturing, and more. There's a role for every student — including those who don't want to fly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="resource-section">
+    <h3>Common Student &amp; Parent Objections</h3>
+    <div class="objection-grid">
+      <div class="obj">
+        <div class="obj-q">My marks aren't good enough</div>
+        <div class="obj-a">Most aviation programs admit on aptitude and passion, not just grades. College flight programs, AME programs, and RPAS certifications have accessible entry requirements. AACP's ACIA™ assessment helps students understand their fit.</div>
+      </div>
+      <div class="obj">
+        <div class="obj-q">Flight training is too expensive — we can't afford it</div>
+        <div class="obj-a">Training costs are real, but scholarships, bursaries, and airline sponsorship programs exist. Some carriers offer cadet programs that fund training in exchange for a service commitment. AACP can connect students with funding pathways.</div>
+      </div>
+      <div class="obj">
+        <div class="obj-q">Is aviation a stable career? What about layoffs?</div>
+        <div class="obj-a">The 2020 disruption was real, but the structural shortage that followed is lasting. Transport Canada projects demand will outpace supply through 2033+. Skilled aviation tradespeople remained employed even during the peak of COVID restrictions.</div>
+      </div>
+      <div class="obj">
+        <div class="obj-q">My daughter wants to be a pilot — but it's so male-dominated</div>
+        <div class="obj-a">The industry is actively working to change this. Organizations like IAWA Canada and WIA offer mentorship. Airlines are specifically recruiting women. The workforce is shifting and representation is growing — now is a great time to enter.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="resource-section">
+    <h3>Bring Aviation to Your School</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Connect a student to AACP</strong>
+          <p>Refer any student showing interest to <a href="https://aviationaerospacecompetency.com" target="_blank" style="color:var(--crimson)">aviationaerospacecompetency.com</a> — they can explore pathways and complete the ACIA™.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Request a school visit or virtual session</strong>
+          <p>AACP can arrange aviation professionals and educators to present to your class or career fair. No cost to schools.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Integrate into your programming</strong>
+          <p>Add aviation pathway information to your Grade 10–12 career exploration resources. AACP materials are available in English and French.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Share this hub with your students</strong>
+          <p>This page is publicly accessible. Send the link or QR code to any student who expresses interest in aviation or aerospace.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 3 — WORKSHOP POLL
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-poll">
+  <div class="bda-row">
+    <div class="bda-card">
+      <h4>Before</h4>
+      <p>Wait for presenter to open the poll — explore other tabs</p>
+    </div>
+    <div class="bda-card">
+      <h4>During</h4>
+      <p>Answer questions and see your collective responses in real time</p>
+    </div>
+    <div class="bda-card">
+      <h4>After</h4>
+      <p>Reflect on what your group revealed about aviation awareness</p>
+    </div>
+  </div>
+
+  <div class="poll-wrap">
+
+    <!-- Join screen -->
+    <div class="screen active" id="screen-join">
+      <div class="join-card">
+        <h2>Join the Poll</h2>
+        <p>Enter the session code shown by your presenter, or wait — it may load automatically.</p>
+        <div class="field">
+          <label>Session Code</label>
+          <input type="text" id="session-input" placeholder="e.g. osca2026-1234567890" autocapitalize="none">
+        </div>
+        <button class="btn btn-primary" id="join-btn">Join Workshop</button>
+        <p style="margin-top:14px;font-size:12px;color:var(--fg3)">Your responses are anonymous. No personal data is collected.</p>
+      </div>
+    </div>
+
+    <!-- Video screen -->
+    <div class="screen" id="screen-video">
+      <div class="round-badge">Opening · One Seed. Many Possibilities.</div>
+      <div class="video-wrap">
+        <video id="poll-video" playsinline controls preload="none" poster="">
+          <source id="video-src" src="/osca2026/one-seed.mp4" type="video/mp4">
+        </video>
+        <div class="video-placeholder" id="video-placeholder">
+          <div class="video-title">One Seed. Many Possibilities.</div>
+          <p style="font-size:12px;color:var(--fg3);padding:0 16px;text-align:center">An AACP film</p>
+        </div>
+      </div>
+      <button class="btn btn-outline" id="skip-video-btn" style="margin-top:4px">Continue to Workshop</button>
+    </div>
+
+    <!-- Waiting screen -->
+    <div class="screen" id="screen-waiting">
+      <div class="waiting">
+        <div class="pulse" style="font-size:36px;animation:pulse 2s ease-in-out infinite">—</div>
+        <p>Waiting for the presenter to begin…</p>
+        <p style="font-size:12px;margin-top:6px;color:var(--fg3)">Keep this tab open — questions will appear automatically.</p>
+      </div>
+    </div>
+
+    <!-- Question screen -->
+    <div class="screen" id="screen-question">
+      <div class="round-badge" id="q-round"></div>
+      <div class="progress-bar"><div class="progress-fill" id="q-progress"></div></div>
+      <div class="question-text" id="q-text"></div>
+      <div id="q-answer-area"></div>
+      <div class="reveal-banner" id="reveal-banner">
+        <strong id="reveal-title"></strong>
+        <p id="reveal-explanation"></p>
+      </div>
+    </div>
+
+    <!-- Thank you screen -->
+    <div class="screen" id="screen-thankyou">
+      <div class="thankyou">
+        <h2>Thank you</h2>
+        <p>Your insights have been recorded. Explore the other tabs to take aviation career resources back to your school.</p>
+        <button class="btn btn-outline" onclick="switchTab('careers')" style="max-width:260px;margin:0 auto">Explore Career Pathways</button>
+      </div>
+    </div>
+
+  </div><!-- .poll-wrap -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 4 — AACP PROGRAMS
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-programs">
+  <div class="bda-row">
+    <div class="bda-card">
+      <h4>Before</h4>
+      <p>Understand what AACP offers before the session begins</p>
+    </div>
+    <div class="bda-card">
+      <h4>During</h4>
+      <p>Identify which programs best fit the students you work with</p>
+    </div>
+    <div class="bda-card">
+      <h4>After</h4>
+      <p>Refer students and partner your school with AACP</p>
+    </div>
+  </div>
+
+  <div class="section-label">What We Offer</div>
+  <h1 class="section-title">AACP Programs &amp; Pathways</h1>
+  <p class="section-sub">Aviation &amp; Aerospace Competency Program supports students, schools, and educators across Canada.</p>
+
+  <div class="program-grid">
+    <div class="program-card">
+      <div class="prog-label">Career Discovery</div>
+      <h3>ACIA™</h3>
+      <p>The Aviation Career Intelligence Assessment (ACIA™) is AACP's competency intelligence tool — it helps students understand how their strengths, interests, and aptitudes align with specific aviation and aerospace career pathways, before they commit to training.</p>
+      <ul>
+        <li>Competency-based career pathway alignment</li>
+        <li>Personalized pathway report</li>
+        <li>Covers 40+ aviation and aerospace roles</li>
+        <li>Designed to inform, not to screen or rank</li>
+      </ul>
+      <div class="cta-row">
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson">Refer a Student</a>
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-outline">Learn More</a>
+      </div>
+    </div>
+
+    <div class="program-card">
+      <div class="prog-label">Skills Training</div>
+      <h3>RPAS Workforce Hub</h3>
+      <p>AACP's RPAS Workforce Hub provides Transport Canada–aligned drone pilot certification training and workforce development for students entering the fastest-growing segment of Canadian aviation.</p>
+      <ul>
+        <li>Basic and Advanced RPAS operations</li>
+        <li>Transport Canada Small RPAS certification pathway</li>
+        <li>Practical and written exam preparation</li>
+        <li>Industry employer connections and workforce placement</li>
+      </ul>
+      <div class="cta-row">
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson">Program Details</a>
+      </div>
+    </div>
+
+    <div class="program-card">
+      <div class="prog-label">School Partnership</div>
+      <h3>School Integration</h3>
+      <p>AACP works directly with school boards and guidance departments to integrate aviation career awareness into existing programming — at no cost to schools.</p>
+      <ul>
+        <li>In-class and virtual career presentations</li>
+        <li>Career fair presence and materials</li>
+        <li>ACIA™ assessment access for entire cohorts</li>
+        <li>Counsellor professional development resources</li>
+        <li>Industry professional mentorship connections</li>
+      </ul>
+      <div class="cta-row">
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson">Partner with AACP</a>
+      </div>
+    </div>
+
+    <div class="program-card">
+      <div class="prog-label">Career Events</div>
+      <h3>Discovery Events</h3>
+      <p>AACP hosts and co-sponsors aviation career discovery events across Canada — connecting students directly with industry professionals, training programs, and hiring employers.</p>
+      <ul>
+        <li>Regional career expos and airshows</li>
+        <li>Industry partner employer panels</li>
+        <li>Scholarship and award programs</li>
+        <li>Post-secondary pathway information sessions</li>
+      </ul>
+      <div class="cta-row">
+        <a href="https://aviationaerospacecompetency.com" target="_blank" class="cta-btn cta-crimson">Upcoming Events</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-block">
+    <h3>Connect with AACP</h3>
+    <p>To bring AACP into your school or refer a student:</p>
+    <p><a href="https://aviationaerospacecompetency.com">aviationaerospacecompetency.com</a></p>
+    <p style="margin-top:8px;font-size:12px;color:var(--fg3)">Session C-3 · OSCA/ACOSO 2026 · November 9, 2026</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+const API = '';
+const TOTAL_QUESTIONS = 8;
+let sessionId = '', participantId = '', submittedQIds = new Set(), currentQ = null, eventSource = null;
+
+// ── Persist participant ID ──────────────────────────────────
+try {
+  participantId = localStorage.getItem('osca_pid') || '';
+  if (!participantId) {
+    participantId = 'p' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+    localStorage.setItem('osca_pid', participantId);
+  }
+  const sub = JSON.parse(localStorage.getItem('osca_submitted') || '[]');
+  sub.forEach(id => submittedQIds.add(id));
+} catch {}
+
+// ── Tab switching ───────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  updatePhaseBadge(name);
+}
+window.switchTab = switchTab;
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function updatePhaseBadge(tab) {
+  const badge = document.getElementById('phase-badge');
+  const labels = { careers: 'Before', resources: 'Before', poll: 'During', programs: 'After' };
+  badge.textContent = labels[tab] || 'Before';
+}
+
+// ── Career filter ───────────────────────────────────────────
+const careers = [
+  { name:'Commercial Pilot', sector:'Flight Operations', filter:'flight', salary:'$60K–$250K+', demand:'critical', demandLabel:'Critical Shortage',
+    education:'College flight program + Transport Canada CPL/ATPL', duration:'2–4 years', math:'Grade 12 math & physics recommended',
+    description:'Fly passengers and cargo for regional airlines, national carriers, charter operators, and corporate aviation.',
+    counsellorTip:'The salary ceiling is high and demand is urgent. Many airlines now offer cadet sponsorship programs — funding training in exchange for service commitments.' },
+  { name:'Aircraft Maintenance Engineer (AME)', sector:'Technical', filter:'technical', salary:'$65K–$120K', demand:'critical', demandLabel:'Critical Shortage',
+    education:'College AME program (M1, M2, or E licences) + Transport Canada written exams', duration:'2–3 years', math:'Grade 11 math, physics helpful',
+    description:'Certify aircraft airworthiness, perform scheduled maintenance, troubleshoot complex systems on commercial and private aircraft.',
+    counsellorTip:'AMEs are among the most in-demand roles in Canadian aviation. College programs at SAIT, BCIT, Confederation College, and others lead directly to employment.' },
+  { name:'Air Traffic Controller (ATCO)', sector:'Operations & Safety', filter:'safety', salary:'$80K–$160K', demand:'high', demandLabel:'High Demand',
+    education:'Nav Canada ATC training program (selected from applicants)', duration:'18 months training', math:'Strong math and spatial reasoning',
+    description:'Manage the safe, orderly flow of aircraft in Canadian airspace from towers, terminal radar, and en route facilities across the country.',
+    counsellorTip:'Nav Canada recruits directly — no specific post-secondary required. Aptitude and medical fitness matter most. Competitive salary with Nav Canada pension.' },
+  { name:'Aerospace Engineer', sector:'Engineering', filter:'engineering', salary:'$75K–$140K', demand:'high', demandLabel:'High Demand',
+    education:'Engineering degree (aerospace, mechanical, electrical)', duration:'4 years university', math:'Strong Grade 12 math, physics, calculus',
+    description:'Design, develop, and test aircraft, spacecraft, satellites, and propulsion systems for manufacturers like Bombardier, MDA, and CAE.',
+    counsellorTip:'One of the clearest university-to-aviation pathways. Ontario has strong aerospace manufacturing clusters — graduates often work locally.' },
+  { name:'Avionics Technician', sector:'Technical', filter:'technical', salary:'$65K–$110K', demand:'critical', demandLabel:'Critical Shortage',
+    education:'College avionics program + TC Avionics (E) licence', duration:'2–3 years', math:'Electronics, Grade 11 math',
+    description:'Install, maintain, and repair aircraft navigation, communication, and flight control electronic systems.',
+    counsellorTip:'One of the least visible but most in-demand aviation trades. Electronics aptitude matters more than aviation background — a great fit for technically inclined students.' },
+  { name:'Aviation Safety Inspector', sector:'Operations & Safety', filter:'safety', salary:'$85K–$140K', demand:'high', demandLabel:'High Demand',
+    education:'Aviation background (pilot, AME, or operations) + Transport Canada certification', duration:'Varies', math:'Varies by stream',
+    description:'Transport Canada employees who oversee airline and airport compliance, conduct audits, investigate incidents, and certify aviation operations.',
+    counsellorTip:'A respected federal career that requires industry experience first. Great long-term goal for students who start as pilots or AMEs.' },
+  { name:'RPAS / Drone Operator', sector:'RPAS / Unmanned', filter:'rpas', salary:'$45K–$95K', demand:'growing', demandLabel:'Fast Growing',
+    education:'Transport Canada Basic or Advanced RPAS Pilot Certificate', duration:'Days to weeks', math:'Minimal formal requirements',
+    description:'Operate drones commercially for survey, inspection, agriculture, filmmaking, emergency services, and infrastructure monitoring.',
+    counsellorTip:'The lowest barrier to entry in Canadian aviation. Certifications are obtainable in days. The commercial drone sector is expanding rapidly with new use cases every year.' },
+  { name:'Airport Operations Specialist', sector:'Operations & Safety', filter:'safety', salary:'$45K–$90K', demand:'high', demandLabel:'High Demand',
+    education:'College airport operations or aviation administration program', duration:'1–2 years', math:'General academic requirements',
+    description:'Coordinate airfield operations, ground handling, emergency response, and security compliance at Canadian airports.',
+    counsellorTip:'A strong entry point into aviation for students who want operational roles without flight or engineering training. Many airports in Ontario are hiring.' },
+  { name:'Aircraft Dispatcher', sector:'Flight Operations', filter:'flight', salary:'$55K–$95K', demand:'high', demandLabel:'High Demand',
+    education:'College flight dispatch program + TC Aircraft Dispatcher Licence', duration:'1 year', math:'General math, geography helpful',
+    description:'Plan flight routes, calculate fuel loads, monitor weather, and maintain communications with flight crews during airline operations.',
+    counsellorTip:'Dispatchers hold the same legal authority as pilots for flight go/no-go decisions. Lesser-known but high-responsibility — great for students who want to be in aviation without flying.' },
+  { name:'Aerospace Manufacturing Technologist', sector:'Engineering', filter:'engineering', salary:'$55K–$95K', demand:'growing', demandLabel:'Growing',
+    education:'College manufacturing technology or CNC machining program', duration:'2 years', math:'Technical math, applied physics',
+    description:'Fabricate, assemble, and quality-inspect aerospace structural components, composites, and precision parts for aircraft and spacecraft manufacturers.',
+    counsellorTip:'Bombardier, CAE, Héroux-Devtek, and Safran all have Ontario facilities. College pathways, not university. Great fit for hands-on learners.' },
+];
+
+function renderCareers(filter, query) {
+  const grid = document.getElementById('career-grid');
+  let filtered = filter === 'all' ? careers : careers.filter(c => c.filter === filter);
+  if (query) {
+    filtered = filtered.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.sector.toLowerCase().includes(query) ||
+      c.description.toLowerCase().includes(query) ||
+      c.counsellorTip.toLowerCase().includes(query)
+    );
+  }
+  grid.innerHTML = filtered.map((c,i) => `
+    <div class="career-card" data-idx="${i}" data-filter="${c.filter}">
+      <div class="career-top">
+        <div>
+          <div class="career-name">${c.name}</div>
+          <div class="career-sector">${c.sector}</div>
+        </div>
+        <span class="demand-pill demand-${c.demand}">${c.demandLabel}</span>
+      </div>
+      <div class="career-salary">${c.salary} / year</div>
+      <div class="career-detail">
+        <div class="detail-row"><div class="detail-text"><strong>Education:</strong> ${c.education}</div></div>
+        <div class="detail-row"><div class="detail-text"><strong>Timeline:</strong> ${c.duration}</div></div>
+        <div class="detail-row"><div class="detail-text"><strong>Math/Science:</strong> ${c.math}</div></div>
+        <div class="detail-row"><div class="detail-text">${c.description}</div></div>
+        <div class="tip-box"><p>${c.counsellorTip}</p></div>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.career-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const wasOpen = card.classList.contains('open');
+      grid.querySelectorAll('.career-card').forEach(c => c.classList.remove('open'));
+      if (!wasOpen) card.classList.add('open');
+    });
+  });
+}
+
+document.getElementById('career-filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('career-search').value = '';
+  renderCareers(btn.dataset.filter, '');
+});
+
+document.getElementById('career-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  renderCareers('all', q);
+});
+
+renderCareers('all', '');
+
+// ── Poll: video ─────────────────────────────────────────────
+const video = document.getElementById('poll-video');
+video.addEventListener('loadeddata', () => {
+  document.getElementById('video-placeholder').style.display = 'none';
+});
+video.addEventListener('error', () => {
+  document.getElementById('video-placeholder').style.display = 'flex';
+});
+document.getElementById('skip-video-btn').addEventListener('click', () => showScreen('waiting'));
+
+// ── Poll: join ──────────────────────────────────────────────
+document.getElementById('join-btn').addEventListener('click', () => {
+  const val = document.getElementById('session-input').value.trim();
+  if (!val) { showToast('Enter the session code from the presenter'); return; }
+  joinSession(val);
+});
+
+async function joinSession(sid) {
+  try {
+    const r = await fetch(`${API}/workshop/session/${sid}`);
+    if (!r.ok) { showToast('Session not found — check the code'); return; }
+    const data = await r.json();
+    sessionId = sid;
+    try { localStorage.setItem('osca_session', sid); } catch {}
+    if (data.status === 'waiting') {
+      showScreen('video');
+    } else if (data.status === 'active') {
+      showScreen('waiting');
+    } else {
+      showScreen('thankyou');
+    }
+    connectSSE(sid);
+  } catch { showToast('Could not connect — check your session code'); }
+}
+
+// ── Auto-rejoin ─────────────────────────────────────────────
+try {
+  const saved = localStorage.getItem('osca_session');
+  if (saved) document.getElementById('session-input').value = saved;
+} catch {}
+
+// ── SSE ─────────────────────────────────────────────────────
+function connectSSE(sid) {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(`${API}/workshop/session/${sid}/stream`);
+
+  eventSource.addEventListener('state', e => {
+    const d = JSON.parse(e.data);
+    if (d.status === 'closed') { showScreen('thankyou'); return; }
+    if (d.currentQ >= 0 && d.currentQuestion) {
+      currentQ = d.currentQuestion;
+      renderQuestion(d.currentQuestion, d.revealAnswer);
+      showScreen('question');
+    }
+  });
+
+  eventSource.addEventListener('question', e => {
+    const d = JSON.parse(e.data);
+    currentQ = d.question;
+    renderQuestion(d.question, false);
+    showScreen('question');
+  });
+
+  eventSource.addEventListener('reveal', e => {
+    const d = JSON.parse(e.data);
+    showReveal(d.correct, d.explanation);
+  });
+
+  eventSource.addEventListener('closed', () => showScreen('thankyou'));
+  eventSource.onerror = () => {};
+}
+
+// ── Render question ─────────────────────────────────────────
+function renderQuestion(q, revealed) {
+  document.getElementById('q-round').textContent = q.round;
+  document.getElementById('q-progress').style.width = ((q.id / TOTAL_QUESTIONS) * 100) + '%';
+  document.getElementById('q-text').textContent = q.text;
+  const area = document.getElementById('q-answer-area');
+  const submitted = submittedQIds.has(q.id);
+  document.getElementById('reveal-banner').style.display = 'none';
+
+  if (submitted) {
+    area.innerHTML = `<div class="submitted-check"><div class="check">✓</div><p>Response submitted — thanks!</p></div>`;
+    return;
+  }
+
+  if (q.type === 'mcq') {
+    area.innerHTML = `<div class="options">${(q.options||[]).map(o =>
+      `<button class="option-btn" data-id="${o.id}">${o.text}</button>`
+    ).join('')}</div>`;
+    area.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', () => submitResponse(q.id, { choice: btn.dataset.id }));
+    });
+  } else if (q.type === 'wordcloud') {
+    area.innerHTML = `<div class="word-input"><input type="text" id="word-field" placeholder="One word…" maxlength="30"><button id="word-submit">Submit</button></div>`;
+    document.getElementById('word-submit').addEventListener('click', () => {
+      const w = document.getElementById('word-field').value.trim();
+      if (!w) return;
+      submitResponse(q.id, { word: w });
+    });
+    document.getElementById('word-field').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('word-submit').click();
+    });
+  } else {
+    area.innerHTML = `<div class="open-input"><textarea id="open-field" placeholder="Your response…"></textarea><button class="btn btn-primary" id="open-submit">Submit</button></div>`;
+    document.getElementById('open-submit').addEventListener('click', () => {
+      const t = document.getElementById('open-field').value.trim();
+      if (!t) return;
+      submitResponse(q.id, { text: t });
+    });
+  }
+
+  if (revealed && q.correct) showReveal(q.correct, q.explanation);
+}
+
+async function submitResponse(qid, response) {
+  if (submittedQIds.has(qid)) return;
+  try {
+    await fetch(`${API}/workshop/session/${sessionId}/respond`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ questionId: qid, participantId, response }),
+    });
+    submittedQIds.add(qid);
+    try {
+      localStorage.setItem('osca_submitted', JSON.stringify([...submittedQIds]));
+    } catch {}
+    // Show submitted state
+    const area = document.getElementById('q-answer-area');
+    if (area) {
+      area.querySelectorAll('.option-btn').forEach(b => {
+        b.disabled = true;
+        if (b.dataset.id === (response.choice || response.word)) b.classList.add('selected');
+      });
+      if (!currentQ || currentQ.type !== 'mcq') {
+        area.innerHTML = `<div class="submitted-check"><div class="check">✓</div><p>Response submitted — thanks!</p></div>`;
+      }
+    }
+  } catch { showToast('Could not submit — please try again'); }
+}
+
+function showReveal(correct, explanation) {
+  if (!correct) return;
+  const banner = document.getElementById('reveal-banner');
+  document.getElementById('reveal-title').textContent = correct === 'fact' ? '✓ That\'s a Fact!' : correct === 'fiction' ? '✗ That\'s Fiction!' : '✓ ' + correct;
+  document.getElementById('reveal-explanation').textContent = explanation || '';
+  banner.style.display = 'block';
+  // Highlight correct option
+  document.querySelectorAll('.option-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.id === correct) b.classList.add('correct');
+    else if (b.classList.contains('selected')) b.classList.add('wrong');
+  });
+}
+
+function showScreen(name) {
+  document.querySelectorAll('#tab-poll .screen').forEach(s => {
+    s.classList.toggle('active', s.id === 'screen-' + name);
+  });
+}
+
+// ── Toast ───────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+})();
+</script>
+</body>
+</html>
