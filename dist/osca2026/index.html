@@ -530,15 +530,15 @@ header{
     <div class="screen" id="screen-video">
       <div class="round-badge">Opening · One Seed. Many Possibilities.</div>
       <div class="video-wrap">
-        <video id="poll-video" playsinline controls preload="none" poster="">
+        <video id="poll-video" playsinline controls preload="auto" style="display:block">
           <source id="video-src" src="/osca2026/one-seed.mp4" type="video/mp4">
         </video>
-        <div class="video-placeholder" id="video-placeholder">
+        <div class="video-placeholder" id="video-placeholder" style="display:none">
           <div class="video-title">One Seed. Many Possibilities.</div>
           <p style="font-size:12px;color:var(--fg3);padding:0 16px;text-align:center">An AACP film</p>
         </div>
       </div>
-      <button class="btn btn-outline" id="skip-video-btn" style="margin-top:4px">Continue to Workshop</button>
+      <button class="btn btn-outline" id="skip-video-btn" style="margin-top:4px">Skip to Workshop</button>
     </div>
 
     <!-- Waiting screen -->
@@ -814,10 +814,8 @@ renderCareers('all', '');
 
 // ── Poll: video ─────────────────────────────────────────────
 const video = document.getElementById('poll-video');
-video.addEventListener('loadeddata', () => {
-  document.getElementById('video-placeholder').style.display = 'none';
-});
 video.addEventListener('error', () => {
+  video.style.display = 'none';
   document.getElementById('video-placeholder').style.display = 'flex';
 });
 document.getElementById('skip-video-btn').addEventListener('click', () => showScreen('waiting'));
