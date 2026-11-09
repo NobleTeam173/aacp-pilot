@@ -1472,7 +1472,7 @@
 
   function nearbyInfraHTML(lat, lng, excludeId, limit) {
     const CAT_DOT = { transportation:'#1a6faf', energy:'#c8401a', water:'#0d6e6e', industrial:'#6b4c0a', indigenous:'#7c3aed', uav_range:'#0ea5e9', wind_farm:'#16a34a', rail:'#b45309' };
-    const _allNearby = [...INFRA, ...(typeof INDIGENOUS!=='undefined'?INDIGENOUS:[]), ...(typeof UAV_RANGES!=='undefined'?UAV_RANGES:[]), ...(typeof WIND_FARMS!=='undefined'?WIND_FARMS:[]), ...(typeof RAIL!=='undefined'?RAIL:[])];
+    const _allNearby = [...(window._INFRA||[]), ...(window._INDIGENOUS||[]), ...(window._UAV_RANGES||[]), ...(window._WIND_FARMS||[]), ...(window._RAIL||[])];
     const nearby = _allNearby
       .filter(r => r.cat !== 'municipal' && !(r.lat === lat && r.lng === lng))
       .map(r => ({ ...r, _km: haversineKm(lat, lng, r.lat, r.lng) }))
@@ -2319,6 +2319,7 @@
         sectors: ['aviation','infrastructure','energy','emergency'],
       },
     ];
+    window._INFRA = INFRA;
 
     const INDIGENOUS = [
       { lat:53.57, lng:-113.47, cat:'indigenous', type:'First Nations', prov:'AB', name:'Enoch Cree Nation', region:'Edmonton Metro West, Alberta', population:'~2,400 (2021 Census)', territory:'Cree — Treaty 6 (1876), Reserve 135 (Edmonton adjacent)', rpasApp:'Edmonton-area pipeline and transmission corridor patrol, Sturgeon River watershed monitoring, agricultural land survey on reserve boundaries, industrial park perimeter inspection (Acheson Industrial Area proximity)', source:'ISC Band Location Dataset (BGMS) — Band #440', licence:'Open Govt Licence – Canada' },
@@ -2370,6 +2371,7 @@
       { lat:68.35, lng:-133.72, cat:'indigenous', type:'Inuit', prov:'NT', name:'Aklavik', region:'Mackenzie Delta, NWT', population:'~650 (2021 Census)', territory:'Inuvialuit / Mackenzie Delta', rpasApp:'Delta channel monitoring, permafrost survey, wildlife corridor assessment, remote infrastructure inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
       { lat:69.72, lng:-130.98, cat:'indigenous', type:'Inuit', prov:'NT', name:'Tuktoyaktuk', region:'Beaufort Sea coast, NWT', population:'~870 (2021 Census)', territory:'Inuvialuit / Beaufort Sea coast (Arctic Ocean access)', rpasApp:'Coastal erosion monitoring (rapidly eroding shoreline), permafrost thaw survey, Arctic logistics support, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
     ];
+    window._INDIGENOUS = INDIGENOUS;
 
     const UAV_RANGES = [
       { lat:49.68, lng:-111.63, cat:'uav_range', prov:'AB', name:'Foremost RPAS Test Range', region:'Southern Alberta', operator:'Transport Canada / NRC', type:'Designated TC test site', runway:'2,100 m paved, IFR capable', airspace:'CYR 601 — restricted airspace, BVLOS authorized', rpasApp:'BVLOS certification testing, C2 link validation, payload trials, detect-and-avoid research, regulatory compliance testing', status:'Operational', established:'2017', notes:'Primary Transport Canada RPAS test site; >100 km radius low-density airspace; NRC partnership', source:'Transport Canada RPAS', sourceUrl:'https://tc.canada.ca/en/aviation/drone-safety', licence:'Public record — TC Canada' },
@@ -2383,6 +2385,7 @@
       { lat:60.72, lng:-135.05, cat:'uav_range', prov:'YT', name:'Yukon RPAS Northern Operations Site', region:'Whitehorse, Yukon', operator:'Yukon Government / NRC', type:'Northern/Arctic operations test site', runway:'Erik Nielsen Whitehorse International (CYXY) — coordinated access', airspace:'Northern Class G + coordinated access', rpasApp:'Arctic RPAS operations, cold-weather performance testing, remote northern community logistics, emergency response, permafrost monitoring', status:'Operational', established:'2022', notes:'Northern Canada RPAS operations; extreme cold weather focus; NRC northern program', source:'Yukon Government / NRC', sourceUrl:'https://yukon.ca/en/transportation-and-infrastructure/aviation', licence:'Public record — Government of Yukon' },
       { lat:46.09, lng:-64.78, cat:'uav_range', prov:'NB', name:'Moncton RPAS Corridor — Atlantic testbed', region:'Greater Moncton, NB', operator:'Innovacorp / NRC Atlantic', type:'Atlantic Canada RPAS corridor', runway:'Greater Moncton Roméo LeBlanc International (CYQM) — coordinated access', airspace:'Atlantic RPAS corridor — TC coordinated', rpasApp:'Atlantic region BVLOS testing, maritime inspection simulation, infrastructure corridor patrol, cold-weather operations', status:'Active research', established:'2021', notes:'Part of NRC Atlantic\'s RPAS industry development; Moncton is Atlantic hub for RPAS corridor trials', source:'NRC Atlantic / Innovacorp', sourceUrl:'https://nrc.canada.ca', licence:'Public record — NRC Canada' },
     ];
+    window._UAV_RANGES = UAV_RANGES;
 
 
     const WIND_FARMS = [
@@ -2685,6 +2688,7 @@
       { lat:50.0677, lng:-108.4138, cat:'wind_farm', type:'Wind Farm', prov:'SK', name:'Sunbridge', region:'Saskatchewan', capacity:'0 MW', turbines:17, rpasApp:'Blade erosion inspection, structural defect detection, thermal imaging of nacelles, vegetation encroachment monitoring, shadow flicker compliance surveys, pre/post-storm damage assessment.', source:'NRCan Canadian Wind Turbine Database (CanWTD)', licence:'Open Govt Licence – Canada' },
       { lat:49.6052, lng:-113.5443, cat:'wind_farm', type:'Wind Farm', prov:'AB', name:'Weather Dancer', region:'Alberta', capacity:'0 MW', turbines:1, rpasApp:'Blade erosion inspection, structural defect detection, thermal imaging of nacelles, vegetation encroachment monitoring, shadow flicker compliance surveys, pre/post-storm damage assessment.', source:'NRCan Canadian Wind Turbine Database (CanWTD)', licence:'Open Govt Licence – Canada' },
     ];
+    window._WIND_FARMS = WIND_FARMS;
 
     // ── Major CN / CP rail corridors (curated from Transport Canada / Railway Association of Canada)
     const RAIL = [
@@ -2702,6 +2706,7 @@
       { lat:47.5615, lng:-52.7126, cat:'rail', type:'Rail Corridor', prov:'NL', name:'Trans-Labrador / CF(L)Co Rail', region:'Labrador / Newfoundland', operator:'IOC / CF(L)Co', length_km:420, rpasApp:'Remote iron ore corridor inspection, permafrost monitoring, bridge and trestle assessment, avalanche debris detection in Labrador highlands.', source:'Railway Association of Canada / Transport Canada', licence:'Public record — TC Canada' },
       { lat:52.1332, lng:-106.6700, cat:'rail', type:'Rail Corridor', prov:'SK', name:'CN Saskatoon — Regina Mainline', region:'Saskatchewan Prairie', operator:'CN Rail', length_km:260, rpasApp:'Prairie grain corridor patrol, ballast assessment, level crossing monitoring, flooding detection, ROW vegetation control.', source:'Railway Association of Canada / Transport Canada', licence:'Public record — TC Canada' },
     ];
+    window._RAIL = RAIL;
 
     // Category colour map
     const CAT_COLOR = {
