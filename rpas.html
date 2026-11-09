@@ -199,6 +199,9 @@
     .cat-btn[data-cat="energy"].active{background:#80011f}
     .cat-btn[data-cat="water"].active{background:#0d6e6e}
     .cat-btn[data-cat="industrial"].active{background:#6b4c0a}
+    .cat-btn[data-cat="indigenous"].active{background:#7c3aed}
+    .cat-btn[data-cat="uav_range"].active{background:#0ea5e9}
+    .layer-divider{width:1px;background:var(--border);margin:0 4px;align-self:stretch}
     .sector-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
     .sector-btn{cursor:pointer;border:1px solid var(--border2);border-radius:14px;padding:4px 11px;font-size:11px;font-weight:600;color:var(--dim);background:transparent;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
     .sector-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
@@ -896,6 +899,9 @@
         <button class="cat-btn active" data-cat="energy">Energy &amp; Utilities</button>
         <button class="cat-btn active" data-cat="water">Water Infrastructure</button>
         <button class="cat-btn active" data-cat="industrial">Industrial Facilities</button>
+        <div class="layer-divider" aria-hidden="true"></div>
+        <button class="cat-btn active" data-cat="indigenous">Indigenous</button>
+        <button class="cat-btn active" data-cat="uav_range">Test Ranges</button>
       </div>
       <div class="sector-filter-row" role="group" aria-label="Filter by RPAS application sector">
         <span class="sector-label">Sector:</span>
@@ -1437,9 +1443,11 @@
     transportation: 'Transportation Infrastructure',
     energy: 'Energy & Utilities',
     water: 'Water Infrastructure',
-    industrial: 'Industrial Facilities'
+    industrial: 'Industrial Facilities',
+    indigenous:     'Indigenous Community',
+    uav_range:      'UAV / RPAS Test Range',
   };
-  const CAT_COLOR = { transportation:'#1a6faf', energy:'#80011f', water:'#0d6e6e', industrial:'#6b4c0a' };
+  const CAT_COLOR = { transportation:'#1a6faf', energy:'#80011f', water:'#0d6e6e', industrial:'#6b4c0a', indigenous:'#7c3aed', uav_range:'#0ea5e9' };
 
   let activeTab = 'overview';
 
@@ -1459,8 +1467,11 @@
   }
 
   function nearbyInfraHTML(lat, lng, excludeId, limit) {
-    const CAT_DOT = { transportation:'#1a6faf', energy:'#c8401a', water:'#0d6e6e', industrial:'#6b4c0a' };
-    const nearby = INFRA
+    const CAT_DOT = { transportation:'#1a6faf', energy:'#c8401a', water:'#0d6e6e', industrial:'#6b4c0a', indigenous:'#7c3aed', uav_range:'#0ea5e9' };
+    const _allNearby = typeof INDIGENOUS !== 'undefined' && typeof UAV_RANGES !== 'undefined'
+      ? [...INFRA, ...INDIGENOUS, ...UAV_RANGES]
+      : INFRA;
+    const nearby = _allNearby
       .filter(r => r.cat !== 'municipal' && !(r.lat === lat && r.lng === lng))
       .map(r => ({ ...r, _km: haversineKm(lat, lng, r.lat, r.lng) }))
       .sort((a, b) => a._km - b._km)
@@ -1469,7 +1480,8 @@
     const cards = nearby.map(r => {
       const km = r._km < 100 ? r._km.toFixed(0) + ' km' : (r._km/1000).toFixed(1) + 'k km';
       const app = r.rpasApp.split(',')[0].trim();
-      return `<div class="ri-nearby-card" onclick="window._nearbyClick && window._nearbyClick(${INFRA.indexOf(r)})">
+      const _ni = _allNearby.indexOf(r);
+      return `<div class="ri-nearby-card" onclick="window._nearbyClick && window._nearbyClick(${_ni})">
         <div class="ri-nearby-dot" style="background:${CAT_DOT[r.cat]||'#666'}"></div>
         <div class="ri-nearby-info">
           <div class="ri-nearby-name">${r.name}</div>
@@ -1557,8 +1569,89 @@
       </div>`;
   }
 
+  function renderIndigenousPanel(d) {
+    const panel = document.getElementById('riPanel');
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    panel.classList.remove('empty');
+    riEmpty.hidden = true;
+    riContent.hidden = false;
+    const typeColor = { 'First Nations':'#7c3aed', 'Inuit':'#0ea5e9', 'Métis':'#16a34a' };
+    const col = typeColor[d.type] || '#7c3aed';
+    riHeader.innerHTML = `
+      <div class="ri-region-label" style="color:${col}">${d.prov} &nbsp;·&nbsp; ${d.type}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="ri-region-name">${d.name}</div>
+        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+      </div>`;
+    riBody.innerHTML = `
+      <div class="ri-section">
+        <div class="ri-section-label">Community</div>
+        <div class="ri-kv"><span class="ri-k">Type</span><span class="ri-v" style="color:${col}">${d.type}</span></div>
+        <div class="ri-kv"><span class="ri-k">Province / Territory</span><span class="ri-v">${d.prov}</span></div>
+        <div class="ri-kv"><span class="ri-k">Region</span><span class="ri-v">${d.region}</span></div>
+        <div class="ri-kv"><span class="ri-k">Population</span><span class="ri-v">${d.population}</span></div>
+        <div class="ri-kv"><span class="ri-k">Territory</span><span class="ri-v">${d.territory}</span></div>
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">Potential RPAS Application</div>
+        <div class="ri-app-block">${d.rpasApp}</div>
+        <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand. Community engagement and consent required for any RPAS operations.</div>
+      </div>
+      <div class="ri-section" style="padding-bottom:8px">
+        <div class="ri-section-label">Data Source</div>
+        <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v">${d.source}</span></div>
+        <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
+      </div>
+      ${nearbyInfraHTML(d.lat, d.lng, null, 4)}`;
+  }
+
+  function renderUAVPanel(d) {
+    const panel = document.getElementById('riPanel');
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    panel.classList.remove('empty');
+    riEmpty.hidden = true;
+    riContent.hidden = false;
+    riHeader.innerHTML = `
+      <div class="ri-region-label" style="color:#0ea5e9">${d.prov} &nbsp;·&nbsp; UAV / RPAS Test Range</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="ri-region-name">${d.name}</div>
+        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+      </div>`;
+    const statusColor = d.status === 'Operational' ? '#22c55e' : '#f59e0b';
+    const noRunway = ['N/A — research campus','N/A — Class G micro-UAS','N/A — controlled airspace access','N/A — research campus + agricultural field sites'];
+    riBody.innerHTML = `
+      <div class="ri-section">
+        <div class="ri-section-label">Test Range Details</div>
+        <div class="ri-kv"><span class="ri-k">Operator</span><span class="ri-v">${d.operator}</span></div>
+        <div class="ri-kv"><span class="ri-k">Type</span><span class="ri-v">${d.type}</span></div>
+        <div class="ri-kv"><span class="ri-k">Status</span><span class="ri-v" style="color:${statusColor}">${d.status}</span></div>
+        <div class="ri-kv"><span class="ri-k">Established</span><span class="ri-v">${d.established}</span></div>
+        <div class="ri-kv"><span class="ri-k">Airspace</span><span class="ri-v">${d.airspace}</span></div>
+        ${!noRunway.includes(d.runway) ? `<div class="ri-kv"><span class="ri-k">Runway</span><span class="ri-v">${d.runway}</span></div>` : ''}
+      </div>
+      <div class="ri-section">
+        <div class="ri-section-label">RPAS Applications</div>
+        <div class="ri-app-block">${d.rpasApp}</div>
+      </div>
+      ${d.notes ? `<div class="ri-section"><div class="ri-section-label">Notes</div><div style="font-size:.75rem;color:var(--text2);line-height:1.6;padding:0 14px 4px">${d.notes}</div></div>` : ''}
+      <div class="ri-section" style="padding-bottom:8px">
+        <div class="ri-section-label">Data Source</div>
+        <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${d.sourceUrl}" target="_blank" rel="noopener" style="color:#0ea5e9">${d.source}</a></span></div>
+        <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
+      </div>
+      ${nearbyInfraHTML(d.lat, d.lng, null, 4)}`;
+  }
+
   function renderPanel(d) {
     if (d.cat === 'municipal') { renderMunicipalPanel(d); return; }
+    if (d.cat === 'indigenous') { renderIndigenousPanel(d); return; }
+    if (d.cat === 'uav_range') { renderUAVPanel(d); return; }
     const panel = document.getElementById('riPanel');
     const riEmpty = document.getElementById('riEmpty');
     const riContent = document.getElementById('riContent');
@@ -1903,7 +1996,10 @@
   };
 
   window._nearbyClick = function(idx) {
-    const d = INFRA[idx];
+    const all = typeof INDIGENOUS !== 'undefined' && typeof UAV_RANGES !== 'undefined'
+      ? [...INFRA, ...INDIGENOUS, ...UAV_RANGES]
+      : INFRA;
+    const d = all[idx];
     if (d) renderPanel(d);
   };
 
@@ -2180,20 +2276,64 @@
       },
     ];
 
+    const INDIGENOUS = [
+      { lat:53.57, lng:-113.47, cat:'indigenous', type:'First Nations', prov:'AB', name:'Enoch Cree Nation', region:'Central Alberta', population:'~2,400 (2021 Census)', territory:'Cree / Maskwacis area', rpasApp:'Agricultural land monitoring, water infrastructure survey, community mapping, emergency response support', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:51.19, lng:-114.00, cat:'indigenous', type:'First Nations', prov:'AB', name:'Tsuut\'ina Nation', region:'Southern Alberta (Calgary adjacent)', population:'~1,800 (2021 Census)', territory:'Tsuut\'ina (Sarcee) traditional territory', rpasApp:'Land management survey, pipeline corridor monitoring, emergency preparedness, agricultural mapping', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:52.78, lng:-111.19, cat:'indigenous', type:'First Nations', prov:'AB', name:'Saddle Lake Cree Nation', region:'East-Central Alberta', population:'~3,100 (2021 Census)', territory:'Plains Cree traditional territory', rpasApp:'Agricultural land survey, water body monitoring, road condition assessment, forestry surveillance', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:55.86, lng:-117.80, cat:'indigenous', type:'First Nations', prov:'AB', name:'Paddle Prairie Métis Settlement', region:'Northern Alberta', population:'~800 (2021 Census)', territory:'Métis Settlements — northernmost in Alberta', rpasApp:'Remote community access monitoring, forestry patrol, emergency response support, land surveying', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:49.17, lng:-122.85, cat:'indigenous', type:'First Nations', prov:'BC', name:'Kwantlen First Nation', region:'Fraser Valley, BC', population:'~450 (2021 Census)', territory:'Sto:lo / Fraser River watershed', rpasApp:'River corridor monitoring, agricultural land survey, coastal infrastructure inspection, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:49.68, lng:-124.93, cat:'indigenous', type:'First Nations', prov:'BC', name:'Sliammon / qathet First Nation', region:'Sunshine Coast, BC', population:'~900 (2021 Census)', territory:'Tla\'amin traditional territory', rpasApp:'Coastal and marine monitoring, forestry survey, remote access road condition, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:58.80, lng:-122.70, cat:'indigenous', type:'First Nations', prov:'BC', name:'Fort Nelson First Nation', region:'Northeast BC', population:'~700 (2021 Census)', territory:'Dene Zhie traditional territory', rpasApp:'Remote pipeline corridor patrol, forestry monitoring, wildfire detection, northern community access survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:50.68, lng:-96.08, cat:'indigenous', type:'First Nations', prov:'MB', name:'Sagkeeng First Nation', region:'Eastern Manitoba', population:'~2,100 (2021 Census)', territory:'Anishinabe / Lake Winnipeg corridor', rpasApp:'Flood monitoring (Winnipeg River), water quality survey, forestry patrol, emergency preparedness', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:52.30, lng:-97.95, cat:'indigenous', type:'First Nations', prov:'MB', name:'Lake Manitoba First Nation', region:'Interlake, Manitoba', population:'~1,400 (2021 Census)', territory:'Anishinabe / Lake Manitoba watershed', rpasApp:'Lake shoreline erosion monitoring, agricultural land survey, flood impact assessment, infrastructure inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:53.83, lng:-101.63, cat:'indigenous', type:'First Nations', prov:'MB', name:'Opaskwayak Cree Nation', region:'Northern Manitoba', population:'~2,600 (2021 Census)', territory:'Swampy Cree / The Pas area', rpasApp:'Remote road and bridge inspection, river corridor monitoring, forestry and resource survey, community mapping', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:46.14, lng:-60.19, cat:'indigenous', type:'First Nations', prov:'NS', name:'Eskasoni First Nation', region:'Cape Breton, Nova Scotia', population:'~2,900 (2021 Census)', territory:'Mi\'kmaq traditional territory (largest reserve in NS)', rpasApp:'Coastal erosion monitoring, fisheries infrastructure survey, land management, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:45.69, lng:-84.17, cat:'indigenous', type:'First Nations', prov:'ON', name:'Garden River First Nation', region:'Northern Ontario (Sault area)', population:'~1,100 (2021 Census)', territory:'Anishinabe / Lake Superior watershed', rpasApp:'Shoreline and waterway monitoring, forestry patrol, infrastructure survey, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:46.04, lng:-79.37, cat:'indigenous', type:'First Nations', prov:'ON', name:'Nipissing First Nation', region:'Northeastern Ontario', population:'~1,700 (2021 Census)', territory:'Anishinabe / Lake Nipissing watershed', rpasApp:'Lake and river monitoring, agricultural land survey, forestry patrol, emergency response support', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:52.86, lng:-82.40, cat:'indigenous', type:'First Nations', prov:'ON', name:'Attawapiskat First Nation', region:'James Bay, Northern Ontario', population:'~1,900 (2021 Census)', territory:'Mushkegowuk Cree / James Bay coast', rpasApp:'Remote community access monitoring, coastal flood assessment, emergency logistics support, infrastructure survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:48.60, lng:-78.11, cat:'indigenous', type:'First Nations', prov:'QC', name:'Lac-Simon Anishinabe', region:'Abitibi-Témiscamingue, QC', population:'~1,300 (2021 Census)', territory:'Anishinabe / Abitibi watershed', rpasApp:'Forestry monitoring, lake and river survey, mining corridor patrol, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:55.28, lng:-77.77, cat:'indigenous', type:'First Nations', prov:'QC', name:'Chisasibi First Nation', region:'James Bay, Northern Quebec', population:'~5,200 (2021 Census)', territory:'James Bay Cree / La Grande River', rpasApp:'Hydroelectric corridor monitoring, remote community logistics, environmental survey, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:53.28, lng:-106.00, cat:'indigenous', type:'First Nations', prov:'SK', name:'Prince Albert Grand Council area — Lac La Ronge', region:'Northern Saskatchewan', population:'~3,600 (2021 Census)', territory:'Woodland Cree / Lac La Ronge', rpasApp:'Remote forestry patrol, wildfire monitoring, lake and river corridor survey, northern road inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:52.27, lng:-106.68, cat:'indigenous', type:'Métis', prov:'SK', name:'Saskatoon Métis Local', region:'Central Saskatchewan', population:'Urban Métis community', territory:'Historic Métis homeland / central SK', rpasApp:'Agricultural land survey, urban infrastructure monitoring, training site proximity — RPAS workforce opportunity area', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:63.75, lng:-68.52, cat:'indigenous', type:'Inuit', prov:'NU', name:'Iqaluit', region:'Baffin Island, Nunavut', population:'~8,000 (2021 Census)', territory:'Qikiqtani / South Baffin Island', rpasApp:'Arctic infrastructure inspection, sea ice monitoring, remote logistics support, emergency preparedness, environmental survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:60.02, lng:-77.28, cat:'indigenous', type:'Inuit', prov:'QC', name:'Puvirnituq (Puvirnituuq)', region:'Nunavik, Northern Quebec', population:'~1,900 (2021 Census)', territory:'Nunavik Inuit / Hudson Bay coast', rpasApp:'Coastal and sea ice monitoring, remote community access survey, emergency response, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:58.47, lng:-78.11, cat:'indigenous', type:'Inuit', prov:'QC', name:'Umiujaq', region:'Nunavik, Northern Quebec', population:'~450 (2021 Census)', territory:'Nunavik Inuit / Lac Guillaume-Delisle', rpasApp:'Permafrost and coastal erosion monitoring, remote infrastructure survey, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:55.28, lng:-85.27, cat:'indigenous', type:'Inuit', prov:'ON', name:'Fort Severn First Nation', region:'Hudson Bay coast, Northern Ontario', population:'~550 (2021 Census)', territory:'Mushkegowuk Cree / Hudson Bay coast (Ontario\'s most northerly community)', rpasApp:'Remote community access and infrastructure monitoring, sea ice survey, emergency preparedness, environmental survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:68.35, lng:-133.72, cat:'indigenous', type:'Inuit', prov:'NT', name:'Aklavik', region:'Mackenzie Delta, NWT', population:'~650 (2021 Census)', territory:'Inuvialuit / Mackenzie Delta', rpasApp:'Delta channel monitoring, permafrost survey, wildlife corridor assessment, remote infrastructure inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+      { lat:69.72, lng:-130.98, cat:'indigenous', type:'Inuit', prov:'NT', name:'Tuktoyaktuk', region:'Beaufort Sea coast, NWT', population:'~870 (2021 Census)', territory:'Inuvialuit / Beaufort Sea coast (Arctic Ocean access)', rpasApp:'Coastal erosion monitoring (rapidly eroding shoreline), permafrost thaw survey, Arctic logistics support, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+    ];
+
+    const UAV_RANGES = [
+      { lat:49.68, lng:-111.63, cat:'uav_range', prov:'AB', name:'Foremost RPAS Test Range', region:'Southern Alberta', operator:'Transport Canada / NRC', type:'Designated TC test site', runway:'2,100 m paved, IFR capable', airspace:'CYR 601 — restricted airspace, BVLOS authorized', rpasApp:'BVLOS certification testing, C2 link validation, payload trials, detect-and-avoid research, regulatory compliance testing', status:'Operational', established:'2017', notes:'Primary Transport Canada RPAS test site; >100 km radius low-density airspace; NRC partnership', source:'Transport Canada RPAS', sourceUrl:'https://tc.canada.ca/en/aviation/drone-safety', licence:'Public record — TC Canada' },
+      { lat:48.52, lng:-71.65, cat:'uav_range', prov:'QC', name:'Alma RPAS Test Site', region:'Saguenay–Lac-Saint-Jean, QC', operator:'Transport Canada / NRC', type:'Designated TC test site', runway:'2,440 m paved', airspace:'Restricted zone, BVLOS authorized', rpasApp:'BVLOS trials, sensor payload testing, cold-weather operations research, urban air mobility concept validation', status:'Operational', established:'2018', notes:'Second designated TC RPAS test site; joint NRC research program; winter operations focus', source:'Transport Canada RPAS', sourceUrl:'https://tc.canada.ca/en/aviation/drone-safety', licence:'Public record — TC Canada' },
+      { lat:45.53, lng:-75.49, cat:'uav_range', prov:'QC', name:'Rockcliffe / Ottawa RPAS Corridor', region:'National Capital Region', operator:'NAV CANADA / TC', type:'Urban ATM integration corridor', runway:'N/A — controlled airspace corridor', airspace:'Class C/D integration zone', rpasApp:'Urban air mobility trials, UTM system development, RPAS-ATM integration research, detect-and-avoid urban testing', status:'Active research', established:'2021', notes:'Part of NAV CANADA\'s UTM development program; Ottawa-Gatineau low-altitude corridor', source:'NAV CANADA / TC RPAS', sourceUrl:'https://tc.canada.ca/en/aviation/drone-safety', licence:'Public record — TC Canada' },
+      { lat:53.57, lng:-113.52, cat:'uav_range', prov:'AB', name:'Edmonton RPAS Innovation Corridor', region:'Edmonton Metro, AB', operator:'NRC / University of Alberta', type:'Research & Innovation hub', runway:'N/A — controlled airspace access', airspace:'Coordinated Class E / G', rpasApp:'RPAS AI and autonomy research, sensor fusion testing, emergency response RPAS development, payload trials', status:'Active research', established:'2020', notes:'NRC-UAB collaboration; focus on autonomous systems and AI-driven navigation', source:'NRC Canada', sourceUrl:'https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/aerospace', licence:'Public record — NRC Canada' },
+      { lat:45.37, lng:-75.75, cat:'uav_range', prov:'ON', name:'Ottawa NRC Flight Research Laboratory', region:'Ottawa, Ontario', operator:'National Research Council Canada', type:'Federally operated flight research facility', runway:'2,348 m paved — NRC FRL', airspace:'Controlled research airspace', rpasApp:'RPAS systems integration, flight testing, avionics research, detect-and-avoid development, government R&D trials', status:'Operational', established:'1950s (RPAS program ~2015)', notes:'NRC\'s primary flight research facility; major RPAS integration testing capability', source:'NRC Canada', sourceUrl:'https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/aerospace', licence:'Public record — NRC Canada' },
+      { lat:43.86, lng:-79.57, cat:'uav_range', prov:'ON', name:'York University RPAS Research Hub', region:'Toronto Metro, ON', operator:'York University / Ontario RPAS Task Force', type:'Academic & industry test site', runway:'N/A — Class G micro-UAS', airspace:'Coordinated low-altitude zone', rpasApp:'Urban RPAS operations research, delivery drone simulation, detect-and-avoid urban environment, workforce training research', status:'Active research', established:'2019', notes:'Part of Ontario\'s RPAS industry development initiative; focus on urban delivery and workforce training', source:'Ontario RPAS Task Force', sourceUrl:'https://www.ontario.ca/page/drones', licence:'Public record — Province of Ontario' },
+      { lat:47.63, lng:-52.73, cat:'uav_range', prov:'NL', name:'Memorial University RPAS Lab', region:'St. John\'s, Newfoundland', operator:'Memorial University / C-CORE', type:'Academic research facility', runway:'N/A — research campus', airspace:'Coordinated Class G', rpasApp:'Offshore and maritime RPAS operations research, cold-weather testing, oil platform inspection simulation, remote sensing research', status:'Active research', established:'2018', notes:'Atlantic Canada RPAS research; offshore and maritime sector focus; C-CORE partnership', source:'Memorial University / C-CORE', sourceUrl:'https://www.mun.ca', licence:'Public record' },
+      { lat:49.90, lng:-97.23, cat:'uav_range', prov:'MB', name:'University of Manitoba RPAS Research', region:'Winnipeg, Manitoba', operator:'University of Manitoba', type:'Academic research & prairie BVLOS', runway:'N/A — research campus + agricultural field sites', airspace:'Class G prairie corridor access', rpasApp:'Agricultural RPAS research, prairie BVLOS operations, crop monitoring system development, emergency response RPAS', status:'Active research', established:'2019', notes:'Prairie BVLOS operations focus; agricultural sector integration; Transport Canada collaboration', source:'University of Manitoba', sourceUrl:'https://umanitoba.ca', licence:'Public record' },
+      { lat:60.72, lng:-135.05, cat:'uav_range', prov:'YT', name:'Yukon RPAS Northern Operations Site', region:'Whitehorse, Yukon', operator:'Yukon Government / NRC', type:'Northern/Arctic operations test site', runway:'Erik Nielsen Whitehorse International (CYXY) — coordinated access', airspace:'Northern Class G + coordinated access', rpasApp:'Arctic RPAS operations, cold-weather performance testing, remote northern community logistics, emergency response, permafrost monitoring', status:'Operational', established:'2022', notes:'Northern Canada RPAS operations; extreme cold weather focus; NRC northern program', source:'Yukon Government / NRC', sourceUrl:'https://yukon.ca/en/transportation-and-infrastructure/aviation', licence:'Public record — Government of Yukon' },
+      { lat:46.09, lng:-64.78, cat:'uav_range', prov:'NB', name:'Moncton RPAS Corridor — Atlantic testbed', region:'Greater Moncton, NB', operator:'Innovacorp / NRC Atlantic', type:'Atlantic Canada RPAS corridor', runway:'Greater Moncton Roméo LeBlanc International (CYQM) — coordinated access', airspace:'Atlantic RPAS corridor — TC coordinated', rpasApp:'Atlantic region BVLOS testing, maritime inspection simulation, infrastructure corridor patrol, cold-weather operations', status:'Active research', established:'2021', notes:'Part of NRC Atlantic\'s RPAS industry development; Moncton is Atlantic hub for RPAS corridor trials', source:'NRC Atlantic / Innovacorp', sourceUrl:'https://nrc.canada.ca', licence:'Public record — NRC Canada' },
+    ];
+
     // Category colour map
     const CAT_COLOR = {
       transportation: '#1a6faf',
       energy:         '#80011f',
       water:          '#0d6e6e',
       industrial:     '#6b4c0a',
-      municipal:      '#c8961c'
+      municipal:      '#c8961c',
+      indigenous:     '#7c3aed',
+      uav_range:      '#0ea5e9'
     };
     const CAT_LABEL = {
       transportation: 'Transportation Infrastructure',
       energy:         'Energy & Utilities',
       water:          'Water Infrastructure',
       industrial:     'Industrial Facilities',
-      municipal:      'AACP™ Regional Intelligence'
+      municipal:      'AACP™ Regional Intelligence',
+      indigenous:     'Indigenous Community',
+      uav_range:      'UAV / RPAS Test Range'
     };
 
     function mkIcon(cat, status) {
@@ -2233,7 +2373,7 @@
 
     // Build cluster groups per category (including municipal)
     const clusterGroups = {};
-    const ALL_CATS = Object.assign({}, CAT_COLOR, { municipal: '#80011f' });
+    const ALL_CATS = Object.assign({}, CAT_COLOR, { municipal: '#80011f', indigenous: '#7c3aed', uav_range: '#0ea5e9' });
     Object.keys(ALL_CATS).forEach(cat => {
       clusterGroups[cat] = L.markerClusterGroup({
         maxClusterRadius: 50,
@@ -2282,11 +2422,47 @@
       clusterGroups[d.cat].addLayer(marker);
     });
 
+    // Add indigenous community markers
+    INDIGENOUS.forEach(d => {
+      const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
+      marker.on('click', () => {
+        window._riCurrentData = d;
+        activeTab = 'overview';
+        renderPanel(d);
+        location.hash = encodeURIComponent(d.name);
+        if (window.innerWidth <= 900) {
+          document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+      marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${d.type}</span>`, {
+        className: 'rpas-popup', direction: 'top', offset: [0, -8]
+      });
+      clusterGroups['indigenous'].addLayer(marker);
+    });
+
+    // Add UAV test range markers
+    UAV_RANGES.forEach(d => {
+      const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
+      marker.on('click', () => {
+        window._riCurrentData = d;
+        activeTab = 'overview';
+        renderPanel(d);
+        location.hash = encodeURIComponent(d.name);
+        if (window.innerWidth <= 900) {
+          document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+      marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#0ea5e9">UAV / RPAS Test Range</span>`, {
+        className: 'rpas-popup', direction: 'top', offset: [0, -8]
+      });
+      clusterGroups['uav_range'].addLayer(marker);
+    });
+
     // Add all groups to map
     Object.values(clusterGroups).forEach(g => map.addLayer(g));
 
     // ── FILTERS ──
-    const activeCats = new Set(['transportation','energy','water','industrial']);
+    const activeCats = new Set(['transportation','energy','water','industrial','indigenous','uav_range']);
     let activeProv = 'all';
     let activeSector = 'all';
 
@@ -2324,6 +2500,22 @@
         });
         clusterGroups[d.cat].addLayer(marker);
       });
+      if (activeCats.has('indigenous')) {
+        INDIGENOUS.forEach(d => {
+          const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
+          marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
+          marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${d.type}</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
+          clusterGroups['indigenous'].addLayer(marker);
+        });
+      }
+      if (activeCats.has('uav_range')) {
+        UAV_RANGES.forEach(d => {
+          const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
+          marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
+          marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#0ea5e9">UAV / RPAS Test Range</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
+          clusterGroups['uav_range'].addLayer(marker);
+        });
+      }
       // Re-add active cluster groups to map and force redraw
       Object.keys(clusterGroups).forEach(cat => {
         if (cat === 'municipal' || activeCats.has(cat)) {
