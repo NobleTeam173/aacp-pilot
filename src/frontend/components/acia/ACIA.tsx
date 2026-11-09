@@ -1461,13 +1461,12 @@ function WelcomeScreen({
                 {isRpas ? 'RPAS career areas you may explore' : 'Aviation career areas you may explore'}
               </div>
               <div className="acia-career-grid">
-                {CAREER_AREAS.map(({ icon, label, desc }) => (
+                {CAREER_AREAS.map(({ label, desc }) => (
                   <div key={label} style={{
                     background: '#f8fafc', border: '1px solid #e2e8f0',
                     borderRadius: 12, padding: '14px 12px', textAlign: 'center',
                   }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{label}</div>
                     <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{desc}</div>
                   </div>
                 ))}

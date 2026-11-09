@@ -22,6 +22,21 @@ interface Props {
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory: ChatMessage[]) => void;
 }
 
+function renderMarkdown(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  for (const line of lines) {
+    const processed = line
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    elements.push(<span key={key++} dangerouslySetInnerHTML={{ __html: processed }} />);
+    elements.push(<br key={key++} />);
+  }
+  if (elements.length > 1) elements.pop(); // remove trailing <br>
+  return elements;
+}
+
 export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessages, chatEndpoint = '/acia/chat', onComplete }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: welcomeMessage },
@@ -107,9 +122,8 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
               color: C.white,
               fontSize: 14,
               lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
             }}>
-              {msg.content}
+              {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
             </div>
           </div>
         ))}
