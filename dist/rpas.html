@@ -2955,6 +2955,16 @@
       });
     }
 
+    function fitVisibleMarkers() {
+      const pts = [];
+      Object.values(clusterGroups).forEach(group => {
+        group.getLayers().forEach(m => { const ll = m.getLatLng(); pts.push([ll.lat, ll.lng]); });
+      });
+      if (!pts.length) return;
+      if (pts.length === 1) { map.flyTo(pts[0], Math.max(map.getZoom(), 9), { duration: 0.8 }); return; }
+      map.flyToBounds(pts, { padding: [50, 50], maxZoom: 9, duration: 0.9 });
+    }
+
     // Sync sector buttons to available data for the current province + category state
     function syncSectorButtons() {
       const sectorCounts = {};
@@ -3030,6 +3040,7 @@
         }
         syncSectorButtons();
         applyFilters();
+        fitVisibleMarkers();
       });
     });
 
@@ -3040,6 +3051,7 @@
         document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         applyFilters();
+        fitVisibleMarkers();
       });
     });
 
