@@ -366,6 +366,15 @@
     .ri-wf-chip.outlook-limited{border-color:rgba(128,1,31,.3);color:var(--crimson-text)}
     .ri-close{cursor:pointer;background:transparent;border:none;color:var(--dim);padding:4px;line-height:1;font-size:16px;float:right;margin-top:-2px}
     .ri-close:hover{color:var(--text)}
+    /* ── Nearby Infrastructure ── */
+    .ri-nearby-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+    .ri-nearby-card{display:flex;align-items:flex-start;gap:9px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 11px;cursor:pointer;transition:border-color .15s,background .15s}
+    .ri-nearby-card:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+    .ri-nearby-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .ri-nearby-info{flex:1;min-width:0}
+    .ri-nearby-name{font-size:.72rem;font-weight:600;color:var(--text2);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ri-nearby-meta{font-size:.64rem;color:var(--dim);margin-top:2px}
+    .ri-nearby-dist{font-size:.64rem;color:var(--muted);flex-shrink:0;white-space:nowrap;margin-top:4px}
     .map-data-bar{background:rgba(5,2,16,.92);border-top:1px solid var(--border);border-radius:0 0 16px 16px;padding:9px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--dim)}
     /* Bottom sheet on mobile */
     @media(max-width:900px){
@@ -1442,6 +1451,39 @@
     return 'outlook-fair';
   }
 
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371, r = Math.PI / 180;
+    const dLat = (lat2 - lat1) * r, dLng = (lng2 - lng1) * r;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function nearbyInfraHTML(lat, lng, excludeId, limit) {
+    const CAT_DOT = { transportation:'#1a6faf', energy:'#c8401a', water:'#0d6e6e', industrial:'#6b4c0a' };
+    const nearby = INFRA
+      .filter(r => r.cat !== 'municipal' && !(r.lat === lat && r.lng === lng))
+      .map(r => ({ ...r, _km: haversineKm(lat, lng, r.lat, r.lng) }))
+      .sort((a, b) => a._km - b._km)
+      .slice(0, limit || 4);
+    if (!nearby.length) return '';
+    const cards = nearby.map(r => {
+      const km = r._km < 100 ? r._km.toFixed(0) + ' km' : (r._km/1000).toFixed(1) + 'k km';
+      const app = r.rpasApp.split(',')[0].trim();
+      return `<div class="ri-nearby-card" onclick="window._nearbyClick && window._nearbyClick(${INFRA.indexOf(r)})">
+        <div class="ri-nearby-dot" style="background:${CAT_DOT[r.cat]||'#666'}"></div>
+        <div class="ri-nearby-info">
+          <div class="ri-nearby-name">${r.name}</div>
+          <div class="ri-nearby-meta">${CAT_LABEL_FULL[r.cat]} · ${r.prov} · ${app}</div>
+        </div>
+        <div class="ri-nearby-dist">${km}</div>
+      </div>`;
+    }).join('');
+    return `<div class="ri-section" style="padding:0 14px 4px">
+      <div class="ri-ms-label" style="margin-top:14px">Nearby Infrastructure</div>
+      <div class="ri-nearby-list">${cards}</div>
+    </div>`;
+  }
+
   function renderMunicipalPanel(d) {
     const panel = document.getElementById('riPanel');
     document.getElementById('riEmpty').hidden = true;
@@ -1507,6 +1549,7 @@
           }).join('')}
         </details>
       </div>
+      ${nearbyInfraHTML(d.lat, d.lng, null, 4)}
       <div class="ri-action-bar">
         <button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">
           ✉ &nbsp;Discuss a Regional Partnership
@@ -1567,7 +1610,8 @@
           <div class="ri-section-label">Potential RPAS Application</div>
           <div class="ri-app-block">${d.rpasApp}</div>
           <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand.</div>
-        </div>`;
+        </div>
+        ${nearbyInfraHTML(d.lat, d.lng, null, 4)}`;
 
     } else if (activeTab === 'infrastructure') {
       riBody.innerHTML = `
@@ -1856,6 +1900,11 @@
       btn.disabled = false;
       btn.textContent = 'Send Partnership Inquiry';
     }
+  };
+
+  window._nearbyClick = function(idx) {
+    const d = INFRA[idx];
+    if (d) renderPanel(d);
   };
 
   // ── CANADIAN RPAS INFRASTRUCTURE INTELLIGENCE MAP ──
