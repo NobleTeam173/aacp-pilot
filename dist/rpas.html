@@ -199,7 +199,6 @@
     .cat-btn[data-cat="energy"].active{background:#80011f}
     .cat-btn[data-cat="water"].active{background:#0d6e6e}
     .cat-btn[data-cat="industrial"].active{background:#6b4c0a}
-    .cat-btn[data-cat="indigenous"].active{background:#7c3aed}
     .cat-btn[data-cat="uav_range"].active{background:#0ea5e9}
     .cat-btn[data-cat="wind_farm"].active{background:#16a34a}
     .cat-btn[data-cat="rail"].active{background:#b45309}
@@ -902,7 +901,6 @@
         <button class="cat-btn active" data-cat="water">Water Infrastructure</button>
         <button class="cat-btn active" data-cat="industrial">Industrial Facilities</button>
         <div class="layer-divider" aria-hidden="true"></div>
-        <button class="cat-btn active" data-cat="indigenous">Indigenous</button>
         <button class="cat-btn active" data-cat="uav_range">Test Ranges</button>
         <button class="cat-btn active" data-cat="wind_farm">Wind Farms</button>
         <button class="cat-btn active" data-cat="rail">Rail Corridors</button>
@@ -1448,7 +1446,6 @@
     energy: 'Energy & Utilities',
     water: 'Water Infrastructure',
     industrial: 'Industrial Facilities',
-    indigenous:     'Indigenous Community',
     uav_range:      'UAV / RPAS Test Range',
   };
   const CAT_COLOR = { transportation:'#1a6faf', energy:'#80011f', water:'#0d6e6e', industrial:'#6b4c0a', indigenous:'#7c3aed', uav_range:'#0ea5e9' };
@@ -1613,45 +1610,6 @@
       </div>`;
   }
 
-  function renderIndigenousPanel(d) {
-    const panel = document.getElementById('riPanel');
-    const riEmpty = document.getElementById('riEmpty');
-    const riContent = document.getElementById('riContent');
-    const riHeader = document.getElementById('riHeader');
-    const riBody = document.getElementById('riBody');
-    panel.classList.remove('empty');
-    riEmpty.hidden = true;
-    riContent.hidden = false;
-    const typeColor = { 'First Nations':'#7c3aed', 'Inuit':'#0ea5e9', 'Métis':'#16a34a' };
-    const col = typeColor[d.type] || '#7c3aed';
-    riHeader.innerHTML = `
-      <div class="ri-region-label" style="color:${col}">${d.prov} &nbsp;·&nbsp; ${d.type}</div>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between">
-        <div class="ri-region-name">${d.name}</div>
-        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
-      </div>`;
-    riBody.innerHTML = `
-      <div class="ri-section">
-        <div class="ri-section-label">Community</div>
-        <div class="ri-kv"><span class="ri-k">Type</span><span class="ri-v" style="color:${col}">${d.type}</span></div>
-        <div class="ri-kv"><span class="ri-k">Province / Territory</span><span class="ri-v">${d.prov}</span></div>
-        <div class="ri-kv"><span class="ri-k">Region</span><span class="ri-v">${d.region}</span></div>
-        <div class="ri-kv"><span class="ri-k">Population</span><span class="ri-v">${d.population}</span></div>
-        <div class="ri-kv"><span class="ri-k">Territory</span><span class="ri-v">${d.territory}</span></div>
-      </div>
-      <div class="ri-section">
-        <div class="ri-section-label">Potential RPAS Application</div>
-        <div class="ri-app-block">${d.rpasApp}</div>
-        <div style="font-size:.68rem;color:var(--dim);margin-top:4px">Indicative only — not validated commercial demand. Community engagement and consent required for any RPAS operations.</div>
-      </div>
-      <div class="ri-section" style="padding-bottom:8px">
-        <div class="ri-section-label">Data Source</div>
-        <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v">${d.source}</span></div>
-        <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
-      </div>
-      ${nearbyInfraHTML(d.lat, d.lng, null, 4)}`;
-  }
-
   function renderUAVPanel(d) {
     const panel = document.getElementById('riPanel');
     const riEmpty = document.getElementById('riEmpty');
@@ -1694,7 +1652,7 @@
 
   function renderPanel(d) {
     if (d.cat === 'municipal') { renderMunicipalPanel(d); return; }
-    if (d.cat === 'indigenous') { renderIndigenousPanel(d); return; }
+
     if (d.cat === 'uav_range') { renderUAVPanel(d); return; }
     if (d.cat === 'wind_farm') { renderWindFarmPanel(d); return; }
     if (d.cat === 'rail') { renderRailPanel(d); return; }
@@ -2321,56 +2279,8 @@
     ];
     window._INFRA = INFRA;
 
-    const INDIGENOUS = [
-      { lat:53.57, lng:-113.47, cat:'indigenous', type:'First Nations', prov:'AB', name:'Enoch Cree Nation', region:'Edmonton Metro West, Alberta', population:'~2,400 (2021 Census)', territory:'Cree — Treaty 6 (1876), Reserve 135 (Edmonton adjacent)', rpasApp:'Edmonton-area pipeline and transmission corridor patrol, Sturgeon River watershed monitoring, agricultural land survey on reserve boundaries, industrial park perimeter inspection (Acheson Industrial Area proximity)', source:'ISC Band Location Dataset (BGMS) — Band #440', licence:'Open Govt Licence – Canada' },
-      { lat:51.19, lng:-114.00, cat:'indigenous', type:'First Nations', prov:'AB', name:'Tsuut\'ina Nation', region:'Southern Alberta (Calgary adjacent)', population:'~1,800 (2021 Census)', territory:'Tsuut\'ina (Sarcee) traditional territory', rpasApp:'Land management survey, pipeline corridor monitoring, emergency preparedness, agricultural mapping', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:52.78, lng:-111.19, cat:'indigenous', type:'First Nations', prov:'AB', name:'Saddle Lake Cree Nation', region:'East-Central Alberta', population:'~3,100 (2021 Census)', territory:'Plains Cree traditional territory', rpasApp:'Agricultural land survey, water body monitoring, road condition assessment, forestry surveillance', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:55.86, lng:-117.80, cat:'indigenous', type:'First Nations', prov:'AB', name:'Paddle Prairie Métis Settlement', region:'Northern Alberta', population:'~800 (2021 Census)', territory:'Métis Settlements — northernmost in Alberta', rpasApp:'Remote community access monitoring, forestry patrol, emergency response support, land surveying', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
+    const INDIGENOUS = [];
 
-      // ── ALBERTA TREATY 7 (signed 1877 — Blackfoot Crossing & Fort Macleod) ──
-      // Coordinates: Indigenous Services Canada Band Location dataset (ISC BGMS), open.canada.ca, OGL-Canada
-      { lat:50.8591, lng:-113.0508, cat:'indigenous', type:'First Nations', prov:'AB', name:'Siksika Nation', region:'East of Calgary, Southern Alberta', population:'~7,000 (2021 Census)', territory:'Blackfoot Confederacy — Treaty 7 (1877), Reserve 146', rpasApp:'Agricultural land monitoring, Bow River corridor survey, pipeline ROW patrol, emergency response, precision crop monitoring', source:'ISC Band Location Dataset (BGMS) — Band #430', licence:'Open Govt Licence – Canada' },
-      { lat:49.4627, lng:-113.3012, cat:'indigenous', type:'First Nations', prov:'AB', name:'Kainai Nation (Blood Tribe)', region:'Southwest Alberta — Cardston / Lethbridge area', population:'~13,000 (2021 Census)', territory:'Blackfoot Confederacy — Treaty 7 (1877), Reserve 148 (largest reserve by area in Canada, ~1.4M acres)', rpasApp:'Large-area agricultural monitoring, irrigation infrastructure survey, water body and wetland assessment, emergency response support', source:'ISC Band Location Dataset (BGMS) — Band #435', licence:'Open Govt Licence – Canada' },
-      { lat:49.5487, lng:-113.7490, cat:'indigenous', type:'First Nations', prov:'AB', name:'Piikani Nation', region:'Southwest Alberta — Brocket / Oldman River', population:'~3,500 (2021 Census)', territory:'Blackfoot Confederacy — Treaty 7 (1877), Reserve 147', rpasApp:'Oldman River watershed monitoring, agricultural land survey, pipeline and energy corridor patrol, environmental assessment', source:'ISC Band Location Dataset (BGMS) — Band #436', licence:'Open Govt Licence – Canada' },
-      { lat:51.1700, lng:-114.8463, cat:'indigenous', type:'First Nations', prov:'AB', name:'Stoney Nakoda Nation (Bearspaw / Chiniki / Goodstoney)', region:'Morley / Bow Valley, Western Alberta', population:'~5,500 combined (2021 Census)', territory:'Stoney Nakoda — Treaty 7 (1877), Reserves 142–144 (Morley)', rpasApp:'Bow Valley corridor and mountain pass monitoring, Trans-Canada Highway (Hwy 1) infrastructure patrol, Kananaskis pipeline ROW survey, wildfire and avalanche risk assessment, Rocky Mountain foothills land management', source:'ISC Band Location Dataset (BGMS) — Bands #473 / #433 / #475', licence:'Open Govt Licence – Canada' },
-
-      // ── ALBERTA TREATY 6 (signed 1876) ──
-      { lat:52.8359, lng:-113.4525, cat:'indigenous', type:'First Nations', prov:'AB', name:'Maskwacis Cree Nations (Ermineskin / Samson / Louis Bull / Montana)', region:'Maskwacis — central Alberta, south of Wetaskiwin', population:'~19,700 combined (2021 Census)', territory:'Plains Cree — Treaty 6 (1876). Four Cree Nations sharing the Maskwacis reserve complex', rpasApp:'Large-scale precision agriculture survey (grain, canola, hay corridors), Ponoka-Wetaskiwin pipeline ROW patrol, Battle River and Blindman River watershed monitoring, irrigation infrastructure inspection', source:'ISC Band Location Dataset (BGMS) — Bands #443 / #444 / #439 / #442', licence:'Open Govt Licence – Canada' },
-      { lat:54.3371, lng:-110.2362, cat:'indigenous', type:'First Nations', prov:'AB', name:'Cold Lake First Nations', region:'Cold Lake, northeastern Alberta', population:'~2,800 (2021 Census)', territory:'Plains Cree / Dene — Treaty 6 (1876)', rpasApp:'Lake and river corridor monitoring, oil sands region environmental survey, remote community access, emergency response', source:'ISC Band Location Dataset (BGMS) — Band #464', licence:'Open Govt Licence – Canada' },
-      { lat:53.8038, lng:-113.9206, cat:'indigenous', type:'First Nations', prov:'AB', name:'Alexander First Nation', region:'Barrhead / Westlock area, central Alberta', population:'~1,500 (2021 Census)', territory:'Cree — Treaty 6 (1876), Reserve 134', rpasApp:'Pembina River corridor and tributary monitoring, Barrhead area oil/gas pipeline ROW patrol, mixed-grain agricultural survey, forestry block condition assessment (Westlock County)', source:'ISC Band Location Dataset (BGMS) — Band #438', licence:'Open Govt Licence – Canada' },
-      { lat:53.7289, lng:-114.4870, cat:'indigenous', type:'First Nations', prov:'AB', name:'Alexis Nakota Sioux Nation', region:'Lac Ste. Anne, west of Edmonton', population:'~2,000 (2021 Census)', territory:'Nakota Sioux — Treaty 6 (1876), Reserve 133', rpasApp:'Lac Ste. Anne shoreline and water quality monitoring, Pembina Highlands pipeline corridor patrol, Yellowhead Highway (Hwy 16) corridor inspection, boreal forest fire detection', source:'ISC Band Location Dataset (BGMS) — Band #437', licence:'Open Govt Licence – Canada' },
-      { lat:53.5238, lng:-114.3707, cat:'indigenous', type:'First Nations', prov:'AB', name:'Paul First Nation', region:'Wabamun Lake, west of Edmonton', population:'~1,800 (2021 Census)', territory:'Cree — Treaty 6 (1876), Reserve 133A', rpasApp:'Wabamun Lake water quality and shoreline survey, TransAlta Wabamun coal/power corridor inspection, Enoch-to-Wabamun transmission line patrol, agricultural land mapping on reserve', source:'ISC Band Location Dataset (BGMS) — Band #441', licence:'Open Govt Licence – Canada' },
-      { lat:53.8672, lng:-110.3973, cat:'indigenous', type:'First Nations', prov:'AB', name:'Frog Lake First Nation', region:'East-central Alberta (Bonnyville / Lloydminster area)', population:'~1,600 (2021 Census)', territory:'Plains Cree — Treaty 6 (1876), Reserves 121 / 122', rpasApp:'Frog Lake and adjacent water body monitoring, Cold Lake-area oil/gas pipeline ROW patrol, agricultural grain-belt survey, boreal fringe forestry condition assessment', source:'ISC Band Location Dataset (BGMS) — Band #465', licence:'Open Govt Licence – Canada' },
-      { lat:54.1161, lng:-110.8571, cat:'indigenous', type:'First Nations', prov:'AB', name:'Kehewin Cree Nation', region:'Bonnyville area, northeastern Alberta', population:'~1,400 (2021 Census)', territory:'Plains Cree — Treaty 6 (1876), Reserve 123', rpasApp:'Kehiwin Lake and North Saskatchewan River tributary monitoring, Bonnyville-area oil/gas pipeline and wellsite patrol, mixed-grain agricultural survey, wetland habitat assessment (Beaver River watershed)', source:'ISC Band Location Dataset (BGMS) — Band #466', licence:'Open Govt Licence – Canada' },
-
-      // ── ALBERTA TREATY 8 (signed 1899) ──
-      { lat:58.7025, lng:-118.6895, cat:'indigenous', type:'First Nations', prov:'AB', name:'Dene Tha\' First Nation', region:'Chateh / High Level area, northwestern Alberta', population:'~3,200 (2021 Census)', territory:'Dene Tha\' — Treaty 8 (1899)', rpasApp:'Remote community access monitoring, pipeline and energy corridor patrol, northern forestry surveillance, emergency response', source:'ISC Band Location Dataset (BGMS) — Band #448', licence:'Open Govt Licence – Canada' },
-      { lat:58.7571, lng:-111.0997, cat:'indigenous', type:'First Nations', prov:'AB', name:'Mikisew Cree First Nation', region:'Fort Chipewyan, northeastern Alberta', population:'~2,800 (2021 Census)', territory:'Cree — Treaty 8 (1899), Wood Buffalo region', rpasApp:'Oil sands environmental monitoring, Athabasca delta and Peace-Athabasca watershed survey, wildlife corridor assessment, emergency response', source:'ISC Band Location Dataset (BGMS) — Band #461', licence:'Open Govt Licence – Canada' },
-      { lat:58.5482, lng:-111.0302, cat:'indigenous', type:'First Nations', prov:'AB', name:'Athabasca Chipewyan First Nation', region:'Fort Chipewyan, northeastern Alberta', population:'~1,200 (2021 Census)', territory:'Dene — Treaty 8 (1899), Wood Buffalo / Lake Athabasca', rpasApp:'Athabasca River and delta monitoring, oil sands tailings survey, remote infrastructure inspection, environmental assessment', source:'ISC Band Location Dataset (BGMS) — Band #463', licence:'Open Govt Licence – Canada' },
-      { lat:57.1795, lng:-111.6349, cat:'indigenous', type:'First Nations', prov:'AB', name:'Fort McKay First Nation', region:'Fort McMurray / Fort McKay, northeastern Alberta', population:'~700 (2021 Census)', territory:'Dene / Cree — Treaty 8 (1899), oil sands region', rpasApp:'Oil sands environmental survey, Athabasca River corridor monitoring, tailings pond perimeter inspection, wildlife corridor assessment', source:'ISC Band Location Dataset (BGMS) — Band #467', licence:'Open Govt Licence – Canada' },
-      { lat:58.4649, lng:-114.5335, cat:'indigenous', type:'First Nations', prov:'AB', name:'Little Red River Cree Nation', region:'Fox Lake / John D\'Or Prairie, northern Alberta', population:'~3,500 (2021 Census)', territory:'Cree — Treaty 8 (1899), Peace River region', rpasApp:'Remote community access monitoring, forestry and waterway surveillance, emergency response, northern land survey', source:'ISC Band Location Dataset (BGMS) — Band #447', licence:'Open Govt Licence – Canada' },
-      { lat:58.0644, lng:-115.6182, cat:'indigenous', type:'First Nations', prov:'AB', name:'Tallcree Tribal Government', region:'Fort Vermilion area, northern Alberta', population:'~1,500 (2021 Census)', territory:'Cree — Treaty 8 (1899)', rpasApp:'Remote forestry patrol, northern river corridor monitoring, agricultural land survey, emergency response support', source:'ISC Band Location Dataset (BGMS) — Band #446', licence:'Open Govt Licence – Canada' },
-      { lat:55.9464, lng:-113.7830, cat:'indigenous', type:'First Nations', prov:'AB', name:'Bigstone Cree Nation', region:'Wabasca / Desmarais area, central-north Alberta', population:'~4,500 (2021 Census)', territory:'Cree — Treaty 8 (1899)', rpasApp:'Forestry surveillance, pipeline corridor monitoring, lake and wetland survey, remote community access, emergency response', source:'ISC Band Location Dataset (BGMS) — Band #458', licence:'Open Govt Licence – Canada' },
-      { lat:49.17, lng:-122.85, cat:'indigenous', type:'First Nations', prov:'BC', name:'Kwantlen First Nation', region:'Fraser Valley, BC', population:'~450 (2021 Census)', territory:'Sto:lo / Fraser River watershed', rpasApp:'River corridor monitoring, agricultural land survey, coastal infrastructure inspection, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:49.68, lng:-124.93, cat:'indigenous', type:'First Nations', prov:'BC', name:'Sliammon / qathet First Nation', region:'Sunshine Coast, BC', population:'~900 (2021 Census)', territory:'Tla\'amin traditional territory', rpasApp:'Coastal and marine monitoring, forestry survey, remote access road condition, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:58.80, lng:-122.70, cat:'indigenous', type:'First Nations', prov:'BC', name:'Fort Nelson First Nation', region:'Northeast BC', population:'~700 (2021 Census)', territory:'Dene Zhie traditional territory', rpasApp:'Remote pipeline corridor patrol, forestry monitoring, wildfire detection, northern community access survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:50.68, lng:-96.08, cat:'indigenous', type:'First Nations', prov:'MB', name:'Sagkeeng First Nation', region:'Eastern Manitoba (Lac du Bonnet area)', population:'~2,100 (2021 Census)', territory:'Anishinabe — Treaty 1 (1871)', rpasApp:'Winnipeg River flood-stage and ice-jam monitoring, Lake Winnipeg north basin shoreline survey, Manitoba Hydro Lac du Bonnet generating station corridor inspection, boreal access road condition assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:52.30, lng:-97.95, cat:'indigenous', type:'First Nations', prov:'MB', name:'Lake Manitoba First Nation', region:'Interlake, Manitoba', population:'~1,400 (2021 Census)', territory:'Anishinabe — Treaty 2 (1871)', rpasApp:'Lake Manitoba shoreline erosion and flood-impact survey (documented flooding 2011/2022), Portage Diversion channel monitoring, Interlake agricultural drainage network inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:53.83, lng:-101.63, cat:'indigenous', type:'First Nations', prov:'MB', name:'Opaskwayak Cree Nation', region:'The Pas, Northern Manitoba', population:'~2,600 (2021 Census)', territory:'Swampy Cree — Treaty 5 (1875)', rpasApp:'Saskatchewan River corridor and dam spillway monitoring, CN rail bridge and northern freight corridor inspection, Pas Energy / natural gas infrastructure patrol, remote northern road condition assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:46.14, lng:-60.19, cat:'indigenous', type:'First Nations', prov:'NS', name:'Eskasoni First Nation', region:'Cape Breton, Nova Scotia', population:'~2,900 (2021 Census)', territory:'Mi\'kmaq traditional territory (largest reserve in NS)', rpasApp:'Coastal erosion monitoring, fisheries infrastructure survey, land management, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:45.69, lng:-84.17, cat:'indigenous', type:'First Nations', prov:'ON', name:'Garden River First Nation', region:'Sault Ste. Marie area, Northern Ontario', population:'~1,100 (2021 Census)', territory:'Anishinabe — Robinson-Huron Treaty (1850)', rpasApp:'St. Marys River and Lake Superior shoreline monitoring, Algoma Steel and Sault industrial corridor inspection, Hwy 17 Trans-Canada infrastructure patrol, boreal forestry block survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:46.04, lng:-79.37, cat:'indigenous', type:'First Nations', prov:'ON', name:'Nipissing First Nation', region:'North Bay area, Northeastern Ontario', population:'~1,700 (2021 Census)', territory:'Anishinabe — Robinson-Huron Treaty (1850)', rpasApp:'Lake Nipissing shoreline and water quality survey, North Bay-area gas transmission corridor inspection, Highway 17 / 11 corridor monitoring, boreal and mixed-forest fire detection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:52.86, lng:-82.40, cat:'indigenous', type:'First Nations', prov:'ON', name:'Attawapiskat First Nation', region:'James Bay, Northern Ontario', population:'~1,900 (2021 Census)', territory:'Mushkegowuk Cree / James Bay coast', rpasApp:'Remote community access monitoring, coastal flood assessment, emergency logistics support, infrastructure survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:48.60, lng:-78.11, cat:'indigenous', type:'First Nations', prov:'QC', name:'Lac-Simon Anishinabe', region:'Abitibi-Témiscamingue, QC', population:'~1,300 (2021 Census)', territory:'Anishinabe / Abitibi watershed', rpasApp:'Lac Simon water quality and shoreline survey, Val-d\'Or/Rouyn-Noranda active mining corridor patrol, boreal clear-cut and reforestation monitoring, Kinojévis River corridor inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:55.28, lng:-77.77, cat:'indigenous', type:'First Nations', prov:'QC', name:'Chisasibi First Nation', region:'James Bay, Northern Quebec', population:'~5,200 (2021 Census)', territory:'James Bay Cree / La Grande River', rpasApp:'Hydroelectric corridor monitoring, remote community logistics, environmental survey, emergency response', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:53.28, lng:-106.00, cat:'indigenous', type:'First Nations', prov:'SK', name:'Lac La Ronge Indian Band', region:'Northern Saskatchewan', population:'~3,600 (2021 Census)', territory:'Woodland Cree — Treaty 6 (1889 adhesion)', rpasApp:'Lac La Ronge and Churchill River system water-body survey, boreal wildfire early-detection patrol (high-fire-risk zone), Hanson Lake Road and northern freight corridor inspection, remote fly-in community access assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:63.75, lng:-68.52, cat:'indigenous', type:'Inuit', prov:'NU', name:'Iqaluit', region:'Baffin Island, Nunavut', population:'~8,000 (2021 Census)', territory:'Qikiqtani / South Baffin Island', rpasApp:'Arctic infrastructure inspection, sea ice monitoring, remote logistics support, emergency preparedness, environmental survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:60.02, lng:-77.28, cat:'indigenous', type:'Inuit', prov:'QC', name:'Puvirnituq (Puvirnituuq)', region:'Nunavik, Northern Quebec', population:'~1,900 (2021 Census)', territory:'Nunavik Inuit / Hudson Bay coast', rpasApp:'Coastal and sea ice monitoring, remote community access survey, emergency response, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:58.47, lng:-78.11, cat:'indigenous', type:'Inuit', prov:'QC', name:'Umiujaq', region:'Nunavik, Northern Quebec', population:'~450 (2021 Census)', territory:'Nunavik Inuit / Lac Guillaume-Delisle', rpasApp:'Permafrost and coastal erosion monitoring, remote infrastructure survey, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:55.28, lng:-85.27, cat:'indigenous', type:'Inuit', prov:'ON', name:'Fort Severn First Nation', region:'Hudson Bay coast, Northern Ontario', population:'~550 (2021 Census)', territory:'Mushkegowuk Cree / Hudson Bay coast (Ontario\'s most northerly community)', rpasApp:'Remote community access and infrastructure monitoring, sea ice survey, emergency preparedness, environmental survey', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:68.35, lng:-133.72, cat:'indigenous', type:'Inuit', prov:'NT', name:'Aklavik', region:'Mackenzie Delta, NWT', population:'~650 (2021 Census)', territory:'Inuvialuit / Mackenzie Delta', rpasApp:'Delta channel monitoring, permafrost survey, wildlife corridor assessment, remote infrastructure inspection', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-      { lat:69.72, lng:-130.98, cat:'indigenous', type:'Inuit', prov:'NT', name:'Tuktoyaktuk', region:'Beaufort Sea coast, NWT', population:'~870 (2021 Census)', territory:'Inuvialuit / Beaufort Sea coast (Arctic Ocean access)', rpasApp:'Coastal erosion monitoring (rapidly eroding shoreline), permafrost thaw survey, Arctic logistics support, environmental assessment', source:'Statistics Canada Census Subdivision', licence:'Open Govt Licence – Canada' },
-    ];
     window._INDIGENOUS = INDIGENOUS;
 
     const UAV_RANGES = [
@@ -2715,7 +2625,6 @@
       water:          '#0d6e6e',
       industrial:     '#6b4c0a',
       municipal:      '#c8961c',
-      indigenous:     '#7c3aed',
       uav_range:      '#0ea5e9',
       wind_farm:      '#16a34a',
       rail:           '#b45309'
@@ -2726,7 +2635,6 @@
       water:          'Water Infrastructure',
       industrial:     'Industrial Facilities',
       municipal:      'AACP™ Regional Intelligence',
-      indigenous:     'Indigenous Community',
       uav_range:      'UAV / RPAS Test Range',
       wind_farm:      'Wind Farm',
       rail:           'Rail Corridor'
@@ -2769,7 +2677,7 @@
 
     // Build cluster groups per category (including municipal)
     const clusterGroups = {};
-    const ALL_CATS = Object.assign({}, CAT_COLOR, { municipal: '#80011f', indigenous: '#7c3aed', uav_range: '#0ea5e9', wind_farm: '#16a34a', rail: '#b45309' });
+    const ALL_CATS = Object.assign({}, CAT_COLOR, { municipal: '#80011f', uav_range: '#0ea5e9', wind_farm: '#16a34a', rail: '#b45309' });
     Object.keys(ALL_CATS).forEach(cat => {
       clusterGroups[cat] = L.markerClusterGroup({
         maxClusterRadius: 50,
@@ -2818,23 +2726,6 @@
       clusterGroups[d.cat].addLayer(marker);
     });
 
-    // Add indigenous community markers
-    INDIGENOUS.forEach(d => {
-      const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
-      marker.on('click', () => {
-        window._riCurrentData = d;
-        activeTab = 'overview';
-        renderPanel(d);
-        location.hash = encodeURIComponent(d.name);
-        if (window.innerWidth <= 900) {
-          document.getElementById('riPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      });
-      marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${d.type}</span>`, {
-        className: 'rpas-popup', direction: 'top', offset: [0, -8]
-      });
-      clusterGroups['indigenous'].addLayer(marker);
-    });
 
     // Add UAV test range markers
     UAV_RANGES.forEach(d => {
@@ -2874,7 +2765,7 @@
     Object.values(clusterGroups).forEach(g => map.addLayer(g));
 
     // ── FILTERS ──
-    const activeCats = new Set(['transportation','energy','water','industrial','indigenous','uav_range','wind_farm','rail']);
+    const activeCats = new Set(['transportation','energy','water','industrial','uav_range','wind_farm','rail']);
     let activeProv = 'all';
     let activeSector = 'all';
 
@@ -2912,15 +2803,6 @@
         });
         clusterGroups[d.cat].addLayer(marker);
       });
-      if (activeCats.has('indigenous')) {
-        INDIGENOUS.forEach(d => {
-          if (activeProv !== 'all' && d.prov !== activeProv) return;
-          const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
-          marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
-          marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${d.type}</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
-          clusterGroups['indigenous'].addLayer(marker);
-        });
-      }
       if (activeCats.has('uav_range')) {
         UAV_RANGES.forEach(d => {
           if (activeProv !== 'all' && d.prov !== activeProv) return;
