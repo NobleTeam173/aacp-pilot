@@ -219,7 +219,7 @@ function CockpitEnvironment({
       {/* Cockpit photo */}
       <div style={{ position: 'relative' }}>
         <img
-          src="/images/cockpit.webp"
+          src="/images/cockpit.jpg"
           alt="Flight deck"
           style={{ width: '100%', height: 220, objectFit: 'cover', objectPosition: 'center top', display: 'block', filter: 'brightness(0.68) saturate(1.15)' }}
           draggable={false}
