@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import type { EvidenceItem } from '../types';
-import { IMG_OVERVIEW } from './AircraftImages';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -675,7 +674,7 @@ function S1Inspection({ onComplete }: { onComplete: (zones: Zone[], items: Tagge
       {/* ── Main hangar photo + hotspots ── */}
       <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}` }}>
         <img
-          src={IMG_OVERVIEW}
+          src="/images/aircraft-tarmac.webp"
           alt="Aircraft in maintenance hangar"
           style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 420 }}
           draggable={false}
