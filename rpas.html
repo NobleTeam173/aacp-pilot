@@ -2915,6 +2915,7 @@
       });
       if (activeCats.has('indigenous')) {
         INDIGENOUS.forEach(d => {
+          if (activeProv !== 'all' && d.prov !== activeProv) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
           marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
           marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#9490a0">${d.type}</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
@@ -2923,6 +2924,7 @@
       }
       if (activeCats.has('uav_range')) {
         UAV_RANGES.forEach(d => {
+          if (activeProv !== 'all' && d.prov !== activeProv) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
           marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
           marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#0ea5e9">UAV / RPAS Test Range</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
