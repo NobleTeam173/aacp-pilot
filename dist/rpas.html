@@ -1529,14 +1529,17 @@
   function nearbyInfraHTML(lat, lng, excludeId, limit) {
     const CAT_DOT = { transportation:'#1a6faf', energy:'#c8401a', water:'#0d6e6e', industrial:'#6b4c0a', indigenous:'#7c3aed', uav_range:'#0ea5e9', wind_farm:'#16a34a', rail:'#b45309' };
     const _allNearby = [...(window._INFRA||[]), ...(window._INDIGENOUS||[]), ...(window._UAV_RANGES||[]), ...(window._WIND_FARMS||[]), ...(window._RAIL||[])];
+    // Coordinates shared by multiple records indicate regional centroids — distances to these are not geographically meaningful
+    const coordFreq = {};
+    _allNearby.forEach(r => { const k = r.lat + ',' + r.lng; coordFreq[k] = (coordFreq[k] || 0) + 1; });
     const nearby = _allNearby
       .filter(r => r.cat !== 'municipal' && !(r.lat === lat && r.lng === lng))
-      .map(r => ({ ...r, _km: haversineKm(lat, lng, r.lat, r.lng) }))
+      .map(r => ({ ...r, _km: haversineKm(lat, lng, r.lat, r.lng), _regional: coordFreq[r.lat + ',' + r.lng] > 1 }))
       .sort((a, b) => a._km - b._km)
       .slice(0, limit || 4);
     if (!nearby.length) return '';
     const cards = nearby.map(r => {
-      const km = r._km < 100 ? r._km.toFixed(0) + ' km' : (r._km/1000).toFixed(1) + 'k km';
+      const distLabel = r._regional ? 'Regional proximity — exact distance unavailable' : (r._km < 1 ? '< 1 km' : Math.round(r._km) + ' km');
       const app = r.rpasApp.split(',')[0].trim();
       const _ni = _allNearby.indexOf(r);
       return `<div class="ri-nearby-card" onclick="window._nearbyClick && window._nearbyClick(${_ni})">
@@ -1545,7 +1548,7 @@
           <div class="ri-nearby-name">${r.name}</div>
           <div class="ri-nearby-meta">${CAT_LABEL_FULL[r.cat]} · ${r.prov} · ${app}</div>
         </div>
-        <div class="ri-nearby-dist">${km}</div>
+        <div class="ri-nearby-dist" style="${r._regional?'white-space:normal;font-style:italic;':'white-space:nowrap;'}">${distLabel}</div>
       </div>`;
     }).join('');
     return `<div class="ri-section" style="padding:0 14px 4px">
