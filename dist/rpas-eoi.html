@@ -43,9 +43,7 @@
     <div class="promo-badge">Limited-Time Offer</div>
     <div class="promo-title">Early Registration Pricing</div>
     <div class="promo-price-row">
-      <span class="promo-price-regular">$1,200 CAD</span>
       <span class="promo-price-special">$795 <span class="promo-price-label">CAD</span></span>
-      <span class="promo-save">Save $405</span>
     </div>
     <div class="promo-details">
       Applies to both inaugural cohorts (Nov 23 &amp; Dec 14, 2026). Rate is locked at time of registration.
@@ -156,7 +154,7 @@
       </div>
 
       <div class="fee-box" id="fee-box">
-        <strong id="fee-box-title">Program Fee: $795 CAD <span style="font-weight:400;font-size:11px;color:var(--muted);">(early registration — reg. $1,200)</span></strong><br>
+        <strong id="fee-box-title">Program Fee: $795 CAD</strong><br>
         This is a paid program. Admission is subject to AACP review. Accepted participants will receive next-step instructions including payment arrangements. Your place is not confirmed until payment is received. Contact <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a> with questions.
       </div>
 
@@ -212,13 +210,13 @@
     if (banner) banner.hidden = true;
 
     var priceDisplay = document.getElementById('cohort-price-display');
-    if (priceDisplay) priceDisplay.textContent = '$1,200 CAD';
+    if (priceDisplay) priceDisplay.textContent = '$795 CAD';
 
     var feeBoxTitle = document.getElementById('fee-box-title');
-    if (feeBoxTitle) feeBoxTitle.innerHTML = 'Program Fee: $1,200 CAD';
+    if (feeBoxTitle) feeBoxTitle.innerHTML = 'Program Fee: $795 CAD';
 
     var feeAckText = document.getElementById('fee-ack-text');
-    if (feeAckText) feeAckText.textContent = 'I understand the RPAS Workforce Hub program fee is $1,200 CAD and that acceptance is subject to AACP review. *';
+    if (feeAckText) feeAckText.textContent = 'I understand the RPAS Workforce Hub program fee is $795 CAD and that acceptance is subject to AACP review. *';
 
     var submitBtn = document.getElementById('submit-btn');
     if (submitBtn) submitBtn.textContent = 'Express Interest';
