@@ -1012,24 +1012,60 @@
 <div id="eoi-partner-modal" class="ri-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="eoi-partner-title">
   <div class="ri-modal">
     <div id="eoi-partner-form-wrap">
-      <div class="ri-modal-title" id="eoi-partner-title">Discuss a Regional Partnership</div>
-      <div class="ri-modal-sub" id="eoi-partner-sub">Express your interest in a regional RPAS partnership opportunity with AACP™. Our partnerships team will be in touch.</div>
-      <div class="ri-modal-callout">
-        <div class="ri-modal-callout-title">How AACP™ Can Help Your Organization</div>
-        <div class="ri-modal-callout-body">AACP™ supports municipalities, infrastructure owners, employers and technology partners in exploring RPAS applications, workforce development, industry partnerships and evidence-based pilot opportunities. We connect regional intelligence with practical workforce and commercial development needs.</div>
-      </div>
+      <div class="ri-modal-title" id="eoi-partner-title">Request an Industry Partnership Discussion</div>
+      <div class="ri-modal-sub" id="eoi-partner-sub">Tell us about your organization and operational needs. Our partnerships team will be in touch to explore how AACP™ can support your RPAS journey.</div>
       <div class="ri-modal-row">
         <div><label for="eoi-p-first">First Name *</label><input id="eoi-p-first" type="text" autocomplete="given-name" placeholder="First name"></div>
         <div><label for="eoi-p-last">Last Name *</label><input id="eoi-p-last" type="text" autocomplete="family-name" placeholder="Last name"></div>
       </div>
       <label for="eoi-p-org">Organization *</label>
       <input id="eoi-p-org" type="text" autocomplete="organization" placeholder="Organization name">
+      <label for="eoi-p-industry">Industry / Sector *</label>
+      <select id="eoi-p-industry">
+        <option value="">Select…</option>
+        <option>Energy &amp; Utilities</option>
+        <option>Oil &amp; Gas</option>
+        <option>Transportation &amp; Logistics</option>
+        <option>Municipal Government</option>
+        <option>Agriculture</option>
+        <option>Construction &amp; Infrastructure</option>
+        <option>Mining</option>
+        <option>Telecommunications</option>
+        <option>Environmental &amp; Natural Resources</option>
+        <option>Public Safety &amp; Emergency Services</option>
+        <option>Aviation &amp; Aerospace</option>
+        <option>Technology &amp; Innovation</option>
+        <option>Other</option>
+      </select>
+      <label for="eoi-p-challenge">Operational Challenge or Area of Interest *</label>
+      <select id="eoi-p-challenge">
+        <option value="">Select…</option>
+        <option>Infrastructure inspection</option>
+        <option>Surveying &amp; mapping</option>
+        <option>Environmental monitoring</option>
+        <option>Autonomous delivery &amp; logistics</option>
+        <option>Search &amp; rescue / public safety</option>
+        <option>Precision agriculture</option>
+        <option>Workforce development &amp; training</option>
+        <option>Regulatory compliance &amp; certification</option>
+        <option>Technology partnership / integration</option>
+        <option>Other / not sure yet</option>
+      </select>
+      <label for="eoi-p-location">City / Region</label>
+      <input id="eoi-p-location" type="text" placeholder="e.g. Calgary, Alberta">
       <label for="eoi-p-email">Work Email *</label>
       <input id="eoi-p-email" type="email" autocomplete="email" placeholder="you@organization.com">
+      <label for="eoi-p-contact-pref">Preferred Contact Method</label>
+      <select id="eoi-p-contact-pref">
+        <option value="">No preference</option>
+        <option>Email</option>
+        <option>Phone call</option>
+        <option>Video call</option>
+      </select>
       <label for="eoi-p-phone">Phone</label>
       <input id="eoi-p-phone" type="tel" autocomplete="tel" placeholder="Optional">
-      <label for="eoi-p-comment">How can we help? (optional)</label>
-      <textarea id="eoi-p-comment" placeholder="Describe your interest or the opportunity you have in mind…"></textarea>
+      <label for="eoi-p-comment">Additional context (optional)</label>
+      <textarea id="eoi-p-comment" placeholder="Tell us more about the challenge you're trying to solve or the opportunity you have in mind…"></textarea>
       <div class="ri-modal-privacy">By submitting this form you authorize AACP™ to contact you about this partnership inquiry. See our <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</div>
       <div class="ri-modal-consent"><input type="checkbox" id="eoi-p-marketing"><span>I would like to receive occasional AACP™ news and program updates (optional).</span></div>
       <div class="ri-modal-err" id="eoi-p-err"></div>
@@ -1045,6 +1081,26 @@
   </div>
 </div>
 
+
+<!-- RPAS SOLUTIONS CTA -->
+<section style="background:linear-gradient(135deg,#0d0109 0%,#1a0510 50%,#0d0109 100%);padding:72px 0;border-top:1px solid rgba(128,1,31,0.25);border-bottom:1px solid rgba(128,1,31,0.25);">
+  <div style="max-width:900px;margin:0 auto;padding:0 6vw;text-align:center;">
+    <span class="section-eyebrow" style="display:block;margin-bottom:18px;">RPAS Solutions for Your Organization</span>
+    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:clamp(28px,4vw,46px);font-weight:700;color:#f0eef2;line-height:1.15;margin:0 0 20px;">Explore RPAS Solutions for<br>Your Organization</h2>
+    <div style="width:48px;height:3px;background:#80011f;margin:0 auto 28px;border-radius:2px;"></div>
+    <p style="font-size:clamp(15px,1.6vw,18px);color:#b8b0c0;line-height:1.75;max-width:680px;margin:0 auto 20px;">Discover opportunities in infrastructure inspection, surveying, mapping, environmental monitoring and emerging autonomous operations — and how AACP™ can support your organization's adoption journey.</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 auto 40px;max-width:700px;">
+      <span style="background:rgba(128,1,31,0.15);border:1px solid rgba(128,1,31,0.35);color:#d4a0b0;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 14px;border-radius:20px;">Infrastructure Inspection</span>
+      <span style="background:rgba(128,1,31,0.15);border:1px solid rgba(128,1,31,0.35);color:#d4a0b0;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 14px;border-radius:20px;">Surveying &amp; Mapping</span>
+      <span style="background:rgba(128,1,31,0.15);border:1px solid rgba(128,1,31,0.35);color:#d4a0b0;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 14px;border-radius:20px;">Environmental Monitoring</span>
+      <span style="background:rgba(128,1,31,0.15);border:1px solid rgba(128,1,31,0.35);color:#d4a0b0;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 14px;border-radius:20px;">Autonomous Operations</span>
+      <span style="background:rgba(128,1,31,0.15);border:1px solid rgba(128,1,31,0.35);color:#d4a0b0;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 14px;border-radius:20px;">Workforce Development</span>
+    </div>
+    <button onclick="document.getElementById('eoi-partner-modal').hidden=false" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#80011f,#5c0116);color:#fff;border:none;padding:16px 36px;font-size:15px;font-weight:700;letter-spacing:.3px;border-radius:8px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 4px 24px rgba(128,1,31,0.4);transition:opacity .2s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+      Request an Industry Partnership Discussion &nbsp;→
+    </button>
+  </div>
+</section>
 
 <!-- BUSINESS COLLABORATION -->
 <section class="collab-section">
@@ -1959,16 +2015,22 @@
     const d = window._riCurrentData || {};
     const firstName = document.getElementById('eoi-p-first').value.trim();
     const lastName  = document.getElementById('eoi-p-last').value.trim();
-    const org       = document.getElementById('eoi-p-org').value.trim();
-    const email     = document.getElementById('eoi-p-email').value.trim();
-    const phone     = document.getElementById('eoi-p-phone').value.trim();
-    const comment   = document.getElementById('eoi-p-comment').value.trim();
-    const errEl     = document.getElementById('eoi-p-err');
+    const org           = document.getElementById('eoi-p-org').value.trim();
+    const industry      = document.getElementById('eoi-p-industry').value.trim();
+    const challenge     = document.getElementById('eoi-p-challenge').value.trim();
+    const location      = document.getElementById('eoi-p-location').value.trim();
+    const email         = document.getElementById('eoi-p-email').value.trim();
+    const contactPref   = document.getElementById('eoi-p-contact-pref').value.trim();
+    const phone         = document.getElementById('eoi-p-phone').value.trim();
+    const comment       = document.getElementById('eoi-p-comment').value.trim();
+    const errEl         = document.getElementById('eoi-p-err');
     errEl.style.display = 'none';
 
     if (!firstName) { errEl.textContent = 'First name is required.'; errEl.style.display = 'block'; return; }
     if (!lastName)  { errEl.textContent = 'Last name is required.'; errEl.style.display = 'block'; return; }
     if (!org)       { errEl.textContent = 'Organization name is required.'; errEl.style.display = 'block'; return; }
+    if (!industry)  { errEl.textContent = 'Please select your industry or sector.'; errEl.style.display = 'block'; return; }
+    if (!challenge) { errEl.textContent = 'Please select an area of interest.'; errEl.style.display = 'block'; return; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'A valid email address is required.'; errEl.style.display = 'block'; return; }
 
     const btn = document.getElementById('eoi-p-submit');
@@ -1982,13 +2044,13 @@
         body: JSON.stringify({
           firstName, lastName, orgName: org, email,
           phone: phone || null,
-          comment: comment || null,
-          city: d.prov ? null : null,
+          comment: [industry && `Industry: ${industry}`, challenge && `Area of interest: ${challenge}`, location && `Location: ${location}`, contactPref && `Preferred contact: ${contactPref}`, comment].filter(Boolean).join('\n\n') || null,
+          city: location || d.prov ? null : null,
           province: d.prov || null,
-          partnershipInterests: ['rpas_workforce_opportunities'],
-          utmSource: 'rpas_map',
-          utmMedium: 'panel_action',
-          utmCampaign: d.name ? `municipal_${d.name.replace(/\s+/g,'_').toLowerCase()}` : 'rpas_map',
+          partnershipInterests: ['rpas_solutions'],
+          utmSource: 'rpas_solutions_cta',
+          utmMedium: 'industry_cta',
+          utmCampaign: 'rpas_industry_partnership',
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Submission failed'); }
