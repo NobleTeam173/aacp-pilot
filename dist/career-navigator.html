@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AACP Career Navigator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens ───────────────────────────────────────────────────── */
+:root {
+  --bg: #08020a; --surface: #120916; --surface2: #1c1024; --surface3: #251530;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --fg: #f0eaf4; --fg2: #b4a4c4; --fg3: #7a6890;
+  --crimson: #80011f; --crimson-h: #9a0126; --crimson-soft: rgba(128,1,31,0.15);
+  --gold: #c8a84b; --gold-soft: rgba(200,168,75,0.12);
+  --green: #2a7a4f; --green-fg: #48ba7c; --green-soft: rgba(42,122,79,0.15);
+  --blue: #1a5276; --blue-fg: #5dade2; --blue-soft: rgba(26,82,118,0.2);
+  --radius: 12px; --radius-sm: 8px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f4f9; --surface: #ffffff; --surface2: #f0ebf5; --surface3: #e8e0f0;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+    --fg: #1a0d2e; --fg2: #4a3660; --fg3: #8a7a9a;
+    --crimson: #80011f; --crimson-h: #9a0126; --crimson-soft: rgba(128,1,31,0.1);
+    --gold: #9a7a20; --gold-soft: rgba(154,122,32,0.1);
+    --green: #1e6b3a; --green-fg: #1e6b3a; --green-soft: rgba(30,107,58,0.1);
+    --blue: #1a5276; --blue-fg: #1a5276; --blue-soft: rgba(26,82,118,0.1);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f7f4f9; --surface: #ffffff; --surface2: #f0ebf5; --surface3: #e8e0f0;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+  --fg: #1a0d2e; --fg2: #4a3660; --fg3: #8a7a9a;
+  --crimson: #80011f; --crimson-h: #9a0126; --crimson-soft: rgba(128,1,31,0.1);
+  --gold: #9a7a20; --gold-soft: rgba(154,122,32,0.1);
+  --green: #1e6b3a; --green-fg: #1e6b3a; --green-soft: rgba(30,107,58,0.1);
+  --blue: #1a5276; --blue-fg: #1a5276; --blue-soft: rgba(26,82,118,0.1);
+  color-scheme: light;
+}
+
+/* ── Reset ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;scroll-behavior:smooth}
+body{
+  min-height:100%;background:var(--bg);color:var(--fg);
+  font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.5;
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);
+  display:flex;flex-direction:column;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:12px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:50;
+}
+.logo-mark{
+  width:36px;height:36px;border-radius:9px;background:var(--crimson);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:#fff;
+}
+.logo-text{flex:1;min-width:0}
+.logo-text strong{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo-text span{font-size:11px;color:var(--fg3);display:block}
+.header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.btn-sign-in{
+  font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;
+  background:var(--crimson);border:none;color:#fff;white-space:nowrap;
+  transition:background .15s;
+}
+.btn-sign-in:hover{background:var(--crimson-h)}
+
+/* ── Tab nav ──────────────────────────────────────────────────── */
+.tab-nav{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;scrollbar-width:none;
+  padding:0 max(16px,env(safe-area-inset-left,0px));
+  position:sticky;top:60px;z-index:49;
+  -webkit-overflow-scrolling:touch;
+}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex-shrink:0;padding:11px 16px;font-size:13px;font-weight:500;
+  color:var(--fg3);border:none;background:none;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:color .15s,border-color .15s;
+}
+.tab-btn:hover{color:var(--fg2)}
+.tab-btn.active{color:var(--fg);border-bottom-color:var(--crimson)}
+
+/* ── Tab panels ───────────────────────────────────────────────── */
+.tab-panel{display:none;padding:24px max(16px,env(safe-area-inset-left,0px)) 60px;max-width:780px;margin:0 auto;width:100%}
+.tab-panel.active{display:block}
+
+/* ── Typography helpers ───────────────────────────────────────── */
+.section-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px}
+.section-title{font-family:'Fraunces',serif;font-size:24px;font-weight:700;margin-bottom:8px;line-height:1.2}
+.section-sub{font-size:14px;color:var(--fg2);margin-bottom:28px;line-height:1.65}
+
+/* ── Hero banner ──────────────────────────────────────────────── */
+.hero{
+  background:linear-gradient(135deg,var(--surface2) 0%,var(--surface3) 100%);
+  border:1px solid var(--border2);border-radius:var(--radius);
+  padding:28px 24px 24px;margin-bottom:28px;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 80% 20%,rgba(128,1,31,0.18) 0%,transparent 60%);
+  pointer-events:none;
+}
+.hero-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.hero h1{font-family:'Fraunces',serif;font-size:28px;font-weight:700;line-height:1.2;margin-bottom:10px}
+.hero p{font-size:14px;color:var(--fg2);line-height:1.65;max-width:520px;margin-bottom:20px}
+.hero-cta-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn-primary{
+  font-size:13px;font-weight:600;padding:9px 20px;border-radius:22px;
+  background:var(--crimson);border:none;color:#fff;cursor:pointer;
+  transition:background .15s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary:hover{background:var(--crimson-h)}
+.btn-secondary{
+  font-size:13px;font-weight:500;padding:9px 20px;border-radius:22px;
+  background:transparent;border:1px solid var(--border2);color:var(--fg2);cursor:pointer;
+  transition:border-color .15s,color .15s;
+}
+.btn-secondary:hover{border-color:var(--fg3);color:var(--fg)}
+
+/* ── Sector grid ──────────────────────────────────────────────── */
+.sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:32px}
+.sector-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 16px 14px;cursor:pointer;transition:border-color .15s,background .15s;
+}
+.sector-card:hover{border-color:var(--border2);background:var(--surface3)}
+.sector-card.active{border-color:var(--crimson);background:var(--crimson-soft)}
+.sector-code{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
+  padding:3px 8px;border-radius:6px;margin-bottom:10px;
+  background:var(--surface3);border:1px solid var(--border2);color:var(--fg2);
+}
+.sector-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.sector-count{font-size:12px;color:var(--fg3)}
+
+/* ── Pathway list ─────────────────────────────────────────────── */
+.pathway-list{display:flex;flex-direction:column;gap:8px;margin-bottom:32px}
+.pathway-item{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;
+  transition:border-color .15s,background .15s;
+}
+.pathway-item:hover{border-color:var(--border2);background:var(--surface3)}
+.pathway-item.active{border-color:var(--crimson);background:var(--crimson-soft)}
+.pathway-sector-badge{
+  flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:3px 7px;border-radius:5px;border:1px solid var(--border2);
+  background:var(--surface3);color:var(--fg3);min-width:32px;text-align:center;
+}
+.pathway-info{flex:1;min-width:0}
+.pathway-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pathway-desc{font-size:12px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.pathway-arrow{color:var(--fg3);flex-shrink:0;font-size:14px;transition:transform .15s}
+.pathway-item:hover .pathway-arrow{transform:translateX(3px)}
+
+/* ── Pathway detail panel ─────────────────────────────────────── */
+.pathway-detail{
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
+  overflow:hidden;
+}
+.pathway-detail-header{
+  background:linear-gradient(135deg,var(--surface2),var(--surface3));
+  padding:24px 20px 20px;border-bottom:1px solid var(--border);
+}
+.pathway-detail-code{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.07em;
+  padding:3px 10px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--surface3);color:var(--fg2);margin-bottom:12px;
+}
+.pathway-detail-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.pathway-detail-sector{font-size:12px;color:var(--gold);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+
+/* ── Journey flow map ─────────────────────────────────────────── */
+.journey-map{padding:20px}
+.journey-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:16px}
+.journey-steps{display:flex;flex-direction:column;gap:0}
+.journey-step{
+  display:flex;gap:16px;position:relative;
+}
+.journey-step:not(:last-child)::after{
+  content:'';position:absolute;left:19px;top:38px;bottom:-1px;width:2px;
+  background:linear-gradient(to bottom,var(--border2),var(--border));
+}
+.step-node{
+  flex-shrink:0;width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;
+  border:2px solid var(--border2);background:var(--surface2);color:var(--fg2);
+  position:relative;z-index:1;
+}
+.step-content{flex:1;min-width:0;padding-bottom:24px}
+.step-title{font-size:14px;font-weight:600;margin-bottom:4px;padding-top:7px}
+.step-body{font-size:13px;color:var(--fg2);line-height:1.6}
+.step-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.step-tag{
+  font-size:11px;font-weight:500;padding:3px 9px;border-radius:12px;
+  background:var(--surface3);border:1px solid var(--border);color:var(--fg3);
+}
+.step-tag.highlight{background:var(--gold-soft);border-color:rgba(200,168,75,0.3);color:var(--gold)}
+.step-tag.tc{background:var(--blue-soft);border-color:rgba(93,173,226,0.3);color:var(--blue-fg)}
+
+/* ── Detail sections ──────────────────────────────────────────── */
+.detail-sections{padding:0 20px 20px}
+.detail-section{margin-bottom:20px}
+.detail-section-title{
+  font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--fg3);margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.detail-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.detail-row{font-size:13px;color:var(--fg2);line-height:1.65;margin-bottom:6px}
+.detail-row strong{color:var(--fg);font-weight:600}
+.salary-bar{
+  display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 14px;
+  background:var(--gold-soft);border:1px solid rgba(200,168,75,0.2);border-radius:var(--radius-sm);
+}
+.salary-label{font-size:12px;color:var(--gold);font-weight:600}
+.salary-range{font-size:14px;font-weight:600;color:var(--fg)}
+.salary-source{font-size:11px;color:var(--fg3);margin-left:auto}
+
+/* ── Free tier gate ───────────────────────────────────────────── */
+.gate{
+  background:linear-gradient(to bottom,transparent,var(--bg) 60%);
+  margin-top:-48px;padding:60px 20px 20px;position:relative;text-align:center;
+  pointer-events:none;
+}
+.gate-card{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:24px;pointer-events:all;
+}
+.gate-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:8px}
+.gate-body{font-size:13px;color:var(--fg2);margin-bottom:18px;line-height:1.6}
+.gate-price{
+  display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:16px;
+}
+.gate-price-amount{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:var(--fg)}
+.gate-price-period{font-size:14px;color:var(--fg3)}
+.gate-features{text-align:left;margin-bottom:20px}
+.gate-feature{
+  font-size:13px;color:var(--fg2);padding:5px 0;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--border);
+}
+.gate-feature:last-child{border:none}
+.gate-feature::before{content:'✓';color:var(--green-fg);font-weight:700;flex-shrink:0}
+
+/* ── Institution / scholarship cards ──────────────────────────── */
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:28px}
+.resource-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;transition:border-color .15s;
+}
+.resource-card:hover{border-color:var(--border2)}
+.resource-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.resource-name{font-size:14px;font-weight:600;line-height:1.3}
+.resource-badge{
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;
+}
+.resource-badge.tc{background:var(--blue-soft);color:var(--blue-fg);border:1px solid rgba(93,173,226,0.25)}
+.resource-badge.navc{background:var(--green-soft);color:var(--green-fg);border:1px solid rgba(72,186,124,0.25)}
+.resource-badge.gov{background:var(--gold-soft);color:var(--gold);border:1px solid rgba(200,168,75,0.25)}
+.resource-desc{font-size:12px;color:var(--fg3);line-height:1.6;margin-bottom:10px}
+.resource-meta{display:flex;flex-wrap:wrap;gap:6px}
+.resource-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface3);border:1px solid var(--border);color:var(--fg3)}
+
+/* ── ACIA chat widget ─────────────────────────────────────────── */
+.chat-container{
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
+  display:flex;flex-direction:column;height:480px;overflow:hidden;
+}
+.chat-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.chat-avatar{
+  width:36px;height:36px;border-radius:50%;background:var(--crimson);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;letter-spacing:.02em;flex-shrink:0;
+}
+.chat-title{font-size:14px;font-weight:600}
+.chat-subtitle{font-size:11px;color:var(--fg3);margin-top:1px}
+.chat-status{margin-left:auto;font-size:11px;color:var(--green-fg);display:flex;align-items:center;gap:5px}
+.chat-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green-fg);flex-shrink:0}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.msg{max-width:80%;border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.6}
+.msg.bot{background:var(--surface2);color:var(--fg);align-self:flex-start}
+.msg.user{background:var(--crimson);color:#fff;align-self:flex-end}
+.chat-input-row{
+  padding:12px;border-top:1px solid var(--border);
+  display:flex;gap:8px;align-items:flex-end;
+}
+.chat-input{
+  flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--fg);font-family:inherit;font-size:13px;padding:9px 13px;resize:none;
+  min-height:40px;max-height:120px;outline:none;transition:border-color .15s;
+}
+.chat-input:focus{border-color:var(--crimson)}
+.chat-input::placeholder{color:var(--fg3)}
+.chat-send{
+  width:40px;height:40px;border-radius:var(--radius-sm);background:var(--crimson);
+  border:none;color:#fff;cursor:pointer;font-size:16px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.chat-send:hover{background:var(--crimson-h)}
+.chat-upgrade-banner{
+  margin:12px;padding:12px 14px;background:var(--gold-soft);
+  border:1px solid rgba(200,168,75,0.25);border-radius:var(--radius-sm);
+  font-size:12px;color:var(--gold);display:flex;align-items:center;gap:8px;
+}
+
+/* ── Subscription tab ─────────────────────────────────────────── */
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:32px}
+.plan-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px 18px;position:relative;
+}
+.plan-card.featured{border-color:var(--crimson);background:var(--crimson-soft)}
+.plan-badge-top{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 12px;border-radius:12px;background:var(--crimson);color:#fff;white-space:nowrap;
+}
+.plan-role{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.plan-price{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.plan-price-num{font-family:'Fraunces',serif;font-size:30px;font-weight:700}
+.plan-price-period{font-size:13px;color:var(--fg3)}
+.plan-price-cad{font-size:11px;color:var(--fg3);margin-bottom:14px}
+.plan-features{list-style:none;margin-bottom:18px}
+.plan-features li{font-size:12px;color:var(--fg2);padding:4px 0;display:flex;gap:7px}
+.plan-features li::before{content:'✓';color:var(--green-fg);font-weight:700;flex-shrink:0}
+.plan-cta{
+  width:100%;padding:9px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.plan-cta.filled{background:var(--crimson);border:none;color:#fff}
+.plan-cta.filled:hover{background:var(--crimson-h)}
+.plan-cta.outlined{background:transparent;border:1px solid var(--border2);color:var(--fg2)}
+.plan-cta.outlined:hover{border-color:var(--fg3);color:var(--fg)}
+.stripe-note{font-size:11px;color:var(--fg3);text-align:center;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px}
+
+/* ── Career Discovery ─────────────────────────────────────────── */
+.discovery-stages{position:relative}
+.stage{display:none}
+.stage.active{display:block}
+
+.quiz-progress{
+  display:flex;align-items:center;gap:0;margin-bottom:28px;
+}
+.quiz-step{
+  display:flex;align-items:center;gap:0;flex:1;
+}
+.quiz-step-dot{
+  width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);
+  background:var(--surface2);display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--fg3);flex-shrink:0;transition:all .2s;
+}
+.quiz-step-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.quiz-step-dot.current{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.quiz-step-line{flex:1;height:2px;background:var(--border);transition:background .2s}
+.quiz-step-line.done{background:var(--green)}
+.quiz-step-label{font-size:11px;color:var(--fg3);margin-top:4px;text-align:center}
+
+.strength-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:28px}
+.strength-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 16px;
+}
+.strength-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.strength-name{font-size:14px;font-weight:600}
+.strength-desc{font-size:12px;color:var(--fg3);line-height:1.5;margin-top:2px}
+.strength-dots{display:flex;gap:6px;align-items:center;flex-shrink:0;padding-top:3px}
+.strength-dot{
+  width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);
+  background:var(--surface3);cursor:pointer;transition:all .15s;flex-shrink:0;
+}
+.strength-dot.filled{background:var(--crimson);border-color:var(--crimson)}
+.strength-dot:hover{border-color:var(--fg3)}
+
+.pref-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+.pref-question{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:16px;
+}
+.pref-label{font-size:13px;font-weight:600;margin-bottom:12px}
+.pref-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pref-option{
+  padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);
+  font-size:12px;color:var(--fg2);cursor:pointer;text-align:center;
+  transition:all .15s;background:var(--surface3);line-height:1.4;
+}
+.pref-option:hover{border-color:var(--fg3);color:var(--fg)}
+.pref-option.selected{border-color:var(--crimson);background:var(--crimson-soft);color:var(--fg)}
+
+/* ── Discovery Results ────────────────────────────────────────── */
+.result-cards{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+.result-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;
+}
+.result-card:first-child{border-color:var(--gold);background:var(--gold-soft)}
+.result-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.result-rank{
+  width:32px;height:32px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  color:var(--fg3);flex-shrink:0;
+}
+.result-card:first-child .result-rank{background:var(--gold);border-color:var(--gold);color:#1a0d2e}
+.result-info{flex:1;min-width:0}
+.result-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.result-sector{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3)}
+.result-match{flex-shrink:0;text-align:right}
+.result-pct{font-family:'Fraunces',serif;font-size:24px;font-weight:700;line-height:1;color:var(--fg)}
+.result-card:first-child .result-pct{color:var(--gold)}
+.result-pct-label{font-size:10px;color:var(--fg3);letter-spacing:.06em;text-transform:uppercase}
+.result-bar-wrap{height:4px;background:var(--surface3);border-radius:2px;margin-bottom:10px;overflow:hidden}
+.result-bar{height:100%;background:var(--crimson);border-radius:2px;transition:width 0.6s ease}
+.result-card:first-child .result-bar{background:var(--gold)}
+.result-why{font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px}
+.result-strength-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.result-strength-tag{
+  font-size:11px;padding:2px 9px;border-radius:10px;
+  background:var(--surface3);border:1px solid var(--border);color:var(--fg3);
+}
+.result-card:first-child .result-strength-tag{background:rgba(200,168,75,0.12);border-color:rgba(200,168,75,0.25);color:var(--gold)}
+.result-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media(max-width:600px){
+  .hero h1{font-size:22px}
+  .sector-grid{grid-template-columns:repeat(2,1fr)}
+  .plan-grid{grid-template-columns:1fr}
+  .resource-grid{grid-template-columns:1fr}
+  .tab-btn{padding:11px 12px;font-size:12px}
+  .pref-options{grid-template-columns:1fr}
+  .result-top{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────── -->
+<header>
+  <div class="logo-mark">A</div>
+  <div class="logo-text">
+    <strong>AACP™ Career Navigator</strong>
+    <span>Aviation &amp; Aerospace Career Pathways</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-sign-in" onclick="showTab('subscribe')">Get Started</button>
+  </div>
+</header>
+
+<!-- ── Tab nav ────────────────────────────────────────────────── -->
+<nav class="tab-nav" role="tablist">
+  <button class="tab-btn active" data-tab="discovery" onclick="showTab('discovery')" role="tab">
+    Career Discovery
+  </button>
+  <button class="tab-btn" data-tab="explore" onclick="showTab('explore')" role="tab">
+    Explore Careers
+  </button>
+  <button class="tab-btn" data-tab="education" onclick="showTab('education')" role="tab">
+    Education &amp; Training
+  </button>
+  <button class="tab-btn" data-tab="scholarships" onclick="showTab('scholarships')" role="tab">
+    Scholarships
+  </button>
+  <button class="tab-btn" data-tab="chat" onclick="showTab('chat')" role="tab">
+    Ask ACIA™
+  </button>
+  <button class="tab-btn" data-tab="subscribe" onclick="showTab('subscribe')" role="tab">
+    Plans
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 1 — CAREER DISCOVERY
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel active" id="tab-discovery" role="tabpanel">
+
+  <p class="section-label">Strength &amp; Competency Assessment</p>
+  <h2 class="section-title">Discover Your Best-Fit Career</h2>
+  <p class="section-sub">Rate your natural strengths and preferences. The Navigator will match your profile against the competency requirements of 14 Canadian aviation and aerospace careers — and explain why each is a strong fit for you.</p>
+
+  <div class="discovery-stages" id="discoveryStages">
+
+    <!-- Progress bar -->
+    <div class="quiz-progress" id="quizProgress">
+      <div class="quiz-step">
+        <div class="quiz-step-dot current" id="dot1">1</div>
+        <div class="quiz-step-line" id="line1"></div>
+      </div>
+      <div class="quiz-step">
+        <div class="quiz-step-dot" id="dot2">2</div>
+        <div class="quiz-step-line" id="line2"></div>
+      </div>
+      <div class="quiz-step">
+        <div class="quiz-step-dot" id="dot3">3</div>
+      </div>
+    </div>
+
+    <!-- Stage 1: Strengths -->
+    <div class="stage active" id="stage1">
+      <p class="section-label">Stage 1 of 2 — Your Strengths</p>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Rate each area from 1 (not really me) to 5 (this is a core strength). Be honest — there are no wrong answers.</p>
+
+      <div class="strength-grid" id="strengthGrid"></div>
+
+      <button class="btn-primary" onclick="goToStage2()">Next: Work Preferences &rarr;</button>
+    </div>
+
+    <!-- Stage 2: Preferences -->
+    <div class="stage" id="stage2">
+      <p class="section-label">Stage 2 of 2 — Work Preferences</p>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Select the option that best describes how you prefer to work.</p>
+
+      <div class="pref-grid" id="prefGrid"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="goToStage1()">Back</button>
+        <button class="btn-primary" onclick="computeResults()">See My Matches &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Stage 3: Results -->
+    <div class="stage" id="stage3">
+      <p class="section-label">Your Top Matches</p>
+      <h3 class="section-title" id="resultsHeadline">Your Best-Fit Careers</h3>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6" id="resultsSub"></p>
+
+      <div class="result-cards" id="resultCards"></div>
+
+      <div style="margin-top:8px;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 14 pathways are open to anyone willing to put in the work.</p>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="resetDiscovery()">Retake Assessment</button>
+        <button class="btn-primary" onclick="showTab('explore')">Explore All Pathways &rarr;</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 2 — EXPLORE CAREERS
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-explore" role="tabpanel">
+
+  <div class="hero">
+    <div class="hero-label">AACP™ Career Navigator</div>
+    <h1>Find Your Path in Canadian Aviation</h1>
+    <p>Explore 14 verified aviation and aerospace career pathways — from Transport Canada licensed roles to emerging UAV and aerospace engineering careers.</p>
+    <div class="hero-cta-row">
+      <button class="btn-primary" onclick="scrollToSectors()">Browse Pathways</button>
+      <button class="btn-secondary" onclick="showTab('discovery')">Take the Assessment</button>
+    </div>
+  </div>
+
+  <!-- Sector filter -->
+  <p class="section-label">Browse by Sector</p>
+  <div class="sector-grid" id="sectorGrid">
+    <div class="sector-card active" data-sector="all" onclick="filterSector('all',this)">
+      <span class="sector-code">ALL</span>
+      <div class="sector-name">All Sectors</div>
+      <div class="sector-count">14 pathways</div>
+    </div>
+    <div class="sector-card" data-sector="flight_ops" onclick="filterSector('flight_ops',this)">
+      <span class="sector-code">FO</span>
+      <div class="sector-name">Flight Operations</div>
+      <div class="sector-count">2 pathways</div>
+    </div>
+    <div class="sector-card" data-sector="maintenance" onclick="filterSector('maintenance',this)">
+      <span class="sector-code">ME</span>
+      <div class="sector-name">Maintenance &amp; Engineering</div>
+      <div class="sector-count">3 pathways</div>
+    </div>
+    <div class="sector-card" data-sector="atc_nav" onclick="filterSector('atc_nav',this)">
+      <span class="sector-code">AN</span>
+      <div class="sector-name">Air Traffic &amp; Navigation</div>
+      <div class="sector-count">2 pathways</div>
+    </div>
+    <div class="sector-card" data-sector="airport_ops" onclick="filterSector('airport_ops',this)">
+      <span class="sector-code">AO</span>
+      <div class="sector-name">Airport &amp; Ground Ops</div>
+      <div class="sector-count">4 pathways</div>
+    </div>
+    <div class="sector-card" data-sector="engineering" onclick="filterSector('engineering',this)">
+      <span class="sector-code">AE</span>
+      <div class="sector-name">Aerospace &amp; Technology</div>
+      <div class="sector-count">3 pathways</div>
+    </div>
+  </div>
+
+  <!-- Pathway list -->
+  <p class="section-label" id="pathwayListLabel">All 14 Pathways</p>
+  <div class="pathway-list" id="pathwayList"></div>
+
+  <!-- Pathway detail -->
+  <div id="pathwayDetail" style="display:none"></div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 3 — EDUCATION & TRAINING
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-education" role="tabpanel">
+  <p class="section-label">Canadian Institutions</p>
+  <h2 class="section-title">Education &amp; Training</h2>
+  <p class="section-sub">Accredited programs at Canadian colleges, universities, and Transport Canada Approved Training Organizations (ATOs) and Flight Training Units (FTUs). Data sourced from Transport Canada and NAV Canada.</p>
+
+  <div class="resource-grid">
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">SAIT — School of Transportation</div>
+        <span class="resource-badge tc">TC ATO</span>
+      </div>
+      <p class="resource-desc">Aircraft Maintenance Technician (AMT), Avionics, Structures programs. CARAC-compliant diplomas recognized toward TC AME licensing.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Calgary, AB</span>
+        <span class="resource-tag">AME · Avionics · Structures</span>
+        <span class="resource-tag">2–3 yr diploma</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">Mount Royal University</div>
+        <span class="resource-badge tc">TC FTU</span>
+      </div>
+      <p class="resource-desc">Bachelor of Aviation with Commercial Pilot stream. Integrated flight training toward Transport Canada CPL, IR, and Multi-IFR ratings.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Calgary, AB</span>
+        <span class="resource-tag">Pilot · Aviation Mgmt</span>
+        <span class="resource-tag">4 yr degree</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">BCIT — School of Transportation</div>
+        <span class="resource-badge tc">TC ATO</span>
+      </div>
+      <p class="resource-desc">Aircraft Maintenance Engineer (AME) diploma programs — Structures, Avionics, and combined tracks. Industry practicum placements included.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Burnaby, BC</span>
+        <span class="resource-tag">AME · Avionics</span>
+        <span class="resource-tag">2 yr diploma</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">NAIT — School of Transportation</div>
+        <span class="resource-badge tc">TC ATO</span>
+      </div>
+      <p class="resource-desc">Aircraft Maintenance Technician program aligned to Transport Canada Part IV regulations. AME licence-eligible upon graduation and experience.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Edmonton, AB</span>
+        <span class="resource-tag">AME · Structures</span>
+        <span class="resource-tag">2 yr diploma</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">NAV Canada Training Institute</div>
+        <span class="resource-badge navc">NAV Canada</span>
+      </div>
+      <p class="resource-desc">Entry-level Air Traffic Controller (ATC) and Flight Service Specialist (FSS) training. Only pathway to TC-issued ATC licence in Canada.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Cornwall, ON</span>
+        <span class="resource-tag">ATC · FSS</span>
+        <span class="resource-tag">12–18 mo program</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">Carleton University — Aerospace</div>
+        <span class="resource-badge gov">University</span>
+      </div>
+      <p class="resource-desc">Bachelor and Masters in Aerospace Engineering. Partnerships with NRC, the Canadian Space Agency, and Defence Research and Development Canada.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Ottawa, ON</span>
+        <span class="resource-tag">Aerospace Eng</span>
+        <span class="resource-tag">4 yr BEng / MEng</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">CEGEP Édouard-Montpetit</div>
+        <span class="resource-badge tc">TC FTU</span>
+      </div>
+      <p class="resource-desc">AEC and DEC programs in aircraft maintenance and avionics, the largest aviation technical training CEGEP in Québec. French-language programs.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Longueuil, QC</span>
+        <span class="resource-tag">AME · Avionics · Pilot</span>
+        <span class="resource-tag">French / bilingual</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">Confederation College</div>
+        <span class="resource-badge tc">TC ATO</span>
+      </div>
+      <p class="resource-desc">Aviation Technology programs in Northern Ontario with focus on remote/bush flying, RPAS, and helicopter operations in demanding environments.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Thunder Bay, ON</span>
+        <span class="resource-tag">Pilot · RPAS · Helicopter</span>
+        <span class="resource-tag">2 yr diploma</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="gate" id="eduGate">
+    <div class="gate-card">
+      <div class="gate-title">More Institutions &amp; Verified ATOs</div>
+      <p class="gate-body">Unlock the full Transport Canada ATO and FTU directory — 40+ institutions including program details, tuition ranges, scholarship eligibility, and direct program links.</p>
+      <div class="gate-price">
+        <span class="gate-price-amount">$9.99</span>
+        <span class="gate-price-period">/month CAD</span>
+      </div>
+      <div class="gate-features">
+        <div class="gate-feature">Complete TC ATO &amp; FTU directory (verified)</div>
+        <div class="gate-feature">Program-to-licence pathway mapping</div>
+        <div class="gate-feature">Tuition ranges and financial aid notes</div>
+        <div class="gate-feature">Scholarship eligibility filters per institution</div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="showTab('subscribe')">Unlock Premium Access</button>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 4 — SCHOLARSHIPS
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-scholarships" role="tabpanel">
+  <p class="section-label">Funding &amp; Bursaries</p>
+  <h2 class="section-title">Scholarships &amp; Financial Aid</h2>
+  <p class="section-sub">Aviation and aerospace scholarships, bursaries, and government funding programs for Canadian students. Sources verified through Transport Canada, the Government of Canada, and national aviation associations.</p>
+
+  <div class="resource-grid">
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">Canada Student Grants — Persons with Disabilities</div>
+        <span class="resource-badge gov">Gov. Canada</span>
+      </div>
+      <p class="resource-desc">Up to $4,000/yr in non-repayable grants for eligible post-secondary students with permanent disabilities, including aviation programs at accredited institutions.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Federal</span>
+        <span class="resource-tag">Needs-based</span>
+        <span class="resource-tag">Annual</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">ATAC Aviation Scholarships</div>
+        <span class="resource-badge gov">Industry</span>
+      </div>
+      <p class="resource-desc">Air Transport Association of Canada awards for students in aviation programs at Canadian institutions. Available to both pilot and technician stream students.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">National</span>
+        <span class="resource-tag">Merit-based</span>
+        <span class="resource-tag">Annual</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">99s International Women Pilots — Canada</div>
+        <span class="resource-badge gov">Industry</span>
+      </div>
+      <p class="resource-desc">The Ninety-Nines Canada Section awards scholarships to women pursuing pilot licences or aviation careers. Preference for students at Canadian FTUs.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Women in Aviation</span>
+        <span class="resource-tag">Pilot stream</span>
+        <span class="resource-tag">Annual</span>
+      </div>
+    </div>
+
+    <div class="resource-card">
+      <div class="resource-card-top">
+        <div class="resource-name">Alberta Student Aid — Study Grant</div>
+        <span class="resource-badge gov">AB Province</span>
+      </div>
+      <p class="resource-desc">Non-repayable provincial grants for eligible Alberta students at designated post-secondary institutions including SAIT, NAIT, and MRU aviation programs.</p>
+      <div class="resource-meta">
+        <span class="resource-tag">Alberta</span>
+        <span class="resource-tag">Needs-based</span>
+        <span class="resource-tag">Annual</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="gate" id="scholGate">
+    <div class="gate-card">
+      <div class="gate-title">Full Scholarship Directory</div>
+      <p class="gate-body">Premium access includes 30+ verified scholarship and bursary listings with application deadlines, eligibility criteria, and direct application links — updated annually.</p>
+      <div class="gate-price">
+        <span class="gate-price-amount">$9.99</span>
+        <span class="gate-price-period">/month CAD</span>
+      </div>
+      <div class="gate-features">
+        <div class="gate-feature">Deadline tracking and calendar alerts</div>
+        <div class="gate-feature">Eligibility filter by province, gender, pathway</div>
+        <div class="gate-feature">Indigenous aviation funding programs</div>
+        <div class="gate-feature">Save and track your applications</div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="showTab('subscribe')">Unlock Premium Access</button>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 5 — ASK ACIA
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-chat" role="tabpanel">
+  <p class="section-label">AI Career Mentor</p>
+  <h2 class="section-title">Ask ACIA™</h2>
+  <p class="section-sub">Get personalized career guidance from ACIA, the AACP AI aviation career mentor. Ask about pathways, licences, training requirements, and how to break into the industry.</p>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="chat-avatar">AC</div>
+      <div>
+        <div class="chat-title">Captain ACIA™</div>
+        <div class="chat-subtitle">AACP Aviation Career Mentor</div>
+      </div>
+      <div class="chat-status">Online</div>
+    </div>
+    <div class="chat-upgrade-banner" id="chatUpgradeBanner">
+      <strong>Free preview — 3 questions remaining.</strong> Upgrade to Premium for unlimited career mentorship.
+      <button onclick="showTab('subscribe')" style="margin-left:auto;font-size:11px;font-weight:600;background:none;border:none;color:var(--gold);cursor:pointer;white-space:nowrap">Upgrade</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">
+        Hello — I'm ACIA, your AACP aviation career mentor.<br><br>
+        I can help you explore Canadian aviation careers, understand Transport Canada licensing requirements, find the right training program, or map out your pathway from where you are today to where you want to be.<br><br>
+        What would you like to explore?
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="Ask about a career, licence, or training program…" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" onclick="sendChat()" aria-label="Send">&#8250;</button>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
+    <p style="font-size:12px;color:var(--fg3);line-height:1.6">
+      <strong style="color:var(--fg2)">Try asking:</strong> "What licence do I need to fly commercially in Canada?" &middot; "How do I become an AME?" &middot; "What's the difference between an ATO and an FTU?" &middot; "Which aviation careers work with a STEM background?"
+    </p>
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 6 — PLANS / SUBSCRIBE
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-subscribe" role="tabpanel">
+  <p class="section-label">Career Navigator Plans</p>
+  <h2 class="section-title">Choose Your Access</h2>
+  <p class="section-sub">All plans are billed in Canadian dollars. Payments processed securely by Stripe. Alberta GST applied at checkout.</p>
+
+  <div class="plan-grid">
+
+    <div class="plan-card">
+      <div class="plan-role">Free Student</div>
+      <div class="plan-price"><span class="plan-price-num">$0</span></div>
+      <div class="plan-price-cad">Free forever</div>
+      <ul class="plan-features">
+        <li>14 career pathway previews</li>
+        <li>Sector and role descriptions</li>
+        <li>Career Discovery assessment</li>
+        <li>3 ACIA™ questions/month</li>
+        <li>OSCA workshop resources</li>
+      </ul>
+      <button class="plan-cta outlined" onclick="startFree()">Start Free</button>
+    </div>
+
+    <div class="plan-card featured">
+      <div class="plan-badge-top">Most Popular</div>
+      <div class="plan-role">Premium Student</div>
+      <div class="plan-price"><span class="plan-price-num">$9.99</span><span class="plan-price-period">/mo</span></div>
+      <div class="plan-price-cad">CAD + GST · 7-day free trial</div>
+      <ul class="plan-features">
+        <li>Full interactive pathway maps</li>
+        <li>Complete TC ATO &amp; FTU directory</li>
+        <li>Scholarship &amp; funding directory</li>
+        <li>Unlimited ACIA™ career chat</li>
+        <li>Save and track careers</li>
+        <li>Salary data (LMI-sourced)</li>
+      </ul>
+      <button class="plan-cta filled" onclick="checkoutStudent()">Start Free Trial</button>
+    </div>
+
+    <div class="plan-card">
+      <div class="plan-role">Advisor-Invited Student</div>
+      <div class="plan-price"><span class="plan-price-num">$7.99</span><span class="plan-price-period">/mo</span></div>
+      <div class="plan-price-cad">CAD + GST · 20% off with invite code</div>
+      <ul class="plan-features">
+        <li>All Premium Student features</li>
+        <li>Direct link to your advisor</li>
+        <li>Shared pathway saves</li>
+      </ul>
+      <button class="plan-cta outlined" onclick="redeemInvite()">Enter Invite Code</button>
+    </div>
+
+    <div class="plan-card">
+      <div class="plan-role">Career Advisor</div>
+      <div class="plan-price"><span class="plan-price-num">$14.99</span><span class="plan-price-period">/mo</span></div>
+      <div class="plan-price-cad">CAD + GST · 7-day free trial</div>
+      <ul class="plan-features">
+        <li>All Premium Student features</li>
+        <li>Invite up to 20 students</li>
+        <li>Student progress dashboard</li>
+        <li>Downloadable pathway reports</li>
+        <li>AACP™ Advisor designation</li>
+      </ul>
+      <button class="plan-cta filled" onclick="checkoutAdvisor()">Start Free Trial</button>
+    </div>
+
+  </div>
+
+  <p class="stripe-note">Payments secured by Stripe &middot; Cancel anytime &middot; Alberta GST applied at checkout</p>
+
+  <div style="margin-top:28px;padding:18px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+    <p style="font-size:13px;font-weight:600;margin-bottom:8px">OSCA 2026 Early Access</p>
+    <p style="font-size:13px;color:var(--fg2);line-height:1.65">OSCA 2026 participants receive complimentary pilot access to Career Navigator. Contact your AACP workshop facilitator for your access code.</p>
+  </div>
+</main>
+
+<script>
+/* ── Tab navigation ────────────────────────────────────────────── */
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('tab-' + id);
+  if (panel) panel.classList.add('active');
+  const btn = document.querySelector('[data-tab="' + id + '"]');
+  if (btn) btn.classList.add('active');
+}
+
+/* ── Sector and pathway data ───────────────────────────────────── */
+const SECTORS = {
+  flight_ops:  { name: 'Flight Operations',        code: 'FO' },
+  maintenance: { name: 'Maintenance & Engineering', code: 'ME' },
+  atc_nav:     { name: 'Air Traffic & Navigation',  code: 'AN' },
+  airport_ops: { name: 'Airport & Ground Ops',      code: 'AO' },
+  engineering: { name: 'Aerospace & Technology',    code: 'AE' },
+};
+
+const PATHWAYS = [
+  {
+    id: 'pilot', sector: 'flight_ops',
+    title: 'Pilot — Commercial / Airline',
+    tagline: 'Fly commercially across Canada and beyond',
+    whatTheyDo: 'Commercial and airline transport pilots operate aircraft for passenger, cargo, charter, and emergency services operations across Canada.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'CPL / ATPL',
+    journey: [
+      { title: 'Eligibility Check', body: 'Must hold a valid Canadian Category 1 Medical Certificate. Minimum age 17 for PPL, 18 for CPL, 21 for ATPL.', tags: ['Transport Canada Medical', 'TC Category 1'] },
+      { title: 'Private Pilot Licence (PPL)', body: 'Minimum 45 hours total flight time, including 17 hours dual and 12 hours solo. Written exam and flight test with a Transport Canada examiner.', tags: ['45 hrs minimum', 'TC Written Exam', 'TC Flight Test'] },
+      { title: 'Commercial Pilot Licence (CPL)', body: 'Minimum 200 hours total time, including 100 hours pilot-in-command. Night rating and instrument rating typically required by employers.', tags: ['200 hrs total', 'IR recommended', 'TC CPL Written'] },
+      { title: 'Build Hours — 1,500 hrs', body: 'Work as a flight instructor (CFI), charter pilot, bush pilot, or aerial survey. Most major airlines require 1,500+ hours total time.', tags: ['FTU instructing', 'Charter ops', 'Bush flying'] },
+      { title: 'Airline Transport Pilot Licence (ATPL)', body: 'Minimum 1,500 hours including 500 hrs cross-country, 100 hrs night, 75 hrs instrument. Required for Captain on CARS 705 operations (airlines).', tags: ['1,500 hrs', 'CARS 705', 'Transport Canada ATPL'] },
+    ],
+    salary: { low: '$45,000', high: '$200,000+', note: 'Entry (regional) to senior captain. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC-approved Flight Training Unit (FTU) or college aviation program (MRU, Confederation College, Seneca)',
+    free: true,
+  },
+  {
+    id: 'uav', sector: 'flight_ops',
+    title: 'UAV / Drone Operations',
+    tagline: 'Operate drones commercially under RPAS regulations',
+    whatTheyDo: 'RPAS pilots and UAV operations specialists conduct aerial surveys, inspections, photography, search and rescue, and delivery operations.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'RPAS Pilot Certificate',
+    journey: [
+      { title: 'Know the Rules', body: 'Transport Canada RPAS regulations under CARs Part IX apply to drones 250g–25kg. Advanced operations require an Advanced RPAS Pilot Certificate.', tags: ['CARs Part IX', 'Transport Canada RPAS'] },
+      { title: 'Basic RPAS Pilot Certificate', body: 'Online knowledge test at a Transport Canada approved test centre. For VLOS operations in uncontrolled airspace.', tags: ['Online test', 'TC approved', 'VLOS ops'] },
+      { title: 'Advanced RPAS Pilot Certificate', body: 'Flight review with a Transport Canada examiner. Required for ops near aerodromes, over people, or in controlled airspace.', tags: ['TC Flight Review', 'Controlled airspace', 'BVLOS waiver'] },
+      { title: 'Build Commercial Experience', body: 'Aerial surveying, infrastructure inspection, agricultural mapping, film production. Specialized endorsements available for specific industries.', tags: ['Survey ops', 'Film & media', 'Agriculture'] },
+    ],
+    salary: { low: '$40,000', high: '$85,000', note: 'Commercial RPAS pilot. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC-approved RPAS training organizations; online regulatory courses',
+    free: true,
+  },
+  {
+    id: 'ame', sector: 'maintenance',
+    title: 'Aircraft Maintenance Engineer (AME)',
+    tagline: 'Keep aircraft airworthy under Transport Canada regulations',
+    whatTheyDo: 'AMEs are licensed by Transport Canada to perform, certify, and approve maintenance and repairs on Canadian-registered aircraft.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'AME Licence (M1/M2/E/S)',
+    journey: [
+      { title: 'Technical Training — 2 yrs', body: 'Diploma program at a Transport Canada Approved Training Organization (ATO): SAIT, NAIT, BCIT, CEGEP Édouard-Montpetit, or equivalent.', tags: ['TC ATO diploma', '2 yr program', 'CARAC-approved'] },
+      { title: 'On-the-Job Experience — 2 yrs', body: 'Minimum 2 years of practical aircraft maintenance experience under licensed supervision at a Transport Canada approved maintenance organization (AMO).', tags: ['TC AMO', '2 yrs OJT', 'Supervised maintenance'] },
+      { title: 'Transport Canada AME Written Exams', body: 'Regulatory exam (M1/M2 for piston/turbine, E for avionics, S for structures). Administered by Transport Canada.', tags: ['TC Written Exam', 'M1 / M2 / E / S', 'CARs Part IV'] },
+      { title: 'AME Licence Issued', body: 'Transport Canada issues the AME licence. Continuing airworthiness responsibilities and mandatory recency requirements apply throughout career.', tags: ['TC Licence', 'CARs 571', 'Airworthiness'] },
+    ],
+    salary: { low: '$55,000', high: '$110,000', note: 'Entry AME to senior certifying authority. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC ATO diploma required (SAIT, NAIT, BCIT, CEGEP Édouard-Montpetit, or equivalent)',
+    free: true,
+  },
+  {
+    id: 'avionics', sector: 'maintenance',
+    title: 'Avionics Technician',
+    tagline: 'Install and maintain aircraft electronic systems',
+    whatTheyDo: 'Avionics technicians inspect, install, and repair aircraft navigation, communication, and automatic flight control systems on Canadian-registered aircraft.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'AME Licence (E)',
+    journey: [
+      { title: 'Avionics Diploma', body: '2-year avionics technician or aircraft maintenance program with avionics specialization at a TC-approved ATO.', tags: ['TC ATO', '2 yr diploma', 'Electronics emphasis'] },
+      { title: 'AMO Experience', body: 'Work at a Transport Canada approved maintenance organization (AMO) under licensed AME supervision. Minimum 2 years practical avionics experience required.', tags: ['TC AMO', 'AME supervision', '2 yrs OJT'] },
+      { title: 'TC AME Written Exam — E Category', body: 'Transport Canada written exam for the Electronics (E) category AME licence. Covers CARs requirements, avionics systems, and maintenance practices.', tags: ['TC Written', 'AME-E category', 'CARs Part IV'] },
+      { title: 'AME Licence (E) Issued', body: 'Authorizes sign-off of avionics maintenance. Many technicians work toward multiple category endorsements over their careers.', tags: ['TC Licence', 'AME-E', 'Multi-category path'] },
+    ],
+    salary: { low: '$50,000', high: '$100,000', note: 'Avionics technician / senior lead. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC ATO with avionics specialization (SAIT, BCIT, CEGEP Édouard-Montpetit)',
+    free: false,
+  },
+  {
+    id: 'structures', sector: 'maintenance',
+    title: 'Aircraft Structures Technician',
+    tagline: 'Repair and fabricate airframes and composite structures',
+    whatTheyDo: 'Structures technicians perform repairs to aircraft fuselages, wings, control surfaces, and composite panels under CARs maintenance standards.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'AME Licence (S)',
+    journey: [
+      { title: 'Structures or AMT Diploma', body: 'Technical diploma in aircraft structures or airframe maintenance at a TC ATO. Focus on metals, composites, bonding, and repair techniques.', tags: ['TC ATO diploma', 'Composites', 'Metalwork'] },
+      { title: 'AMO Practical Experience', body: 'Two years working under licensed AME at a Transport Canada AMO. Build experience across repair stations, MROs, or airline maintenance bases.', tags: ['TC AMO', 'MRO experience', '2 yrs OJT'] },
+      { title: 'TC Written Exam — S Category', body: 'Transport Canada structures (S) category AME written examination covering airframe maintenance, CARs Part IV, and repair standards.', tags: ['TC Written', 'AME-S category', 'CARs 571'] },
+      { title: 'AME Licence (S) Issued', body: 'Authorizes certification of structures maintenance and repairs. Aerospace manufacturing employers also value S-category AME holders.', tags: ['TC Licence', 'AME-S', 'MRO / mfg path'] },
+    ],
+    salary: { low: '$48,000', high: '$95,000', note: 'Structures tech to senior lead. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC ATO with structures specialization (SAIT, NAIT, BCIT)',
+    free: false,
+  },
+  {
+    id: 'atc', sector: 'atc_nav',
+    title: 'Air Traffic Controller (ATC)',
+    tagline: 'Direct air traffic through Canadian controlled airspace',
+    whatTheyDo: 'NAV Canada air traffic controllers manage aircraft movements in Canadian controlled airspace at area control centres, terminal control units, and control towers.',
+    licenceSource: 'NAV Canada / Transport Canada',
+    licenceType: 'ATC Licence (TC-issued)',
+    journey: [
+      { title: 'NAV Canada Selection', body: 'Apply through NAV Canada\'s competitive selection process. Cognitive aptitude testing, English language proficiency, and security clearance required.', tags: ['NAV Canada', 'Aptitude testing', 'Security clearance'] },
+      { title: 'NAV Canada Training Institute', body: 'Mandatory residential training at the NAV Canada Training Institute in Cornwall, ON. 12–18 months of classroom, simulation, and on-the-job training.', tags: ['Cornwall, ON', '12-18 months', 'Simulation-based'] },
+      { title: 'On-the-Job Training (OJT)', body: 'On-facility training at the assigned ATC unit. Work under live supervision until achieving full validation. Can take 1–2 years at high-traffic facilities.', tags: ['NAV Canada facility', 'Live OJT', 'Validation required'] },
+      { title: 'Transport Canada ATC Licence', body: 'ATC licence issued by Transport Canada upon successful validation. Annual proficiency checks and medical requirements maintained throughout career.', tags: ['TC ATC Licence', 'Annual checks', 'NAV Canada career'] },
+    ],
+    salary: { low: '$70,000', high: '$150,000+', note: 'Junior controller to senior ATCO. Source: NAV Canada collective agreement / LMI Insights' },
+    education: 'NAV Canada Training Institute (Cornwall, ON) — the only pathway to TC ATC licence in Canada',
+    free: false,
+  },
+  {
+    id: 'fss', sector: 'atc_nav',
+    title: 'Flight Service Specialist (FSS)',
+    tagline: 'Provide flight information and alerting services',
+    whatTheyDo: 'NAV Canada flight service specialists provide weather briefings, NOTAMs, flight plan processing, and alerting services to pilots at non-tower aerodromes.',
+    licenceSource: 'NAV Canada / Transport Canada',
+    licenceType: 'FSS Specialist Certification',
+    journey: [
+      { title: 'NAV Canada FSS Selection', body: 'Competitive application through NAV Canada. Aptitude, English proficiency, and security clearance assessments. Priority for bilingual (EN/FR) candidates.', tags: ['NAV Canada', 'Bilingual asset', 'Security clearance'] },
+      { title: 'FSS Training — Cornwall', body: 'Residential training at the NAV Canada Training Institute. Covers weather interpretation, NOTAMs, flight plan processing, and alerting procedures.', tags: ['Cornwall, ON', 'Weather & NOTAMs', 'NAV Canada Institute'] },
+      { title: 'On-the-Job Validation', body: 'OJT at an assigned Flight Information Centre (FIC) or FSS facility. Validation covers all standard FSS services before independent operation.', tags: ['FIC validation', 'Live OJT', 'Standard services'] },
+      { title: 'FSS Certification', body: 'Certified FSS specialists maintain currency requirements and medical fitness. Career path includes senior FSS, supervisor, and NAV Canada management roles.', tags: ['NAV Canada career', 'Currency req.', 'Recurrent training'] },
+    ],
+    salary: { low: '$55,000', high: '$95,000', note: 'Entry FSS to senior specialist. Source: NAV Canada / LMI Insights' },
+    education: 'NAV Canada Training Institute (Cornwall, ON)',
+    free: false,
+  },
+  {
+    id: 'airport_ops', sector: 'airport_ops',
+    title: 'Airport Operations Officer',
+    tagline: 'Manage daily airside and landside airport operations',
+    whatTheyDo: 'Airport operations officers oversee airside safety, wildlife management, emergency response, and regulatory compliance under Transport Canada aerodrome standards.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'Aerodrome Operations (CARs 302/307)',
+    journey: [
+      { title: 'Aviation / Business Education', body: 'Post-secondary diploma or degree in aviation management, business administration, or airport management. CAAO certification pathway available.', tags: ['Aviation mgmt', 'CAAO', 'Post-secondary'] },
+      { title: 'Security Clearance &amp; Restricted Area Pass', body: 'Transport Canada security clearance required for airside access. RAIC (Restricted Area Identity Card) issued through airport authority.', tags: ['TC Security', 'RAIC', 'Airside access'] },
+      { title: 'Entry Operations Role', body: 'Begin as terminal, airside, or ground-side operations agent. Gain exposure to emergency response, FOD inspections, wildlife control, and NOTAMs.', tags: ['Airside ops', 'FOD inspection', 'Wildlife control'] },
+      { title: 'Senior Operations / Management', body: 'Progress to shift supervisor, Operations Manager, or Director of Operations. CAAO designation enhances advancement. Larger airports may require P.Eng or CET.', tags: ['CAAO designation', 'Emergency coord.', 'CARs 302'] },
+    ],
+    salary: { low: '$45,000', high: '$100,000', note: 'Operations agent to director. Source: Job Bank Canada / LMI Insights' },
+    education: 'Post-secondary aviation or business program; CAAO professional certification',
+    free: false,
+  },
+  {
+    id: 'ground_ops', sector: 'airport_ops',
+    title: 'Ground & FBO Operations',
+    tagline: 'Support aircraft on the ramp and at fixed-base operators',
+    whatTheyDo: 'Ground handlers and FBO operations specialists manage aircraft marshalling, refuelling, baggage, deicing, towing, and ramp safety at Canadian aerodromes.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'Aerodrome / TC Safety Standards',
+    journey: [
+      { title: 'Entry Ground Agent Role', body: 'Most ground ops roles start as line service or passenger handling agents. Valid driver\'s licence, airside vehicle operator permit (AVOP) required at many airports.', tags: ['AVOP', 'Ramp safety', 'Entry-level'] },
+      { title: 'Fuel & Deicing Certification', body: 'Obtain Transport Canada dangerous goods certification (TDG) for fuel handling. Winter ops training for deicing procedures and fluid application standards.', tags: ['TDG cert', 'Deicing', 'ATA Spec 103'] },
+      { title: 'FBO or Airline Ground Ops', body: 'Work at a Fixed-Base Operator (FBO), regional airline, or ground handling company. Specializations include cargo, turnaround coordination, and charter ops.', tags: ['FBO ops', 'Turnaround', 'Cargo handling'] },
+      { title: 'Supervisory / Station Management', body: 'Progress to ramp supervisor, ground ops coordinator, or station manager. Transport Canada SMS awareness required at CARS 705 operations.', tags: ['SMS', 'Station manager', 'CARS 705'] },
+    ],
+    salary: { low: '$38,000', high: '$70,000', note: 'Ground agent to station manager. Source: Job Bank Canada / LMI Insights' },
+    education: 'On-the-job training; TDG certification; IATA courses (optional)',
+    free: false,
+  },
+  {
+    id: 'cargo', sector: 'airport_ops',
+    title: 'Air Cargo & Logistics',
+    tagline: 'Move freight through Canadian and international air networks',
+    whatTheyDo: 'Air cargo professionals manage shipment handling, dangerous goods compliance, customs documentation, and supply chain coordination for air freight.',
+    licenceSource: 'Transport Canada / CBSA',
+    licenceType: 'TDG / IATA DGR / Security Clearance',
+    journey: [
+      { title: 'Entry Cargo Agent', body: 'Start in freight handling, cargo documentation, or airline cargo reservations. IATA cargo introductory courses provide foundational credentials.', tags: ['IATA cargo', 'Freight docs', 'Entry-level'] },
+      { title: 'TDG & IATA DGR Certification', body: 'Transport Canada Dangerous Goods (TDG) training and IATA Dangerous Goods Regulations (DGR) certification required for handling restricted cargo.', tags: ['TC TDG', 'IATA DGR', 'Mandatory cert'] },
+      { title: 'Customs & Import/Export', body: 'CBSA Trade Compliance familiarity for international shipments. Freight forwarder designation pathway available through CIFFA.', tags: ['CBSA', 'CIFFA', 'Trade compliance'] },
+      { title: 'Senior Logistics / Operations', body: 'Cargo supervisor, logistics coordinator, or cargo manager at an airline, freight forwarder, or international express carrier.', tags: ['Cargo management', 'Logistics ops', 'Supply chain'] },
+    ],
+    salary: { low: '$40,000', high: '$80,000', note: 'Cargo agent to logistics manager. Source: Job Bank Canada / LMI Insights' },
+    education: 'IATA courses, CIFFA membership pathway; some employers prefer supply chain diploma',
+    free: false,
+  },
+  {
+    id: 'customer_ops', sector: 'airport_ops',
+    title: 'Aviation Customer & Commercial Operations',
+    tagline: 'Deliver passenger experience and commercial aviation services',
+    whatTheyDo: 'Customer experience and commercial operations professionals manage check-in, boarding, passenger services, airline alliances, and revenue optimization.',
+    licenceSource: 'Employer / IATA',
+    licenceType: 'IATA Customer Service / Security Clearance',
+    journey: [
+      { title: 'Customer Service Agent', body: 'Entry-level check-in, gate, or passenger assistance roles. TANIC security clearance and RAIC airside pass required at major airports.', tags: ['RAIC', 'TC Security', 'TANIC'] },
+      { title: 'Airline & Airport Products', body: 'Build expertise in airline reservation systems (Sabre, Amadeus), loyalty programs, irregular operations (IROPS) handling, and accessibility standards (ATPDR).', tags: ['ATPDR compliance', 'GDS systems', 'IROPS'] },
+      { title: 'Revenue & Commercial Roles', body: 'Revenue management, partnerships, alliance coordination, and ancillary revenue optimization. Business degree or aviation management diploma advantageous.', tags: ['Revenue mgmt', 'Alliance ops', 'Business degree'] },
+      { title: 'Station / Commercial Management', body: 'Station manager, regional commercial lead, or director of customer experience. IATA professional designations enhance advancement prospects.', tags: ['Station manager', 'IATA FIATA', 'Commercial lead'] },
+    ],
+    salary: { low: '$35,000', high: '$90,000', note: 'Customer agent to commercial director. Source: Job Bank Canada / LMI Insights' },
+    education: 'IATA courses; aviation management diploma; GDS certification',
+    free: false,
+  },
+  {
+    id: 'aerospace_mfg', sector: 'engineering',
+    title: 'Aerospace Manufacturing Technician',
+    tagline: 'Build and assemble aircraft and aerospace components',
+    whatTheyDo: 'Aerospace manufacturing technicians produce precision aircraft structures, engine components, and assemblies at Canadian aerospace OEMs and Tier 1/2 suppliers.',
+    licenceSource: 'Industry / TC (where licensed)',
+    licenceType: 'Red Seal / AME (S) for licensed roles',
+    journey: [
+      { title: 'Technical Training', body: 'Machinist, welder, composites technician, or AMT diploma at a college or TC ATO. Precision measurement, GD&T, and CNC programming commonly required.', tags: ['Machinist Red Seal', 'CNC', 'Composites cert'] },
+      { title: 'Entry Manufacturing Role', body: 'Assembly, inspection, or machining at an aerospace OEM or Tier supplier (Bombardier, Pratt & Whitney Canada, StandardAero, Viking Air, L3Harris, etc.).', tags: ['OEM entry', 'Bombardier', 'P&WC', 'StandardAero'] },
+      { title: 'Quality & Process Specialization', body: 'Quality control inspector (CWI, CMM, NDT), lean manufacturing, AS9100 quality management, Six Sigma. AS9100 and Nadcap approvals valued.', tags: ['AS9100', 'Nadcap', 'NDT cert', 'Six Sigma'] },
+      { title: 'Senior Technician / Lead / Engineer', body: 'Senior technician, process engineer, production lead, or quality manager. Opportunities for AME (S) licence with additional Transport Canada experience.', tags: ['Process engineer', 'Quality manager', 'AME-S path'] },
+    ],
+    salary: { low: '$45,000', high: '$95,000', note: 'Entry tech to senior lead/engineer. Source: Job Bank Canada / LMI Insights' },
+    education: 'Technical college diploma or apprenticeship (Red Seal); TC ATO for AME-eligible programs',
+    free: false,
+  },
+  {
+    id: 'aerospace_eng', sector: 'engineering',
+    title: 'Aerospace Engineering',
+    tagline: 'Design and develop aircraft, systems, and space technology',
+    whatTheyDo: 'Aerospace engineers design aircraft structures, propulsion systems, avionics, and spacecraft for Canadian OEMs, the Canadian Space Agency, and Defence contractors.',
+    licenceSource: 'P.Eng (Engineers Canada) / CSA / DRDC',
+    licenceType: 'P.Eng (provincial engineering association)',
+    journey: [
+      { title: 'Engineering Degree', body: 'Bachelor of Engineering (B.Eng) in Aerospace, Mechanical, or Electrical Engineering at Carleton, Concordia, U of T, or Ryerson (Toronto Metropolitan University).', tags: ['4 yr BEng', 'CEAB accredited', 'P.Eng pathway'] },
+      { title: 'Engineering Internship / Co-op', body: 'Work terms at Canadian aerospace companies (Bombardier, Pratt & Whitney Canada, MDA, L3Harris, CAE). CEAB-accredited programs integrate co-op terms.', tags: ['Co-op / internship', 'Industry experience', 'CEAB requirement'] },
+      { title: 'P.Eng Registration', body: 'Register with your provincial engineering association (APEGA, PEO, OIQ, etc.) after the degree, 48 months of verified engineering experience, and passing the Professional Practice Exam.', tags: ['APEGA / PEO / OIQ', 'P.Eng exam', '4 yrs XP req.'] },
+      { title: 'Specialization & Advancement', body: 'Specialize in structures, propulsion, avionics, flight dynamics, or systems integration. Opportunities at Bombardier, MDA, CSA, DRDC, CAE, StandardAero, and L3Harris.', tags: ['Bombardier', 'MDA / CSA', 'DRDC', 'CAE'] },
+    ],
+    salary: { low: '$70,000', high: '$150,000+', note: 'Junior engineer to principal/director. Source: Job Bank Canada / LMI Insights' },
+    education: 'CEAB-accredited B.Eng degree; P.Eng registration with provincial association',
+    free: false,
+  },
+  {
+    id: 'aviation_tech', sector: 'engineering',
+    title: 'Aviation Technology & Systems',
+    tagline: 'Build and operate aviation digital infrastructure',
+    whatTheyDo: 'Aviation technology and systems professionals develop, deploy, and support flight operations software, airline IT systems, ATC technology, and digital aviation platforms.',
+    licenceSource: 'Employer / Industry',
+    licenceType: 'Software / IT Professional Designation',
+    journey: [
+      { title: 'Technology Education', body: 'Computer Science, Software Engineering, or Information Technology degree or diploma. Aviation domain knowledge is a strong differentiator in the job market.', tags: ['CS / SE / IT', 'Aviation domain', 'Post-secondary'] },
+      { title: 'Entry Aviation Tech Role', body: 'Software developer, systems analyst, or IT support at an airline, airport authority, MRO, or NAV Canada. Entry through general technology roles within aviation organizations.', tags: ['Entry developer', 'Airline IT', 'NAV Canada tech'] },
+      { title: 'Aviation Systems Specialization', body: 'Build expertise in flight operations systems (OpsControl, Sabre, AIMS), ATC automation (TopSky, INDRA), or aviation cybersecurity. ICAO Doc 9985 awareness valuable.', tags: ['Flight ops software', 'ATC automation', 'Cybersecurity'] },
+      { title: 'Senior / Product / Architecture', body: 'Senior developer, product manager, or solutions architect within aviation technology. Career path includes airlines, Tier 1 suppliers, and specialized aviation software firms.', tags: ['Architecture', 'Product mgmt', 'Aviation software'] },
+    ],
+    salary: { low: '$60,000', high: '$130,000', note: 'Entry developer to senior architect. Source: Job Bank Canada / LMI Insights' },
+    education: 'Computer Science or Software Engineering degree/diploma; aviation industry certifications an asset',
+    free: false,
+  },
+];
+
+/* ── Explore tab state ─────────────────────────────────────────── */
+let activeSector = 'all';
+let activePathway = null;
+let chatQuestionsLeft = 3;
+
+function scrollToSectors() {
+  document.getElementById('sectorGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filterSector(id, el) {
+  activeSector = id;
+  document.querySelectorAll('.sector-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderPathwayList();
+  document.getElementById('pathwayDetail').style.display = 'none';
+  activePathway = null;
+}
+
+function renderPathwayList() {
+  const list = document.getElementById('pathwayList');
+  const label = document.getElementById('pathwayListLabel');
+  const filtered = activeSector === 'all' ? PATHWAYS : PATHWAYS.filter(p => p.sector === activeSector);
+  label.textContent = activeSector === 'all'
+    ? 'All 14 Pathways'
+    : (SECTORS[activeSector]?.name || '') + ' — ' + filtered.length + (filtered.length === 1 ? ' pathway' : ' pathways');
+  list.innerHTML = filtered.map(p => {
+    const code = SECTORS[p.sector]?.code || '';
+    return `
+    <div class="pathway-item${activePathway === p.id ? ' active' : ''}" onclick="openPathway('${p.id}')">
+      <span class="pathway-sector-badge">${code}</span>
+      <div class="pathway-info">
+        <div class="pathway-title">${p.title}</div>
+        <div class="pathway-desc">${p.tagline}</div>
+      </div>
+      <span class="pathway-arrow">&#8250;</span>
+    </div>`;
+  }).join('');
+}
+
+function openPathway(id) {
+  activePathway = id;
+  renderPathwayList();
+  const p = PATHWAYS.find(x => x.id === id);
+  if (!p) return;
+  const sector = SECTORS[p.sector];
+  const isFree = p.free;
+  const journeyHtml = p.journey.map((s, i) => `
+    <div class="journey-step">
+      <div class="step-node">${i + 1}</div>
+      <div class="step-content">
+        <div class="step-title">Step ${i + 1}: ${s.title}</div>
+        <div class="step-body">${s.body}</div>
+        <div class="step-tags">${s.tags.map(t => {
+          const isTC = t.startsWith('Transport Canada') || t.startsWith('TC') || t.includes('CARs') || t.includes('TC ');
+          const isNAV = t.startsWith('NAV Canada') || t.startsWith('NAV ');
+          return `<span class="step-tag ${isTC ? 'tc' : isNAV ? 'highlight' : ''}">${t}</span>`;
+        }).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+  const gateHtml = isFree ? '' : `
+    <div class="gate">
+      <div class="gate-card">
+        <div class="gate-title">Full Pathway Map — Premium</div>
+        <p class="gate-body">Unlock the complete interactive career journey, salary data, and education directory for all 14 pathways.</p>
+        <div class="gate-price"><span class="gate-price-amount">$9.99</span><span class="gate-price-period">/month CAD</span></div>
+        <div class="gate-features">
+          <div class="gate-feature">Complete step-by-step pathway maps</div>
+          <div class="gate-feature">LMI-sourced salary data</div>
+          <div class="gate-feature">TC ATO & FTU directory</div>
+          <div class="gate-feature">Unlimited ACIA™ career chat</div>
+        </div>
+        <button class="btn-primary" style="width:100%;justify-content:center" onclick="showTab('subscribe')">Unlock Premium Access</button>
+      </div>
+    </div>
+  `;
+  const salaryHtml = isFree ? `
+    <div class="detail-section">
+      <div class="detail-section-title">Salary Overview</div>
+      <div class="salary-bar">
+        <span class="salary-label">Typical Range</span>
+        <span class="salary-range">${p.salary.low} – ${p.salary.high}</span>
+        <span class="salary-source">${p.salary.note}</span>
+      </div>
+    </div>
+  ` : '';
+  const detail = document.getElementById('pathwayDetail');
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div class="pathway-detail">
+      <div class="pathway-detail-header">
+        <span class="pathway-detail-code">${sector.code} — ${sector.name}</span>
+        <div class="pathway-detail-title">${p.title}</div>
+        <div class="pathway-detail-sector">${p.licenceSource} · ${p.licenceType}</div>
+      </div>
+      <div class="journey-map">
+        <div class="journey-label">Career Pathway Map · Regulated by ${p.licenceSource}</div>
+        <div class="journey-steps">${journeyHtml}</div>
+      </div>
+      ${gateHtml}
+      <div class="detail-sections">
+        ${salaryHtml}
+        <div class="detail-section">
+          <div class="detail-section-title">About This Role</div>
+          <div class="detail-row">${p.whatTheyDo}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Licence / Credential</div>
+          <div class="detail-row"><strong>${p.licenceType}</strong> — issued by ${p.licenceSource}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Recommended Education</div>
+          <div class="detail-row">${p.education}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CAREER DISCOVERY — Strength & Competency Assessment
+══════════════════════════════════════════════════════════════════ */
+
+const STRENGTHS = [
+  { key: 'technical',      name: 'Technical & Mechanical',    desc: 'Hands-on work with machines, tools, and physical systems' },
+  { key: 'analytical',     name: 'Analytical & Mathematical',  desc: 'Working with data, numbers, calculations, and logical problem-solving' },
+  { key: 'spatial',        name: 'Spatial & Systems Thinking', desc: 'Visualizing in 3D, understanding how complex systems fit together' },
+  { key: 'communication',  name: 'Communication & People',     desc: 'Listening, explaining clearly, collaborating, and working with the public' },
+  { key: 'precision',      name: 'Precision & Detail',         desc: 'High accuracy, compliance with procedures, careful documentation' },
+  { key: 'leadership',     name: 'Leadership & Decision-Making', desc: 'Comfortable with authority, making high-stakes decisions under pressure' },
+  { key: 'digital',        name: 'Digital & Technology',       desc: 'Computers, software, networks, and working with digital systems' },
+  { key: 'physical',       name: 'Physical & Environmental',   desc: 'Working outdoors, in variable conditions, or in physically demanding settings' },
+];
+
+const PREFERENCES = [
+  {
+    key: 'environment',
+    label: 'Where do you prefer to work?',
+    options: [
+      { label: 'Indoor workspace — facility, office, or workshop', value: 'indoor' },
+      { label: 'Outdoor or variable — outdoors, remote sites, or on the ramp', value: 'outdoor' },
+    ]
+  },
+  {
+    key: 'teamwork',
+    label: 'How do you prefer to work?',
+    options: [
+      { label: 'Independent, focused technical or creative work', value: 'solo' },
+      { label: 'Collaborative team environment', value: 'team' },
+    ]
+  },
+  {
+    key: 'focus',
+    label: 'What type of focus suits you best?',
+    options: [
+      { label: 'Detail-oriented — procedures, compliance, accuracy', value: 'detail' },
+      { label: 'Big-picture — strategy, coordination, decision-making', value: 'bigpicture' },
+    ]
+  },
+  {
+    key: 'people',
+    label: 'How much do you enjoy working with the public?',
+    options: [
+      { label: 'Minimal — I prefer technical or equipment-focused work', value: 'lowpeople' },
+      { label: 'High — I enjoy working directly with passengers or clients', value: 'highpeople' },
+    ]
+  },
+  {
+    key: 'education',
+    label: 'What is your preferred education path?',
+    options: [
+      { label: 'College diploma or trade — 2 to 3 years', value: 'college' },
+      { label: 'University degree — 4 or more years', value: 'university' },
+    ]
+  },
+];
+
+/* Competency weights: how important each strength is for each career (1–5) */
+const COMPETENCY_WEIGHTS = {
+  pilot:         { technical:3, analytical:3, spatial:5, communication:3, precision:5, leadership:5, digital:2, physical:3 },
+  uav:           { technical:4, analytical:3, spatial:4, communication:2, precision:4, leadership:2, digital:4, physical:3 },
+  ame:           { technical:5, analytical:2, spatial:3, communication:2, precision:5, leadership:2, digital:2, physical:4 },
+  avionics:      { technical:4, analytical:3, spatial:3, communication:2, precision:5, leadership:2, digital:5, physical:3 },
+  structures:    { technical:5, analytical:2, spatial:4, communication:2, precision:5, leadership:2, digital:2, physical:4 },
+  atc:           { technical:2, analytical:4, spatial:5, communication:5, precision:5, leadership:5, digital:3, physical:1 },
+  fss:           { technical:2, analytical:3, spatial:3, communication:5, precision:4, leadership:3, digital:3, physical:1 },
+  airport_ops:   { technical:2, analytical:3, spatial:2, communication:4, precision:3, leadership:4, digital:2, physical:3 },
+  ground_ops:    { technical:3, analytical:1, spatial:2, communication:3, precision:3, leadership:2, digital:1, physical:5 },
+  cargo:         { technical:2, analytical:3, spatial:2, communication:3, precision:4, leadership:3, digital:3, physical:3 },
+  customer_ops:  { technical:1, analytical:2, spatial:1, communication:5, precision:2, leadership:3, digital:2, physical:1 },
+  aerospace_mfg: { technical:5, analytical:3, spatial:4, communication:2, precision:5, leadership:2, digital:3, physical:4 },
+  aerospace_eng: { technical:4, analytical:5, spatial:5, communication:3, precision:4, leadership:3, digital:5, physical:1 },
+  aviation_tech: { technical:3, analytical:4, spatial:3, communication:3, precision:3, leadership:2, digital:5, physical:1 },
+};
+
+/* Preference adjustments: how much each preference setting nudges a pathway score */
+const PREF_ADJUSTMENTS = {
+  environment: {
+    indoor:  { ground_ops: -0.06, structures: -0.03, aerospace_mfg: -0.03 },
+    outdoor: { ground_ops: +0.08, uav: +0.06, pilot: +0.05, structures: +0.04 },
+  },
+  teamwork: {
+    solo:    { aerospace_eng: +0.05, aviation_tech: +0.05, uav: +0.04, ame: +0.04 },
+    team:    { atc: +0.06, fss: +0.05, airport_ops: +0.06, customer_ops: +0.05 },
+  },
+  focus: {
+    detail:    { ame: +0.05, avionics: +0.05, structures: +0.04, aerospace_mfg: +0.04, atc: +0.05 },
+    bigpicture:{ pilot: +0.05, atc: +0.04, airport_ops: +0.06, aerospace_eng: +0.05 },
+  },
+  people: {
+    lowpeople:  { aerospace_eng: +0.04, aviation_tech: +0.04, ame: +0.03 },
+    highpeople: { customer_ops: +0.1, fss: +0.07, airport_ops: +0.06 },
+  },
+  education: {
+    college:    { ame: +0.06, avionics: +0.05, structures: +0.05, aerospace_mfg: +0.05, ground_ops: +0.04 },
+    university: { aerospace_eng: +0.08, aviation_tech: +0.06, pilot: +0.04, atc: +0.04 },
+  },
+};
+
+/* Discovery quiz state */
+let strengthScores = {};   // { key: 1-5 }
+let prefSelections = {};   // { key: value }
+
+function buildStrengthGrid() {
+  const grid = document.getElementById('strengthGrid');
+  grid.innerHTML = STRENGTHS.map(s => {
+    const current = strengthScores[s.key] || 0;
+    const dots = [1,2,3,4,5].map(n => `
+      <div class="strength-dot${n <= current ? ' filled' : ''}"
+           onclick="setStrength('${s.key}',${n})"
+           title="${n}"></div>
+    `).join('');
+    return `
+      <div class="strength-card" id="sc-${s.key}">
+        <div class="strength-header">
+          <div>
+            <div class="strength-name">${s.name}</div>
+            <div class="strength-desc">${s.desc}</div>
+          </div>
+          <div class="strength-dots">${dots}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function setStrength(key, val) {
+  strengthScores[key] = val;
+  const card = document.getElementById('sc-' + key);
+  if (!card) return;
+  card.querySelectorAll('.strength-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < val);
+  });
+}
+
+function buildPrefGrid() {
+  const grid = document.getElementById('prefGrid');
+  grid.innerHTML = PREFERENCES.map(pref => {
+    const opts = pref.options.map(opt => `
+      <div class="pref-option${prefSelections[pref.key] === opt.value ? ' selected' : ''}"
+           onclick="setPref('${pref.key}','${opt.value}')">${opt.label}</div>
+    `).join('');
+    return `
+      <div class="pref-question">
+        <div class="pref-label">${pref.label}</div>
+        <div class="pref-options">${opts}</div>
+      </div>`;
+  }).join('');
+}
+
+function setPref(key, val) {
+  prefSelections[key] = val;
+  document.querySelectorAll(`[onclick*="setPref('${key}'"]`).forEach(el => {
+    el.classList.toggle('selected', el.getAttribute('onclick').includes(`'${val}'`));
+  });
+}
+
+function goToStage1() {
+  document.getElementById('stage1').classList.add('active');
+  document.getElementById('stage2').classList.remove('active');
+  document.getElementById('stage3').classList.remove('active');
+  document.getElementById('dot1').className = 'quiz-step-dot current';
+  document.getElementById('dot2').className = 'quiz-step-dot';
+  document.getElementById('dot3').className = 'quiz-step-dot';
+  document.getElementById('line1').className = 'quiz-step-line';
+  document.getElementById('line2').className = 'quiz-step-line';
+}
+
+function goToStage2() {
+  document.getElementById('stage1').classList.remove('active');
+  document.getElementById('stage2').classList.add('active');
+  document.getElementById('stage3').classList.remove('active');
+  document.getElementById('dot1').className = 'quiz-step-dot done';
+  document.getElementById('dot2').className = 'quiz-step-dot current';
+  document.getElementById('dot3').className = 'quiz-step-dot';
+  document.getElementById('line1').className = 'quiz-step-line done';
+  document.getElementById('line2').className = 'quiz-step-line';
+  buildPrefGrid();
+}
+
+function computeResults() {
+  document.getElementById('stage2').classList.remove('active');
+  document.getElementById('stage3').classList.add('active');
+  document.getElementById('dot1').className = 'quiz-step-dot done';
+  document.getElementById('dot2').className = 'quiz-step-dot done';
+  document.getElementById('dot3').className = 'quiz-step-dot current';
+  document.getElementById('line1').className = 'quiz-step-line done';
+  document.getElementById('line2').className = 'quiz-step-line done';
+
+  /* Score each pathway */
+  const scores = PATHWAYS.map(p => {
+    const w = COMPETENCY_WEIGHTS[p.id] || {};
+    let dot = 0, maxDot = 0;
+    STRENGTHS.forEach(s => {
+      const userScore = (strengthScores[s.key] || 3) / 5;
+      const weight = (w[s.key] || 1) / 5;
+      dot += userScore * weight;
+      maxDot += 1 * weight;
+    });
+    let base = maxDot > 0 ? dot / maxDot : 0.5;
+
+    /* Apply preference adjustments */
+    Object.keys(prefSelections).forEach(prefKey => {
+      const val = prefSelections[prefKey];
+      const adj = (PREF_ADJUSTMENTS[prefKey] || {})[val] || {};
+      base += adj[p.id] || 0;
+    });
+    base = Math.min(1, Math.max(0.1, base));
+    return { pathway: p, score: base };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+  const top5 = scores.slice(0, 5);
+
+  /* Render results */
+  const topScore = top5[0].score;
+  document.getElementById('resultsHeadline').textContent = 'Your Best-Fit Careers';
+  document.getElementById('resultsSub').textContent =
+    'Based on your strength profile, here are the Canadian aviation and aerospace careers that align most closely with who you are.';
+
+  document.getElementById('resultCards').innerHTML = top5.map((item, rank) => {
+    const p = item.pathway;
+    const pct = Math.round(item.score * 100);
+    const sector = SECTORS[p.sector];
+    const why = buildWhyText(p, rank);
+    const topStrengths = getTopStrengthTags(p);
+    const barWidth = Math.round((item.score / topScore) * 100);
+
+    return `
+      <div class="result-card">
+        <div class="result-top">
+          <div class="result-rank">${rank + 1}</div>
+          <div class="result-info">
+            <div class="result-title">${p.title}</div>
+            <div class="result-sector">${sector.code} — ${sector.name}</div>
+          </div>
+          <div class="result-match">
+            <div class="result-pct">${pct}%</div>
+            <div class="result-pct-label">match</div>
+          </div>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" style="width:${barWidth}%"></div>
+        </div>
+        <p class="result-why">${why}</p>
+        <div class="result-strength-tags">
+          ${topStrengths.map(t => `<span class="result-strength-tag">${t}</span>`).join('')}
+        </div>
+        <div class="result-actions">
+          <button class="btn-primary" onclick="viewPathway('${p.id}')">View Pathway</button>
+          <button class="btn-secondary" onclick="askACIA('${p.title}')">Ask ACIA™</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function buildWhyText(p, rank) {
+  const w = COMPETENCY_WEIGHTS[p.id] || {};
+  const topDims = STRENGTHS
+    .filter(s => (strengthScores[s.key] || 0) >= 3 && (w[s.key] || 0) >= 3)
+    .sort((a, b) => ((w[b.key] || 0) * (strengthScores[b.key] || 0)) - ((w[a.key] || 0) * (strengthScores[a.key] || 0)))
+    .slice(0, 2)
+    .map(s => s.name.toLowerCase());
+
+  if (topDims.length >= 2) {
+    return `Your strengths in ${topDims[0]} and ${topDims[1]} align closely with what this career demands. ${rank === 0 ? 'This is your strongest overall match.' : 'A strong fit across your profile.'}`;
+  } else if (topDims.length === 1) {
+    return `Your strength in ${topDims[0]} is a core requirement for this role. ${p.tagline}.`;
+  }
+  return `${p.tagline}. This career matches your overall competency profile well.`;
+}
+
+function getTopStrengthTags(p) {
+  const w = COMPETENCY_WEIGHTS[p.id] || {};
+  return STRENGTHS
+    .filter(s => (w[s.key] || 0) >= 4)
+    .sort((a, b) => (w[b.key] || 0) - (w[a.key] || 0))
+    .slice(0, 3)
+    .map(s => s.name);
+}
+
+function viewPathway(id) {
+  showTab('explore');
+  setTimeout(() => openPathway(id), 100);
+}
+
+function askACIA(title) {
+  showTab('chat');
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.value = 'Tell me more about becoming a ' + title + ' in Canada.';
+    input.focus();
+  }
+}
+
+function resetDiscovery() {
+  strengthScores = {};
+  prefSelections = {};
+  buildStrengthGrid();
+  goToStage1();
+}
+
+/* ── ACIA chat (placeholder UI) ────────────────────────────────── */
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (chatQuestionsLeft <= 0) { showTab('subscribe'); return; }
+  const messages = document.getElementById('chatMessages');
+  messages.innerHTML += `<div class="msg user">${escHtml(msg)}</div>`;
+  input.value = '';
+  input.style.height = 'auto';
+  chatQuestionsLeft--;
+  const banner = document.getElementById('chatUpgradeBanner');
+  if (chatQuestionsLeft > 0) {
+    banner.innerHTML = `<strong>${chatQuestionsLeft} question${chatQuestionsLeft !== 1 ? 's' : ''} remaining (free preview).</strong> Upgrade for unlimited access. <button onclick="showTab('subscribe')" style="margin-left:auto;font-size:11px;font-weight:600;background:none;border:none;color:var(--gold);cursor:pointer;white-space:nowrap">Upgrade</button>`;
+  } else {
+    banner.innerHTML = `<strong>Free preview limit reached.</strong> Upgrade to Premium for unlimited ACIA™ career mentorship. <button onclick="showTab('subscribe')" style="margin-left:auto;font-size:11px;font-weight:600;background:none;border:none;color:var(--gold);cursor:pointer;white-space:nowrap">Upgrade</button>`;
+  }
+  setTimeout(() => {
+    messages.innerHTML += `<div class="msg bot" id="typing">ACIA is thinking&hellip;</div>`;
+    messages.scrollTop = messages.scrollHeight;
+    setTimeout(() => {
+      const typing = document.getElementById('typing');
+      if (typing) typing.remove();
+      const response = getACIAResponse(msg);
+      messages.innerHTML += `<div class="msg bot">${response}</div>`;
+      messages.scrollTop = messages.scrollHeight;
+    }, 1400);
+  }, 300);
+  messages.scrollTop = messages.scrollHeight;
+}
+function getACIAResponse(msg) {
+  const q = msg.toLowerCase();
+  if (q.includes('pilot') || q.includes('cpl') || q.includes('atpl')) {
+    return 'To fly commercially in Canada you need a <strong>Commercial Pilot Licence (CPL)</strong> from Transport Canada. That requires 200 hours total time and a written exam plus a flight test. Most airlines want 1,500+ hours and an ATPL before hiring a Captain. The pathway usually takes 3–5 years from PPL to first airline job. Want me to walk you through the CPL to ATPL timeline?';
+  }
+  if (q.includes('ame') || q.includes('maintenance') || q.includes('mechanic')) {
+    return 'The AME (Aircraft Maintenance Engineer) pathway is a strong career in Canadian aviation. You need a <strong>Transport Canada AME licence</strong> in one of four categories — M1 (piston), M2 (turbine), E (electronics/avionics), or S (structures). It takes about 2 years at a TC-approved college (such as SAIT, NAIT, or BCIT) plus 2 years of practical experience before you can write the TC exams. Which category interests you most?';
+  }
+  if (q.includes('drone') || q.includes('rpas') || q.includes('uav')) {
+    return 'RPAS (drone) operations in Canada are regulated under <strong>CARs Part IX</strong> by Transport Canada. For commercial work you likely need an <strong>Advanced RPAS Pilot Certificate</strong>, which requires a knowledge exam and a flight review with a TC examiner. For operations in controlled airspace or over people, the advanced cert is mandatory. The basic certificate is an online test only. Would you like info on specific commercial RPAS industries?';
+  }
+  if (q.includes('atc') || q.includes('air traffic')) {
+    return 'Air traffic control in Canada is managed by <strong>NAV Canada</strong>, a private corporation. The only pathway to a TC ATC licence is through <strong>NAV Canada\'s selection process</strong> and their Training Institute in Cornwall, ON. It\'s competitive — cognitive aptitude testing, English proficiency, and a security clearance are all required. Training is 12–18 months residential. Interested in the FSS (Flight Service Specialist) path as an alternative?';
+  }
+  if (q.includes('stem') || q.includes('engineer') || q.includes('engineering')) {
+    return 'STEM backgrounds are highly valued in aviation. Aerospace Engineering at Carleton, Concordia, or U of T leads to the <strong>P.Eng pathway</strong> and careers at Bombardier, Pratt &amp; Whitney Canada, MDA, or the Canadian Space Agency. For more hands-on work, an <strong>Aviation Technology &amp; Systems</strong> role lets software and IT professionals build systems for airlines and NAV Canada. Which direction interests you more?';
+  }
+  return 'That\'s a great question. As your AACP aviation career mentor, I can help you explore Canadian aviation careers, Transport Canada licensing, training programs, and how to plan your pathway. Could you tell me more about what career area or sector interests you most? For example: pilot, maintenance engineer, air traffic, aerospace engineering, or operations?';
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Subscription CTAs (Stripe — coming soon) ──────────────────── */
+function startFree() {
+  alert('Free account registration coming soon. For now, explore the Career Navigator freely!');
+}
+function checkoutStudent() {
+  alert('Stripe checkout coming soon — Premium Student at $9.99/mo CAD + GST with 7-day free trial.');
+}
+function checkoutAdvisor() {
+  alert('Stripe checkout coming soon — Career Advisor at $14.99/mo CAD + GST with 7-day free trial.');
+}
+function redeemInvite() {
+  const code = prompt('Enter your advisor invite code:');
+  if (code) alert('Invite code redemption coming soon. Code noted: ' + code);
+}
+
+/* ── Init ──────────────────────────────────────────────────────── */
+renderPathwayList();
+buildStrengthGrid();
+</script>
+</body>
+</html>
