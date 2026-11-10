@@ -684,18 +684,18 @@ header{
         <button class="photo-skip" onclick="skipPhoto()" id="photoSkipBtn">Skip &#8594;</button>
       </div>
 
-      <!-- Photo 1: Flight Operations -->
+      <!-- Photo 1: Aviation & Flight Operations -->
       <div class="photo-step active" id="photoStep0">
         <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=800&q=80&auto=format&fit=crop" alt="Commercial flight deck with two pilots and instrument panel" loading="lazy">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80&auto=format&fit=crop" alt="Ground crew working on the ramp beside a commercial aircraft at dusk" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aviation &amp; Flight Operations</div>
-            <div class="photo-overlay-title">The Flight Deck</div>
+            <div class="photo-overlay-title">On the Ramp</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">What interests you most about this picture, and why?</div>
-          <textarea class="photo-textarea" id="photoResp0" placeholder="Share what catches your attention — the technology, the environment, the responsibility, or something else entirely…" rows="3"></textarea>
+          <div class="photo-question-text">What interests you most about what you see in this picture?</div>
+          <textarea class="photo-textarea" id="photoResp0" placeholder="Tell us what catches your attention — the aircraft, the people, the environment, the teamwork, or something else entirely…" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup0">
           <div class="acia-followup-label">ACIA™ Follow-Up</div>
@@ -711,15 +711,15 @@ header{
       <!-- Photo 2: RPAS & Autonomous Systems -->
       <div class="photo-step" id="photoStep1">
         <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1521405924368-64c5b84bec60?w=800&q=80&auto=format&fit=crop" alt="Professional drone operator in field with RPAS equipment" loading="lazy">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80&auto=format&fit=crop" alt="Drone operator in an open field launching a professional RPAS system" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">RPAS &amp; Autonomous Systems</div>
             <div class="photo-overlay-title">Remote Piloting</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">What interests you most about this picture, and why?</div>
-          <textarea class="photo-textarea" id="photoResp1" placeholder="What do you notice — the technology, the fieldwork, the precision, or something else?" rows="3"></textarea>
+          <div class="photo-question-text">What would you be most curious to learn about this technology?</div>
+          <textarea class="photo-textarea" id="photoResp1" placeholder="What draws your curiosity — how it works, what it's used for, the regulations, or the skills it takes?" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup1">
           <div class="acia-followup-label">ACIA™ Follow-Up</div>
@@ -735,15 +735,15 @@ header{
       <!-- Photo 3: Aerospace Engineering & Manufacturing -->
       <div class="photo-step" id="photoStep2">
         <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1517976487492-5750f3195933?w=800&q=80&auto=format&fit=crop" alt="Aerospace manufacturing facility with aircraft assembly" loading="lazy">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80&auto=format&fit=crop" alt="Aerospace technician working on a jet engine in a hangar" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aerospace Engineering &amp; Manufacturing</div>
-            <div class="photo-overlay-title">Building What Flies</div>
+            <div class="photo-overlay-title">Engineering What Flies</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">What interests you most about this picture, and why?</div>
-          <textarea class="photo-textarea" id="photoResp2" placeholder="What stands out — the scale, the precision, the teamwork, the craftsmanship?" rows="3"></textarea>
+          <div class="photo-question-text">Which part of the work shown here would you most like to explore?</div>
+          <textarea class="photo-textarea" id="photoResp2" placeholder="The design, the hands-on assembly, the precision testing, the engineering — what calls to you?" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup2">
           <div class="acia-followup-label">ACIA™ Follow-Up</div>
@@ -2061,38 +2061,38 @@ var guidedAnswers = {};
 var DISCOVERY_TIER = 'free'; // 'free' | 'subscriber' — set after auth
 
 var PHOTO_FOLLOWUPS = [
-  // Photo 0: Flight deck
+  // Photo 0: Ramp / Aviation & Flight Operations — "What interests you most about what you see in this picture?"
   function(text) {
     var t = text.toLowerCase();
-    if (t.match(/technolog|instrument|computer|screen|panel|system/))
-      return 'You mentioned the technology. What do you think it would feel like to be responsible for all those systems at 35,000 feet — and what kind of training do you imagine that takes?';
-    if (t.match(/pilot|fly|flying|control|command|captain/))
-      return 'The idea of being in control — what draws you to that responsibility? Is it the challenge, the precision, or something else about commanding an aircraft?';
-    if (t.match(/team|partner|co-pilot|work together|communication/))
-      return 'You noticed the teamwork aspect. How important is it to you that your career involves close coordination with others in high-stakes situations?';
-    return 'What do you think would surprise you most about spending a full shift in that environment — the complexity, the pressure, or the view?';
+    if (t.match(/aircraft|plane|jet|tail|wing|fuselage/))
+      return 'The aircraft itself caught your eye. What do you imagine it would feel like to be responsible for getting that aircraft ready to fly — the pressure, the precision, or both?';
+    if (t.match(/people|crew|team|worker|ground|staff|uniform/))
+      return 'You noticed the people. Ground operations run on tight coordination and trust — what kind of role do you picture yourself in on a ramp like that?';
+    if (t.match(/environment|airport|ramp|apron|outdoor|sunset|lighting/))
+      return 'The environment stands out to you. Aviation operations happen around the clock in all conditions. Does working outdoors in a dynamic, fast-paced setting sound energising or overwhelming?';
+    return 'What would surprise you most about a career on the operational side of aviation — the pace, the responsibility, or the variety of roles involved?';
   },
-  // Photo 1: RPAS/drone
+  // Photo 1: RPAS/drone — "What would you be most curious to learn about this technology?"
   function(text) {
     var t = text.toLowerCase();
-    if (t.match(/outdoor|field|nature|environment|land|remote/))
-      return 'The fieldwork aspect stands out to you. Can you imagine a typical day operating drones across different locations and environments — what part of that sounds most appealing?';
-    if (t.match(/technolog|equipment|sensor|camera|data|system/))
-      return 'The technology side interests you. RPAS systems collect enormous amounts of data — surveying, inspection, mapping. What would you most want to do with that data?';
-    if (t.match(/fly|pilot|control|operate|navigate/))
-      return 'You\'re drawn to the flying aspect. RPAS piloting requires precision and situational awareness similar to full-scale aviation. What would motivate you to build those skills?';
-    return 'The RPAS industry is growing fast — inspection, agriculture, search and rescue, delivery. Which of those applications sounds most interesting to you, and why?';
+    if (t.match(/how|work|function|operat|fly|control|navigate/))
+      return 'You\'re curious about how it works. RPAS systems combine flight control, sensors, and data processing. Which part of that would you want to dig into first — the piloting, the sensors, or the data side?';
+    if (t.match(/regulat|law|rule|licenc|certif|airspace|legal/))
+      return 'The regulatory side interests you. Canada\'s RPAS rules are evolving quickly. Does navigating that kind of technical-legal landscape sound like something you\'d enjoy building expertise in?';
+    if (t.match(/use|applic|inspect|survey|map|deliver|rescue|agri/))
+      return 'The applications draw you in. RPAS are used in inspection, agriculture, mapping, and emergency response. Which of those sectors would you most want to work in, and why?';
+    return 'If you could ask one question to a professional RPAS pilot — about their training, their daily work, or the industry — what would it be?';
   },
-  // Photo 2: Aerospace manufacturing
+  // Photo 2: Aerospace engineering / jet engine — "Which part of the work shown here would you most like to explore?"
   function(text) {
     var t = text.toLowerCase();
-    if (t.match(/build|construct|assembl|create|make|craft/))
-      return 'You\'re drawn to the building side. When you imagine having a hand in creating something that eventually flies, what part of that process sounds most satisfying — design, fabrication, or seeing the finished aircraft?';
-    if (t.match(/precision|detail|exact|careful|quality|inspect/))
-      return 'Precision stands out to you. Aerospace manufacturing has near-zero tolerance for error — parts must be exact. Does that level of precision feel exciting, or does it feel like pressure?';
-    if (t.match(/scale|large|big|complex|massive|facility/))
-      return 'The scale impresses you. These facilities employ thousands of specialists — engineers, machinists, quality inspectors, logistics coordinators. Which of those roles would you most want to understand better?';
-    return 'If you could choose one role inside a facility like this — designing, building, testing, or inspecting — which would you pick, and what draws you to it?';
+    if (t.match(/design|engineer|blueprint|cad|plan|concept|develop/))
+      return 'The design and engineering side draws you. Aerospace engineers solve problems that push the limits of physics and materials. What kind of problem would you most want to work on — performance, safety, or efficiency?';
+    if (t.match(/hands.on|build|assembl|maint|repair|fix|tool|wrench/))
+      return 'You\'re drawn to the hands-on work. Aircraft Maintenance Engineers work to some of the strictest standards in any industry. Does having that level of responsibility over what flies sound like something you\'d want to own?';
+    if (t.match(/test|inspect|quality|check|verif|certif|standard/))
+      return 'Testing and quality stand out to you. In aerospace, inspection and certification are as critical as the build itself. What would you want to become the expert on — the systems, the documentation, or the standards?';
+    return 'If you could spend one day inside a facility like this — in design, on the shop floor, or in testing — where would you go, and what would you want to understand?';
   }
 ];
 
