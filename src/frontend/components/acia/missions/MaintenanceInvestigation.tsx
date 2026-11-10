@@ -298,314 +298,44 @@ const ZONE_HOTSPOTS: Record<string, { left: string; top: string }> = {
 
 // ── Zone close-up visuals ──────────────────────────────────────────────────────
 function ZoneCloseup({ zoneId, severity }: { zoneId: string; severity: string }) {
-  const bg = '#0a0e14';
   const panelBg = '#141820';
 
-  if (zoneId === 'l_engine') {
-    return (
-      <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
-        <img src="/images/engine.jpg" alt="Engine close-up" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block', opacity: 0.85 }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
-          <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>Oil residue observed — cowling lower seam</span>
-        </div>
-      </div>
-    );
-  }
-  if (zoneId === 'r_engine') {
-    return (
-      <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
-        <img src="/images/img2.jpeg" alt="Engine intake" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-          <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 600 }}>Engine intake — no anomalies</span>
-        </div>
-      </div>
-    );
-  }
-
-  // SVG close-up illustrations for remaining zones
-  const svgs: Record<string, JSX.Element> = {
-    nose: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="130" width="240" height="30" fill={panelBg} />
-        {/* Nose cone profile */}
-        <path d="M 30,80 Q 70,30 200,78 Q 70,130 30,80 Z" fill="#d4d8de" stroke="#b0b4ba" strokeWidth="1.5" />
-        <path d="M 55,72 Q 100,48 175,78" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
-        {/* Radome seam */}
-        <path d="M 80,55 Q 130,45 180,78 Q 130,112 80,105" fill="none" stroke="#8090a0" strokeWidth="1" strokeDasharray="4,3" />
-        {/* Pitot probe tip */}
-        <line x1="198" y1="79" x2="228" y2="79" stroke="#aaa" strokeWidth="3.5" strokeLinecap="round" />
-        <circle cx="199" cy="79" r="4" fill="#999" />
-        <text x="120" y="148" textAnchor="middle" fill="#64748b" fontSize="10">Nose cone — surface intact</text>
-      </svg>
-    ),
-    l_wing_tip: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Wing surface */}
-        <rect x="0" y="110" width="240" height="50" fill="#1a1e28" />
-        <rect x="0" y="104" width="240" height="8" fill="#2a2e38" />
-        {/* Nav light housing */}
-        <rect x="82" y="52" width="76" height="60" rx="10" fill="#2a2e3a" stroke="#3a3e4a" strokeWidth="1.5" />
-        {/* Lens — cracked red */}
-        <ellipse cx="120" cy="78" rx="26" ry="22" fill="#cc1a1a" opacity="0.75" />
-        <ellipse cx="120" cy="78" rx="26" ry="22" fill="none" stroke="#ff4444" strokeWidth="1.5" />
-        {/* Crack lines */}
-        <line x1="105" y1="60" x2="133" y2="92" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" />
-        <line x1="118" y1="63" x2="136" y2="81" stroke="rgba(255,255,255,0.5)" strokeWidth="1" strokeLinecap="round" />
-        {/* Mounting hardware */}
-        {[90,150].map(x => [60,94].map(y => <circle key={`${x}${y}`} cx={x} cy={y} r="4" fill="#3a4050" stroke="#555" strokeWidth="1" />))}
-        {/* Crack indicator arrow */}
-        <path d="M 148,58 L 158,50" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="160" cy="48" r="5" fill="none" stroke="#ef4444" strokeWidth="1.5" />
-        <text x="120" y="148" textAnchor="middle" fill="#ef4444" fontSize="10">Navigation light — cracked lens</text>
-      </svg>
-    ),
-    r_wing_tip: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="110" width="240" height="50" fill="#1a1e28" />
-        <rect x="0" y="104" width="240" height="8" fill="#2a2e38" />
-        <rect x="82" y="52" width="76" height="60" rx="10" fill="#2a2e3a" stroke="#3a3e4a" strokeWidth="1.5" />
-        {/* Clean green lens */}
-        <ellipse cx="120" cy="78" rx="26" ry="22" fill="#14532d" opacity="0.8" />
-        <ellipse cx="120" cy="78" rx="26" ry="22" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-        {/* Lens highlight */}
-        <ellipse cx="112" cy="70" rx="10" ry="7" fill="rgba(255,255,255,0.12)" />
-        {[90,150].map(x => [60,94].map(y => <circle key={`${x}${y}`} cx={x} cy={y} r="4" fill="#3a4050" stroke="#555" strokeWidth="1" />))}
-        <text x="120" y="148" textAnchor="middle" fill="#22c55e" fontSize="10">Navigation light — no defects</text>
-      </svg>
-    ),
-    nose_gear: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="140" width="240" height="20" fill={panelBg} />
-        {/* Strut assembly */}
-        <rect x="110" y="10" width="20" height="55" fill="#5a6070" rx="4" />
-        <rect x="100" y="62" width="40" height="12" fill="#6a7080" rx="3" />
-        {/* Torque links */}
-        <path d="M 115,35 L 105,62 M 125,35 L 135,62" stroke="#708090" strokeWidth="4" strokeLinecap="round" />
-        {/* Wheel */}
-        <ellipse cx="120" cy="118" rx="52" ry="52" fill="#111" />
-        <ellipse cx="120" cy="118" rx="44" ry="44" fill="#1a1a1a" />
-        {/* Worn tread — minimal grooves */}
-        <ellipse cx="120" cy="118" rx="51" ry="51" fill="none" stroke="#2a2a2a" strokeWidth="2" />
-        {/* Shallow tread grooves (worn) */}
-        {[-30,-15,0,15,30].map(angle => {
-          const rad = (angle * Math.PI) / 180;
-          const x1 = 120 + 44 * Math.sin(rad); const y1 = 118 - 44 * Math.cos(rad);
-          const x2 = 120 + 51 * Math.sin(rad); const y2 = 118 - 51 * Math.cos(rad);
-          return <line key={angle} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#2e2e2e" strokeWidth="3" />;
-        })}
-        {/* Wear indicator dots (at tread limit) */}
-        <circle cx="120" cy="67" r="4" fill="#ef4444" />
-        <circle cx="120" cy="169" r="4" fill="#ef4444" />
-        <circle cx="68" cy="118" r="4" fill="#ef4444" />
-        <circle cx="172" cy="118" r="4" fill="#ef4444" />
-        {/* Wheel hub */}
-        <ellipse cx="120" cy="118" rx="18" ry="18" fill="#2a3040" stroke="#4a5060" strokeWidth="2" />
-        {[0,60,120,180,240,300].map(a => {
-          const r = (a * Math.PI) / 180;
-          return <line key={a} x1={120 + 6*Math.cos(r)} y1={118 + 6*Math.sin(r)} x2={120 + 16*Math.cos(r)} y2={118 + 16*Math.sin(r)} stroke="#5a6070" strokeWidth="2" strokeLinecap="round" />;
-        })}
-        <text x="120" y="155" textAnchor="middle" fill="#ef4444" fontSize="10">Nose gear tyre — worn to indicators</text>
-      </svg>
-    ),
-    l_main_gear: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="138" width="240" height="22" fill={panelBg} />
-        {/* Main strut */}
-        <rect x="108" y="5" width="24" height="60" fill="#5a6070" rx="4" />
-        <rect x="95" y="62" width="50" height="14" fill="#6a7080" rx="3" />
-        {/* Brake caliper */}
-        <rect x="68" y="95" width="20" height="35" rx="4" fill="#3a4050" stroke="#4a5060" strokeWidth="1.5" />
-        <rect x="152" y="95" width="20" height="35" rx="4" fill="#3a4050" stroke="#4a5060" strokeWidth="1.5" />
-        {/* Tyre — left wheel */}
-        <ellipse cx="80" cy="118" rx="36" ry="36" fill="#111" />
-        <ellipse cx="80" cy="118" rx="30" ry="30" fill="#1a1a1a" />
-        {/* Tread grooves — serviceable */}
-        {[-45,0,45,90,135,180,225,270].map(a => {
-          const r = (a * Math.PI) / 180;
-          return <line key={a} x1={80 + 30*Math.cos(r)} y1={118 + 30*Math.sin(r)} x2={80 + 36*Math.cos(r)} y2={118 + 36*Math.sin(r)} stroke="#303030" strokeWidth="3.5" />;
-        })}
-        <ellipse cx="80" cy="118" rx="12" ry="12" fill="#2a3040" stroke="#4a5060" strokeWidth="1.5" />
-        {/* Tyre — right wheel */}
-        <ellipse cx="160" cy="118" rx="36" ry="36" fill="#111" />
-        <ellipse cx="160" cy="118" rx="30" ry="30" fill="#1a1a1a" />
-        {[-45,0,45,90,135,180,225,270].map(a => {
-          const r = (a * Math.PI) / 180;
-          return <line key={a} x1={160 + 30*Math.cos(r)} y1={118 + 30*Math.sin(r)} x2={160 + 36*Math.cos(r)} y2={118 + 36*Math.sin(r)} stroke="#303030" strokeWidth="3.5" />;
-        })}
-        <ellipse cx="160" cy="118" rx="12" ry="12" fill="#2a3040" stroke="#4a5060" strokeWidth="1.5" />
-        <text x="120" y="152" textAnchor="middle" fill="#22c55e" fontSize="10">Main landing gear — serviceable</text>
-      </svg>
-    ),
-    r_main_gear: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="138" width="240" height="22" fill={panelBg} />
-        <rect x="108" y="5" width="24" height="60" fill="#5a6070" rx="4" />
-        <rect x="95" y="62" width="50" height="14" fill="#6a7080" rx="3" />
-        <rect x="68" y="95" width="20" height="35" rx="4" fill="#3a4050" stroke="#4a5060" strokeWidth="1.5" />
-        <rect x="152" y="95" width="20" height="35" rx="4" fill="#3a4050" stroke="#4a5060" strokeWidth="1.5" />
-        {[80, 160].map(cx => (
-          <g key={cx}>
-            <ellipse cx={cx} cy="118" rx="36" ry="36" fill="#111" />
-            <ellipse cx={cx} cy="118" rx="30" ry="30" fill="#1a1a1a" />
-            {[-45,0,45,90,135,180,225,270].map(a => {
-              const r = (a * Math.PI) / 180;
-              return <line key={a} x1={cx + 30*Math.cos(r)} y1={118 + 30*Math.sin(r)} x2={cx + 36*Math.cos(r)} y2={118 + 36*Math.sin(r)} stroke="#303030" strokeWidth="3.5" />;
-            })}
-            <ellipse cx={cx} cy="118" rx="12" ry="12" fill="#2a3040" stroke="#4a5060" strokeWidth="1.5" />
-          </g>
-        ))}
-        <text x="120" y="152" textAnchor="middle" fill="#22c55e" fontSize="10">Main landing gear — no anomalies</text>
-      </svg>
-    ),
-    fuselage: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Fuselage belly panels */}
-        <ellipse cx="120" cy="80" rx="110" ry="55" fill="#d4d8de" stroke="#b0b4ba" strokeWidth="1.5" />
-        {/* Panel seam lines */}
-        {[40,80,120,160,200].map(x => (
-          <line key={x} x1={x} y1={40} x2={x} y2={120} stroke="#b0b4ba" strokeWidth="0.8" strokeDasharray="3,4" />
-        ))}
-        {/* Horizontal seam */}
-        <line x1="10" y1="80" x2="230" y2="80" stroke="#b0b4ba" strokeWidth="0.8" strokeDasharray="3,4" />
-        {/* Fasteners */}
-        {[40,80,120,160,200].map(x => [50,80,110].map(y => (
-          <circle key={`${x}${y}`} cx={x} cy={y} r="2.5" fill="#999" />
-        )))}
-        {/* Drain mast */}
-        <rect x="114" y="124" width="12" height="18" rx="3" fill="#8090a0" />
-        <ellipse cx="120" cy="142" rx="6" ry="3" fill="#6a7a8a" />
-        <text x="120" y="157" textAnchor="middle" fill="#22c55e" fontSize="10">Fuselage skin — no anomalies</text>
-      </svg>
-    ),
-    tail: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Fuselage aft section */}
-        <rect x="20" y="60" width="200" height="60" rx="8" fill="#d4d8de" stroke="#b0b4ba" strokeWidth="1.5" />
-        {/* VHF blade antenna — tilted/loose */}
-        <g transform="translate(120,60) rotate(-8)">
-          <rect x="-6" y="-50" width="12" height="52" rx="3" fill="#4a5060" stroke="#5a6070" strokeWidth="1.5" />
-          {/* Loose mounting base — gap visible */}
-          <rect x="-10" y="-4" width="20" height="8" rx="2" fill="#3a4050" stroke="#ef4444" strokeWidth="1.5" />
-          <rect x="-6" y="0" width="12" height="5" fill={bg} opacity="0.5" />
-          {/* Movement arrows */}
-          <path d="M -18,-30 L -25,-38 M -18,-30 L -26,-22" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          <path d="M 18,-30 L 25,-38 M 18,-30 L 26,-22" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-        </g>
-        {/* Warning indicator */}
-        <circle cx="120" cy="28" r="12" fill="#f59e0b" opacity="0.15" />
-        <text x="120" y="34" textAnchor="middle" fill="#f59e0b" fontSize="14" fontWeight="bold">!</text>
-        <text x="120" y="150" textAnchor="middle" fill="#f59e0b" fontSize="10">VHF antenna — loose mounting</text>
-      </svg>
-    ),
-    flap_l: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Wing trailing edge */}
-        <path d="M 0,50 L 240,80 L 240,160 L 0,160 Z" fill="#c8cdd4" stroke="#a8adb4" strokeWidth="1" />
-        {/* Flap panel */}
-        <path d="M 20,85 L 220,115 L 220,145 L 20,145 Z" fill="#b8bdc4" stroke="#a0a5ac" strokeWidth="1.5" />
-        {/* Flap track */}
-        <rect x="60" y="82" width="10" height="65" rx="3" fill="#6a7080" />
-        <rect x="170" y="82" width="10" height="65" rx="3" fill="#6a7080" />
-        {/* Actuator */}
-        <rect x="108" y="78" width="24" height="40" rx="4" fill="#5a6070" stroke="#6a7080" strokeWidth="1.5" />
-        <line x1="120" y1="118" x2="120" y2="140" stroke="#7a8090" strokeWidth="5" strokeLinecap="round" />
-        <text x="120" y="155" textAnchor="middle" fill="#22c55e" fontSize="10">Left flap — no anomalies</text>
-      </svg>
-    ),
-    flap_r: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <path d="M 0,50 L 240,80 L 240,160 L 0,160 Z" fill="#c8cdd4" stroke="#a8adb4" strokeWidth="1" />
-        <path d="M 20,85 L 220,115 L 220,145 L 20,145 Z" fill="#b8bdc4" stroke="#a0a5ac" strokeWidth="1.5" />
-        <rect x="60" y="82" width="10" height="65" rx="3" fill="#6a7080" />
-        <rect x="170" y="82" width="10" height="65" rx="3" fill="#6a7080" />
-        <rect x="108" y="78" width="24" height="40" rx="4" fill="#5a6070" stroke="#6a7080" strokeWidth="1.5" />
-        <line x1="120" y1="118" x2="120" y2="140" stroke="#7a8090" strokeWidth="5" strokeLinecap="round" />
-        <text x="120" y="155" textAnchor="middle" fill="#22c55e" fontSize="10">Right flap — no anomalies</text>
-      </svg>
-    ),
-    pitot_tube: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Fuselage surface */}
-        <rect x="0" y="90" width="240" height="70" fill="#d4d8de" />
-        <rect x="0" y="84" width="240" height="8" fill="#b0b4ba" />
-        {/* Pitot tube body */}
-        <rect x="50" y="60" width="130" height="18" rx="4" fill="#8a9090" stroke="#6a7070" strokeWidth="1.5" />
-        <ellipse cx="180" cy="69" rx="8" ry="9" fill="#7a8080" stroke="#5a6060" strokeWidth="1.5" />
-        {/* Pitot mount */}
-        <rect x="80" y="72" width="20" height="20" rx="3" fill="#707878" stroke="#5a6060" strokeWidth="1" />
-        {/* RED COVER — installed */}
-        <rect x="170" y="54" width="52" height="30" rx="6" fill="#cc1a1a" stroke="#ff3333" strokeWidth="2" />
-        <rect x="172" y="56" width="48" height="26" rx="5" fill="#dd2222" />
-        {/* "RBF" text on cover */}
-        <text x="196" y="72" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">RBF</text>
-        {/* Streamer */}
-        <path d="M 218,70 Q 228,60 235,55 Q 238,45 230,48 Q 240,42 235,52 Q 228,56 220,68" fill="none" stroke="#ff4444" strokeWidth="2" strokeLinecap="round" />
-        {/* Warning badge */}
-        <circle cx="40" cy="60" r="14" fill="#cc1a1a" opacity="0.2" />
-        <text x="40" y="65" textAnchor="middle" fill="#ef4444" fontSize="16" fontWeight="bold">!</text>
-        <text x="120" y="150" textAnchor="middle" fill="#ef4444" fontSize="10">Pitot tube — cover still installed</text>
-      </svg>
-    ),
-    static_port: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        <rect x="0" y="30" width="240" height="130" fill="#c8cdd4" />
-        {/* Panel seams */}
-        <line x1="0" y1="90" x2="240" y2="90" stroke="#a8adb4" strokeWidth="1" strokeDasharray="4,5" />
-        <line x1="120" y1="30" x2="120" y2="160" stroke="#a8adb4" strokeWidth="1" strokeDasharray="4,5" />
-        {/* Static ports — two ports */}
-        <circle cx="85" cy="80" r="10" fill={bg} stroke="#8a9090" strokeWidth="2" />
-        <circle cx="85" cy="80" r="6" fill="#0a0e14" />
-        <circle cx="155" cy="80" r="10" fill={bg} stroke="#8a9090" strokeWidth="2" />
-        <circle cx="155" cy="80" r="6" fill="#0a0e14" />
-        {/* OK indicators */}
-        <circle cx="85" cy="80" r="14" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.6" />
-        <circle cx="155" cy="80" r="14" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.6" />
-        <text x="120" y="150" textAnchor="middle" fill="#22c55e" fontSize="10">Static ports — clear and unobstructed</text>
-      </svg>
-    ),
-    l_fuel_cap: (
-      <svg viewBox="0 0 240 160" style={{ width: '100%', height: 160, display: 'block' }}>
-        <rect width="240" height="160" fill={bg} />
-        {/* Wing surface */}
-        <ellipse cx="120" cy="90" rx="110" ry="55" fill="#c8cdd4" stroke="#a8adb4" strokeWidth="1.5" />
-        {/* Wing panel lines */}
-        {[60,120,180].map(x => <line key={x} x1={x} y1={45} x2={x} y2={135} stroke="#a8adb4" strokeWidth="0.7" strokeDasharray="3,4" />)}
-        {/* Fuel cap collar */}
-        <ellipse cx="120" cy="82" rx="30" ry="14" fill="#8a9090" stroke="#6a7070" strokeWidth="2" />
-        <ellipse cx="120" cy="82" rx="22" ry="10" fill="#9aa0a0" stroke="#7a8080" strokeWidth="1.5" />
-        {/* Cap handle/grip marks */}
-        <ellipse cx="120" cy="82" rx="14" ry="7" fill="#a8b0b0" />
-        {[-20,-10,0,10,20].map(dx => <line key={dx} x1={120+dx} y1={77} x2={120+dx} y2={87} stroke="#8a9090" strokeWidth="1.5" />)}
-        {/* Seal ring */}
-        <ellipse cx="120" cy="82" rx="28" ry="13" fill="none" stroke="#6a7070" strokeWidth="1" strokeDasharray="3,3" />
-        <text x="120" y="150" textAnchor="middle" fill="#22c55e" fontSize="10">Fuel cap — seated and secure</text>
-      </svg>
-    ),
+  const photos: Record<string, { src: string; label: string; color: string }> = {
+    nose:        { src: '/images/aircraft-nose.png',        label: 'Nose cone — surface intact',                    color: '#22c55e' },
+    l_engine:    { src: '/images/aircraft-engine-oil.png',  label: 'Oil residue observed — cowling lower seam',     color: '#ef4444' },
+    r_engine:    { src: '/images/aircraft-nose-gear.png',   label: 'Engine — no anomalies detected',               color: '#22c55e' },
+    l_wing_tip:  { src: '/images/aircraft-nav-light.png',   label: 'Navigation light — cracked lens',              color: '#ef4444' },
+    r_wing_tip:  { src: '/images/aircraft-nose.png',        label: 'Navigation light — no defects',                color: '#22c55e' },
+    nose_gear:   { src: '/images/aircraft-tire-worn.png',   label: 'Nose gear tyre — worn below serviceable limits', color: '#f59e0b' },
+    l_main_gear: { src: '/images/aircraft-main-gear.png',   label: 'Main landing gear — serviceable',              color: '#22c55e' },
+    r_main_gear: { src: '/images/aircraft-main-gear.png',   label: 'Main landing gear — no anomalies',             color: '#22c55e' },
+    fuselage:    { src: '/images/aircraft-vhf-antenna.png', label: 'Fuselage skin — no anomalies',                 color: '#22c55e' },
+    tail:        { src: '/images/aircraft-vhf-antenna.png', label: 'VHF antenna — loose mounting',                 color: '#f59e0b' },
+    flap_l:      { src: '/images/aircraft-nose.png',        label: 'Left flap — no anomalies',                    color: '#22c55e' },
+    flap_r:      { src: '/images/aircraft-nose.png',        label: 'Right flap — no anomalies',                   color: '#22c55e' },
+    pitot_tube:  { src: '/images/aircraft-pitot-tube.png',  label: 'Pitot tube — cover still installed',           color: '#ef4444' },
+    static_port: { src: '/images/aircraft-static-port.png', label: 'Static ports — clear and unobstructed',       color: '#22c55e' },
+    l_fuel_cap:  { src: '/images/aircraft-static-port.png', label: 'Fuel cap — seated and secure',                color: '#22c55e' },
   };
 
-  const el = svgs[zoneId];
-  if (!el) {
+  const photo = photos[zoneId];
+  if (!photo) {
     return (
-      <div style={{ height: 160, background: panelBg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: 180, background: panelBg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ color: '#4a5060', fontSize: 12 }}>Inspection area</span>
       </div>
     );
   }
-  return <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.border}` }}>{el}</div>;
+
+  return (
+    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
+      <img src={photo.src} alt={photo.label} style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: photo.color, flexShrink: 0 }} />
+        <span style={{ color: photo.color, fontSize: 11, fontWeight: 600 }}>{photo.label}</span>
+      </div>
+    </div>
+  );
 }
 
 // ── S1: Photo-based Aircraft Exterior Inspection ───────────────────────────────
@@ -674,7 +404,7 @@ function S1Inspection({ onComplete }: { onComplete: (zones: Zone[], items: Tagge
       {/* ── Main hangar photo + hotspots ── */}
       <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}` }}>
         <img
-          src="/images/ame-hangar.jpg"
+          src="/images/aircraft-tarmac.webp"
           alt="Aircraft in maintenance hangar"
           style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: 420 }}
           draggable={false}
