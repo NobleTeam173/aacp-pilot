@@ -14,16 +14,14 @@ const router = Router();
 
 // ── Questions ──────────────────────────────────────────────────────────────
 const QUESTIONS = [
-  { id:1, round:'Opening Reflection', type:'wordcloud', text:'What role does a guidance counsellor play in helping a student\'s potential grow? (one word or short phrase)' },
-  { id:2, round:'Opening Reflection', type:'mcq', text:'How often do students come to you with questions about aviation or aerospace careers?', options:[{id:'a',text:'Rarely — once or twice a year'},{id:'b',text:'Occasionally — a few times a year'},{id:'c',text:'Regularly — it comes up often'},{id:'d',text:'Never — students don\'t mention it'}] },
-  { id:3, round:'Opening Reflection', type:'mcq', text:'What\'s the most common reason students don\'t pursue aviation careers?', options:[{id:'a',text:'Cost — training seems too expensive'},{id:'b',text:'Awareness — they don\'t know what\'s available'},{id:'c',text:'Academics — requirements seem too high'},{id:'d',text:'Parents — family discourages it'}] },
-  { id:4, round:'Fact or Fiction', type:'mcq', text:'A commercial airline captain in Canada earns $120,000–$250,000+. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fact', explanation:'Fact. Transport Canada data shows captains at major carriers earn $180K–$250K+. Regional first officers start ~$60K and advance rapidly as the industry faces a critical pilot shortage.' },
-  { id:5, round:'Fact or Fiction', type:'mcq', text:'You need a university degree to become a licensed pilot in Canada. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fiction', explanation:'Fiction. No degree required. A Transport Canada Commercial Pilot Licence requires flight training + written exams. Many students enter directly from high school through college flight programs.' },
-  { id:6, round:'Fact or Fiction', type:'mcq', text:'Canada will need 7,300+ new pilots by 2033. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fact', explanation:'Fact. Canada faces a critical shortage across ALL aviation roles — pilots, AMEs, ATCOs, and more. This is one of the fastest-growing career sectors for the next decade.' },
-  { id:7, round:'Career Discovery', type:'open', text:'Which aviation or aerospace career did you discover today that you would introduce to a student?' },
-  { id:8, round:'Counsellor Insights', type:'wordcloud', text:'In ONE word — what do you think students most need to know about aviation careers?' },
-  { id:9, round:'Counsellor Role', type:'mcq', text:'Which resource would most help you guide students into aviation and aerospace pathways?', options:[{id:'a',text:'Salary & career data I can share with students'},{id:'b',text:'A student-facing career compatibility tool'},{id:'c',text:'A school visit from an aviation professional'},{id:'d',text:'Scholarship and funding information'}] },
-  { id:10, round:'Your Takeaway', type:'open', text:'One student. One conversation. What\'s one thing you\'ll say differently after today?' },
+  { id:1, round:'Opening Reflection', type:'mcq', text:'How often do students come to you with questions about aviation or aerospace careers?', options:[{id:'a',text:'Rarely — once or twice a year'},{id:'b',text:'Occasionally — a few times a year'},{id:'c',text:'Regularly — it comes up often'},{id:'d',text:'Never — students don\'t mention it'}] },
+  { id:2, round:'Opening Reflection', type:'mcq', text:'What\'s the most common reason students don\'t pursue aviation careers?', options:[{id:'a',text:'Cost — training seems too expensive'},{id:'b',text:'Awareness — they don\'t know what\'s available'},{id:'c',text:'Academics — requirements seem too high'},{id:'d',text:'Parents — family discourages it'}] },
+  { id:3, round:'Fact or Fiction', type:'mcq', text:'A commercial airline captain in Canada earns $120,000–$250,000+. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fact', explanation:'Fact. Transport Canada data shows captains at major carriers earn $180K–$250K+. Regional first officers start ~$60K and advance rapidly as the industry faces a critical pilot shortage.' },
+  { id:4, round:'Fact or Fiction', type:'mcq', text:'You need a university degree to become a licensed pilot in Canada. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fiction', explanation:'Fiction. No degree required. A Transport Canada Commercial Pilot Licence requires flight training + written exams. Many students enter directly from high school through college flight programs.' },
+  { id:5, round:'Fact or Fiction', type:'mcq', text:'Canada will need 7,300+ new pilots by 2033. Fact or Fiction?', options:[{id:'fact',text:'✓ Fact'},{id:'fiction',text:'✗ Fiction'}], correct:'fact', explanation:'Fact. Canada faces a critical shortage across ALL aviation roles — pilots, AMEs, ATCOs, and more. This is one of the fastest-growing career sectors for the next decade.' },
+  { id:6, round:'Counsellor Insights', type:'wordcloud', text:'In ONE word — what do you think students most need to know about aviation careers?' },
+  { id:7, round:'Counsellor Role', type:'mcq', text:'Which resource would most help you guide students into aviation and aerospace pathways?', options:[{id:'a',text:'Salary & career data I can share with students'},{id:'b',text:'A student-facing career compatibility tool'},{id:'c',text:'A school visit from an aviation professional'},{id:'d',text:'Scholarship and funding information'}] },
+  { id:8, round:'Your Takeaway', type:'open', text:'One student. One conversation. What\'s one thing you\'ll say differently after today?' },
 ];
 
 // ── DB helpers ─────────────────────────────────────────────────────────────
@@ -135,10 +133,10 @@ router.get('/session/:id/results/:qid', async (req, res) => {
 
 // Create session (presenter)
 router.post('/create', async (req, res) => {
-  const { name, pin, id: customId } = req.body;
+  const { name, pin } = req.body;
   if (!name || !pin || String(pin).length < 4) return res.status(400).json({ error: 'name and pin (min 4 chars) required' });
   try {
-    const id = customId ? String(customId).trim() : `osca2026-${Date.now()}`;
+    const id = `osca2026-${Date.now()}`;
     await run(
       `INSERT INTO workshop_sessions (id, name, presenter_pin, status, current_q) VALUES (?, ?, ?, 'waiting', -1)`,
       [id, name, String(pin)]
@@ -153,19 +151,18 @@ router.post('/create', async (req, res) => {
 
 // Activate question
 router.post('/session/:id/question', async (req, res) => {
-  const { pin, questionIndex, qIndex } = req.body;
-  const questionIndex_ = questionIndex ?? qIndex;
+  const { pin, questionIndex } = req.body;
   try {
     const sr = await run('SELECT * FROM workshop_sessions WHERE id = ?', [req.params.id]);
     const sess = sr.rows[0];
     if (!sess || sess.presenter_pin !== String(pin)) return res.status(401).json({ error: 'Unauthorized' });
-    if (questionIndex_ < 0 || questionIndex_ >= QUESTIONS.length) return res.status(400).json({ error: 'Invalid question' });
+    if (questionIndex < 0 || questionIndex >= QUESTIONS.length) return res.status(400).json({ error: 'Invalid question' });
     const mem = getOrCreateMem(req.params.id);
-    mem.currentQ = questionIndex_;
+    mem.currentQ = questionIndex;
     mem.status = 'active';
     mem.revealAnswer = false;
-    await run(`UPDATE workshop_sessions SET current_q = ?, status = 'active' WHERE id = ?`, [questionIndex_, req.params.id]);
-    broadcast(req.params.id, 'question', { question: QUESTIONS[questionIndex_], revealAnswer: false, totalQuestions: QUESTIONS.length });
+    await run(`UPDATE workshop_sessions SET current_q = ?, status = 'active' WHERE id = ?`, [questionIndex, req.params.id]);
+    broadcast(req.params.id, 'question', { question: QUESTIONS[questionIndex], revealAnswer: false, totalQuestions: QUESTIONS.length });
     res.json({ ok: true });
   } catch (e) {
     console.error('[workshop] question', e);
