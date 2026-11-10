@@ -448,6 +448,139 @@ header{
   .pref-options{grid-template-columns:1fr}
   .result-top{flex-wrap:wrap}
 }
+
+/* ── Discovery entry screen ───────────────────────────────────── */
+.disc-entry-header{margin-bottom:28px}
+.disc-mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+@media(max-width:560px){.disc-mode-cards{grid-template-columns:1fr}}
+.disc-mode-card{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:22px 20px 18px;cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;flex-direction:column;gap:0;text-align:left;
+}
+.disc-mode-card:hover{border-color:var(--fg3);background:var(--surface3)}
+.disc-mode-card.featured{border-color:var(--crimson);background:var(--crimson-soft)}
+.disc-mode-icon{
+  width:38px;height:38px;border-radius:10px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.disc-mode-icon.guided{background:linear-gradient(135deg,rgba(128,1,31,0.4),rgba(90,0,20,0.6));border:1px solid rgba(128,1,31,0.4)}
+.disc-mode-icon.assess{background:var(--surface3);border:1px solid var(--border2)}
+.disc-mode-title{font-size:15px;font-weight:700;margin-bottom:5px}
+.disc-mode-sub{font-size:12px;color:var(--fg2);line-height:1.6;flex:1;margin-bottom:14px}
+.disc-mode-meta{display:flex;align-items:center;gap:8px;margin-top:auto}
+.disc-mode-time{font-size:11px;color:var(--fg3)}
+.disc-mode-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:10px}
+.disc-mode-badge.sub{background:var(--gold-soft);color:var(--gold);border:1px solid rgba(200,168,75,0.3)}
+.disc-mode-badge.free{background:var(--green-soft);color:var(--green-fg);border:1px solid rgba(72,186,124,0.25)}
+.disc-mode-arrow{margin-left:auto;color:var(--fg3);font-size:14px;transition:transform .15s}
+.disc-mode-card:hover .disc-mode-arrow{transform:translateX(3px)}
+
+/* ── Visual photo discovery ───────────────────────────────────── */
+.photo-stage-wrap{position:relative}
+.photo-step{display:none}
+.photo-step.active{display:block}
+.photo-nav-bar{
+  display:flex;align-items:center;gap:10px;margin-bottom:20px;
+}
+.photo-nav-dots{display:flex;gap:6px;align-items:center}
+.photo-nav-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .2s;
+}
+.photo-nav-dot.done{background:var(--green)}
+.photo-nav-dot.active{background:var(--crimson);width:20px;border-radius:4px}
+.photo-skip{margin-left:auto;font-size:12px;color:var(--fg3);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s}
+.photo-skip:hover{color:var(--fg)}
+.photo-card{
+  border-radius:var(--radius);overflow:hidden;margin-bottom:20px;position:relative;
+  background:var(--surface2);border:1px solid var(--border);
+}
+.photo-img{
+  width:100%;height:260px;object-fit:cover;display:block;
+}
+@media(max-width:560px){.photo-img{height:200px}}
+.photo-overlay{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(to top,rgba(8,2,10,0.85) 0%,transparent 100%);
+  padding:20px 18px 16px;
+}
+.photo-overlay-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:4px}
+.photo-overlay-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:#fff;line-height:1.2}
+.photo-question-block{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:18px;margin-bottom:14px;
+}
+.photo-question-text{font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.4}
+.photo-textarea{
+  width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--fg);font-family:inherit;font-size:13px;padding:11px 13px;resize:vertical;
+  min-height:90px;outline:none;transition:border-color .15s;line-height:1.6;
+}
+.photo-textarea:focus{border-color:var(--crimson)}
+.photo-textarea::placeholder{color:var(--fg3)}
+.acia-followup-block{
+  background:linear-gradient(135deg,var(--surface2),var(--surface3));
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:16px 18px;margin-bottom:14px;display:none;
+}
+.acia-followup-block.visible{display:block}
+.acia-followup-label{
+  display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--crimson);margin-bottom:10px;
+}
+.acia-followup-label::before{
+  content:'A';width:22px;height:22px;border-radius:50%;background:var(--crimson);
+  color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.acia-followup-q{font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:12px;font-style:italic}
+
+/* ── Guided questions ─────────────────────────────────────────── */
+.guided-q-block{margin-bottom:24px}
+.guided-q-text{font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.4}
+.guided-options{display:flex;flex-direction:column;gap:8px}
+.guided-option{
+  padding:12px 15px;border-radius:var(--radius-sm);border:1px solid var(--border2);
+  font-size:13px;color:var(--fg2);cursor:pointer;text-align:left;background:var(--surface2);
+  transition:all .15s;display:flex;align-items:center;gap:10px;
+}
+.guided-option:hover{border-color:var(--fg3);color:var(--fg);background:var(--surface3)}
+.guided-option.selected{border-color:var(--crimson);background:var(--crimson-soft);color:var(--fg)}
+.guided-option-dot{
+  width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;
+  transition:all .15s;
+}
+.guided-option.selected .guided-option-dot{background:var(--crimson);border-color:var(--crimson)}
+
+/* ── Discovery summary ────────────────────────────────────────── */
+.disc-summary-interest{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:16px 18px;margin-bottom:20px;
+}
+.disc-summary-interest-label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.disc-summary-interest-text{font-size:13px;color:var(--fg2);line-height:1.6}
+.disc-suggested-paths{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.disc-path-row{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 16px;display:flex;align-items:center;gap:14px;
+}
+.disc-path-row:first-child{border-color:var(--gold);background:var(--gold-soft)}
+.disc-path-num{
+  width:28px;height:28px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--fg3);flex-shrink:0;
+}
+.disc-path-row:first-child .disc-path-num{background:var(--gold);border-color:var(--gold);color:#1a0d2e}
+.disc-path-name{font-size:14px;font-weight:600;flex:1;min-width:0}
+.disc-path-reason{font-size:12px;color:var(--fg3);margin-top:2px}
+
+/* ── Subscriber gate (guided) ─────────────────────────────────── */
+.guided-gate{
+  text-align:center;padding:28px 20px 24px;
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+  margin-top:8px;
+}
+.guided-gate-title{font-family:'Fraunces',serif;font-size:20px;font-weight:700;margin-bottom:8px}
+.guided-gate-body{font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto}
 </style>
 </head>
 <body>
@@ -491,69 +624,255 @@ header{
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel active" id="tab-discovery" role="tabpanel">
 
-  <p class="section-label">Strength &amp; Competency Assessment</p>
-  <h2 class="section-title">Discover Your Best-Fit Career</h2>
-  <p class="section-sub">Rate your natural strengths and preferences. The Navigator will match your profile against the competency requirements of 14 Canadian aviation and aerospace careers — and explain why each is a strong fit for you.</p>
+  <!-- ── Entry screen ─────────────────────────────────────────── -->
+  <div id="discEntry">
+    <div class="disc-entry-header">
+      <p class="section-label">Career Discovery</p>
+      <h2 class="section-title">Where Will Your Career Take You?</h2>
+      <p class="section-sub">Choose how you'd like to start exploring Canadian aviation and aerospace careers.</p>
+    </div>
 
-  <div class="discovery-stages" id="discoveryStages">
+    <div class="disc-mode-cards">
 
-    <!-- Progress bar -->
-    <div class="quiz-progress" id="quizProgress">
-      <div class="quiz-step">
-        <div class="quiz-step-dot current" id="dot1">1</div>
-        <div class="quiz-step-line" id="line1"></div>
+      <button class="disc-mode-card featured" onclick="startGuidedDiscovery()">
+        <div class="disc-mode-icon guided">&#9654;</div>
+        <div class="disc-mode-title">Guided Discovery Session</div>
+        <div class="disc-mode-sub">Explore real images from aviation careers, reflect on what draws you in, and let ACIA™ help you identify your direction. No right answers — just curiosity.</div>
+        <div class="disc-mode-meta">
+          <span class="disc-mode-time">20–30 min</span>
+          <span class="disc-mode-badge sub">Subscriber</span>
+          <span class="disc-mode-arrow">&#8594;</span>
+        </div>
+      </button>
+
+      <button class="disc-mode-card" onclick="startAssessment()">
+        <div class="disc-mode-icon assess">&#9632;</div>
+        <div class="disc-mode-title">Strength &amp; Competency Assessment</div>
+        <div class="disc-mode-sub">Rate your natural strengths directly. The Navigator matches your profile against the requirements of 14 Canadian aviation and aerospace careers.</div>
+        <div class="disc-mode-meta">
+          <span class="disc-mode-time">10 min</span>
+          <span class="disc-mode-badge free">Free</span>
+          <span class="disc-mode-arrow">&#8594;</span>
+        </div>
+      </button>
+
+    </div>
+
+    <p style="font-size:12px;color:var(--fg3);line-height:1.6">The Guided Discovery Session uses open-ended reflection to help you explore interests and motivations. Responses are not used as competency assessments, employment eligibility decisions, or guaranteed career matches.</p>
+  </div>
+
+  <!-- ── Guided Discovery Session ─────────────────────────────── -->
+  <div id="discGuided" style="display:none">
+
+    <!-- Photo steps (1–3) -->
+    <div id="guidedPhotos">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
+        <p class="section-label" style="margin:0">Guided Career Discovery</p>
       </div>
-      <div class="quiz-step">
-        <div class="quiz-step-dot" id="dot2">2</div>
-        <div class="quiz-step-line" id="line2"></div>
+      <h2 class="section-title" style="margin-bottom:6px">Visual Career Discovery</h2>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">We'll show you three images from Canadian aviation and aerospace careers. For each one, tell us what interests you — in your own words. ACIA™ will ask one follow-up question to help you explore further.</p>
+
+      <div class="photo-nav-bar">
+        <div class="photo-nav-dots">
+          <div class="photo-nav-dot active" id="pndot0"></div>
+          <div class="photo-nav-dot" id="pndot1"></div>
+          <div class="photo-nav-dot" id="pndot2"></div>
+        </div>
+        <span id="photoStepLabel" style="font-size:12px;color:var(--fg3);margin-left:8px">Photo 1 of 3</span>
+        <button class="photo-skip" onclick="skipPhoto()" id="photoSkipBtn">Skip &#8594;</button>
       </div>
-      <div class="quiz-step">
-        <div class="quiz-step-dot" id="dot3">3</div>
+
+      <!-- Photo 1: Flight Operations -->
+      <div class="photo-step active" id="photoStep0">
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=800&q=80&auto=format&fit=crop" alt="Commercial flight deck with two pilots and instrument panel" loading="lazy">
+          <div class="photo-overlay">
+            <div class="photo-overlay-label">Aviation &amp; Flight Operations</div>
+            <div class="photo-overlay-title">The Flight Deck</div>
+          </div>
+        </div>
+        <div class="photo-question-block">
+          <div class="photo-question-text">What interests you most about this picture, and why?</div>
+          <textarea class="photo-textarea" id="photoResp0" placeholder="Share what catches your attention — the technology, the environment, the responsibility, or something else entirely…" rows="3"></textarea>
+        </div>
+        <div class="acia-followup-block" id="followup0">
+          <div class="acia-followup-label">ACIA™ Follow-Up</div>
+          <div class="acia-followup-q" id="followupQ0"></div>
+          <textarea class="photo-textarea" id="followupResp0" placeholder="Your thoughts…" rows="2"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn-primary" id="photoContinueBtn0" onclick="submitPhotoResponse(0)">Continue &#8594;</button>
+          <button class="btn-secondary" id="photoNextBtn0" onclick="nextPhoto(0)" style="display:none">Next Photo &#8594;</button>
+        </div>
+      </div>
+
+      <!-- Photo 2: RPAS & Autonomous Systems -->
+      <div class="photo-step" id="photoStep1">
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1521405924368-64c5b84bec60?w=800&q=80&auto=format&fit=crop" alt="Professional drone operator in field with RPAS equipment" loading="lazy">
+          <div class="photo-overlay">
+            <div class="photo-overlay-label">RPAS &amp; Autonomous Systems</div>
+            <div class="photo-overlay-title">Remote Piloting</div>
+          </div>
+        </div>
+        <div class="photo-question-block">
+          <div class="photo-question-text">What interests you most about this picture, and why?</div>
+          <textarea class="photo-textarea" id="photoResp1" placeholder="What do you notice — the technology, the fieldwork, the precision, or something else?" rows="3"></textarea>
+        </div>
+        <div class="acia-followup-block" id="followup1">
+          <div class="acia-followup-label">ACIA™ Follow-Up</div>
+          <div class="acia-followup-q" id="followupQ1"></div>
+          <textarea class="photo-textarea" id="followupResp1" placeholder="Your thoughts…" rows="2"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn-primary" id="photoContinueBtn1" onclick="submitPhotoResponse(1)">Continue &#8594;</button>
+          <button class="btn-secondary" id="photoNextBtn1" onclick="nextPhoto(1)" style="display:none">Next Photo &#8594;</button>
+        </div>
+      </div>
+
+      <!-- Photo 3: Aerospace Engineering & Manufacturing -->
+      <div class="photo-step" id="photoStep2">
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1517976487492-5750f3195933?w=800&q=80&auto=format&fit=crop" alt="Aerospace manufacturing facility with aircraft assembly" loading="lazy">
+          <div class="photo-overlay">
+            <div class="photo-overlay-label">Aerospace Engineering &amp; Manufacturing</div>
+            <div class="photo-overlay-title">Building What Flies</div>
+          </div>
+        </div>
+        <div class="photo-question-block">
+          <div class="photo-question-text">What interests you most about this picture, and why?</div>
+          <textarea class="photo-textarea" id="photoResp2" placeholder="What stands out — the scale, the precision, the teamwork, the craftsmanship?" rows="3"></textarea>
+        </div>
+        <div class="acia-followup-block" id="followup2">
+          <div class="acia-followup-label">ACIA™ Follow-Up</div>
+          <div class="acia-followup-q" id="followupQ2"></div>
+          <textarea class="photo-textarea" id="followupResp2" placeholder="Your thoughts…" rows="2"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn-primary" id="photoContinueBtn2" onclick="submitPhotoResponse(2)">Continue &#8594;</button>
+          <button class="btn-secondary" id="photoNextBtn2" onclick="nextPhoto(2)" style="display:none">Continue to Questions &#8594;</button>
+        </div>
+      </div>
+
+    </div><!-- /guidedPhotos -->
+
+    <!-- Subscriber gate (shown to free users after photo 1) -->
+    <div id="guidedGate" style="display:none">
+      <div class="guided-gate">
+        <div class="guided-gate-title">Continue Your Discovery</div>
+        <p class="guided-gate-body">You've started your Guided Discovery Session. Subscribe to Career Navigator to explore all three career images, complete the guided reflection, and receive your personalized pathway summary.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn-primary" onclick="showTab('subscribe')">View Plans &rarr;</button>
+          <button class="btn-secondary" onclick="startAssessment()">Try Free Assessment</button>
+        </div>
+        <p style="font-size:11px;color:var(--fg3)">The free Strength &amp; Competency Assessment is always available — no subscription required.</p>
       </div>
     </div>
 
-    <!-- Stage 1: Strengths -->
-    <div class="stage active" id="stage1">
-      <p class="section-label">Stage 1 of 2 — Your Strengths</p>
-      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Rate each area from 1 (not really me) to 5 (this is a core strength). Be honest — there are no wrong answers.</p>
+    <!-- Guided scenario questions (5 questions, after photos) -->
+    <div id="guidedQuestions" style="display:none">
+      <p class="section-label">Guided Discovery — Reflection Questions</p>
+      <h3 class="section-title" style="margin-bottom:6px">A Few More Questions</h3>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.6">Five quick questions to help us understand what kind of work environment and role would suit you best.</p>
 
-      <div class="strength-grid" id="strengthGrid"></div>
+      <div id="guidedQList"></div>
 
-      <button class="btn-primary" onclick="goToStage2()">Next: Work Preferences &rarr;</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-secondary" onclick="showGuidedPhotos()">&#8592; Back to Photos</button>
+        <button class="btn-primary" onclick="computeGuidedResults()">See My Summary &#8594;</button>
+      </div>
     </div>
 
-    <!-- Stage 2: Preferences -->
-    <div class="stage" id="stage2">
-      <p class="section-label">Stage 2 of 2 — Work Preferences</p>
-      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Select the option that best describes how you prefer to work.</p>
+    <!-- Discovery summary -->
+    <div id="guidedSummary" style="display:none">
+      <p class="section-label">Your Discovery Summary</p>
+      <h3 class="section-title" id="guidedSummaryTitle">Your Interests &amp; Suggested Pathways</h3>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">Based on what you've shared, here's a summary of your expressed interests — and the aviation career pathways worth exploring further.</p>
 
-      <div class="pref-grid" id="prefGrid"></div>
+      <div class="disc-summary-interest" id="guidedInterestSummary"></div>
+
+      <p class="section-label" style="margin-bottom:12px">Suggested Career Pathways</p>
+      <div class="disc-suggested-paths" id="guidedSuggestedPaths"></div>
+
+      <div style="padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px">
+        <p style="font-size:12px;color:var(--fg3);line-height:1.6">These suggestions are based on the interests and curiosity you expressed — not a competency assessment, employment eligibility decision, or career match guarantee. All 14 pathways are open to anyone willing to pursue them.</p>
+      </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-secondary" onclick="goToStage1()">Back</button>
-        <button class="btn-primary" onclick="computeResults()">See My Matches &rarr;</button>
+        <button class="btn-secondary" onclick="resetGuidedDiscovery()">Start Over</button>
+        <button class="btn-primary" onclick="showTab('explore')">Explore All Pathways &#8594;</button>
+        <button class="btn-secondary" onclick="startAssessment()">Take Strength Assessment</button>
       </div>
     </div>
 
-    <!-- Stage 3: Results -->
-    <div class="stage" id="stage3">
-      <p class="section-label">Your Top Matches</p>
-      <h3 class="section-title" id="resultsHeadline">Your Best-Fit Careers</h3>
-      <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6" id="resultsSub"></p>
+  </div><!-- /discGuided -->
 
-      <div class="result-cards" id="resultCards"></div>
+  <!-- ── Strength & Competency Assessment ─────────────────────── -->
+  <div id="discAssessment" style="display:none">
 
-      <div style="margin-top:8px;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
-        <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 14 pathways are open to anyone willing to put in the work.</p>
-      </div>
-
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-secondary" onclick="resetDiscovery()">Retake Assessment</button>
-        <button class="btn-primary" onclick="showTab('explore')">Explore All Pathways &rarr;</button>
-      </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
+      <p class="section-label" style="margin:0">Strength &amp; Competency Assessment</p>
     </div>
+    <h2 class="section-title" style="margin-bottom:6px">Discover Your Best-Fit Career</h2>
+    <p class="section-sub">Rate your natural strengths and preferences. The Navigator will match your profile against the competency requirements of 14 Canadian aviation and aerospace careers — and explain why each is a strong fit for you.</p>
 
-  </div>
+    <div class="discovery-stages" id="discoveryStages">
+
+      <!-- Progress bar -->
+      <div class="quiz-progress" id="quizProgress">
+        <div class="quiz-step">
+          <div class="quiz-step-dot current" id="dot1">1</div>
+          <div class="quiz-step-line" id="line1"></div>
+        </div>
+        <div class="quiz-step">
+          <div class="quiz-step-dot" id="dot2">2</div>
+          <div class="quiz-step-line" id="line2"></div>
+        </div>
+        <div class="quiz-step">
+          <div class="quiz-step-dot" id="dot3">3</div>
+        </div>
+      </div>
+
+      <!-- Stage 1: Strengths -->
+      <div class="stage active" id="stage1">
+        <p class="section-label">Stage 1 of 2 — Your Strengths</p>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Rate each area from 1 (not really me) to 5 (this is a core strength). Be honest — there are no wrong answers.</p>
+        <div class="strength-grid" id="strengthGrid"></div>
+        <button class="btn-primary" onclick="goToStage2()">Next: Work Preferences &rarr;</button>
+      </div>
+
+      <!-- Stage 2: Preferences -->
+      <div class="stage" id="stage2">
+        <p class="section-label">Stage 2 of 2 — Work Preferences</p>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Select the option that best describes how you prefer to work.</p>
+        <div class="pref-grid" id="prefGrid"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="goToStage1()">Back</button>
+          <button class="btn-primary" onclick="computeResults()">See My Matches &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Stage 3: Results -->
+      <div class="stage" id="stage3">
+        <p class="section-label">Your Top Matches</p>
+        <h3 class="section-title" id="resultsHeadline">Your Best-Fit Careers</h3>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6" id="resultsSub"></p>
+        <div class="result-cards" id="resultCards"></div>
+        <div style="margin-top:8px;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 14 pathways are open to anyone willing to put in the work.</p>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="resetDiscovery()">Retake Assessment</button>
+          <button class="btn-primary" onclick="showTab('explore')">Explore All Pathways &rarr;</button>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /discAssessment -->
+
 </main>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -1707,6 +2026,348 @@ function checkoutAdvisor() {
 function redeemInvite() {
   const code = prompt('Enter your advisor invite code:');
   if (code) alert('Invite code redemption coming soon. Code noted: ' + code);
+}
+
+/* ── Discovery mode navigation ─────────────────────────────────── */
+function showDiscoveryEntry() {
+  document.getElementById('discEntry').style.display = '';
+  document.getElementById('discGuided').style.display = 'none';
+  document.getElementById('discAssessment').style.display = 'none';
+}
+function startAssessment() {
+  document.getElementById('discEntry').style.display = 'none';
+  document.getElementById('discGuided').style.display = 'none';
+  document.getElementById('discAssessment').style.display = '';
+  window.scrollTo(0, document.getElementById('tab-discovery').offsetTop - 80);
+}
+function startGuidedDiscovery() {
+  document.getElementById('discEntry').style.display = 'none';
+  document.getElementById('discAssessment').style.display = 'none';
+  document.getElementById('discGuided').style.display = '';
+  showGuidedPhotos();
+  resetPhotoState();
+  window.scrollTo(0, document.getElementById('tab-discovery').offsetTop - 80);
+}
+function resetGuidedDiscovery() {
+  resetPhotoState();
+  showGuidedPhotos();
+  guidedAnswers = {};
+}
+
+/* ── Photo step state ───────────────────────────────────────────── */
+var currentPhotoStep = 0;
+var photoResponses = {};
+var guidedAnswers = {};
+var DISCOVERY_TIER = 'free'; // 'free' | 'subscriber' — set after auth
+
+var PHOTO_FOLLOWUPS = [
+  // Photo 0: Flight deck
+  function(text) {
+    var t = text.toLowerCase();
+    if (t.match(/technolog|instrument|computer|screen|panel|system/))
+      return 'You mentioned the technology. What do you think it would feel like to be responsible for all those systems at 35,000 feet — and what kind of training do you imagine that takes?';
+    if (t.match(/pilot|fly|flying|control|command|captain/))
+      return 'The idea of being in control — what draws you to that responsibility? Is it the challenge, the precision, or something else about commanding an aircraft?';
+    if (t.match(/team|partner|co-pilot|work together|communication/))
+      return 'You noticed the teamwork aspect. How important is it to you that your career involves close coordination with others in high-stakes situations?';
+    return 'What do you think would surprise you most about spending a full shift in that environment — the complexity, the pressure, or the view?';
+  },
+  // Photo 1: RPAS/drone
+  function(text) {
+    var t = text.toLowerCase();
+    if (t.match(/outdoor|field|nature|environment|land|remote/))
+      return 'The fieldwork aspect stands out to you. Can you imagine a typical day operating drones across different locations and environments — what part of that sounds most appealing?';
+    if (t.match(/technolog|equipment|sensor|camera|data|system/))
+      return 'The technology side interests you. RPAS systems collect enormous amounts of data — surveying, inspection, mapping. What would you most want to do with that data?';
+    if (t.match(/fly|pilot|control|operate|navigate/))
+      return 'You\'re drawn to the flying aspect. RPAS piloting requires precision and situational awareness similar to full-scale aviation. What would motivate you to build those skills?';
+    return 'The RPAS industry is growing fast — inspection, agriculture, search and rescue, delivery. Which of those applications sounds most interesting to you, and why?';
+  },
+  // Photo 2: Aerospace manufacturing
+  function(text) {
+    var t = text.toLowerCase();
+    if (t.match(/build|construct|assembl|create|make|craft/))
+      return 'You\'re drawn to the building side. When you imagine having a hand in creating something that eventually flies, what part of that process sounds most satisfying — design, fabrication, or seeing the finished aircraft?';
+    if (t.match(/precision|detail|exact|careful|quality|inspect/))
+      return 'Precision stands out to you. Aerospace manufacturing has near-zero tolerance for error — parts must be exact. Does that level of precision feel exciting, or does it feel like pressure?';
+    if (t.match(/scale|large|big|complex|massive|facility/))
+      return 'The scale impresses you. These facilities employ thousands of specialists — engineers, machinists, quality inspectors, logistics coordinators. Which of those roles would you most want to understand better?';
+    return 'If you could choose one role inside a facility like this — designing, building, testing, or inspecting — which would you pick, and what draws you to it?';
+  }
+];
+
+function resetPhotoState() {
+  currentPhotoStep = 0;
+  photoResponses = {};
+  for (var i = 0; i < 3; i++) {
+    var ta = document.getElementById('photoResp'+i);
+    var ta2 = document.getElementById('followupResp'+i);
+    var fu = document.getElementById('followup'+i);
+    var cb = document.getElementById('photoContinueBtn'+i);
+    var nb = document.getElementById('photoNextBtn'+i);
+    if (ta) ta.value = '';
+    if (ta2) ta2.value = '';
+    if (fu) { fu.classList.remove('visible'); }
+    if (cb) cb.style.display = '';
+    if (nb) nb.style.display = 'none';
+    var step = document.getElementById('photoStep'+i);
+    if (step) { step.classList.remove('active'); }
+  }
+  var step0 = document.getElementById('photoStep0');
+  if (step0) step0.classList.add('active');
+  updatePhotoNav(0);
+}
+function showGuidedPhotos() {
+  document.getElementById('guidedPhotos').style.display = '';
+  document.getElementById('guidedGate').style.display = 'none';
+  document.getElementById('guidedQuestions').style.display = 'none';
+  document.getElementById('guidedSummary').style.display = 'none';
+}
+function updatePhotoNav(n) {
+  for (var i = 0; i < 3; i++) {
+    var dot = document.getElementById('pndot'+i);
+    if (!dot) continue;
+    dot.classList.remove('active','done');
+    if (i < n) dot.classList.add('done');
+    else if (i === n) dot.classList.add('active');
+  }
+  var lbl = document.getElementById('photoStepLabel');
+  if (lbl) lbl.textContent = 'Photo '+(n+1)+' of 3';
+  var skipBtn = document.getElementById('photoSkipBtn');
+  if (skipBtn) skipBtn.style.display = n < 2 ? '' : 'none';
+}
+function submitPhotoResponse(n) {
+  var resp = (document.getElementById('photoResp'+n)||{}).value || '';
+  if (!resp.trim()) {
+    var ta = document.getElementById('photoResp'+n);
+    if (ta) { ta.style.borderColor='var(--crimson)'; ta.focus(); setTimeout(function(){ta.style.borderColor='';},1800); }
+    return;
+  }
+  photoResponses[n] = resp.trim();
+  // Show ACIA follow-up
+  var fu = document.getElementById('followup'+n);
+  var fuQ = document.getElementById('followupQ'+n);
+  if (fu && fuQ) {
+    fuQ.textContent = PHOTO_FOLLOWUPS[n](resp);
+    fu.classList.add('visible');
+  }
+  var cb = document.getElementById('photoContinueBtn'+n);
+  var nb = document.getElementById('photoNextBtn'+n);
+  if (cb) cb.style.display = 'none';
+  if (nb) nb.style.display = '';
+  var fuTa = document.getElementById('followupResp'+n);
+  if (fuTa) { setTimeout(function(){fuTa.focus();},100); }
+}
+function nextPhoto(n) {
+  var fuResp = (document.getElementById('followupResp'+n)||{}).value || '';
+  photoResponses['followup'+n] = fuResp.trim();
+  var next = n + 1;
+  if (next >= 3) {
+    // All photos done — check tier before questions
+    if (DISCOVERY_TIER === 'free') {
+      document.getElementById('guidedPhotos').style.display = 'none';
+      document.getElementById('guidedGate').style.display = '';
+      return;
+    }
+    showGuidedQuestionsPanel();
+    return;
+  }
+  // Free tier: gate after photo 1
+  if (DISCOVERY_TIER === 'free' && next >= 1) {
+    document.getElementById('guidedPhotos').style.display = 'none';
+    document.getElementById('guidedGate').style.display = '';
+    return;
+  }
+  var current = document.getElementById('photoStep'+n);
+  if (current) current.classList.remove('active');
+  var nextEl = document.getElementById('photoStep'+next);
+  if (nextEl) { nextEl.classList.add('active'); nextEl.scrollIntoView({behavior:'smooth',block:'start'}); }
+  currentPhotoStep = next;
+  updatePhotoNav(next);
+}
+function skipPhoto() {
+  var n = currentPhotoStep;
+  photoResponses[n] = '';
+  photoResponses['followup'+n] = '';
+  nextPhoto(n);
+}
+
+/* ── Guided questions ───────────────────────────────────────────── */
+var GUIDED_QUESTIONS = [
+  {
+    q: 'In an aviation or aerospace career, what matters most to you?',
+    opts: [
+      { label: 'Solving technical problems and understanding how systems work', keys: ['technical','analytical'] },
+      { label: 'Working closely with people and contributing to their safety', keys: ['communication','leadership'] },
+      { label: 'Navigating, exploring, and working in dynamic environments', keys: ['spatial','physical'] },
+      { label: 'Designing, building, or programming things that perform precisely', keys: ['precision','digital'] }
+    ]
+  },
+  {
+    q: 'Which work environment sounds most exciting to you?',
+    opts: [
+      { label: 'A flight deck or control room — fast-paced, high-stakes decisions', pathways: ['pilot','atc','fss'] },
+      { label: 'A hangar or workshop — hands-on with aircraft and equipment', pathways: ['ame','structures','avionics'] },
+      { label: 'Outdoors and in the field — operational, mobile, varied locations', pathways: ['uav','airport_ops','ground_ops'] },
+      { label: 'A lab, factory floor, or design studio — building the future of aviation', pathways: ['aerospace_mfg','aerospace_eng','aviation_tech'] }
+    ]
+  },
+  {
+    q: 'How do you feel about formal certification and ongoing study?',
+    opts: [
+      { label: 'I love structured learning and working toward credentials', keys: ['analytical'] },
+      { label: 'I\'m comfortable with it if the hands-on work makes it worth it', keys: ['technical','precision'] },
+      { label: 'I prefer learning by doing — real-world experience over classroom', keys: ['physical','spatial'] },
+      { label: 'I like independent study at my own pace', keys: ['digital'] }
+    ]
+  },
+  {
+    q: 'Which best describes your ideal daily work?',
+    opts: [
+      { label: 'Precise, detail-focused tasks where accuracy is critical', keys: ['precision','technical'] },
+      { label: 'Varied problem-solving — no two days exactly alike', keys: ['analytical','spatial'] },
+      { label: 'Communicating and coordinating with teams and clients', keys: ['communication','leadership'] },
+      { label: 'Designing, coding, or innovating on new systems', keys: ['digital','analytical'] }
+    ]
+  },
+  {
+    q: 'How important is physical activity in your ideal career?',
+    opts: [
+      { label: 'Very important — I want an active, mobile role', keys: ['physical'] },
+      { label: 'Somewhat — a mix of physical and desk work is fine', keys: ['technical','precision'] },
+      { label: 'I prefer primarily desk or station-based work', keys: ['digital','analytical'] },
+      { label: 'I want outdoor and fieldwork as the main part of my day', keys: ['spatial','physical'] }
+    ]
+  }
+];
+function showGuidedQuestionsPanel() {
+  document.getElementById('guidedPhotos').style.display = 'none';
+  document.getElementById('guidedQuestions').style.display = '';
+  var container = document.getElementById('guidedQList');
+  container.innerHTML = GUIDED_QUESTIONS.map(function(qObj, qi) {
+    return '<div class="guided-q-block">' +
+      '<div class="guided-q-text">'+(qi+1)+'. '+escHtml(qObj.q)+'</div>' +
+      '<div class="guided-options" id="gopts'+qi+'">' +
+      qObj.opts.map(function(opt, oi) {
+        return '<button class="guided-option" id="gopt'+qi+'_'+oi+'" onclick="selectGuidedOpt('+qi+','+oi+')">' +
+          '<div class="guided-option-dot"></div>' +
+          '<span>'+escHtml(opt.label)+'</span></button>';
+      }).join('') +
+      '</div></div>';
+  }).join('');
+  window.scrollTo(0, document.getElementById('guidedQuestions').offsetTop - 80);
+}
+function selectGuidedOpt(qi, oi) {
+  var opts = document.getElementById('gopts'+qi);
+  if (!opts) return;
+  opts.querySelectorAll('.guided-option').forEach(function(b){ b.classList.remove('selected'); });
+  var chosen = document.getElementById('gopt'+qi+'_'+oi);
+  if (chosen) chosen.classList.add('selected');
+  guidedAnswers[qi] = { optIndex: oi, opt: GUIDED_QUESTIONS[qi].opts[oi] };
+}
+
+/* ── Guided results ─────────────────────────────────────────────── */
+function computeGuidedResults() {
+  // Build interest signals from photo responses
+  var allText = Object.values(photoResponses).join(' ').toLowerCase();
+  var interestSignals = [];
+  if (allText.match(/fly|pilot|cockpit|takeoff|landing|altitude|airborne/)) interestSignals.push('flight and piloting');
+  if (allText.match(/drone|rpas|uav|autonomous|remote|sensor/)) interestSignals.push('drone and autonomous systems');
+  if (allText.match(/engine|mechanic|maintain|repair|inspect|technical/)) interestSignals.push('aircraft maintenance and engineering');
+  if (allText.match(/build|manufacture|assembl|design|fabricat/)) interestSignals.push('aerospace manufacturing and design');
+  if (allText.match(/control|navigate|direct|coordinate|manage|safety/)) interestSignals.push('air traffic control and navigation');
+  if (allText.match(/software|code|system|data|digital|computer|program/)) interestSignals.push('aviation technology and digital systems');
+  if (allText.match(/people|team|passenger|crew|service|help|support/)) interestSignals.push('aviation operations and customer service');
+  if (interestSignals.length === 0) interestSignals.push('aviation careers broadly');
+
+  // Score pathways based on guided answers
+  var scores = {};
+  PATHWAYS.forEach(function(p){ scores[p.id] = 0; });
+
+  Object.values(guidedAnswers).forEach(function(ans) {
+    if (!ans || !ans.opt) return;
+    var opt = ans.opt;
+    // key-based scoring
+    if (opt.keys) {
+      opt.keys.forEach(function(k) {
+        PATHWAYS.forEach(function(p) {
+          var w = COMPETENCY_WEIGHTS[p.id] || {};
+          scores[p.id] = (scores[p.id] || 0) + (w[k] || 0);
+        });
+      });
+    }
+    // pathway-direct bonus
+    if (opt.pathways) {
+      opt.pathways.forEach(function(pid) {
+        scores[pid] = (scores[pid] || 0) + 15;
+      });
+    }
+  });
+
+  // Photo-interest boosting
+  if (allText.match(/fly|pilot|cockpit/)) { scores['pilot'] = (scores['pilot']||0) + 10; }
+  if (allText.match(/drone|rpas|uav/)) { scores['uav'] = (scores['uav']||0) + 10; }
+  if (allText.match(/maintain|mechanic|repair/)) { scores['ame'] = (scores['ame']||0) + 10; }
+  if (allText.match(/build|assembl|manufactur/)) { scores['aerospace_mfg'] = (scores['aerospace_mfg']||0) + 10; }
+  if (allText.match(/control|tower|atc/)) { scores['atc'] = (scores['atc']||0) + 10; }
+  if (allText.match(/engineer|design|aerospace/)) { scores['aerospace_eng'] = (scores['aerospace_eng']||0) + 10; }
+
+  var ranked = PATHWAYS.map(function(p){ return {pathway:p, score: scores[p.id]||0}; })
+    .sort(function(a,b){ return b.score - a.score; })
+    .filter(function(x){ return x.score > 0; })
+    .slice(0, 4);
+  if (ranked.length === 0) ranked = PATHWAYS.slice(0,4).map(function(p){return{pathway:p,score:1};});
+
+  var reasons = {
+    pilot: 'You expressed interest in flight operations and working in dynamic cockpit environments.',
+    uav: 'Your curiosity about remote systems and outdoor operational work points toward RPAS.',
+    ame: 'You showed interest in the technical and mechanical side of keeping aircraft airworthy.',
+    avionics: 'Your interest in aircraft systems and electronics aligns with avionics maintenance.',
+    structures: 'Your interest in precision fabrication and structural work maps well here.',
+    atc: 'You showed curiosity about navigation, coordination, and safety-critical roles.',
+    fss: 'Your interest in communication and aviation safety aligns with this service role.',
+    airport_ops: 'Your interest in operational roles and working with people in aviation fits here.',
+    ground_ops: 'Your interest in physical, active fieldwork in aviation suits ground operations.',
+    cargo: 'You showed interest in aviation logistics and operational coordination.',
+    customer_ops: 'Your focus on people and service aligns with passenger-facing aviation roles.',
+    aerospace_mfg: 'You expressed real interest in building and assembling aerospace equipment.',
+    aerospace_eng: 'Your interest in design, engineering, and innovation points toward this career.',
+    aviation_tech: 'Your interest in digital systems and aviation technology aligns with this pathway.',
+  };
+
+  // Build interest summary
+  var summaryText = 'Across your three reflections, you expressed interest in <strong>' +
+    interestSignals.join(', ') + '</strong>. ';
+  if (Object.keys(guidedAnswers).length > 0) {
+    summaryText += 'Your responses suggest you value ';
+    var vals = [];
+    if (guidedAnswers[0]) vals.push(guidedAnswers[0].opt.label.toLowerCase().split(' — ')[0].split(' (')[0]);
+    if (guidedAnswers[1]) vals.push('environments like ' + guidedAnswers[1].opt.label.toLowerCase().split(' — ')[0].replace('a ','').replace('an ',''));
+    summaryText += vals.join(', ') + '.';
+  }
+
+  document.getElementById('guidedInterestSummary').innerHTML =
+    '<div class="disc-summary-interest-label">What You Expressed Interest In</div>' +
+    '<div class="disc-summary-interest-text">'+summaryText+'</div>';
+
+  document.getElementById('guidedSuggestedPaths').innerHTML = ranked.map(function(item, i) {
+    var p = item.pathway;
+    var sector = SECTORS[p.sector];
+    var reason = reasons[p.id] || (p.tagline + '.');
+    return '<div class="disc-path-row">' +
+      '<div class="disc-path-num">'+(i+1)+'</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="disc-path-name">'+p.title+'</div>' +
+        '<div class="disc-path-reason">'+sector.code+' — '+sector.name+'</div>' +
+        '<div style="font-size:12px;color:var(--fg2);margin-top:4px;line-height:1.5">'+reason+'</div>' +
+      '</div>' +
+      '<button class="btn-secondary" onclick="viewPathway(\''+p.id+'\')" style="font-size:12px;padding:6px 14px;flex-shrink:0;white-space:nowrap">Explore</button>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('guidedQuestions').style.display = 'none';
+  document.getElementById('guidedSummary').style.display = '';
+  window.scrollTo(0, document.getElementById('guidedSummary').offsetTop - 80);
 }
 
 /* ── Init ──────────────────────────────────────────────────────── */
