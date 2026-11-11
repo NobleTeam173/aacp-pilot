@@ -92,5 +92,5 @@ CREATE TABLE IF NOT EXISTS program_enrollments (
   released_week          INTEGER NOT NULL DEFAULT 0
 );
 
--- For the full schema including all runtime-created tables (61 total),
+-- For the full schema including all runtime-created tables (64 total),
 -- see runMigrations() in worker.js starting at line 158.

@@ -1846,6 +1846,68 @@ async function runMigrations(db) {
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_invitations_token ON network_invitations(token_hash)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_org_memberships_user ON network_org_memberships(user_id)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_notifications_user ON network_notifications(user_id, is_read)`).run().catch(() => {});
+
+  // ── Career Navigator Subscriptions ───────────────────────────────────────────
+  // navigator_subscriptions — Stripe subscription record per user.
+  // plan: 'free' | 'premium_student' | 'advisor_invited' | 'career_advisor'
+  // status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete'
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_subscriptions (
+      id                   TEXT PRIMARY KEY,
+      user_id              TEXT NOT NULL UNIQUE REFERENCES users(id),
+      plan                 TEXT NOT NULL DEFAULT 'free',
+      status               TEXT NOT NULL DEFAULT 'active',
+      stripe_customer_id   TEXT,
+      stripe_subscription_id TEXT,
+      stripe_price_id      TEXT,
+      trial_ends_at        TEXT,
+      current_period_start TEXT,
+      current_period_end   TEXT,
+      cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+      invite_code_id       TEXT,
+      invites_remaining    INTEGER NOT NULL DEFAULT 0,
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_user   ON navigator_subscriptions(user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_stripe ON navigator_subscriptions(stripe_subscription_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_plan   ON navigator_subscriptions(plan, status)`).run().catch(() => {});
+
+  // navigator_invite_codes — advisor-generated discount codes redeemed at checkout.
+  // 20% discount applied via Stripe coupon on redemption.
+  // max_redemptions: 5 during trial, unlimited for paid Career Advisor plan (NULL = unlimited).
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_invite_codes (
+      id               TEXT PRIMARY KEY,
+      code             TEXT NOT NULL UNIQUE,
+      advisor_user_id  TEXT NOT NULL REFERENCES users(id),
+      stripe_coupon_id TEXT,
+      max_redemptions  INTEGER,
+      redemptions_used INTEGER NOT NULL DEFAULT 0,
+      discount_percent INTEGER NOT NULL DEFAULT 20,
+      status           TEXT NOT NULL DEFAULT 'active',
+      expires_at       TEXT,
+      created_at       TEXT NOT NULL,
+      updated_at       TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_inv_code    ON navigator_invite_codes(code)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_inv_advisor ON navigator_invite_codes(advisor_user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_inv_status  ON navigator_invite_codes(status)`).run().catch(() => {});
+
+  // navigator_invite_redemptions — audit log of each code redemption.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_invite_redemptions (
+      id              TEXT PRIMARY KEY,
+      code_id         TEXT NOT NULL REFERENCES navigator_invite_codes(id),
+      redeemed_by     TEXT NOT NULL REFERENCES users(id),
+      subscription_id TEXT REFERENCES navigator_subscriptions(id),
+      redeemed_at     TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_code ON navigator_invite_redemptions(code_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_user ON navigator_invite_redemptions(redeemed_by)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
