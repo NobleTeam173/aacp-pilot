@@ -2819,8 +2819,9 @@
       clusterGroups['uav_range'].addLayer(marker);
     });
 
-    // Add wind farm markers
+    // Add wind farm markers (25 MW+ only — below threshold RPAS ROI is not well-established)
     WIND_FARMS.forEach(d => {
+      if (parseFloat(d.capacity) < 25) return;
       const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
       marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); if (window.innerWidth<=900) document.getElementById('riPanel').scrollIntoView({behavior:'smooth',block:'nearest'}); });
       marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#16a34a">${d.capacity} · ${d.turbines} turbines</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
@@ -2890,6 +2891,7 @@
       }
       if (activeCats.has('wind_farm')) {
         WIND_FARMS.forEach(d => {
+          if (parseFloat(d.capacity) < 25) return;
           const _prov = activeProv === 'ON-N' ? 'ON' : activeProv;
           if (_prov !== 'all' && d.prov !== _prov) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
