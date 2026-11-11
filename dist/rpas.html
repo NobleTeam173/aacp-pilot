@@ -1567,7 +1567,7 @@
         <div class="ri-domain-status ${statusClass(dom.status)}">${dom.status}</div>
       </div>`).join('');
     const appChips = (d.rpasApps || []).map(a => `<span class="ri-app-chip">${a}</span>`).join('');
-    const sourceRows = (d.sources || []).map(s => `<div class="ri-source-row"><a href="${s.url}" target="_blank" rel="noopener">${s.label} ↗</a></div>`).join('');
+    const sourceRows = `<div class="ri-source-row" style="font-size:.7rem;color:var(--dim)">Public Government Data · Open Government Licence – Canada</div>`;
 
     riBody.innerHTML = `
       <div class="ri-domain-grid">${domainCards}</div>
@@ -1584,7 +1584,7 @@
         <div class="ri-ms-body">${d.workforce}</div>
       </div>
       <div class="ri-sources-section">
-        <div class="ri-ms-label">Sources</div>
+        <div class="ri-ms-label">Data Attribution</div>
         ${sourceRows}
       </div>
       <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>
@@ -1613,7 +1613,7 @@
         <div class="ri-section-label">RPAS Applications</div>
         <div class="ri-body">${d.rpasApp}</div>
         <div class="ri-section-label">Data Source</div>
-        <div class="ri-body" style="font-size:11px;color:var(--muted)">${d.source} · ${d.licence}</div>
+        <div class="ri-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
       </div>`;
   }
 
@@ -1634,7 +1634,7 @@
         <div class="ri-section-label">RPAS Applications</div>
         <div class="ri-body">${d.rpasApp}</div>
         <div class="ri-section-label">Data Source</div>
-        <div class="ri-body" style="font-size:11px;color:var(--muted)">${d.source} · ${d.licence}</div>
+        <div class="ri-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
       </div>`;
   }
 
@@ -1920,7 +1920,7 @@
     const riBody = document.getElementById('riBody');
     const domainRows = (d.domains || []).map(dom => `
       <div class="ri-kv"><span class="ri-k">${dom.label}</span><span class="ri-v" style="color:${dom.status==='Established'?'#4db8b8':dom.status==='Documented'?'#a8c8e8':'#c8961c'}">${dom.status}</span></div>`).join('');
-    const sourceLinks = (d.sources || []).map(s => `<div class="ri-source-row"><a href="${s.url}" target="_blank" rel="noopener">${s.label} ↗</a></div>`).join('');
+    const sourceLinks = `<div class="ri-source-row" style="font-size:.7rem;color:var(--dim)">Public Government Data · Open Government Licence – Canada</div>`;
     riBody.innerHTML = `
       <div style="padding:12px 14px 6px">
         <div class="ri-ms-label" style="margin-bottom:8px">Regional Evidence Summary</div>
@@ -1942,7 +1942,7 @@
         <div class="ri-ms-body" style="padding:0">${d.validation}</div>
       </div>
       <div class="ri-section">
-        <div class="ri-section-label">Public Data Sources</div>
+        <div class="ri-section-label">Data Attribution</div>
         ${sourceLinks}
       </div>
       <div style="padding:0 14px 6px">
@@ -2711,7 +2711,7 @@
         <div class="pop-row"><span class="pop-key">Asset type</span><span class="pop-val">${d.assetType}</span></div>
         <div class="pop-row"><span class="pop-key">Coverage</span><span class="pop-val">${d.count}</span></div>
         <div class="pop-app"><strong style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-bottom:3px">Potential RPAS Application</strong>${d.rpasApp}</div>
-        <div class="pop-src">Source: <a href="${d.sourceUrl}" target="_blank" rel="noopener">${d.source}</a><br>Licence: ${d.licence} &nbsp;·&nbsp; Updated: ${d.updated}</div>
+        <div class="pop-src">Public Government Data &nbsp;·&nbsp; ${d.licence} &nbsp;·&nbsp; Updated: ${d.updated}</div>
         <div class="pop-badges">${statusBadge}</div>`;
     }
 
