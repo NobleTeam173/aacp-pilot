@@ -1596,6 +1596,40 @@
       </div>`;
   }
 
+  function windFarmRpasApp(d) {
+    const mw = parseFloat(d.capacity) || 0;
+    const scale = mw >= 300 ? 'large' : mw >= 80 ? 'mid' : 'small';
+    const scaleNote = scale === 'large'
+      ? ' Fleet-scale inspection campaigns with coordinated multi-drone operations and centralized defect analytics.'
+      : scale === 'small'
+      ? ' Single-operator survey capability suited to community or remote-sited assets.'
+      : '';
+    const prov = d.prov;
+    if (prov === 'NS' || prov === 'NB' || prov === 'PE' || prov === 'NL') {
+      return 'Blade erosion inspection (accelerated by salt-laden marine air), corrosion assessment of nacelle exteriors and tower coatings, storm and hurricane damage survey, coastal flood-zone perimeter monitoring, bird and bat strike mortality survey support, fog-condition structural inspection.' + scaleNote;
+    }
+    if (prov === 'BC') {
+      return 'Blade erosion inspection, terrain-aware structural survey in complex mountain or coastal airspace, snow and ice accretion monitoring, slope stability and vegetation encroachment assessment, avalanche proximity hazard mapping, post-storm damage survey.' + scaleNote;
+    }
+    if (prov === 'AB' || prov === 'SK' || prov === 'MB') {
+      return 'Blade erosion inspection in high-wind corridor conditions, leading-edge protection wear assessment, hail and ice-storm damage survey, agricultural land-use compatibility monitoring, shadow flicker compliance surveys, ice throw hazard zone mapping.' + scaleNote;
+    }
+    if (prov === 'QC') {
+      return 'Blade erosion and ice accretion inspection (severe winter icing conditions), thermal imaging of nacelles, vegetation encroachment monitoring, shadow flicker compliance surveys, remote northern site access via RPAS as helicopter alternative, pre/post-storm damage assessment.' + scaleNote;
+    }
+    if (prov === 'ON') {
+      const lat = d.lat || 0;
+      if (lat > 46.5) {
+        return 'Blade erosion inspection, remote northern Ontario site survey (limited road access), winter ice accretion and blade de-icing system inspection, boreal vegetation encroachment monitoring, shadow flicker compliance surveys, pre/post-storm damage assessment.' + scaleNote;
+      }
+      return 'Blade erosion inspection, structural defect detection, thermal imaging of nacelles, vegetation encroachment monitoring, shadow flicker compliance surveys, pre/post-storm damage assessment, agricultural corridor land-use compatibility monitoring.' + scaleNote;
+    }
+    if (prov === 'NT' || prov === 'NU' || prov === 'YT') {
+      return 'Blade erosion and ice accretion inspection in extreme cold, permafrost foundation subsidence monitoring, polar operations planning for remote mine or community wind assets, wildlife corridor and migratory bird survey support, structural condition assessment as helicopter alternative.' + scaleNote;
+    }
+    return 'Blade erosion inspection, structural defect detection, thermal imaging of nacelles, vegetation encroachment monitoring, shadow flicker compliance surveys, pre/post-storm damage assessment.' + scaleNote;
+  }
+
   function renderWindFarmPanel(d) {
     const panel = document.getElementById('riPanel');
     panel.innerHTML = `
@@ -1611,7 +1645,7 @@
         <div class="ri-kv"><span class="ri-k">Turbines</span><span class="ri-v">${d.turbines} units</span></div>
         <div class="ri-kv"><span class="ri-k">Operator</span><span class="ri-v">${d.prov} Wind Project</span></div>
         <div class="ri-section-label">RPAS Applications</div>
-        <div class="ri-body">${d.rpasApp}</div>
+        <div class="ri-body">${windFarmRpasApp(d)}</div>
         <div class="ri-section-label">Data Source</div>
         <div class="ri-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
       </div>`;
