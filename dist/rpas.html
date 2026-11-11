@@ -925,6 +925,7 @@
         <option value="SK">Saskatchewan</option>
         <option value="MB">Manitoba</option>
         <option value="ON">Ontario</option>
+        <option value="ON-N">↳ Northern Ontario</option>
         <option value="QC">Québec</option>
         <option value="NB">New Brunswick</option>
         <option value="NS">Nova Scotia</option>
@@ -2145,7 +2146,16 @@
       { lat:56.73, lng:-111.38, cat:'industrial', prov:'AB', name:'Wood Buffalo — Oil Sands Processing', region:'Fort McMurray Region, AB', assetType:'Oil Sands Mining & Processing Facilities', count:'Regional aggregate — AER public licences', rpasApp:'Large-site perimeter survey, tailings dam monitoring, industrial facility inspection — generalized region, no precise coordinates', source:'AER Public Data · NRCan GEO.ca', sourceUrl:'https://geo.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy'] },
       { lat:53.55, lng:-113.49, cat:'industrial', prov:'AB', name:'Edmonton Industrial Heartland', region:'Strathcona / Fort Saskatchewan, AB', assetType:'Petrochemicals, Upgraders & Manufacturing', count:'~55 major facilities (Edmonton Heartland Association public inventory)', rpasApp:'Industrial complex inspection, stack and flare monitoring, perimeter security survey, tank farm condition assessment', source:'Edmonton Heartland · Statistics Canada', sourceUrl:'https://open.canada.ca/en/open-data', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy','infrastructure'] },
       { lat:49.25, lng:-123.12, cat:'industrial', prov:'BC', name:'Vancouver — Port & Industrial Zone', region:'Port Metro Vancouver / Deltaport', assetType:'Container Terminals, Grain Elevators & Mills', count:'~30 major port facilities (Port of Vancouver public data)', rpasApp:'Container yard survey, grain elevator inspection, ship hull and dock inspection, industrial zone security', source:'Vancouver Fraser Port Authority · DataBC', sourceUrl:'https://www.data.gov.bc.ca', licence:'Open Govt Licence – BC', updated:'2024', status:'indicative', sectors:['infrastructure','coastal','agriculture'] },
-      { lat:46.49, lng:-84.35, cat:'industrial', prov:'ON', name:'Sault Ste. Marie — Steel & Manufacturing', region:'Northern Ontario Industrial Corridor', assetType:'Steel Mill, Mining & Manufacturing', count:'Regional aggregate — Statistics Canada NAICS summaries', rpasApp:'Steel plant stack and structure inspection, slag pile survey, rail corridor monitoring', source:'Statistics Canada · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative', sectors:['infrastructure'] },
+      { lat:46.49, lng:-84.35, cat:'industrial', prov:'ON', name:'Sault Ste. Marie — Steel & Manufacturing', region:'Northern Ontario', assetType:'Steel Mill, Mining & Manufacturing', count:'Regional aggregate — Statistics Canada NAICS summaries', rpasApp:'Steel plant stack and structure inspection, slag pile survey, rail corridor monitoring', source:'Statistics Canada · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative', sectors:['infrastructure'] },
+
+      // ── NORTHERN ONTARIO MINING & RESOURCE SECTOR ──
+      { lat:46.49, lng:-80.99, cat:'industrial', prov:'ON', name:'Sudbury — Nickel & Base Metals Mining Basin', region:'Northern Ontario', assetType:'Underground & Open-Pit Nickel, Copper & PGM Mines', count:'~20 active mine sites (Ontario Ministry of Mines public registry)', rpasApp:'Mine headframe and surface infrastructure inspection, tailings dam monitoring, subsidence mapping, ventilation shaft condition survey, haul road erosion detection', source:'Ontario Ministry of Mines · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'indicative', sectors:['infrastructure'] },
+      { lat:48.48, lng:-81.33, cat:'industrial', prov:'ON', name:'Timmins — Gold Mining District', region:'Northern Ontario', assetType:'Underground Gold Mines & Mill Sites', count:'~8 active gold operations (Ontario Ministry of Mines, Abitibi Greenstone Belt)', rpasApp:'Open-pit highwall inspection, mill facility survey, tailings facility perimeter monitoring, overburden stockpile mapping, access road condition assessment', source:'Ontario Ministry of Mines · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'indicative', sectors:['infrastructure'] },
+      { lat:48.38, lng:-89.25, cat:'industrial', prov:'ON', name:'Thunder Bay — Iron Ore & Forestry Hub', region:'Northern Ontario', assetType:'Grain Terminals, Paper Mills & Iron Ore Port Facilities', count:'Regional aggregate — Port of Thunder Bay public data · Statistics Canada', rpasApp:'Port terminal structure inspection, grain elevator condition survey, paper mill emissions monitoring, rail yard and dock inspection, remote forestry block mapping', source:'Port of Thunder Bay · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'indicative', sectors:['infrastructure','agriculture'] },
+      { lat:48.15, lng:-80.04, cat:'industrial', prov:'ON', name:'Kirkland Lake — Gold & Base Metals Mining', region:'Northern Ontario', assetType:'Underground Gold Mines (Abitibi Greenstone Belt)', count:'~5 active mines (Ontario Ministry of Mines public registry)', rpasApp:'Underground ventilation shaft inspection, tailings management facility survey, mine road corridor patrol, surface infrastructure condition monitoring', source:'Ontario Ministry of Mines · Statistics Canada', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'indicative', sectors:['infrastructure'] },
+      { lat:46.38, lng:-82.65, cat:'industrial', prov:'ON', name:'Elliot Lake — Historic Uranium Mining & Rehabilitation', region:'Northern Ontario', assetType:'Uranium Mine Tailings Management Areas', count:'~5 legacy tailings areas (CNSC / NRCan rehabilitation registry)', rpasApp:'Tailings cover integrity monitoring, radon flux assessment support, acid rock drainage survey, vegetation rehabilitation progress mapping, perimeter security', source:'CNSC · NRCan · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2024', status:'indicative', sectors:['infrastructure'] },
+      { lat:46.49, lng:-80.99, cat:'industrial', prov:'ON', name:'Sudbury — Remote Community & Resource Road Network', region:'Northern Ontario', assetType:'Remote Access Roads & Winter Roads', count:'~12,000 km resource roads (MNR Ontario Road Network)', rpasApp:'Post-thaw washout inspection, culvert condition survey, bridge deck assessment, winter road thickness monitoring, vegetation encroachment detection', source:'Ontario MNR · Ontario GeoHub', sourceUrl:'https://geohub.lio.gov.on.ca', licence:'Open Govt Licence – Ontario', updated:'2023', status:'indicative', sectors:['infrastructure'] },
+
       { lat:52.13, lng:-106.67, cat:'industrial', prov:'SK', name:'Saskatoon — Potash & Agri-Industrial', region:'Central Saskatchewan', assetType:'Potash Mines, Canola & Grain Processing', count:'Regional aggregate — Sask Ministry of Energy public records', rpasApp:'Mine site perimeter survey, tailings pond monitoring, grain elevator inspection, agricultural chemical storage', source:'Saskatchewan GeoHub · Statistics Canada', sourceUrl:'https://gisappl.saskatchewan.ca/Html5Ext/index.html?viewer=SaskGeoHub', licence:'Open Govt Licence – Canada', updated:'2023', status:'indicative', sectors:['agriculture','infrastructure'] },
       { lat:45.51, lng:-73.59, cat:'industrial', prov:'QC', name:'Montréal — Aerospace & Manufacturing Cluster', region:'Greater Montréal, QC', assetType:'Aerospace Manufacturing & R&D Facilities', count:'~250 aerospace firms (Aéro Montréal cluster, public directory)', rpasApp:'Facility roof and exterior inspection, R&D campus security survey, logistics corridor monitoring', source:'Données Québec · Statistics Canada', sourceUrl:'https://www.donneesquebec.ca', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['aviation','infrastructure'] },
       { lat:47.56, lng:-52.71, cat:'industrial', prov:'NL', name:'Newfoundland — Offshore Oil & Mining', region:'Avalon / Voisey\'s Bay, NL', assetType:'Offshore Platforms & Mine Sites', count:'Regional aggregate — C-NLOPB / NL Dept. of Mines public records', rpasApp:'Mine site tailings survey, offshore supply base inspection, coastal industrial site monitoring', source:'C-NLOPB · NL GeoHub', sourceUrl:'https://www.gov.nl.ca/ecc/geomatics/geolinks/', licence:'Open Govt Licence – Canada', updated:'2024', status:'indicative', sectors:['energy','coastal'] },
@@ -2845,7 +2855,8 @@
       });
       INFRA.forEach(d => {
         if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
-        if (activeProv !== 'all' && d.prov !== activeProv) return;
+        if (activeProv === 'ON-N') { if (d.region !== 'Northern Ontario') return; }
+        else if (activeProv !== 'all' && d.prov !== activeProv) return;
         if (activeSector !== 'all' && !(d.sectors && d.sectors.includes(activeSector))) return;
         const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, d.status) });
         marker.on('click', () => {
@@ -2873,7 +2884,8 @@
       });
       if (activeCats.has('uav_range')) {
         UAV_RANGES.forEach(d => {
-          if (activeProv !== 'all' && d.prov !== activeProv) return;
+          const _prov = activeProv === 'ON-N' ? 'ON' : activeProv;
+          if (_prov !== 'all' && d.prov !== _prov) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
           marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
           marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#0ea5e9">UAV / RPAS Test Range</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
@@ -2882,7 +2894,8 @@
       }
       if (activeCats.has('wind_farm')) {
         WIND_FARMS.forEach(d => {
-          if (activeProv !== 'all' && d.prov !== activeProv) return;
+          const _prov = activeProv === 'ON-N' ? 'ON' : activeProv;
+          if (_prov !== 'all' && d.prov !== _prov) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
           marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
           marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#16a34a">${d.capacity} · ${d.turbines} turbines</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
@@ -2891,7 +2904,8 @@
       }
       if (activeCats.has('rail')) {
         RAIL.forEach(d => {
-          if (activeProv !== 'all' && d.prov !== activeProv) return;
+          const _prov = activeProv === 'ON-N' ? 'ON' : activeProv;
+          if (_prov !== 'all' && d.prov !== _prov) return;
           const marker = L.marker([d.lat, d.lng], { icon: mkIcon(d.cat, 'aggregate') });
           marker.on('click', () => { window._riCurrentData = d; activeTab='overview'; renderPanel(d); location.hash=encodeURIComponent(d.name); });
           marker.bindTooltip(`<strong>${d.name}</strong><br><span style="font-size:10px;color:#b45309">Rail Corridor · ${d.operator}</span>`, { className:'rpas-popup', direction:'top', offset:[0,-8] });
@@ -2921,7 +2935,8 @@
       const sectorCounts = {};
       INFRA.forEach(d => {
         if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return;
-        if (activeProv !== 'all' && d.prov !== activeProv) return;
+        if (activeProv === 'ON-N') { if (d.region !== 'Northern Ontario') return; }
+        else if (activeProv !== 'all' && d.prov !== activeProv) return;
         (d.sectors || []).forEach(s => { sectorCounts[s] = (sectorCounts[s] || 0) + 1; });
       });
       document.querySelectorAll('.sector-btn').forEach(btn => {
@@ -2929,7 +2944,8 @@
         if (s === 'all') {
           const total = INFRA.filter(d => {
             if (d.cat !== 'municipal' && !activeCats.has(d.cat)) return false;
-            if (activeProv !== 'all' && d.prov !== activeProv) return false;
+            if (activeProv === 'ON-N') { if (d.region !== 'Northern Ontario') return false; }
+            else if (activeProv !== 'all' && d.prov !== activeProv) return false;
             return true;
           }).length;
           btn.textContent = activeProv !== 'all' ? `All (${total})` : 'All';
@@ -2960,6 +2976,7 @@
       NT: [[60.0, -136.5], [78.0, -102.0]],
       NU: [[60.0,  -95.0], [83.1,  -61.0]],
       ON: [[41.7,  -95.2], [56.9,  -74.3]],
+      'ON-N': [[45.5,  -95.2], [56.9,  -74.3]],
       PE: [[45.9,  -64.5], [47.1,  -61.9]],
       QC: [[44.9,  -79.8], [62.6,  -57.1]],
       SK: [[49.0, -110.0], [60.0,  -101.4]],
