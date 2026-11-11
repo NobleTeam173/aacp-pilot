@@ -797,7 +797,7 @@ header{
       <div class="disc-suggested-paths" id="guidedSuggestedPaths"></div>
 
       <div style="padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px">
-        <p style="font-size:12px;color:var(--fg3);line-height:1.6">These suggestions are based on the interests and curiosity you expressed — not a competency assessment, employment eligibility decision, or career match guarantee. All 14 pathways are open to anyone willing to pursue them.</p>
+        <p style="font-size:12px;color:var(--fg3);line-height:1.6">These suggestions are based on the interests and curiosity you expressed — not a competency assessment, employment eligibility decision, or career match guarantee. All 15 pathways are open to anyone willing to pursue them.</p>
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -862,7 +862,7 @@ header{
         <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6" id="resultsSub"></p>
         <div class="result-cards" id="resultCards"></div>
         <div style="margin-top:8px;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
-          <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 14 pathways are open to anyone willing to put in the work.</p>
+          <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 15 pathways are open to anyone willing to put in the work.</p>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn-secondary" onclick="resetDiscovery()">Retake Assessment</button>
@@ -896,7 +896,7 @@ header{
     <div class="sector-card active" data-sector="all" onclick="filterSector('all',this)">
       <span class="sector-code">ALL</span>
       <div class="sector-name">All Sectors</div>
-      <div class="sector-count">14 pathways</div>
+      <div class="sector-count">15 pathways</div>
     </div>
     <div class="sector-card" data-sector="flight_ops" onclick="filterSector('flight_ops',this)">
       <span class="sector-code">FO</span>
@@ -926,7 +926,7 @@ header{
   </div>
 
   <!-- Pathway list -->
-  <p class="section-label" id="pathwayListLabel">All 14 Pathways</p>
+  <p class="section-label" id="pathwayListLabel">All 15 Pathways</p>
   <div class="pathway-list" id="pathwayList"></div>
 
   <!-- Pathway detail -->
@@ -1529,6 +1529,24 @@ const PATHWAYS = [
     education: 'Computer Science or Software Engineering degree/diploma; aviation industry certifications an asset',
     free: false,
   },
+  {
+    id: 'gas_turbine', sector: 'maintenance',
+    title: 'Gas Turbine / Aircraft Engine Maintenance',
+    tagline: 'Specialize in turbine engine overhaul and repair at Canadian MROs',
+    whatTheyDo: 'Gas turbine technicians perform detailed inspection, disassembly, overhaul, and reassembly of turbofan and turboprop engines at Transport Canada approved maintenance organizations (AMOs), including major MRO facilities and airline heavy maintenance bases.',
+    licenceSource: 'Transport Canada',
+    licenceType: 'AME Licence (M2)',
+    journey: [
+      { title: 'AMT Diploma — Turbine Emphasis', body: 'Complete a 2-year Aircraft Maintenance Technician diploma at a TC-approved ATO with a turbine engine focus. Institutions including SAIT, NAIT, and BCIT cover gas turbine theory under CARAC regulations.', tags: ['TC ATO diploma', 'Turbine systems', '2 yr program'] },
+      { title: 'Engine Shop Experience — 2 yrs', body: 'Work at a Transport Canada AMO with turbine engine capability — an airline heavy maintenance base, an independent MRO (StandardAero, Pratt & Whitney Canada, Field Aviation), or a military contractor. Minimum 2 years OJT required.', tags: ['TC AMO', 'Engine shop', '2 yrs OJT'] },
+      { title: 'TC AME Written Exam — M2 Category', body: 'Transport Canada M2 (turbine engine) category written examination covering CARs Part IV, turbine engine maintenance standards, airworthiness directives, and inspection procedures.', tags: ['TC Written Exam', 'AME-M2', 'CARs 571'] },
+      { title: 'AME Licence (M2) Issued', body: 'Transport Canada issues the M2 licence, authorizing certification of maintenance on turbine-powered aircraft. Many M2 holders also hold S or E endorsements for broader MRO scope.', tags: ['TC M2 Licence', 'CARs 571', 'Engine run authorization'] },
+      { title: 'Engine Overhaul Specialist', body: 'Advance to engine shop lead, quality inspector, or technical representative roles. Major Canadian employers: Air Canada Techops, StandardAero (Winnipeg, Calgary), Pratt & Whitney Canada (Longueuil), Field Aviation.', tags: ['MRO leadership', 'Quality assurance', 'OEM partnerships'] },
+    ],
+    salary: { low: '$58,000', high: '$115,000', note: 'Engine tech to MRO shop lead. Source: Job Bank Canada / LMI Insights' },
+    education: 'TC ATO diploma with turbine focus (SAIT, NAIT, BCIT); engine OEM training courses an asset',
+    free: false,
+  },
 ];
 
 /* ── Explore tab state ─────────────────────────────────────────── */
@@ -1554,7 +1572,7 @@ function renderPathwayList() {
   const label = document.getElementById('pathwayListLabel');
   const filtered = activeSector === 'all' ? PATHWAYS : PATHWAYS.filter(p => p.sector === activeSector);
   label.textContent = activeSector === 'all'
-    ? 'All 14 Pathways'
+    ? 'All 15 Pathways'
     : (SECTORS[activeSector]?.name || '') + ' — ' + filtered.length + (filtered.length === 1 ? ' pathway' : ' pathways');
   list.innerHTML = filtered.map(p => {
     const code = SECTORS[p.sector]?.code || '';
@@ -1595,7 +1613,7 @@ function openPathway(id) {
     <div class="gate">
       <div class="gate-card">
         <div class="gate-title">Full Pathway Map — Premium</div>
-        <p class="gate-body">Unlock the complete interactive career journey, salary data, and education directory for all 14 pathways.</p>
+        <p class="gate-body">Unlock the complete interactive career journey, salary data, and education directory for all 15 pathways.</p>
         <div class="gate-price"><span class="gate-price-amount">$9.99</span><span class="gate-price-period">/month CAD</span></div>
         <div class="gate-features">
           <div class="gate-feature">Complete step-by-step pathway maps</div>
@@ -1725,6 +1743,7 @@ const COMPETENCY_WEIGHTS = {
   aerospace_mfg: { technical:5, analytical:3, spatial:4, communication:2, precision:5, leadership:2, digital:3, physical:4 },
   aerospace_eng: { technical:4, analytical:5, spatial:5, communication:3, precision:4, leadership:3, digital:5, physical:1 },
   aviation_tech: { technical:3, analytical:4, spatial:3, communication:3, precision:3, leadership:2, digital:5, physical:1 },
+  gas_turbine:   { technical:5, analytical:3, spatial:3, communication:2, precision:5, leadership:3, digital:2, physical:4 },
 };
 
 /* Preference adjustments: how much each preference setting nudges a pathway score */
@@ -1992,22 +2011,104 @@ function sendChat() {
 }
 function getACIAResponse(msg) {
   const q = msg.toLowerCase();
-  if (q.includes('pilot') || q.includes('cpl') || q.includes('atpl')) {
-    return 'To fly commercially in Canada you need a <strong>Commercial Pilot Licence (CPL)</strong> from Transport Canada. That requires 200 hours total time and a written exam plus a flight test. Most airlines want 1,500+ hours and an ATPL before hiring a Captain. The pathway usually takes 3–5 years from PPL to first airline job. Want me to walk you through the CPL to ATPL timeline?';
+
+  // Pilot / flight
+  if (q.match(/\bpilot\b|cpl\b|atpl\b|commercial.*fly|fly.*commercial|airline.*pilot|pilot.*airline/)) {
+    return 'To fly commercially in Canada you need a <strong>Commercial Pilot Licence (CPL)</strong> from Transport Canada — 200 hours total time, a written exam, and a flight test. Most airlines want 1,500+ hours and an ATPL before hiring a Captain. The typical timeline is 3–5 years from your first lesson to a first officer seat at a regional carrier. Institutions like Mount Royal University (Calgary), Seneca College (Toronto), and Confederation College (Thunder Bay) offer integrated degree/diploma programs with flight training built in. Want me to walk you through the CPL to ATPL timeline, or talk about hour-building options?';
   }
-  if (q.includes('ame') || q.includes('maintenance') || q.includes('mechanic')) {
-    return 'The AME (Aircraft Maintenance Engineer) pathway is a strong career in Canadian aviation. You need a <strong>Transport Canada AME licence</strong> in one of four categories — M1 (piston), M2 (turbine), E (electronics/avionics), or S (structures). It takes about 2 years at a TC-approved college (such as SAIT, NAIT, or BCIT) plus 2 years of practical experience before you can write the TC exams. Which category interests you most?';
+
+  // RPAS / drone
+  if (q.match(/drone|rpas|uav|unmanned/)) {
+    return 'RPAS (drone) operations in Canada fall under <strong>CARs Part IX</strong>. For commercial work you almost always need an <strong>Advanced RPAS Pilot Certificate</strong> — a knowledge exam plus a flight review with a Transport Canada examiner. This cert is required for ops near aerodromes, over people, or in controlled airspace. The Basic certificate (online test only) covers VLOS operations in uncontrolled airspace. The commercial RPAS sector is growing fast — inspection, survey, agriculture, and emergency response are the biggest hiring areas. Would you like info on a specific RPAS industry or how to get started?';
   }
-  if (q.includes('drone') || q.includes('rpas') || q.includes('uav')) {
-    return 'RPAS (drone) operations in Canada are regulated under <strong>CARs Part IX</strong> by Transport Canada. For commercial work you likely need an <strong>Advanced RPAS Pilot Certificate</strong>, which requires a knowledge exam and a flight review with a TC examiner. For operations in controlled airspace or over people, the advanced cert is mandatory. The basic certificate is an online test only. Would you like info on specific commercial RPAS industries?';
+
+  // AME / maintenance general
+  if (q.match(/\bame\b|aircraft maintenance engineer|aircraft mechanic|keep.*airworthy|maintenance.*career/)) {
+    return 'The <strong>AME (Aircraft Maintenance Engineer)</strong> licence from Transport Canada is the credential that authorizes you to certify aircraft maintenance in Canada. There are four categories: <strong>M1</strong> (piston), <strong>M2</strong> (turbine), <strong>E</strong> (avionics/electronics), and <strong>S</strong> (structures). The path is roughly: 2-year diploma at a TC ATO like SAIT, NAIT, or BCIT → 2 years of supervised OJT at a TC AMO → TC written exams. AMEs are in high demand across Canada right now. Which category interests you most — turbine engines, avionics, or structures?';
   }
-  if (q.includes('atc') || q.includes('air traffic')) {
-    return 'Air traffic control in Canada is managed by <strong>NAV Canada</strong>, a private corporation. The only pathway to a TC ATC licence is through <strong>NAV Canada\'s selection process</strong> and their Training Institute in Cornwall, ON. It\'s competitive — cognitive aptitude testing, English proficiency, and a security clearance are all required. Training is 12–18 months residential. Interested in the FSS (Flight Service Specialist) path as an alternative?';
+
+  // Gas turbine / engine overhaul
+  if (q.match(/turbine|gas turbine|jet engine|engine overhaul|mro|m2 licen/)) {
+    return 'Gas turbine / engine maintenance is a specialized and in-demand stream of the AME pathway. You work toward a <strong>Transport Canada AME M2 licence</strong> (turbine-powered aircraft), typically at an MRO facility — StandardAero in Winnipeg or Calgary, Pratt &amp; Whitney Canada in Longueuil, Field Aviation, or Air Canada Techops. The path is a TC ATO diploma with turbine focus → 2 years engine shop OJT → TC M2 written exam. Senior engine technicians and shop leads can earn $90K–$115K+. Would you like to know more about the top MRO employers in Canada or how to choose the right ATO?';
   }
-  if (q.includes('stem') || q.includes('engineer') || q.includes('engineering')) {
-    return 'STEM backgrounds are highly valued in aviation. Aerospace Engineering at Carleton, Concordia, or U of T leads to the <strong>P.Eng pathway</strong> and careers at Bombardier, Pratt &amp; Whitney Canada, MDA, or the Canadian Space Agency. For more hands-on work, an <strong>Aviation Technology &amp; Systems</strong> role lets software and IT professionals build systems for airlines and NAV Canada. Which direction interests you more?';
+
+  // Avionics
+  if (q.match(/avionics|electronics.*aircraft|aircraft.*electronic|navigation.*system|ame.*e\b/)) {
+    return 'Avionics technicians hold a <strong>Transport Canada AME-E (Electronics) licence</strong> and work on aircraft navigation, communication, autopilot, and fly-by-wire systems. The path mirrors the general AME route: diploma at a TC ATO with avionics specialization (SAIT, BCIT, CEGEP Édouard-Montpetit) → 2 years OJT at a TC AMO → TC E-category written exam. The avionics field is evolving quickly as aircraft systems become more software-defined — strong digital skills are increasingly valuable. Many avionics techs also pursue M2 or S endorsements to broaden their scope. Any specific aircraft systems or employers you\'re curious about?';
   }
-  return 'That\'s a great question. As your AACP aviation career mentor, I can help you explore Canadian aviation careers, Transport Canada licensing, training programs, and how to plan your pathway. Could you tell me more about what career area or sector interests you most? For example: pilot, maintenance engineer, air traffic, aerospace engineering, or operations?';
+
+  // Structures
+  if (q.match(/structures|airframe|composite|fuselage|aircraft.*repair|ame.*s\b/)) {
+    return 'Aircraft structures technicians hold a <strong>Transport Canada AME-S (Structures) licence</strong> and perform repairs to fuselages, wings, control surfaces, and composite panels. This is hands-on work requiring strong knowledge of metal forming, bonding, and composite repair techniques. The path is a TC ATO diploma with structures focus → 2 years OJT at a TC AMO → TC S-category written exam. Aerospace manufacturing firms like Bombardier, Bell Textron Canada, and Magellan Aerospace also hire S-category AMEs for production and quality roles. Want to know more about the manufacturing vs. MRO side of this career?';
+  }
+
+  // ATC / air traffic
+  if (q.match(/air traffic control|atc\b|air traffic controller|nav canada.*control/)) {
+    return 'Air traffic control in Canada is managed by <strong>NAV Canada</strong>. The only pathway to a Transport Canada ATC licence is through <strong>NAV Canada\'s competitive selection process</strong> — cognitive aptitude testing, English proficiency assessment, and a security clearance are all required before you\'re admitted. Training is 12–18 months residential at the NAV Canada Training Institute in Cornwall, ON. It\'s one of the most competitive entries in Canadian aviation. The <strong>Flight Service Specialist (FSS)</strong> role is a less-known alternative — similar background, slightly different work. Want to know more about FSS or the NAV Canada selection process?';
+  }
+
+  // FSS / flight service
+  if (q.match(/flight service specialist|fss\b|nav canada.*specialist/)) {
+    return 'Flight Service Specialists work for <strong>NAV Canada</strong> at non-tower aerodromes, providing weather briefings, NOTAMs, flight plan processing, and alerting services to pilots. Like ATC, the entry path runs through NAV Canada\'s selection and their Training Institute in Cornwall. The FSS role requires strong communication skills, the ability to work in a 24/7 operational environment, and comfort with procedural, safety-critical work. Many FSS professionals work at remote or northern aerodromes — a unique aspect of Canadian aviation. Would you like to compare FSS vs. ATC as career options?';
+  }
+
+  // Airport ops
+  if (q.match(/airport operations|airport ops|airside|aerodrome|wildlife.*airport|airport.*safety/)) {
+    return 'Airport Operations Officers oversee airside safety, wildlife management, emergency response coordination, and regulatory compliance under Transport Canada aerodrome standards (CARs Part III). Most major airports require a college diploma in airport operations or a related field, plus a Transport Canada Aerodrome Safety Management System (SMS) background. CATSA (Canadian Air Transport Security Authority) is a related federal employer. The career path often leads to Airport Manager or Director of Airport Operations. BCIT, Seneca, and Centennial College offer airport operations programs. Want to know more about specific airport career entry points?';
+  }
+
+  // Ground ops / ramp
+  if (q.match(/ground.*ops|ramp|fuelling|deicing|baggage|marshalling|fbo/)) {
+    return 'Ground and FBO operations specialists manage aircraft marshalling, refuelling, deicing, baggage, towing, and ramp safety at Canadian aerodromes. This is typically an entry-level pathway with strong advancement potential — from ramp agent to shift supervisor to ground ops manager. Dangerous goods (TDG) certification is often required, and WHMIS plus Transport Canada Security Clearance are standard. Major employers include Swissport, dnata, Menzies Aviation, and airline ground ops departments. The role demands physical fitness and comfort in outdoor environments year-round. Would you like info on how to break into ground operations at a Canadian airport?';
+  }
+
+  // Cargo / logistics
+  if (q.match(/cargo|air.*freight|logistics|supply chain.*aviation|dangerous goods/)) {
+    return 'Air cargo and logistics professionals manage shipment handling, dangerous goods compliance, customs documentation, and supply chain coordination for air freight operations. Transport Canada dangerous goods (TDG) certification and CBSA customs training are typically required. This pathway has grown significantly post-pandemic — Canada\'s major freight hubs in Toronto, Calgary, and Vancouver have strong hiring activity. FedEx, UPS, Air Canada Cargo, and WestJet Cargo are the leading employers. Would you like to know more about dangerous goods certification or the air cargo logistics career ladder?';
+  }
+
+  // Customer ops / passenger services
+  if (q.match(/customer.*service.*aviation|passenger|check.in|boarding|airline.*customer|commercial.*operations/)) {
+    return 'Customer experience and commercial operations professionals in aviation manage check-in, boarding, passenger services, airline alliances, and revenue optimization. This pathway is accessible from a college diploma in hospitality, business, or aviation management. Major Canadian airlines — Air Canada, WestJet, Porter, Flair — hire customer-facing roles at both airports and head office. The growth path leads to supervisory, training, and commercial strategy roles. IATA offers recognized certifications in passenger services and revenue management. Would you like to know about specific airline programs or the airport customer operations career path?';
+  }
+
+  // Aerospace manufacturing
+  if (q.match(/aerospace.*manufactur|manufactur.*aerospace|bombardier|bell textron|magellan|tier.*supplier|cnc.*aerospace/)) {
+    return 'Aerospace manufacturing technicians produce precision aircraft structures, engine components, and assemblies at Canadian OEMs and Tier 1/2 suppliers. Major employers in Canada include Bombardier (Montréal, Toronto), Bell Textron Canada (Mirabel), Magellan Aerospace (multiple sites), Pratt &amp; Whitney Canada (Longueuil), and StandardAero. This role often requires a machining, composites, or AMT diploma plus CNC and quality systems training. Many technicians hold or work toward a Transport Canada AME licence for added scope. The Montréal and Toronto corridors are Canada\'s largest aerospace manufacturing clusters. Want to know more about which programs feed into aerospace manufacturing?';
+  }
+
+  // Aerospace engineering / P.Eng
+  if (q.match(/aerospace engineer|p\.eng|professional engineer|aerospace.*design|aerospace.*degree|csa\b|canadian space agency/)) {
+    return 'Aerospace engineers in Canada typically hold a BEng or MEng and work toward the <strong>P.Eng designation</strong> through their provincial engineering association. Major employers include Bombardier, Pratt &amp; Whitney Canada, MDA Space (satellite systems), the Canadian Space Agency, Defence Research and Development Canada (DRDC), and the National Research Council. Carleton University (Ottawa), Concordia (Montréal), and U of T (Toronto) are the leading programs. Many aerospace engineers also hold security clearances for defence work. Would you like to compare aerospace engineering vs. aviation technology as career directions?';
+  }
+
+  // Aviation technology / software / IT
+  if (q.match(/aviation.*tech|aviation.*software|aviation.*it\b|aviation.*digital|flight ops.*system|airline.*software/)) {
+    return 'Aviation technology and systems professionals develop and support flight operations software, airline IT platforms, ATC technology, and digital aviation systems. This is a strong pathway for people with software engineering, computer science, or systems integration backgrounds who want to work in aviation without a flying or maintenance licence. Major employers include NAV Canada, Air Canada Digital, WestJet Technology, CAE (simulation systems), and aviation software firms like SITA and Jeppesen. Would you like to know about specific technology streams — flight operations software, ATC tech, or airline data analytics?';
+  }
+
+  // Salary / pay
+  if (q.match(/salary|pay|wage|earn|how much|income/)) {
+    return 'Salaries vary significantly across Canadian aviation careers. Here are typical ranges (Job Bank Canada / LMI Insights):<br><br><strong>Pilot (regional to airline captain):</strong> $45K–$200K+<br><strong>AME (entry to certifying authority):</strong> $55K–$110K<br><strong>Gas Turbine / M2 specialist:</strong> $58K–$115K<br><strong>Avionics tech:</strong> $50K–$100K<br><strong>ATC (NAV Canada):</strong> $75K–$160K<br><strong>Aerospace Engineer (P.Eng):</strong> $70K–$150K+<br><strong>RPAS pilot:</strong> $40K–$85K<br><br>All are in Canadian dollars. Which career would you like to dig into further?';
+  }
+
+  // Licensing / TC exams
+  if (q.match(/licen|transport canada|tc exam|written exam|flight test|how.*certif/)) {
+    return 'Transport Canada oversees licensing and certification for most Canadian aviation careers. The main licence streams are: <strong>Pilot</strong> (PPL → CPL → ATPL), <strong>AME</strong> (M1, M2, E, S categories), <strong>RPAS Pilot Certificate</strong> (Basic and Advanced), and <strong>ATC</strong> (through NAV Canada/TC). TC written exams are administered at authorized test centres. Flight tests are conducted by TC examiners or designated examiners. Most certifications also require a valid medical or security clearance depending on the role. Which licence are you trying to understand better?';
+  }
+
+  // STEM / engineering / science background
+  if (q.match(/stem|engineer|engineering|science background|math|physics|computer science/)) {
+    return 'STEM backgrounds open strong pathways in aviation. <strong>Aerospace Engineering</strong> (Carleton, Concordia, U of T) leads to P.Eng and careers at OEMs, the CSA, or DRDC. <strong>Avionics / AME-E</strong> suits electronics and electrical technologists. <strong>Aviation Technology &amp; Systems</strong> is ideal for software engineers and IT professionals wanting to work inside airlines or NAV Canada. <strong>RPAS operations and inspection</strong> is well-suited for drone technology and sensor system backgrounds. Even pilots with STEM degrees are valuable for simulator and test flying roles. Which direction fits your background — engineering, tech, or operations?';
+  }
+
+  // How to get started / no experience
+  if (q.match(/how.*start|get started|no experience|first step|where.*begin|just.*start|starting out/)) {
+    return 'The best first step depends on what draws you to aviation. If you\'re interested in <strong>flying</strong>, start with a medical exam (TC Category 1 for commercial) and a discovery flight at a local FTU. For <strong>maintenance engineering</strong>, apply to a TC-approved ATO diploma program like SAIT, NAIT, or BCIT. For <strong>RPAS</strong>, the Basic certificate (online test) lets you start commercially right away in uncontrolled airspace. For <strong>ATC or FSS</strong>, study cognitive aptitude tests and check NAV Canada\'s recruitment cycle. I can walk you through any of these in detail — which direction interests you?';
+  }
+
+  // General / fallback
+  return 'Great question. I\'m ACIA — your AACP aviation career mentor. I can help you explore all 15 Canadian aviation and aerospace career pathways, understand Transport Canada licensing requirements, find training programs, and map out your route from where you are today to where you want to be.<br><br>Try asking about a specific role (pilot, AME, ATC, RPAS, aerospace engineer), a topic (salary, licensing, training), or just tell me what interests you about aviation.';
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2311,6 +2412,7 @@ function computeGuidedResults() {
   if (allText.match(/build|assembl|manufactur/)) { scores['aerospace_mfg'] = (scores['aerospace_mfg']||0) + 10; }
   if (allText.match(/control|tower|atc/)) { scores['atc'] = (scores['atc']||0) + 10; }
   if (allText.match(/engineer|design|aerospace/)) { scores['aerospace_eng'] = (scores['aerospace_eng']||0) + 10; }
+  if (allText.match(/turbine|engine|overhaul|mro|jet engine|propulsion/)) { scores['gas_turbine'] = (scores['gas_turbine']||0) + 10; }
 
   var ranked = PATHWAYS.map(function(p){ return {pathway:p, score: scores[p.id]||0}; })
     .sort(function(a,b){ return b.score - a.score; })
@@ -2333,6 +2435,7 @@ function computeGuidedResults() {
     aerospace_mfg: 'You expressed real interest in building and assembling aerospace equipment.',
     aerospace_eng: 'Your interest in design, engineering, and innovation points toward this career.',
     aviation_tech: 'Your interest in digital systems and aviation technology aligns with this pathway.',
+    gas_turbine:   'Your interest in hands-on engine work and mechanical precision maps closely to turbine maintenance.',
   };
 
   // Build interest summary
