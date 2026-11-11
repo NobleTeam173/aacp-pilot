@@ -986,23 +986,6 @@
       </div>
     </div>
 
-    <!-- Discreet data attribution control -->
-    <div id="dsv-trigger" onclick="toggleDSV()" title="Data Sources & Verification" aria-label="Data Sources & Verification" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDSV()">
-      ◈ Data Sources
-    </div>
-    <div id="dsv-panel" hidden>
-      <div id="dsv-panel-inner">
-        <div id="dsv-header">
-          <span id="dsv-title">Data Sources &amp; Verification</span>
-          <button onclick="toggleDSV()" aria-label="Close">✕</button>
-        </div>
-        <div id="dsv-body"></div>
-        <div id="dsv-footer">
-          Opportunity signals are indicative and require independent validation before commercial decisions are made.<br>
-          Map tiles © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Rendered with <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> · Labour market data: Statistics Canada Open Licence · Geographic data: Open Government Licence – Canada
-        </div>
-      </div>
-    </div>
     <div style="font-size:.62rem;color:var(--dim);padding:5px 14px 7px;line-height:1.5">
       Opportunity signals are indicative and require independent validation before commercial decisions are made.
     </div>
@@ -1566,7 +1549,6 @@
     const riHeader = document.getElementById('riHeader');
     const riBody = document.getElementById('riBody');
     riContent.hidden = false;
-    if (typeof buildDSVBody === 'function' && !document.getElementById('dsv-panel').hidden) buildDSVBody();
 
     riHeader.innerHTML = `
       <div style="padding:14px 14px 10px">
@@ -1606,23 +1588,6 @@
         ${sourceRows}
       </div>
       <div class="ri-aacp-note"><strong>AACP™ Note</strong>${d.aacpNote}</div>
-      <div class="ri-evidence-box">
-        <details class="ri-evidence-details">
-          <summary>Data Sources &amp; Verification</summary>
-          ${(d.sources || []).map((s, i) => {
-            const domainStatus = d.domains && d.domains[i] ? d.domains[i].status : 'Indicative';
-            const badgeClass = domainStatus === 'Established' ? 'ev-established' : domainStatus === 'Documented' ? 'ev-documented' : 'ev-indicative';
-            const badgeLabel = domainStatus === 'Established' ? 'Established' : domainStatus === 'Documented' ? 'Documented' : 'Indicative';
-            return `<div class="ri-ev-row">
-              <div class="ri-ev-title">${s.label}</div>
-              <div class="ri-ev-meta">
-                <span class="ri-ev-badge ${badgeClass}">${badgeLabel}</span>
-                <a class="ri-ev-link" href="${s.url}" target="_blank" rel="noopener">View source ↗</a>
-              </div>
-            </div>`;
-          }).join('')}
-        </details>
-      </div>
       ${nearbyInfraHTML(d.lat, d.lng, null, 4)}
       <div class="ri-action-bar">
         <button class="ri-action-primary" onclick="window._openPartnerEOI && window._openPartnerEOI()" aria-label="Discuss a Regional Partnership">
@@ -1707,7 +1672,6 @@
       ${d.notes ? `<div class="ri-section"><div class="ri-section-label">Notes</div><div style="font-size:.75rem;color:var(--text2);line-height:1.6;padding:0 14px 4px">${d.notes}</div></div>` : ''}
       <div class="ri-section" style="padding-bottom:8px">
         <div class="ri-section-label">Data Source</div>
-        <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${d.sourceUrl}" target="_blank" rel="noopener" style="color:#0ea5e9">${d.source}</a></span></div>
         <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
       </div>
       ${nearbyInfraHTML(d.lat, d.lng, null, 4)}`;
@@ -1745,8 +1709,7 @@
       </div>`;
 
     renderTab(d, wf, riBody);
-    fetchLiveUnemployment(d.prov); // non-blocking; updates panel if workforce tab is active when it resolves
-    if (!document.getElementById('dsv-panel').hidden) buildDSVBody(); // keep DSV in sync if open
+    fetchLiveUnemployment(d.prov);
   }
 
   function renderTab(d, wf, riBody) {
@@ -1785,7 +1748,6 @@
         </div>
         <div class="ri-section">
           <div class="ri-section-label">Data Provenance</div>
-          <div class="ri-kv"><span class="ri-k">Source</span><span class="ri-v"><a href="${d.sourceUrl}" target="_blank" rel="noopener">${d.source}</a></span></div>
           <div class="ri-kv"><span class="ri-k">Licence</span><span class="ri-v">${d.licence}</span></div>
           <div class="ri-kv"><span class="ri-k">Published</span><span class="ri-v">${d.updated}</span></div>
         </div>
