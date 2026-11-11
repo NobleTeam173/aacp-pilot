@@ -1635,44 +1635,69 @@
 
   function renderWindFarmPanel(d) {
     const panel = document.getElementById('riPanel');
-    panel.innerHTML = `
-      <div class="ri-panel-inner">
-        <div class="ri-cat-label" style="color:#16a34a">Wind Farm</div>
-        <div class="ri-name">${d.name}</div>
-        <div class="ri-meta-row">
-          <span class="ri-badge" style="background:rgba(22,163,74,.12);color:#16a34a">${d.prov}</span>
-          <span class="ri-badge">${d.region}</span>
-        </div>
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    panel.classList.remove('empty');
+    riEmpty.hidden = true;
+    riContent.hidden = false;
+    riHeader.innerHTML = `
+      <div class="ri-region-label" style="color:#16a34a">${d.prov} &nbsp;·&nbsp; Wind Energy</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="ri-region-name">${d.name}</div>
+        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);padding:0 14px 10px">${d.region}</div>`;
+    riBody.innerHTML = `
+      <div class="ri-section">
         <div class="ri-section-label">Facility Details</div>
         <div class="ri-kv"><span class="ri-k">Capacity</span><span class="ri-v">${d.capacity}</span></div>
         <div class="ri-kv"><span class="ri-k">Turbines</span><span class="ri-v">${d.turbines} units</span></div>
-        <div class="ri-kv"><span class="ri-k">Operator</span><span class="ri-v">${d.prov} Wind Project</span></div>
+      </div>
+      <div class="ri-section">
         <div class="ri-section-label">RPAS Applications</div>
-        <div class="ri-body">${windFarmRpasApp(d)}</div>
+        <div class="ri-ms-body">${windFarmRpasApp(d)}</div>
+      </div>
+      <div class="ri-section">
         <div class="ri-section-label">Data Source</div>
-        <div class="ri-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
-      </div>`;
+        <div class="ri-ms-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
+      </div>
+      ${nearbyInfraHTML(d.lat, d.lng, null, 3)}`;
   }
 
   function renderRailPanel(d) {
     const panel = document.getElementById('riPanel');
-    panel.innerHTML = `
-      <div class="ri-panel-inner">
-        <div class="ri-cat-label" style="color:#b45309">Rail Corridor</div>
-        <div class="ri-name">${d.name}</div>
-        <div class="ri-meta-row">
-          <span class="ri-badge" style="background:rgba(180,83,9,.12);color:#b45309">${d.prov}</span>
-          <span class="ri-badge">${d.region}</span>
-        </div>
+    const riEmpty = document.getElementById('riEmpty');
+    const riContent = document.getElementById('riContent');
+    const riHeader = document.getElementById('riHeader');
+    const riBody = document.getElementById('riBody');
+    panel.classList.remove('empty');
+    riEmpty.hidden = true;
+    riContent.hidden = false;
+    riHeader.innerHTML = `
+      <div class="ri-region-label" style="color:#b45309">${d.prov} &nbsp;·&nbsp; Rail Corridor</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="ri-region-name">${d.name}</div>
+        <button class="ri-close" onclick="closePanel()" aria-label="Close panel">✕</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);padding:0 14px 10px">${d.region}</div>`;
+    riBody.innerHTML = `
+      <div class="ri-section">
         <div class="ri-section-label">Corridor Details</div>
         <div class="ri-kv"><span class="ri-k">Operator</span><span class="ri-v">${d.operator}</span></div>
         <div class="ri-kv"><span class="ri-k">Length</span><span class="ri-v">${d.length_km} km</span></div>
         <div class="ri-kv"><span class="ri-k">Type</span><span class="ri-v">${d.type}</span></div>
+      </div>
+      <div class="ri-section">
         <div class="ri-section-label">RPAS Applications</div>
-        <div class="ri-body">${d.rpasApp}</div>
+        <div class="ri-ms-body">${d.rpasApp}</div>
+      </div>
+      <div class="ri-section">
         <div class="ri-section-label">Data Source</div>
-        <div class="ri-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
-      </div>`;
+        <div class="ri-ms-body" style="font-size:11px;color:var(--muted)">Public Government Data · ${d.licence}</div>
+      </div>
+      ${nearbyInfraHTML(d.lat, d.lng, null, 3)}`;
   }
 
   function renderUAVPanel(d) {
