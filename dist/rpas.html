@@ -197,6 +197,7 @@
     .comm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-bright));opacity:0;transition:opacity .3s}
     .comm-card:hover{border-color:var(--crimson-line);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.5)}
     .comm-card:hover::before{opacity:1}
+    .comm-card{cursor:pointer}
     .comm-card-num{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--crimson-text);opacity:.7}
     .comm-card-title{font-family:Fraunces,serif;font-size:1.15rem;font-weight:800;color:var(--text);line-height:1.2}
     .comm-card-desc{font-size:.82rem;color:var(--muted);line-height:1.75;flex:1}
@@ -217,8 +218,8 @@
     .map-disclaimer{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 16px;font-size:.7rem;color:var(--dim);line-height:1.65;margin-top:14px}
     @media(max-width:768px){.map-service-row{grid-template-columns:1fr;gap:10px}.map-section{padding:60px 5vw}}
     .map-inner{max-width:1200px;margin:0 auto}
-    .map-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px;align-items:center}
-    .map-filter-group{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+    .map-controls{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:28px;align-items:center}
+    .map-filter-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
     .cat-btn{cursor:pointer;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--muted);background:transparent;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
     .cat-btn:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
     .cat-btn.active{color:#fff;border-color:transparent}
@@ -230,7 +231,7 @@
     .cat-btn[data-cat="wind_farm"].active{background:#16a34a}
     .cat-btn[data-cat="rail"].active{background:#b45309}
     .layer-divider{width:1px;background:var(--border);margin:0 4px;align-self:stretch}
-    .sector-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+    .sector-filter-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
     .sector-btn{cursor:pointer;border:1px solid var(--border2);border-radius:14px;padding:4px 11px;font-size:11px;font-weight:600;color:var(--dim);background:transparent;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
     .sector-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
     .sector-btn.active{color:#fff;border-color:transparent;background:rgba(128,1,31,.55)}
@@ -829,13 +830,12 @@
 <section class="comm-section" id="services">
   <div class="comm-inner">
     <div class="section-header fade-in">
-      <span class="section-eyebrow">Turn RPAS Opportunities Into Action</span>
-      <h2 class="section-title">Three Ways to Work With AACP™</h2>
+      <h2 class="section-title">Turn RPAS Opportunities Into Action</h2>
       <div class="divider"></div>
-      <p class="section-sub">From operational feasibility to applied research and industry intelligence — AACP™ works directly with organizations to identify and advance RPAS adoption across Canada.</p>
+      <p class="section-sub">AACP™ works directly with organizations to assess, investigate, and advance RPAS adoption — from feasibility through applied research and industry intelligence.</p>
     </div>
     <div class="comm-cards">
-      <div class="comm-card fade-in" style="transition-delay:.04s">
+      <div class="comm-card fade-in" style="transition-delay:.04s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('Infrastructure inspection')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">01</div>
         <h3 class="comm-card-title">RPAS Feasibility Assessment</h3>
         <p class="comm-card-desc">Assess potential RPAS applications for your infrastructure or operations — from concept to validated use case. AACP™ works with employers and operators to identify where RPAS can deliver measurable value.</p>
@@ -844,20 +844,20 @@
           <span>Surveying &amp; mapping</span>
           <span>Operational efficiency</span>
         </div>
-        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Start a Feasibility Discussion</button>
+        <div class="comm-card-cta">Start a Feasibility Discussion</div>
       </div>
-      <div class="comm-card fade-in" style="transition-delay:.10s">
+      <div class="comm-card fade-in" style="transition-delay:.10s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('Technology partnership / integration')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">02</div>
         <h3 class="comm-card-title">Applied RPAS R&amp;D</h3>
-        <p class="comm-card-desc">Investigate and validate commercial RPAS use cases through industry-led research and applied field trials. For technology developers, research partners, and organizations exploring next-generation autonomous applications.</p>
+        <p class="comm-card-desc">Investigate and validate industry-driven RPAS applications through collaborative research and field trials. For technology developers, research partners, and organizations exploring next-generation autonomous applications.</p>
         <div class="comm-card-tags">
           <span>Technology validation</span>
           <span>Applied field trials</span>
           <span>Research partnerships</span>
         </div>
-        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Explore an R&amp;D Partnership</button>
+        <div class="comm-card-cta">Explore an R&amp;D Partnership</div>
       </div>
-      <div class="comm-card fade-in" style="transition-delay:.16s">
+      <div class="comm-card fade-in" style="transition-delay:.16s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">03</div>
         <h3 class="comm-card-title">Infrastructure Intelligence &amp; Advisory</h3>
         <p class="comm-card-desc">Support investment and industry decisions with AACP™ regional opportunity intelligence and sector analysis. For industry bodies, investors, and organizations navigating the Canadian RPAS landscape.</p>
@@ -866,7 +866,7 @@
           <span>Sector analysis</span>
           <span>Industry advisory</span>
         </div>
-        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Request an Advisory Discussion</button>
+        <div class="comm-card-cta">Request an Advisory Discussion</div>
       </div>
     </div>
   </div>
@@ -892,9 +892,9 @@
         <button class="cat-btn active" data-cat="wind_farm">Wind Farms</button>
         <button class="cat-btn active" data-cat="rail">Rail Corridors</button>
       </div>
+      <div class="layer-divider" aria-hidden="true"></div>
       <div class="sector-filter-row" role="group" aria-label="Filter by RPAS application sector">
-        <span class="sector-label">Sector:</span>
-        <button class="sector-btn active" data-sector="all">All</button>
+        <button class="sector-btn active" data-sector="all">All Sectors</button>
         <button class="sector-btn" data-sector="aviation">Aviation</button>
         <button class="sector-btn" data-sector="energy">Energy</button>
         <button class="sector-btn" data-sector="agriculture">Agriculture</button>
@@ -2098,6 +2098,16 @@
   };
 
   // ── PARTNER EOI MODAL ───────────────────────────────────────────────────────
+
+  window._openPartnerEOIWith = function(challenge) {
+    var sel = document.getElementById('eoi-p-challenge');
+    if (sel && challenge) sel.value = challenge;
+    document.getElementById('eoi-partner-form-wrap').hidden = false;
+    document.getElementById('eoi-partner-success').hidden = true;
+    document.getElementById('eoi-p-err').style.display = 'none';
+    document.getElementById('eoi-p-submit').disabled = false;
+    document.getElementById('eoi-partner-modal').hidden = false;
+  };
 
   window._openPartnerEOI = function() {
     const d = window._riCurrentData;
