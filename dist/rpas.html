@@ -836,7 +836,7 @@
       <p class="section-sub">AACP™ works directly with organizations to assess, investigate, and advance RPAS adoption — from feasibility through applied research and industry intelligence.</p>
     </div>
     <div class="comm-cards">
-      <div class="comm-card fade-in" style="transition-delay:.04s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('Infrastructure inspection')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
+      <div class="comm-card fade-in" style="transition-delay:.04s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('feasibility')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">01</div>
         <h3 class="comm-card-title">RPAS Feasibility Assessment</h3>
         <p class="comm-card-desc">Assess potential RPAS applications for your infrastructure or operations — from concept to validated use case. AACP™ works with employers and operators to identify where RPAS can deliver measurable value.</p>
@@ -847,7 +847,7 @@
         </div>
         <div class="comm-card-cta">Start a Feasibility Discussion</div>
       </div>
-      <div class="comm-card fade-in" style="transition-delay:.10s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('Technology partnership / integration')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
+      <div class="comm-card fade-in" style="transition-delay:.10s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('rd')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">02</div>
         <h3 class="comm-card-title">Applied RPAS R&amp;D</h3>
         <p class="comm-card-desc">Investigate and validate industry-driven RPAS applications through collaborative research and field trials. For technology developers, research partners, and organizations exploring next-generation autonomous applications.</p>
@@ -858,7 +858,7 @@
         </div>
         <div class="comm-card-cta">Explore an R&amp;D Partnership</div>
       </div>
-      <div class="comm-card fade-in" style="transition-delay:.16s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
+      <div class="comm-card fade-in" style="transition-delay:.16s" role="button" tabindex="0" onclick="window._openPartnerEOIWith('advisory')" onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
         <div class="comm-card-num">03</div>
         <h3 class="comm-card-title">Infrastructure Intelligence &amp; Advisory</h3>
         <p class="comm-card-desc">Support investment and industry decisions with AACP™ regional opportunity intelligence and sector analysis. For industry bodies, investors, and organizations navigating the Canadian RPAS landscape.</p>
@@ -1072,8 +1072,10 @@
 <div id="eoi-partner-modal" class="ri-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="eoi-partner-title">
   <div class="ri-modal">
     <div id="eoi-partner-form-wrap">
+      <div id="eoi-service-badge" hidden style="display:inline-block;background:rgba(128,1,31,.18);border:1px solid rgba(128,1,31,.45);color:#d4a0b0;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;border-radius:4px;padding:3px 10px;margin-bottom:12px"></div>
       <div class="ri-modal-title" id="eoi-partner-title">Request an Industry Partnership Discussion</div>
       <div class="ri-modal-sub" id="eoi-partner-sub">Tell us about your organization and operational needs. Our partnerships team will be in touch to explore how AACP™ can support your RPAS journey.</div>
+      <input type="hidden" id="eoi-p-service" name="service">
       <div class="ri-modal-row">
         <div><label for="eoi-p-first">First Name *</label><input id="eoi-p-first" type="text" autocomplete="given-name" placeholder="First name"></div>
         <div><label for="eoi-p-last">Last Name *</label><input id="eoi-p-last" type="text" autocomplete="family-name" placeholder="Last name"></div>
@@ -2100,9 +2102,39 @@
 
   // ── PARTNER EOI MODAL ───────────────────────────────────────────────────────
 
-  window._openPartnerEOIWith = function(challenge) {
+  var _serviceConfigs = {
+    feasibility: {
+      title: 'RPAS Feasibility Assessment Inquiry',
+      sub: 'Tell us about your infrastructure or operations. AACP™ will assess where RPAS can deliver measurable value for your organization.',
+      challenge: 'Infrastructure inspection',
+      badge: 'Feasibility Assessment'
+    },
+    rd: {
+      title: 'Applied RPAS R&D Partnership Inquiry',
+      sub: 'Tell us about your research objectives or technology. AACP™ will explore a collaborative field trial or applied research engagement.',
+      challenge: 'Technology partnership / integration',
+      badge: 'Applied R&D'
+    },
+    advisory: {
+      title: 'Infrastructure Intelligence & Advisory Inquiry',
+      sub: 'Tell us about your investment or sector focus. AACP™ will provide regional opportunity intelligence to support your decisions.',
+      challenge: '',
+      badge: 'Intelligence & Advisory'
+    }
+  };
+
+  window._openPartnerEOIWith = function(serviceKey) {
+    var cfg = _serviceConfigs[serviceKey] || {};
+    var title = document.getElementById('eoi-partner-title');
+    var sub = document.getElementById('eoi-partner-sub');
+    var badge = document.getElementById('eoi-service-badge');
+    var svcInput = document.getElementById('eoi-p-service');
     var sel = document.getElementById('eoi-p-challenge');
-    if (sel && challenge) sel.value = challenge;
+    if (title) title.textContent = cfg.title || 'Request an Industry Partnership Discussion';
+    if (sub) sub.textContent = cfg.sub || 'Tell us about your organization and operational needs. Our partnerships team will be in touch to explore how AACP™ can support your RPAS journey.';
+    if (badge) { badge.textContent = cfg.badge || ''; badge.style.display = cfg.badge ? 'inline-block' : 'none'; }
+    if (svcInput) svcInput.value = cfg.badge || '';
+    if (sel && cfg.challenge !== undefined) sel.value = cfg.challenge;
     document.getElementById('eoi-partner-form-wrap').hidden = false;
     document.getElementById('eoi-partner-success').hidden = true;
     document.getElementById('eoi-p-err').style.display = 'none';
@@ -2158,7 +2190,7 @@
         body: JSON.stringify({
           firstName, lastName, orgName: org, email,
           phone: phone || null,
-          comment: [industry && `Industry: ${industry}`, challenge && `Area of interest: ${challenge}`, location && `Location: ${location}`, contactPref && `Preferred contact: ${contactPref}`, comment].filter(Boolean).join('\n\n') || null,
+          comment: [(document.getElementById('eoi-p-service').value && `Service: ${document.getElementById('eoi-p-service').value}`), industry && `Industry: ${industry}`, challenge && `Area of interest: ${challenge}`, location && `Location: ${location}`, contactPref && `Preferred contact: ${contactPref}`, comment].filter(Boolean).join('\n\n') || null,
           city: location || d.prov ? null : null,
           province: d.prov || null,
           partnershipInterests: ['rpas_solutions'],
