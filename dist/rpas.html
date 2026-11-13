@@ -86,7 +86,7 @@
     @keyframes sweep{0%{left:0%;opacity:.8}70%{opacity:.2}100%{left:105%;opacity:0}}
     @media(prefers-reduced-motion:reduce){.hero-sweep{display:none}}
 
-    .hero-content{position:relative;z-index:2;padding:148px 6vw 100px;max-width:1200px;width:100%}
+    .hero-content{position:relative;z-index:2;padding:108px 6vw 60px;max-width:1200px;width:100%}
     .hero-eyebrow{display:inline-flex;align-items:center;gap:9px;color:var(--crimson-text);border:1px solid var(--crimson-line);border-radius:20px;padding:5px 15px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:30px;background:var(--crimson-glow)}
     .eyebrow-dot{width:5px;height:5px;border-radius:50%;background:var(--crimson-text);animation:blink 2.4s ease-in-out infinite}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
@@ -189,6 +189,22 @@
 
     /* ── GEO MAP ── */
     .map-section{padding:72px 6vw;background:var(--surface)}
+    /* ── COMMERCIAL OFFERINGS ── */
+    .comm-section{padding:72px 6vw 80px;background:var(--bg);border-top:1px solid var(--border)}
+    .comm-inner{max-width:1200px;margin:0 auto}
+    .comm-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+    .comm-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px 26px 26px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+    .comm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-bright));opacity:0;transition:opacity .3s}
+    .comm-card:hover{border-color:var(--crimson-line);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+    .comm-card:hover::before{opacity:1}
+    .comm-card-num{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--crimson-text);opacity:.7}
+    .comm-card-title{font-family:Fraunces,serif;font-size:1.15rem;font-weight:800;color:var(--text);line-height:1.2}
+    .comm-card-desc{font-size:.82rem;color:var(--muted);line-height:1.75;flex:1}
+    .comm-card-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .comm-card-tags span{font-size:.65rem;font-weight:600;letter-spacing:.3px;color:var(--dim);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:3px 9px}
+    .comm-card-cta{background:transparent;border:1px solid var(--crimson-line);color:var(--crimson-text);border-radius:8px;padding:10px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:all .2s;width:100%}
+    .comm-card-cta:hover{background:var(--crimson-glow);border-color:var(--crimson)}
+    @media(max-width:900px){.comm-cards{grid-template-columns:1fr;gap:14px}.comm-section{padding:60px 5vw 68px}}
     /* Service cards */
     .map-service-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0 32px}
     .map-svc-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s,background .2s}
@@ -809,91 +825,48 @@
   </div>
 </section>
 
-<!-- INTRO STRIP -->
-<div class="intro-strip">
-  <div class="intro-strip-inner fade-in">
-    <div>
-      <div class="intro-kicker">Our Vision</div>
-      <div class="intro-divider"></div>
-      <h2 class="intro-title">A Connected RPAS Innovation Ecosystem</h2>
+<!-- COMMERCIAL OFFERINGS -->
+<section class="comm-section" id="services">
+  <div class="comm-inner">
+    <div class="section-header fade-in">
+      <span class="section-eyebrow">Turn RPAS Opportunities Into Action</span>
+      <h2 class="section-title">Three Ways to Work With AACP™</h2>
+      <div class="divider"></div>
+      <p class="section-sub">From operational feasibility to applied research and industry intelligence — AACP™ works directly with organizations to identify and advance RPAS adoption across Canada.</p>
     </div>
-    <p class="intro-body">To establish a connected RPAS innovation ecosystem that accelerates technology adoption, strengthens Canadian industry capabilities, creates high-value employment opportunities, and positions Alberta as a centre for emerging autonomous technologies. The Hub connects industry, emerging technologies, entrepreneurs, and talent to unlock new opportunities.</p>
-  </div>
-</div>
-
-<!-- FOUR PILLARS -->
-<section class="pillars-section" id="pillars">
-  <div class="section-header fade-in">
-    <span class="section-eyebrow">Four Strategic Pillars</span>
-    <h2 class="section-title">AACP™ RPAS Innovation, Services &amp; Workforce Hub</h2>
-    <div class="divider"></div>
-    <p class="section-sub">An industry-driven innovation and commercial development ecosystem designed to accelerate the adoption, application, and commercialization of remotely piloted and autonomous systems across Canada.</p>
-  </div>
-  <div class="pillars-grid">
-
-    <div class="pillar-card fade-in" style="transition-delay:.04s">
-      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=900&q=80')" role="img" aria-label="Drone conducting industrial infrastructure inspection"></div>
-      <div class="pillar-overlay"></div>
-      <div class="pillar-content">
-        <div class="pillar-num">Pillar 01</div>
-        <div class="pillar-line"></div>
-        <h3 class="pillar-title">RPAS Services &amp; Industry Solutions</h3>
-        <p class="pillar-desc">Advancing innovative RPAS applications and industry-driven solutions that improve productivity, operational efficiency, and business capabilities.</p>
+    <div class="comm-cards">
+      <div class="comm-card fade-in" style="transition-delay:.04s">
+        <div class="comm-card-num">01</div>
+        <h3 class="comm-card-title">RPAS Feasibility Assessment</h3>
+        <p class="comm-card-desc">Assess potential RPAS applications for your infrastructure or operations — from concept to validated use case. AACP™ works with employers and operators to identify where RPAS can deliver measurable value.</p>
+        <div class="comm-card-tags">
+          <span>Infrastructure inspection</span>
+          <span>Surveying &amp; mapping</span>
+          <span>Operational efficiency</span>
+        </div>
+        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Start a Feasibility Discussion →</button>
       </div>
-    </div>
-
-    <div class="pillar-card fade-in" style="transition-delay:.10s">
-      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80')" role="img" aria-label="Advanced cargo drone logistics operations"></div>
-      <div class="pillar-overlay"></div>
-      <div class="pillar-content">
-        <div class="pillar-num">Pillar 02</div>
-        <div class="pillar-line"></div>
-        <h3 class="pillar-title">Autonomous Delivery &amp; Logistics</h3>
-        <p class="pillar-desc">Exploring next-generation autonomous mobility, intelligent logistics, and emerging delivery solutions that transform how businesses and communities connect.</p>
+      <div class="comm-card fade-in" style="transition-delay:.10s">
+        <div class="comm-card-num">02</div>
+        <h3 class="comm-card-title">Applied RPAS R&amp;D</h3>
+        <p class="comm-card-desc">Investigate and validate commercial RPAS use cases through industry-led research and applied field trials. For technology developers, research partners, and organizations exploring next-generation autonomous applications.</p>
+        <div class="comm-card-tags">
+          <span>Technology validation</span>
+          <span>Applied field trials</span>
+          <span>Research partnerships</span>
+        </div>
+        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Explore an R&amp;D Partnership →</button>
       </div>
-    </div>
-
-    <div class="pillar-card fade-in" style="transition-delay:.16s">
-      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1507582020474-9a35b7d455d9?w=900&q=80')" role="img" aria-label="Professional RPAS operator workforce training"></div>
-      <div class="pillar-overlay"></div>
-      <div class="pillar-content">
-        <div class="pillar-num">Pillar 03</div>
-        <div class="pillar-line"></div>
-        <h3 class="pillar-title">Workforce Innovation &amp; Development</h3>
-        <p class="pillar-desc">Building future-ready talent pipelines through competency development, industry engagement, and emerging career pathways — including the AACP™ one-week RPAS Workforce Hub program.</p>
-      </div>
-    </div>
-
-    <div class="pillar-card fade-in" style="transition-delay:.22s">
-      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=900&q=80')" role="img" aria-label="Advanced aerospace engineering and drone manufacturing"></div>
-      <div class="pillar-overlay"></div>
-      <div class="pillar-content">
-        <div class="pillar-num">Pillar 04</div>
-        <div class="pillar-line"></div>
-        <h3 class="pillar-title">RPAS Technology &amp; Advanced Manufacturing</h3>
-        <p class="pillar-desc">Fostering opportunities in RPAS technology development, systems integration, advanced manufacturing, and industry-led innovation.</p>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- INFRASTRUCTURE VISUAL -->
-<section class="infra-section">
-  <div class="infra-visual" role="img" aria-label="Drone monitoring industrial infrastructure">
-    <div class="infra-markers" aria-hidden="true">
-      <div class="m-ring r1"></div>
-      <div class="m-ring r2"></div>
-      <div class="m-ring r3"></div>
-      <div class="infra-sweep"></div>
-    </div>
-    <div class="infra-inner">
-      <div class="infra-content fade-in">
-        <span class="section-eyebrow">Intelligent Infrastructure</span>
-        <h2 class="infra-title">Precision Observation.<br/><em style="font-style:normal;background:linear-gradient(130deg,#f07090,#e05575);-webkit-text-fill-color:transparent;-webkit-background-clip:text;background-clip:text">Industrial Intelligence.</em></h2>
-        <div class="intro-divider"></div>
-        <p class="infra-desc">RPAS-enabled inspection, monitoring, and data collection are reshaping how industry manages critical assets — from energy infrastructure to transportation networks across Canada.</p>
-        <a href="rpas-eoi.html" class="btn-primary">Explore the RPAS Hub</a>
+      <div class="comm-card fade-in" style="transition-delay:.16s">
+        <div class="comm-card-num">03</div>
+        <h3 class="comm-card-title">Infrastructure Intelligence &amp; Advisory</h3>
+        <p class="comm-card-desc">Support investment and industry decisions with AACP™ regional opportunity intelligence and sector analysis. For industry bodies, investors, and organizations navigating the Canadian RPAS landscape.</p>
+        <div class="comm-card-tags">
+          <span>Regional intelligence</span>
+          <span>Sector analysis</span>
+          <span>Industry advisory</span>
+        </div>
+        <button class="comm-card-cta" onclick="document.getElementById('eoi-partner-modal').hidden=false">Request an Advisory Discussion →</button>
       </div>
     </div>
   </div>
@@ -902,37 +875,13 @@
 <!-- GEO MAP -->
 <section class="map-section" id="map">
   <div class="map-inner">
-    <div class="section-header fade-in" style="margin-bottom:0">
+    <div class="section-header fade-in" style="margin-bottom:24px">
       <span class="section-eyebrow">Canadian RPAS Infrastructure Intelligence</span>
       <h2 class="section-title">National RPAS Commercial Opportunity Map</h2>
       <div class="divider"></div>
-      <p class="section-sub" style="margin-bottom:0">Explore potential RPAS applications across Canadian infrastructure and connect with AACP to advance industry-led opportunities.</p>
+      <p class="section-sub" style="margin-bottom:0">Explore potential RPAS applications across Canadian infrastructure. Select a marker to review site intelligence and connect with AACP to advance an opportunity.</p>
     </div>
-    <div class="map-ctas fade-in" style="transition-delay:.04s;margin-top:24px">
-      <a href="#rpas-map" class="btn-primary" onclick="document.getElementById('rpas-map').scrollIntoView({behavior:'smooth'});return false;">Explore the Map ↓</a>
-      <a href="#express-interest" class="btn-secondary">Partner With AACP ↓</a>
-    </div>
-    <div class="map-service-row fade-in" style="transition-delay:.06s">
-      <div class="map-svc-card">
-        <div class="map-svc-icon">🔍</div>
-        <div class="map-svc-title">RPAS Feasibility Assessment</div>
-        <div class="map-svc-desc">Assess potential RPAS applications for your infrastructure or operations — from concept to validated use case.</div>
-        <div class="map-svc-label">Employers &amp; operators</div>
-      </div>
-      <div class="map-svc-card">
-        <div class="map-svc-icon">⚗️</div>
-        <div class="map-svc-title">Applied RPAS R&amp;D</div>
-        <div class="map-svc-desc">Investigate and validate commercial RPAS use cases through industry-led research and applied field trials.</div>
-        <div class="map-svc-label">Research partners</div>
-      </div>
-      <div class="map-svc-card">
-        <div class="map-svc-icon">📡</div>
-        <div class="map-svc-title">Infrastructure Intelligence &amp; Advisory</div>
-        <div class="map-svc-desc">Support investment and industry decisions with AACP™ regional opportunity intelligence and sector analysis.</div>
-        <div class="map-svc-label">Industry &amp; investors</div>
-      </div>
-    </div>
-    <div class="map-controls fade-in" style="transition-delay:.08s">
+    <div class="map-controls fade-in" style="transition-delay:.04s">
       <div class="map-filter-group" role="group" aria-label="Filter by infrastructure category">
         <button class="cat-btn active" data-cat="transportation">Transportation</button>
         <button class="cat-btn active" data-cat="energy">Energy &amp; Utilities</button>
@@ -1024,6 +973,96 @@
     <div class="map-disclaimer fade-in" style="transition-delay:.10s">
       <strong style="color:var(--muted);font-size:.72rem">Intelligence Disclaimer</strong><br>
       AACP™ Intelligence identifies where infrastructure concentration, sector activity, and workforce conditions create conditions for RPAS adoption across Canada. Opportunity signals are compiled through AACP™ commercial intelligence processes and are intended to support regional partnership and workforce development conversations. This map does not constitute validated commercial demand, investment advice, or a guarantee of commercial activity. Opportunity signals are indicative and require independent validation before commercial decisions are made.
+    </div>
+  </div>
+</section>
+
+<!-- INTRO STRIP -->
+<div class="intro-strip">
+  <div class="intro-strip-inner fade-in">
+    <div>
+      <div class="intro-kicker">Our Vision</div>
+      <div class="intro-divider"></div>
+      <h2 class="intro-title">A Connected RPAS Innovation Ecosystem</h2>
+    </div>
+    <p class="intro-body">To establish a connected RPAS innovation ecosystem that accelerates technology adoption, strengthens Canadian industry capabilities, creates high-value employment opportunities, and positions Alberta as a centre for emerging autonomous technologies. The Hub connects industry, emerging technologies, entrepreneurs, and talent to unlock new opportunities.</p>
+  </div>
+</div>
+
+<!-- FOUR PILLARS -->
+<section class="pillars-section" id="pillars">
+  <div class="section-header fade-in">
+    <span class="section-eyebrow">Four Strategic Pillars</span>
+    <h2 class="section-title">AACP™ RPAS Innovation, Services &amp; Workforce Hub</h2>
+    <div class="divider"></div>
+    <p class="section-sub">An industry-driven innovation and commercial development ecosystem designed to accelerate the adoption, application, and commercialization of remotely piloted and autonomous systems across Canada.</p>
+  </div>
+  <div class="pillars-grid">
+
+    <div class="pillar-card fade-in" style="transition-delay:.04s">
+      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=900&q=80')" role="img" aria-label="Drone conducting industrial infrastructure inspection"></div>
+      <div class="pillar-overlay"></div>
+      <div class="pillar-content">
+        <div class="pillar-num">Pillar 01</div>
+        <div class="pillar-line"></div>
+        <h3 class="pillar-title">RPAS Services &amp; Industry Solutions</h3>
+        <p class="pillar-desc">Advancing innovative RPAS applications and industry-driven solutions that improve productivity, operational efficiency, and business capabilities.</p>
+      </div>
+    </div>
+
+    <div class="pillar-card fade-in" style="transition-delay:.10s">
+      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80')" role="img" aria-label="Advanced cargo drone logistics operations"></div>
+      <div class="pillar-overlay"></div>
+      <div class="pillar-content">
+        <div class="pillar-num">Pillar 02</div>
+        <div class="pillar-line"></div>
+        <h3 class="pillar-title">Autonomous Delivery &amp; Logistics</h3>
+        <p class="pillar-desc">Exploring next-generation autonomous mobility, intelligent logistics, and emerging delivery solutions that transform how businesses and communities connect.</p>
+      </div>
+    </div>
+
+    <div class="pillar-card fade-in" style="transition-delay:.16s">
+      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1507582020474-9a35b7d455d9?w=900&q=80')" role="img" aria-label="Professional RPAS operator workforce training"></div>
+      <div class="pillar-overlay"></div>
+      <div class="pillar-content">
+        <div class="pillar-num">Pillar 03</div>
+        <div class="pillar-line"></div>
+        <h3 class="pillar-title">Workforce Innovation &amp; Development</h3>
+        <p class="pillar-desc">Building future-ready talent pipelines through competency development, industry engagement, and emerging career pathways — including the AACP™ one-week RPAS Workforce Hub program.</p>
+      </div>
+    </div>
+
+    <div class="pillar-card fade-in" style="transition-delay:.22s">
+      <div class="pillar-bg" style="background-image:url('https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=900&q=80')" role="img" aria-label="Advanced aerospace engineering and drone manufacturing"></div>
+      <div class="pillar-overlay"></div>
+      <div class="pillar-content">
+        <div class="pillar-num">Pillar 04</div>
+        <div class="pillar-line"></div>
+        <h3 class="pillar-title">RPAS Technology &amp; Advanced Manufacturing</h3>
+        <p class="pillar-desc">Fostering opportunities in RPAS technology development, systems integration, advanced manufacturing, and industry-led innovation.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- INFRASTRUCTURE VISUAL -->
+<section class="infra-section">
+  <div class="infra-visual" role="img" aria-label="Drone monitoring industrial infrastructure">
+    <div class="infra-markers" aria-hidden="true">
+      <div class="m-ring r1"></div>
+      <div class="m-ring r2"></div>
+      <div class="m-ring r3"></div>
+      <div class="infra-sweep"></div>
+    </div>
+    <div class="infra-inner">
+      <div class="infra-content fade-in">
+        <span class="section-eyebrow">Intelligent Infrastructure</span>
+        <h2 class="infra-title">Precision Observation.<br/><em style="font-style:normal;background:linear-gradient(130deg,#f07090,#e05575);-webkit-text-fill-color:transparent;-webkit-background-clip:text;background-clip:text">Industrial Intelligence.</em></h2>
+        <div class="intro-divider"></div>
+        <p class="infra-desc">RPAS-enabled inspection, monitoring, and data collection are reshaping how industry manages critical assets — from energy infrastructure to transportation networks across Canada.</p>
+        <a href="rpas-eoi.html" class="btn-primary">Explore the RPAS Hub</a>
+      </div>
     </div>
   </div>
 </section>
