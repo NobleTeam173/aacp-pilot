@@ -145,7 +145,7 @@
     @media(width<=768px){.intro-strip-inner{grid-template-columns:1fr;gap:28px}}
 
     /* ── PILLARS ── */
-    .pillars-section{padding:108px 6vw;background:var(--bg)}
+    .pillars-section{padding:80px 6vw;background:var(--bg)}
     .section-header{text-align:center;max-width:680px;margin:0 auto 72px}
     .section-eyebrow{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:14px;display:block}
     .section-title{font-family:Fraunces,serif;font-size:clamp(1.9rem,3.2vw,2.8rem);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:14px}
@@ -188,7 +188,18 @@
     @media(width<=768px){.infra-visual{height:520px}.infra-visual::before{background:linear-gradient(0deg,rgba(8,2,10,.97) 0%,rgba(8,2,10,.82) 55%,rgba(8,2,10,.4) 100%)}.infra-inner{align-items:flex-end;padding-bottom:52px}}
 
     /* ── GEO MAP ── */
-    .map-section{padding:108px 6vw;background:var(--surface)}
+    .map-section{padding:72px 6vw;background:var(--surface)}
+    /* Service cards */
+    .map-service-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0 32px}
+    .map-svc-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s,background .2s}
+    .map-svc-card:hover{border-color:var(--crimson-line);background:rgba(128,1,31,.06)}
+    .map-svc-icon{font-size:18px;margin-bottom:10px}
+    .map-svc-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px}
+    .map-svc-desc{font-size:.72rem;color:var(--muted);line-height:1.6}
+    .map-svc-label{font-size:.62rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-top:8px}
+    .map-ctas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:32px}
+    .map-disclaimer{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 16px;font-size:.7rem;color:var(--dim);line-height:1.65;margin-top:14px}
+    @media(max-width:768px){.map-service-row{grid-template-columns:1fr;gap:10px}.map-section{padding:60px 5vw}}
     .map-inner{max-width:1200px;margin:0 auto}
     .map-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px;align-items:center}
     .map-filter-group{display:flex;flex-wrap:wrap;gap:8px;flex:1}
@@ -891,13 +902,37 @@
 <!-- GEO MAP -->
 <section class="map-section" id="map">
   <div class="map-inner">
-    <div class="section-header fade-in">
+    <div class="section-header fade-in" style="margin-bottom:0">
       <span class="section-eyebrow">Canadian RPAS Infrastructure Intelligence</span>
       <h2 class="section-title">National RPAS Commercial Opportunity Map</h2>
       <div class="divider"></div>
-      <p class="section-sub">AACP™ Intelligence identifies where infrastructure concentration, sector activity, and workforce conditions create conditions for RPAS adoption across Canada. Opportunity signals are compiled through AACP™ commercial intelligence processes and are intended to support regional partnership and workforce development conversations. This map does not constitute validated commercial demand, investment advice, or a guarantee of commercial activity.</p>
+      <p class="section-sub" style="margin-bottom:0">Explore potential RPAS applications across Canadian infrastructure and connect with AACP to advance industry-led opportunities.</p>
     </div>
-    <div class="map-controls fade-in" style="transition-delay:.06s">
+    <div class="map-ctas fade-in" style="transition-delay:.04s;margin-top:24px">
+      <a href="#rpas-map" class="btn-primary" onclick="document.getElementById('rpas-map').scrollIntoView({behavior:'smooth'});return false;">Explore the Map ↓</a>
+      <a href="#express-interest" class="btn-secondary">Partner With AACP ↓</a>
+    </div>
+    <div class="map-service-row fade-in" style="transition-delay:.06s">
+      <div class="map-svc-card">
+        <div class="map-svc-icon">🔍</div>
+        <div class="map-svc-title">RPAS Feasibility Assessment</div>
+        <div class="map-svc-desc">Assess potential RPAS applications for your infrastructure or operations — from concept to validated use case.</div>
+        <div class="map-svc-label">Employers &amp; operators</div>
+      </div>
+      <div class="map-svc-card">
+        <div class="map-svc-icon">⚗️</div>
+        <div class="map-svc-title">Applied RPAS R&amp;D</div>
+        <div class="map-svc-desc">Investigate and validate commercial RPAS use cases through industry-led research and applied field trials.</div>
+        <div class="map-svc-label">Research partners</div>
+      </div>
+      <div class="map-svc-card">
+        <div class="map-svc-icon">📡</div>
+        <div class="map-svc-title">Infrastructure Intelligence &amp; Advisory</div>
+        <div class="map-svc-desc">Support investment and industry decisions with AACP™ regional opportunity intelligence and sector analysis.</div>
+        <div class="map-svc-label">Industry &amp; investors</div>
+      </div>
+    </div>
+    <div class="map-controls fade-in" style="transition-delay:.08s">
       <div class="map-filter-group" role="group" aria-label="Filter by infrastructure category">
         <button class="cat-btn active" data-cat="transportation">Transportation</button>
         <button class="cat-btn active" data-cat="energy">Energy &amp; Utilities</button>
@@ -986,8 +1021,9 @@
       </div>
     </div>
 
-    <div style="font-size:.62rem;color:var(--dim);padding:5px 14px 7px;line-height:1.5">
-      Opportunity signals are indicative and require independent validation before commercial decisions are made.
+    <div class="map-disclaimer fade-in" style="transition-delay:.10s">
+      <strong style="color:var(--muted);font-size:.72rem">Intelligence Disclaimer</strong><br>
+      AACP™ Intelligence identifies where infrastructure concentration, sector activity, and workforce conditions create conditions for RPAS adoption across Canada. Opportunity signals are compiled through AACP™ commercial intelligence processes and are intended to support regional partnership and workforce development conversations. This map does not constitute validated commercial demand, investment advice, or a guarantee of commercial activity. Opportunity signals are indicative and require independent validation before commercial decisions are made.
     </div>
   </div>
 </section>
