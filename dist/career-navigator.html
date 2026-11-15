@@ -1350,7 +1350,7 @@ header{
           </div>
           <div class="chart-canvas-wrap"><canvas id="cmpEarningsChart"></canvas></div>
           <div class="chart-legend" id="cmpChartLegend"></div>
-          <div class="chart-source">Estimated annual salary (CAD). Based on Job Bank Canada NOC wage data, NAV Canada CATCA collective agreement, Engineers Canada Compensation Survey 2023, AIAC Workforce Report, and TC Labour Market Information. All figures are estimates — individual outcomes vary with employer, region, seniority, and market conditions.</div>
+          <div class="chart-source">Estimated annual salary (CAD). Based on Canadian labour market data. Individual outcomes vary.</div>
         </div>
         <div class="takeaway-grid" id="cmpTakeaways"></div>
         <div id="cmpEarningsCards"></div>
@@ -3188,7 +3188,6 @@ function renderEarningsView() {
           '<div class="cmp-row"><span class="cmp-row-label">Year 5 (est.)</span><span class="cmp-row-value"><strong>'+fmt(c.salary.year5)+'</strong></span></div>'+
           '<div class="cmp-row"><span class="cmp-row-label">Year 10 (est.)</span><span class="cmp-row-value"><strong style="color:var(--gold)">'+fmt(getSalary(c,'y10'))+'</strong></span></div>'+
           '<div class="cmp-row"><span class="cmp-row-label">Training cost</span><span class="cmp-row-value">'+(c.trainingCost.low===0?'<strong style="color:var(--green-fg)">Employer-funded</strong>':'<strong>'+fmt(c.trainingCost.low)+'–'+fmt(c.trainingCost.high)+'</strong>')+' <span style="font-size:11px;color:var(--fg3)">est.</span></span></div>'+
-          (c.salaryNote?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--fg3);line-height:1.6">'+c.salaryNote+'</div>':'')+
         '</div>'+
       '</div>';
     }).join('');
