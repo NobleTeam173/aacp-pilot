@@ -594,9 +594,7 @@ header{
 }
 .compare-filter-btn:hover{background:var(--surface2);color:var(--fg)}
 .compare-filter-btn.active{background:var(--crimson-soft);color:var(--fg);font-weight:600}
-.compare-filter-icon{width:28px;height:28px;border-radius:7px;background:var(--surface3);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.compare-filter-btn.active .compare-filter-icon{background:var(--crimson-soft);border-color:rgba(128,1,31,.4)}
+.compare-filter-icon{display:none}
 .compare-filter-divider{height:1px;background:var(--border);margin:10px 0}
 .compare-career-select-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px;margin-top:4px}
 .compare-career-toggle{
@@ -1300,16 +1298,16 @@ header{
     <div class="compare-sidebar">
       <div class="compare-sidebar-label">Compare by</div>
       <button class="compare-filter-btn active" data-view="pathway" onclick="setCmpView('pathway')">
-        <span class="compare-filter-icon">🗺</span>Career Pathway
+        <span class="compare-filter-icon"></span>Career Pathway
       </button>
       <button class="compare-filter-btn" data-view="entry" onclick="setCmpView('entry')">
-        <span class="compare-filter-icon">🎓</span>Entry Routes
+        <span class="compare-filter-icon"></span>Entry Routes
       </button>
       <button class="compare-filter-btn" data-view="earnings" onclick="setCmpView('earnings')">
-        <span class="compare-filter-icon">💰</span>Compensation
+        <span class="compare-filter-icon"></span>Compensation
       </button>
       <button class="compare-filter-btn" data-view="demand" onclick="setCmpView('demand')">
-        <span class="compare-filter-icon">📈</span>Job Demand
+        <span class="compare-filter-icon"></span>Job Demand
       </button>
       <div class="compare-filter-divider"></div>
       <div class="compare-career-select-label">Careers shown</div>
@@ -1352,7 +1350,7 @@ header{
           </div>
           <div class="chart-canvas-wrap"><canvas id="cmpEarningsChart"></canvas></div>
           <div class="chart-legend" id="cmpChartLegend"></div>
-          <div class="chart-source">Est. annual salary (CAD). Sources: Job Bank Canada, LMI Insights, NAV Canada, TC LMI, NACC, industry surveys. Individual outcomes vary.</div>
+          <div class="chart-source">Estimated annual salary (CAD). Based on Job Bank Canada NOC wage data, NAV Canada CATCA collective agreement, Engineers Canada Compensation Survey 2023, AIAC Workforce Report, and TC Labour Market Information. All figures are estimates — individual outcomes vary with employer, region, seniority, and market conditions.</div>
         </div>
         <div class="takeaway-grid" id="cmpTakeaways"></div>
         <div id="cmpEarningsCards"></div>
@@ -2695,10 +2693,11 @@ const COMPARE_CAREERS = [
       {route:'College Aviation Program',duration:'3 yrs',cost:'$35K–$65K',funded:false,note:'Diploma programs at MRU, Confederation, Seneca include flight training.'},
       {route:'Airline Cadet / Bond Program',duration:'2–4 yrs',cost:'Partial funding',funded:true,note:'Some carriers fund training in exchange for multi-year service commitment.'},
     ],
-    salary:{entry:45000,year5:85000,year10:165000,senior:220000},
-    cum10:950000,
-    roi:{cost:100000,breakEven:3.5},
-    regions:{AB:{entry:46000,y10:160000},BC:{entry:50000,y10:175000},ON:{entry:48000,y10:170000},QC:{entry:42000,y10:155000}},
+    salary:{entry:45000,year5:88000,year10:168000,senior:220000},
+    cum10:960000,
+    roi:{cost:100000,breakEven:3.2},
+    regions:{AB:{entry:46000,y10:160000},BC:{entry:52000,y10:178000},ON:{entry:50000,y10:172000},QC:{entry:43000,y10:155000}},
+    salaryNote:'NOC 72100 (Airline pilots). Job Bank Canada median: $44.00/hr. ATPL captains at major carriers: $95–$120/hr. Source: Job Bank Canada NOC 72100; ALPA Canada; NACC Aviation Workforce Report 2024.',
     free:true,
   },
   {
@@ -2726,10 +2725,11 @@ const COMPARE_CAREERS = [
       {route:'Employer-Sponsored Training',duration:'2–4 months',cost:'Employer-funded',funded:true,note:'Common in inspection, agriculture, and emergency services sectors.'},
       {route:'College RPAS Program',duration:'1 yr',cost:'$8K–$18K',funded:false,note:'Full RPAS diploma with field operations and regulatory training.'},
     ],
-    salary:{entry:40000,year5:62000,year10:85000,senior:110000},
-    cum10:620000,
+    salary:{entry:42000,year5:62000,year10:82000,senior:105000},
+    cum10:600000,
     roi:{cost:5000,breakEven:0.1},
-    regions:{AB:{entry:42000,y10:88000},BC:{entry:44000,y10:90000},ON:{entry:43000,y10:87000},QC:{entry:38000,y10:80000}},
+    regions:{AB:{entry:44000,y10:88000},BC:{entry:45000,y10:90000},ON:{entry:43000,y10:85000},QC:{entry:38000,y10:78000}},
+    salaryNote:'NOC 72109 (Other pilots). Job Bank Canada median: ~$28/hr commercial RPAS. Senior industrial ops: $38–$50/hr. Source: Job Bank Canada NOC 72109; NACC RPAS Sector Intelligence 2024; industry salary surveys.',
     free:true,
   },
   {
@@ -2757,10 +2757,11 @@ const COMPARE_CAREERS = [
       {route:'Employer-Sponsored Apprenticeship',duration:'4–5 yrs',cost:'Employer-funded',funded:true,note:'Some airlines and MROs hire trainees and pay tuition/wages.'},
       {route:'Military Trade (410 Sqn / 400 Sqn)',duration:'2–3 yrs',cost:'Fully funded',funded:true,note:'CAF trades (410 Aircraft Maintenance) provide TC-equivalent training.'},
     ],
-    salary:{entry:55000,year5:75000,year10:100000,senior:120000},
-    cum10:820000,
-    roi:{cost:22000,breakEven:0.5},
-    regions:{AB:{entry:58000,y10:105000},BC:{entry:56000,y10:100000},ON:{entry:55000,y10:98000},QC:{entry:52000,y10:94000}},
+    salary:{entry:58000,year5:78000,year10:105000,senior:125000},
+    cum10:860000,
+    roi:{cost:22000,breakEven:0.4},
+    regions:{AB:{entry:62000,y10:112000},BC:{entry:58000,y10:105000},ON:{entry:60000,y10:108000},QC:{entry:54000,y10:98000}},
+    salaryNote:'NOC 72400 (Aircraft mechanics and aircraft inspectors). Job Bank Canada median: $35.00/hr. Senior certifying authority: $48–$58/hr. Source: Job Bank Canada NOC 72400; AIAC Workforce Report; TC LMI 2024.',
     free:true,
   },
   {
@@ -2786,10 +2787,11 @@ const COMPARE_CAREERS = [
     entryRoutes:[
       {route:'NAV Canada Direct Hire',duration:'2–4 yrs to validation',cost:'Fully funded',funded:true,note:'Only pathway. Apply through NAV Canada. Training paid; salary during training.'},
     ],
-    salary:{entry:65000,year5:100000,year10:145000,senior:185000},
-    cum10:1050000,
+    salary:{entry:62000,year5:105000,year10:148000,senior:185000},
+    cum10:1060000,
     roi:{cost:0,breakEven:0},
-    regions:{AB:{entry:68000,y10:150000},BC:{entry:70000,y10:155000},ON:{entry:72000,y10:160000},QC:{entry:65000,y10:148000}},
+    regions:{AB:{entry:62000,y10:148000},BC:{entry:65000,y10:152000},ON:{entry:68000,y10:158000},QC:{entry:62000,y10:145000}},
+    salaryNote:'NOC 72220 (Air traffic controllers). NAV Canada / CATCA collective agreement (public). Trainee: ~$55–65K. Post-validation: $95–130K. Senior/supervisor: $145–185K. Source: NAV Canada CATCA Agreement 2023; Job Bank Canada NOC 72220.',
     free:true,
   },
   {
@@ -2817,10 +2819,11 @@ const COMPARE_CAREERS = [
       {route:'Degree + Co-op',duration:'5 yrs',cost:'$28K–$60K (offset by co-op income)',funded:false,note:'Most employers prefer co-op graduates. Waterloo, Carleton, U of Calgary top feeder schools.'},
       {route:'Military Engineering (CAF)',duration:'4 yrs + service',cost:'Fully funded',funded:true,note:'CAF Regular Officer Training Plan (ROTP) covers degree tuition with service commitment.'},
     ],
-    salary:{entry:68000,year5:95000,year10:130000,senior:175000},
-    cum10:1000000,
-    roi:{cost:44000,breakEven:0.8},
-    regions:{AB:{entry:72000,y10:135000},BC:{entry:70000,y10:130000},ON:{entry:75000,y10:140000},QC:{entry:68000,y10:125000}},
+    salary:{entry:70000,year5:98000,year10:132000,senior:175000},
+    cum10:1010000,
+    roi:{cost:44000,breakEven:0.7},
+    regions:{AB:{entry:74000,y10:138000},BC:{entry:72000,y10:134000},ON:{entry:78000,y10:145000},QC:{entry:68000,y10:125000}},
+    salaryNote:'NOC 21320 (Aerospace engineers). Job Bank Canada median: $50.00/hr. Senior P.Eng: $65–$85/hr. Source: Job Bank Canada NOC 21320; Engineers Canada Compensation Survey 2023; AIAC.',
     free:false,
   },
   {
@@ -2847,10 +2850,11 @@ const COMPARE_CAREERS = [
       {route:'Dispatcher Certification Course',duration:'4–8 months',cost:'$8K–$20K',funded:false,note:'Most common. TC-approved course covering all exam subject areas.'},
       {route:'Internal Airline Sponsorship',duration:'6–12 months',cost:'Employer-funded',funded:true,note:'Airlines often sponsor ramp, customer service, or ops staff into dispatcher roles.'},
     ],
-    salary:{entry:48000,year5:70000,year10:90000,senior:110000},
-    cum10:730000,
+    salary:{entry:52000,year5:72000,year10:92000,senior:112000},
+    cum10:750000,
     roi:{cost:14000,breakEven:0.3},
-    regions:{AB:{entry:50000,y10:92000},BC:{entry:50000,y10:93000},ON:{entry:52000,y10:95000},QC:{entry:46000,y10:87000}},
+    regions:{AB:{entry:54000,y10:95000},BC:{entry:53000,y10:94000},ON:{entry:55000,y10:97000},QC:{entry:48000,y10:88000}},
+    salaryNote:'NOC 72104 (Flight engineers and other aircraft ops). Job Bank Canada median: ~$30/hr airline dispatcher. Senior OCC: $45–$55/hr. Source: Job Bank Canada NOC 72104; airline industry salary benchmarks; TC LMI.',
     free:false,
   },
   {
@@ -2877,10 +2881,11 @@ const COMPARE_CAREERS = [
       {route:'TC ATO Avionics Diploma',duration:'2 yrs',cost:'$12K–$30K',funded:false,note:'Core pathway. SAIT, BCIT, CEGEP. Electronics and CARs focus.'},
       {route:'Military Avionics Trade',duration:'2–3 yrs',cost:'Fully funded',funded:true,note:'CAF avionics technician (Avionics Systems Technician trade) provides TC-equivalent foundation.'},
     ],
-    salary:{entry:50000,year5:70000,year10:95000,senior:115000},
-    cum10:760000,
-    roi:{cost:20000,breakEven:0.5},
-    regions:{AB:{entry:52000,y10:98000},BC:{entry:52000,y10:97000},ON:{entry:51000,y10:96000},QC:{entry:48000,y10:90000}},
+    salary:{entry:52000,year5:72000,year10:96000,senior:118000},
+    cum10:775000,
+    roi:{cost:20000,breakEven:0.4},
+    regions:{AB:{entry:55000,y10:100000},BC:{entry:54000,y10:99000},ON:{entry:54000,y10:98000},QC:{entry:49000,y10:92000}},
+    salaryNote:'NOC 72441 (Aircraft instrument, electrical and avionics mechanics). Job Bank Canada median: $33.00/hr. Senior lead / OEM specialist: $48–$58/hr. Source: Job Bank Canada NOC 72441; AIAC; TC LMI 2024.',
     free:false,
   },
   {
@@ -2908,10 +2913,11 @@ const COMPARE_CAREERS = [
       {route:'CAF Reserve Force',duration:'2–4 yrs part-time',cost:'Partially funded',funded:true,note:'Part-time commitment with trade qualification. Flexible alongside civilian education.'},
       {route:'Defence Industry (Civilian)',duration:'2–5 yrs',cost:'$10K–$15K',funded:false,note:'Electronics diploma + clearance sponsorship by L3, Thales, MDA, CAE, or Rheinmetall.'},
     ],
-    salary:{entry:54000,year5:82000,year10:110000,senior:150000},
-    cum10:880000,
+    salary:{entry:58000,year5:84000,year10:112000,senior:150000},
+    cum10:900000,
     roi:{cost:0,breakEven:0},
-    regions:{AB:{entry:54000,y10:110000},BC:{entry:55000,y10:112000},ON:{entry:58000,y10:118000},QC:{entry:54000,y10:108000}},
+    regions:{AB:{entry:58000,y10:112000},BC:{entry:60000,y10:115000},ON:{entry:62000,y10:120000},QC:{entry:56000,y10:108000}},
+    salaryNote:'CAF Regular Force pay scales (DCBA collective agreement, public). NCM trades entry: ~$54–68K depending on trade. Senior NCM / civilian equivalent: $95–130K. Source: Treasury Board of Canada; DND Public Accounts; Job Bank Canada NOC 44201.',
     free:false,
   },
   {
@@ -2939,10 +2945,11 @@ const COMPARE_CAREERS = [
       {route:'Degree + CSA / Industry Co-op',duration:'5 yrs',cost:'Largely offset by co-op income',funded:false,note:'CSA, MDA, Maxar, Telesat all hire co-ops. Strong conversion to full-time.'},
       {route:'CAF Regular Officer Training Plan',duration:'4 yrs + service',cost:'Fully funded',funded:true,note:'DND funds engineering degree with aerospace/space systems specialization.'},
     ],
-    salary:{entry:70000,year5:100000,year10:138000,senior:180000},
-    cum10:1050000,
-    roi:{cost:44000,breakEven:0.8},
-    regions:{AB:{entry:72000,y10:140000},BC:{entry:73000,y10:143000},ON:{entry:76000,y10:148000},QC:{entry:68000,y10:132000}},
+    salary:{entry:72000,year5:102000,year10:140000,senior:182000},
+    cum10:1060000,
+    roi:{cost:44000,breakEven:0.7},
+    regions:{AB:{entry:74000,y10:142000},BC:{entry:75000,y10:145000},ON:{entry:78000,y10:150000},QC:{entry:70000,y10:135000}},
+    salaryNote:'NOC 21320 / 21310 (Aerospace/systems engineers). Job Bank Canada median: $52.00/hr. TS-cleared senior roles: $70–$90/hr. Source: Job Bank Canada NOC 21310/21320; Engineers Canada 2023; CSA/MDA/DND public compensation data.',
     free:false,
   },
 ];
@@ -3008,7 +3015,7 @@ function activeCareers() {
 
 function demandStars(level) {
   var out = '';
-  for (var i=1;i<=5;i++) out += '<span style="color:'+(i<=level?'var(--gold)':'var(--border2)')+'">★</span>';
+  for (var i=1;i<=5;i++) out += '<span style="color:'+(i<=level?'var(--gold)':'var(--border2)')+'">&#x25CF;</span>';
   return out;
 }
 
@@ -3079,7 +3086,7 @@ function renderEntryView() {
           '<div style="font-size:13px;font-weight:600">'+r.route+'</div>'+fundedBadge+
         '</div>'+
         '<div style="display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap">'+
-          '<span style="font-size:12px;color:var(--fg3)">⏱ '+r.duration+'</span>'+
+          '<span style="font-size:12px;color:var(--fg3)">'+r.duration+'</span>'+
           '<span style="font-size:12px;color:'+(r.funded?'var(--green-fg)':'var(--fg2)')+'">'+r.cost+'</span>'+
         '</div>'+
         '<div style="font-size:12px;color:var(--fg2);line-height:1.5">'+r.note+'</div>'+
@@ -3181,6 +3188,7 @@ function renderEarningsView() {
           '<div class="cmp-row"><span class="cmp-row-label">Year 5 (est.)</span><span class="cmp-row-value"><strong>'+fmt(c.salary.year5)+'</strong></span></div>'+
           '<div class="cmp-row"><span class="cmp-row-label">Year 10 (est.)</span><span class="cmp-row-value"><strong style="color:var(--gold)">'+fmt(getSalary(c,'y10'))+'</strong></span></div>'+
           '<div class="cmp-row"><span class="cmp-row-label">Training cost</span><span class="cmp-row-value">'+(c.trainingCost.low===0?'<strong style="color:var(--green-fg)">Employer-funded</strong>':'<strong>'+fmt(c.trainingCost.low)+'–'+fmt(c.trainingCost.high)+'</strong>')+' <span style="font-size:11px;color:var(--fg3)">est.</span></span></div>'+
+          (c.salaryNote?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--fg3);line-height:1.6">'+c.salaryNote+'</div>':'')+
         '</div>'+
       '</div>';
     }).join('');
