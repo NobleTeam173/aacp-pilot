@@ -581,6 +581,95 @@ header{
 }
 .guided-gate-title{font-family:'Fraunces',serif;font-size:20px;font-weight:700;margin-bottom:8px}
 .guided-gate-body{font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto}
+
+/* ── Compare Pathways tab ─────────────────────────────────────── */
+.compare-layout{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
+@media(max-width:680px){.compare-layout{grid-template-columns:1fr}}
+.compare-sidebar{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;position:sticky;top:112px}
+.compare-sidebar-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px}
+.compare-filter-btn{
+  display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;color:var(--fg2);background:none;border:none;cursor:pointer;
+  text-align:left;transition:all .15s;margin-bottom:2px;
+}
+.compare-filter-btn:hover{background:var(--surface2);color:var(--fg)}
+.compare-filter-btn.active{background:var(--crimson-soft);color:var(--fg);font-weight:600}
+.compare-filter-icon{width:28px;height:28px;border-radius:7px;background:var(--surface3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.compare-filter-btn.active .compare-filter-icon{background:var(--crimson-soft);border-color:rgba(128,1,31,.4)}
+.compare-filter-divider{height:1px;background:var(--border);margin:10px 0}
+.compare-career-select-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px;margin-top:4px}
+.compare-career-toggle{
+  display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;
+  font-size:12px;color:var(--fg2);transition:color .15s;
+}
+.compare-career-toggle:hover{color:var(--fg)}
+.compare-career-toggle input[type=checkbox]{accent-color:var(--crimson);width:14px;height:14px;flex-shrink:0;cursor:pointer}
+.compare-career-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Compare view panels */
+.compare-view{display:none}
+.compare-view.active{display:block}
+
+/* Career cards row */
+.cmp-cards{display:grid;gap:14px;margin-bottom:28px}
+.cmp-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.cmp-card-head{padding:16px 18px 14px;border-bottom:1px solid var(--border)}
+.cmp-card-sector{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+.cmp-card-title{font-family:'Fraunces',serif;font-size:16px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.cmp-card-tagline{font-size:12px;color:var(--fg2);line-height:1.5}
+.cmp-card-body{padding:14px 18px}
+.cmp-row{display:flex;gap:8px;margin-bottom:10px;font-size:13px;align-items:flex-start}
+.cmp-row-label{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--fg3);min-width:90px;padding-top:1px;flex-shrink:0}
+.cmp-row-value{color:var(--fg2);line-height:1.5;flex:1;min-width:0}
+.cmp-row-value strong{color:var(--fg)}
+
+/* Pathway lane */
+.pathway-lane{margin-top:10px}
+.pathway-lane-title{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px}
+.pathway-stage{display:flex;gap:10px;position:relative}
+.pathway-stage:not(:last-child)::after{content:'';position:absolute;left:13px;top:28px;bottom:-2px;width:2px;background:var(--border)}
+.pathway-stage-node{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--fg3);flex-shrink:0;position:relative;z-index:1}
+.pathway-stage-content{flex:1;min-width:0;padding-bottom:14px}
+.pathway-stage-name{font-size:13px;font-weight:600;padding-top:3px;margin-bottom:2px}
+.pathway-stage-detail{font-size:12px;color:var(--fg3);line-height:1.5}
+.pathway-stage-certs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.pathway-stage-cert{font-size:10px;padding:2px 7px;border-radius:8px;background:var(--surface3);border:1px solid var(--border);color:var(--fg3)}
+.pathway-stage-cert.tc{background:var(--blue-soft);border-color:rgba(93,173,226,.25);color:var(--blue-fg)}
+.pathway-stage-cert.nav{background:var(--green-soft);border-color:rgba(72,186,124,.25);color:var(--green-fg)}
+.pathway-stage-cert.gold{background:var(--gold-soft);border-color:rgba(200,168,75,.25);color:var(--gold)}
+
+/* Earnings chart */
+.chart-wrap{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.chart-title{font-family:'Fraunces',serif;font-size:17px;font-weight:700}
+.chart-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px}
+.chart-toggle-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:18px;border:none;background:none;color:var(--fg3);cursor:pointer;transition:all .15s}
+.chart-toggle-btn.active{background:var(--surface);color:var(--fg);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.chart-canvas-wrap{position:relative;height:260px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.chart-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2)}
+.chart-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.chart-source{font-size:11px;color:var(--fg3);margin-top:10px;text-align:right}
+
+/* Takeaways */
+.takeaway-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:28px}
+.takeaway-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
+.takeaway-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px}
+.takeaway-value{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--fg);margin-bottom:3px}
+.takeaway-note{font-size:12px;color:var(--fg2);line-height:1.5}
+.takeaway-card.highlight{border-color:var(--gold);background:var(--gold-soft)}
+.takeaway-card.highlight .takeaway-value{color:var(--gold)}
+
+/* Premium gate for compare */
+.compare-premium-gate{
+  background:linear-gradient(135deg,var(--surface2),var(--surface3));
+  border:1px solid var(--border2);border-radius:var(--radius);
+  padding:28px 24px;text-align:center;margin-top:4px;
+}
+.compare-premium-gate h3{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:8px}
+.compare-premium-gate p{font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:18px;max-width:400px;margin-left:auto;margin-right:auto}
 </style>
 </head>
 <body>
@@ -613,6 +702,9 @@ header{
   </button>
   <button class="tab-btn" data-tab="chat" onclick="showTab('chat')" role="tab">
     Ask ACIA™
+  </button>
+  <button class="tab-btn" data-tab="compare" onclick="showTab('compare')" role="tab">
+    Compare Careers
   </button>
   <button class="tab-btn" data-tab="subscribe" onclick="showTab('subscribe')" role="tab">
     Plans
@@ -1194,6 +1286,100 @@ header{
 </main>
 
 <!-- ═══════════════════════════════════════════════════════════════
+     TAB 7 — COMPARE CAREERS
+════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-compare" role="tabpanel" style="max-width:1100px;padding-top:28px">
+
+  <p class="section-label">Compare Careers</p>
+  <h2 class="section-title">Side-by-Side Career Comparison</h2>
+  <p class="section-sub">Compare education requirements, entry routes, training costs, compensation, and 10-year career progression across aviation, aerospace, RPAS, and defence pathways. All salary data is estimated from Canadian sources; individual outcomes vary.</p>
+
+  <div class="compare-layout">
+
+    <!-- Sidebar -->
+    <div class="compare-sidebar">
+      <div class="compare-sidebar-label">Compare by</div>
+      <button class="compare-filter-btn active" data-view="pathway" onclick="setCmpView('pathway')">
+        <span class="compare-filter-icon">🗺</span>Career Pathway
+      </button>
+      <button class="compare-filter-btn" data-view="entry" onclick="setCmpView('entry')">
+        <span class="compare-filter-icon">🎓</span>Entry Routes
+      </button>
+      <button class="compare-filter-btn" data-view="earnings" onclick="setCmpView('earnings')">
+        <span class="compare-filter-icon">💰</span>Compensation
+      </button>
+      <button class="compare-filter-btn" data-view="demand" onclick="setCmpView('demand')">
+        <span class="compare-filter-icon">📈</span>Job Demand
+      </button>
+      <div class="compare-filter-divider"></div>
+      <div class="compare-career-select-label">Careers shown</div>
+      <div id="cmpCareerToggles"></div>
+      <div class="compare-filter-divider"></div>
+      <div class="compare-sidebar-label" style="margin-bottom:8px">Region</div>
+      <select id="cmpRegion" onchange="renderCompare()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--fg);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;font-family:inherit;cursor:pointer;outline:none">
+        <option value="national">Canada (National)</option>
+        <option value="AB">Alberta</option>
+        <option value="BC">British Columbia</option>
+        <option value="ON">Ontario</option>
+        <option value="QC">Quebec</option>
+      </select>
+      <div class="compare-filter-divider"></div>
+      <button onclick="saveCmpComparison()" style="width:100%;padding:9px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--fg2);transition:all .15s" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="">Save Comparison</button>
+      <div id="cmpSaveNote" style="font-size:11px;color:var(--green-fg);text-align:center;margin-top:6px;display:none">Saved to your browser</div>
+    </div>
+
+    <!-- Main compare area -->
+    <div>
+      <!-- VIEW: Career Pathway -->
+      <div class="compare-view active" id="cmpView-pathway">
+        <div id="cmpPathwayCards"></div>
+      </div>
+
+      <!-- VIEW: Entry Routes -->
+      <div class="compare-view" id="cmpView-entry">
+        <div id="cmpEntryCards"></div>
+      </div>
+
+      <!-- VIEW: Compensation -->
+      <div class="compare-view" id="cmpView-earnings">
+        <div class="chart-wrap" id="cmpChartWrap">
+          <div class="chart-header">
+            <div class="chart-title">Earnings Progression</div>
+            <div class="chart-toggle">
+              <button class="chart-toggle-btn active" data-cspan="10" onclick="setCmpChartSpan(10,this)">10 Years</button>
+              <button class="chart-toggle-btn" data-cspan="5" onclick="setCmpChartSpan(5,this)">5 Years</button>
+            </div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="cmpEarningsChart"></canvas></div>
+          <div class="chart-legend" id="cmpChartLegend"></div>
+          <div class="chart-source">Est. annual salary (CAD). Sources: Job Bank Canada, LMI Insights, NAV Canada, TC LMI, NACC, industry surveys. Individual outcomes vary.</div>
+        </div>
+        <div class="takeaway-grid" id="cmpTakeaways"></div>
+        <div id="cmpEarningsCards"></div>
+        <div class="compare-premium-gate" id="cmpPremiumGate">
+          <h3>Full Compensation Data</h3>
+          <p>Cumulative earnings, training ROI, regional salary breakdowns, and paid training pathway details are available to Premium subscribers.</p>
+          <button class="btn-primary" onclick="showTab('subscribe')" style="margin:0 auto">View Premium Plans</button>
+        </div>
+      </div>
+
+      <!-- VIEW: Job Demand -->
+      <div class="compare-view" id="cmpView-demand">
+        <div id="cmpDemandCards"></div>
+      </div>
+
+    </div><!-- /main compare area -->
+  </div><!-- /compare-layout -->
+
+  <!-- Saved comparisons -->
+  <div id="cmpSavedSection" style="margin-top:32px;display:none">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px">Saved Comparisons</div>
+    <div id="cmpSavedList"></div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
      TAB 6 — PLANS / SUBSCRIBE
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
@@ -1269,6 +1455,7 @@ header{
   </div>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 /* ── Tab navigation ────────────────────────────────────────────── */
 function showTab(id) {
@@ -2476,6 +2663,603 @@ function computeGuidedResults() {
 /* ── Init ──────────────────────────────────────────────────────── */
 renderPathwayList();
 buildStrengthGrid();
+
+/* ══════════════════════════════════════════════════════════════════
+   COMPARE CAREERS — data and rendering
+══════════════════════════════════════════════════════════════════ */
+const CAREER_COLORS = ['#5dade2','#e67e22','#48ba7c','#9b59b6','#e74c3c','#f1c40f','#1abc9c','#e91e63','#ff9800','#00bcd4'];
+
+const COMPARE_CAREERS = [
+  {
+    id:'pilot', title:'Commercial Pilot', sector:'Flight Operations', col:'#5dade2',
+    tagline:'Operate aircraft commercially for passenger, cargo, charter, or emergency services across Canada.',
+    entryRequire:'TC Category 1 Medical; min. age 18 for CPL, 21 for ATPL',
+    timeToEntry:'2–4 yrs to CPL; 4–7 yrs to airline (1,500 hrs)',
+    trainingCost:{low:80000,high:120000,note:'Flight school PPL→CPL→IR. Source: ATCO/CAPTA estimates'},
+    paidPathway:'Some regional airlines offer cadet/bonding programs covering partial training costs',
+    education:'TC-approved Flight Training Unit (FTU): MRU, Confederation College, Seneca',
+    jobDemand:'High — 7,900 pilots needed in Canada by 2030 (NACC)',
+    jobDemandLevel:5,
+    demand_note:'Pilot shortage across regionals and majors; strong hiring outlook nationally',
+    demand_sources:'NACC National Aviation Career Outlook 2024; NAV Canada LMI',
+    licences:['TC Category 1 Medical','PPL','CPL','Night Rating','Instrument Rating (IR)','ATPL'],
+    progression:[
+      {stage:'Flight Student',years:'0–2 yrs',cert:'PPL',detail:'45 hrs minimum. TC written exam and flight test.',certs:['tc']},
+      {stage:'CPL — Building Hours',years:'2–4 yrs',cert:'CPL + IR',detail:'200 hrs total; 100 hrs PIC. Night & instrument rating.',certs:['tc']},
+      {stage:'First Officer (Regional)',years:'4–6 yrs',cert:'500 hrs PIC',detail:'Build to 1,500 hrs via instruction, charter, or bush flying.',certs:[]},
+      {stage:'First Officer (Major Airline)',years:'6–10 yrs',cert:'ATPL',detail:'1,500 hrs; 500 cross-country, 100 night, 75 instrument.',certs:['tc']},
+      {stage:'Captain',years:'10+ yrs',cert:'Type Rating',detail:'Command authority on CARS 705 operations.',certs:['tc']},
+    ],
+    entryRoutes:[
+      {route:'Flight School (FTU)',duration:'2–3 yrs',cost:'$80K–$120K',funded:false,note:'Most common. TC-approved FTU. Full program PPL→CPL→IR.'},
+      {route:'College Aviation Program',duration:'3 yrs',cost:'$35K–$65K',funded:false,note:'Diploma programs at MRU, Confederation, Seneca include flight training.'},
+      {route:'Airline Cadet / Bond Program',duration:'2–4 yrs',cost:'Partial funding',funded:true,note:'Some carriers fund training in exchange for multi-year service commitment.'},
+    ],
+    salary:{entry:45000,year5:85000,year10:165000,senior:220000},
+    cum10:950000,
+    roi:{cost:100000,breakEven:3.5},
+    regions:{AB:{entry:46000,y10:160000},BC:{entry:50000,y10:175000},ON:{entry:48000,y10:170000},QC:{entry:42000,y10:155000}},
+    free:true,
+  },
+  {
+    id:'uav', title:'RPAS / UAV Operator', sector:'Flight Operations', col:'#1abc9c',
+    tagline:'Fly drones commercially for infrastructure inspection, survey, environmental monitoring, and emergency services.',
+    entryRequire:'Basic or Advanced RPAS Pilot Certificate (TC)',
+    timeToEntry:'1–6 months to Advanced Certificate',
+    trainingCost:{low:1500,high:8000,note:'TC-approved RPAS course + equipment. Source: industry estimates'},
+    paidPathway:'Many employers provide on-the-job training; some cover Advanced Certificate costs',
+    education:'TC-approved RPAS training organization; online regulatory course (CARs Part IX)',
+    jobDemand:'Growing — RPAS sector 15%+ CAGR projected (NAV Canada / NACC)',
+    jobDemandLevel:4,
+    demand_note:'Rapid expansion across infrastructure, agriculture, film, emergency services, and defence',
+    demand_sources:'NAV Canada RPAS Forecast 2024; NACC Sector Intelligence Report',
+    licences:['Basic RPAS Pilot Certificate','Advanced RPAS Pilot Certificate','BVLOS Waiver (optional)'],
+    progression:[
+      {stage:'Recreational / Hobbyist',years:'0–1 mo',cert:'Basic Cert',detail:'Online knowledge test at TC-approved test centre.',certs:['tc']},
+      {stage:'Commercial Operator',years:'1–6 mo',cert:'Advanced Cert',detail:'Flight review with TC examiner. Near aerodromes, over people.',certs:['tc']},
+      {stage:'Senior RPAS Pilot',years:'1–3 yrs',cert:'Industry certs',detail:'Specialized endorsements: survey, inspection, thermal.',certs:[]},
+      {stage:'RPAS Operations Lead',years:'3–6 yrs',cert:'BVLOS Waiver',detail:'Beyond Visual Line of Sight waiver for expanded ops.',certs:['tc']},
+      {stage:'RPAS Program Manager',years:'6+ yrs',cert:'Multi-platform',detail:'Fleet management, regulatory compliance, client ops.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'Online + Flight Review',duration:'1–3 months',cost:'$1,500–$3,500',funded:false,note:'Most direct path. TC online test + examiner flight review.'},
+      {route:'Employer-Sponsored Training',duration:'2–4 months',cost:'Employer-funded',funded:true,note:'Common in inspection, agriculture, and emergency services sectors.'},
+      {route:'College RPAS Program',duration:'1 yr',cost:'$8K–$18K',funded:false,note:'Full RPAS diploma with field operations and regulatory training.'},
+    ],
+    salary:{entry:40000,year5:62000,year10:85000,senior:110000},
+    cum10:620000,
+    roi:{cost:5000,breakEven:0.1},
+    regions:{AB:{entry:42000,y10:88000},BC:{entry:44000,y10:90000},ON:{entry:43000,y10:87000},QC:{entry:38000,y10:80000}},
+    free:true,
+  },
+  {
+    id:'ame', title:'Aircraft Maintenance Engineer', sector:'Maintenance & Engineering', col:'#e67e22',
+    tagline:'Certify and maintain Canadian-registered aircraft under Transport Canada regulations.',
+    entryRequire:'High school diploma; TC-approved ATO diploma required',
+    timeToEntry:'4–5 years (2 yr diploma + 2 yr OJT + TC exam)',
+    trainingCost:{low:12000,high:35000,note:'TC ATO diploma. Many employers offer apprenticeships. Source: SAIT/NAIT estimates'},
+    paidPathway:'Airlines and MROs offer employer-sponsored AME apprenticeships with paid training',
+    education:'TC ATO diploma: SAIT, NAIT, BCIT, CEGEP Édouard-Montpetit',
+    jobDemand:'High — AME shortage projected nationally (TC LMI)',
+    jobDemandLevel:5,
+    demand_note:'Critical shortage of AME-M2 technicians; strong hiring at airlines, MROs, and regional operators',
+    demand_sources:'Transport Canada LMI; Aerospace Industries Association of Canada',
+    licences:['AME Licence M1 (piston)','AME Licence M2 (turbine)','AME-E (avionics)','AME-S (structures)'],
+    progression:[
+      {stage:'ATO Student',years:'0–2 yrs',cert:'AMT Diploma',detail:'2-yr TC-approved ATO diploma covering airframe, powerplant, systems.',certs:['tc']},
+      {stage:'Junior AME Trainee',years:'2–4 yrs',cert:'AMO OJT',detail:'2 yrs practical experience at TC-approved AMO under licensed supervision.',certs:['tc']},
+      {stage:'Licensed AME',years:'4–5 yrs',cert:'TC AME Licence',detail:'TC written exam (M1/M2/E/S). Licence issued by Transport Canada.',certs:['tc']},
+      {stage:'Senior AME',years:'5–10 yrs',cert:'Multi-category',detail:'Additional category endorsements; certifying authority responsibilities.',certs:['tc']},
+      {stage:'Quality / Certifying Authority',years:'10+ yrs',cert:'QA Authorization',detail:'Quality assurance, releasing authority, supervision of junior staff.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'TC ATO Diploma (Full-Time)',duration:'2 yrs',cost:'$12K–$35K',funded:false,note:'Most common. Diploma at SAIT, NAIT, BCIT, or equivalent.'},
+      {route:'Employer-Sponsored Apprenticeship',duration:'4–5 yrs',cost:'Employer-funded',funded:true,note:'Some airlines and MROs hire trainees and pay tuition/wages.'},
+      {route:'Military Trade (410 Sqn / 400 Sqn)',duration:'2–3 yrs',cost:'Fully funded',funded:true,note:'CAF trades (410 Aircraft Maintenance) provide TC-equivalent training.'},
+    ],
+    salary:{entry:55000,year5:75000,year10:100000,senior:120000},
+    cum10:820000,
+    roi:{cost:22000,breakEven:0.5},
+    regions:{AB:{entry:58000,y10:105000},BC:{entry:56000,y10:100000},ON:{entry:55000,y10:98000},QC:{entry:52000,y10:94000}},
+    free:true,
+  },
+  {
+    id:'atc', title:'Air Traffic Controller', sector:'Air Traffic & Navigation', col:'#48ba7c',
+    tagline:'Manage aircraft movements in Canadian controlled airspace through NAV Canada.',
+    entryRequire:'Competitive selection via NAV Canada; aptitude testing + security clearance',
+    timeToEntry:'2–4 years (selection → NCTI training → facility validation)',
+    trainingCost:{low:0,high:0,note:'NAV Canada pays all training costs and trainees receive a salary throughout training'},
+    paidPathway:'Fully employer-funded — NAV Canada covers all ATC training including 12–18 month residential program in Cornwall, ON',
+    education:'NAV Canada Training Institute (NCTI), Cornwall ON — residential, 12–18 months',
+    jobDemand:'Moderate — hiring tied to NAV Canada attrition and airspace expansion',
+    jobDemandLevel:3,
+    demand_note:'Limited annual intake; competitive selection process with high attrition in training',
+    demand_sources:'NAV Canada Annual Report; Transport Canada Aviation Workforce Report',
+    licences:['ATC Licence (TC-issued)','NAV Canada Facility Validation','Rating endorsements'],
+    progression:[
+      {stage:'Selection & Assessment',years:'0–6 mo',cert:'NAV Canada selection',detail:'Aptitude testing, English proficiency, Reliability Status clearance.',certs:['nav']},
+      {stage:'NCTI Residential Training',years:'6–18 mo',cert:'NCTI certificate',detail:'12–18 months at Cornwall, ON. Radar, procedural, tower streams.',certs:['nav']},
+      {stage:'On-the-Job Training',years:'18 mo–3 yrs',cert:'OJT Validation',detail:'Live traffic training at assigned facility. 1–2 yrs at high-traffic centres.',certs:['nav','tc']},
+      {stage:'Validated Controller',years:'3–7 yrs',cert:'ATC Licence',detail:'Full validation on assigned ratings. Performance review required.',certs:['tc']},
+      {stage:'Senior Controller / Supervisor',years:'7+ yrs',cert:'Multiple ratings',detail:'Supervisor, specialist, or management development streams.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'NAV Canada Direct Hire',duration:'2–4 yrs to validation',cost:'Fully funded',funded:true,note:'Only pathway. Apply through NAV Canada. Training paid; salary during training.'},
+    ],
+    salary:{entry:65000,year5:100000,year10:145000,senior:185000},
+    cum10:1050000,
+    roi:{cost:0,breakEven:0},
+    regions:{AB:{entry:68000,y10:150000},BC:{entry:70000,y10:155000},ON:{entry:72000,y10:160000},QC:{entry:65000,y10:148000}},
+    free:true,
+  },
+  {
+    id:'aerospace_eng', title:'Aerospace Engineer', sector:'Aerospace & Technology', col:'#9b59b6',
+    tagline:"Design and develop aircraft, spacecraft, propulsion systems, and defence platforms.",
+    entryRequire:"Bachelor's in Aerospace, Mechanical, or Electrical Engineering",
+    timeToEntry:"4–5 yrs (degree) + 4 yrs to P.Eng",
+    trainingCost:{low:28000,high:60000,note:"University engineering degree (4–5 yrs). Source: CAQC / AUCC estimates"},
+    paidPathway:"Co-op programs at Waterloo, U of Calgary, Carleton provide paid work terms during degree",
+    education:"BEng: U of Toronto, U of Calgary, Carleton, Concordia, U of Manitoba",
+    jobDemand:'Growing — aerospace/defence sector expansion in Alberta and Ontario',
+    jobDemandLevel:4,
+    demand_note:'Strong demand from L3 Harris, Magellan, MDA, Pratt & Whitney Canada, and CAF procurement',
+    demand_sources:'Aerospace Industries Association of Canada; Engineers Canada LMI',
+    licences:['EIT registration','P.Eng (optional)','DND Secret clearance (defence roles)'],
+    progression:[
+      {stage:'Engineering Student / Co-op',years:'0–4 yrs',cert:'BEng + Co-op',detail:'4 yr degree with paid co-op work terms.',certs:[]},
+      {stage:'Junior Engineer / EIT',years:'4–5 yrs',cert:'EIT registration',detail:'Engineering-in-training under P.Eng supervision.',certs:['gold']},
+      {stage:'Engineer',years:'5–8 yrs',cert:'P.Eng (optional)',detail:'Independent design authority; certification responsibilities.',certs:['gold']},
+      {stage:'Senior Engineer',years:'8–12 yrs',cert:'P.Eng + specialization',detail:'Program lead, system design authority, technical mentorship.',certs:[]},
+      {stage:'Principal / Lead Engineer',years:'12+ yrs',cert:'Program management',detail:'Cross-functional leadership, bid/proposal, customer-facing.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'4-Year Engineering Degree',duration:'4 yrs',cost:'$28K–$60K',funded:false,note:'Core pathway. Co-op strongly recommended (paid work terms during degree).'},
+      {route:'Degree + Co-op',duration:'5 yrs',cost:'$28K–$60K (offset by co-op income)',funded:false,note:'Most employers prefer co-op graduates. Waterloo, Carleton, U of Calgary top feeder schools.'},
+      {route:'Military Engineering (CAF)',duration:'4 yrs + service',cost:'Fully funded',funded:true,note:'CAF Regular Officer Training Plan (ROTP) covers degree tuition with service commitment.'},
+    ],
+    salary:{entry:68000,year5:95000,year10:130000,senior:175000},
+    cum10:1000000,
+    roi:{cost:44000,breakEven:0.8},
+    regions:{AB:{entry:72000,y10:135000},BC:{entry:70000,y10:130000},ON:{entry:75000,y10:140000},QC:{entry:68000,y10:125000}},
+    free:false,
+  },
+  {
+    id:'dispatcher', title:'Flight Dispatcher', sector:'Flight Operations', col:'#f1c40f',
+    tagline:'Plan, monitor, and coordinate airline flight operations from an airline operations control centre.',
+    entryRequire:'TC Aircraft Dispatcher Licence; aviation background recommended',
+    timeToEntry:'8–18 months (dispatcher course + TC exam)',
+    trainingCost:{low:8000,high:20000,note:'Dispatcher certification course. Source: ATCO Aviation / industry training providers'},
+    paidPathway:'Airlines often sponsor internal candidates (ramp, customer service) for dispatcher training',
+    education:'TC-approved dispatcher programs: ATCO Aviation, college programs',
+    jobDemand:'Stable — required for all CARS 705 airline operations',
+    jobDemandLevel:3,
+    demand_note:'Steady demand tied to airline growth; often an internal promotion path at major carriers',
+    demand_sources:'Transport Canada LMI; airline HR intelligence',
+    licences:['TC Aircraft Dispatcher Licence','CARS 724 qualification'],
+    progression:[
+      {stage:'Dispatcher Trainee',years:'0–8 mo',cert:'Dispatcher course',detail:'TC-approved program covering meteorology, flight planning, regulations.',certs:['tc']},
+      {stage:'Junior Dispatcher',years:'8–18 mo',cert:'TC Dispatcher Licence',detail:'First licence endorsement. OCC supervision required.',certs:['tc']},
+      {stage:'Dispatcher',years:'1–4 yrs',cert:'Multi-aircraft type',detail:'Release authority on multiple aircraft types and routes.',certs:[]},
+      {stage:'Senior Dispatcher',years:'4–8 yrs',cert:'SOC qualification',detail:'Systems Operations Control qualification; complex airspace handling.',certs:[]},
+      {stage:'OCC Supervisor',years:'8+ yrs',cert:'SOC management',detail:'Shift supervision, irregular ops management, training new dispatchers.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'Dispatcher Certification Course',duration:'4–8 months',cost:'$8K–$20K',funded:false,note:'Most common. TC-approved course covering all exam subject areas.'},
+      {route:'Internal Airline Sponsorship',duration:'6–12 months',cost:'Employer-funded',funded:true,note:'Airlines often sponsor ramp, customer service, or ops staff into dispatcher roles.'},
+    ],
+    salary:{entry:48000,year5:70000,year10:90000,senior:110000},
+    cum10:730000,
+    roi:{cost:14000,breakEven:0.3},
+    regions:{AB:{entry:50000,y10:92000},BC:{entry:50000,y10:93000},ON:{entry:52000,y10:95000},QC:{entry:46000,y10:87000}},
+    free:false,
+  },
+  {
+    id:'avionics', title:'Avionics Technician', sector:'Maintenance & Engineering', col:'#e74c3c',
+    tagline:'Install, test, and certify aircraft navigation, communication, and flight control systems.',
+    entryRequire:'TC ATO diploma with avionics specialization',
+    timeToEntry:'4–5 years (2 yr diploma + 2 yr OJT + TC exam)',
+    trainingCost:{low:12000,high:30000,note:'TC ATO avionics diploma. Source: SAIT/BCIT estimates'},
+    paidPathway:'Airlines and MROs offer apprenticeship pathways with paid on-the-job training',
+    education:'TC ATO with avionics specialization: SAIT, BCIT, CEGEP Édouard-Montpetit',
+    jobDemand:'High — avionics roles in strong demand with new-generation aircraft',
+    jobDemandLevel:4,
+    demand_note:'NextGen aircraft (737 MAX, A220, A320neo) driving demand for new avionics competencies',
+    demand_sources:'Aerospace Industries Association; Transport Canada LMI',
+    licences:['AME Licence (E category)','OEM System Certifications (optional)'],
+    progression:[
+      {stage:'ATO Student',years:'0–2 yrs',cert:'Avionics Diploma',detail:'TC-approved avionics ATO: electronics, navigation systems, CARs.',certs:['tc']},
+      {stage:'Junior Avionics Tech',years:'2–4 yrs',cert:'AMO OJT',detail:'2 yrs at TC-approved AMO under licensed AME-E supervision.',certs:['tc']},
+      {stage:'Licensed Avionics Tech',years:'4–5 yrs',cert:'AME-E Licence',detail:'TC written exam (E category). Licence to certify avionics maintenance.',certs:['tc']},
+      {stage:'Senior Avionics Lead',years:'5–10 yrs',cert:'Multi-system',detail:'OEM systems training; aircraft-specific authorizations.',certs:[]},
+      {stage:'Avionics Systems Specialist',years:'10+ yrs',cert:'OEM certified',detail:'Specialized in EFIS, FMS, or ACARS; possible OEM support roles.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'TC ATO Avionics Diploma',duration:'2 yrs',cost:'$12K–$30K',funded:false,note:'Core pathway. SAIT, BCIT, CEGEP. Electronics and CARs focus.'},
+      {route:'Military Avionics Trade',duration:'2–3 yrs',cost:'Fully funded',funded:true,note:'CAF avionics technician (Avionics Systems Technician trade) provides TC-equivalent foundation.'},
+    ],
+    salary:{entry:50000,year5:70000,year10:95000,senior:115000},
+    cum10:760000,
+    roi:{cost:20000,breakEven:0.5},
+    regions:{AB:{entry:52000,y10:98000},BC:{entry:52000,y10:97000},ON:{entry:51000,y10:96000},QC:{entry:48000,y10:90000}},
+    free:false,
+  },
+  {
+    id:'defence_systems', title:'Defence Systems Operator', sector:'Defence & Security', col:'#c0392b',
+    tagline:'Operate surveillance, UAV, and aerospace systems in the Canadian Armed Forces or defence industry.',
+    entryRequire:'CAF enlistment or defence industry clearance; relevant technical background',
+    timeToEntry:'1–3 years via CAF; 2–5 years via industry pathway',
+    trainingCost:{low:0,high:15000,note:'CAF pathway fully funded. Industry pathway varies by program.'},
+    paidPathway:'CAF: fully employer-funded training with paid salary throughout. Some defence primes sponsor technical training.',
+    education:'CAF Basic Military Training + trade training; or aerospace/electronics diploma for industry roles',
+    jobDemand:'Growing — NORAD modernization and CAF investment in autonomous systems (RPAS, ISR)',
+    jobDemandLevel:4,
+    demand_note:'NORAD SATCOM modernization, CAF RPAS acquisition, and C4ISR expansion driving demand',
+    demand_sources:'DND RPAS Strategy 2024; NACC Defence Sector Report; Public Safety Canada LMI',
+    licences:['Reliability Status / Secret Clearance','CAF trade qualifications','DND system endorsements'],
+    progression:[
+      {stage:'Basic Training / Recruit',years:'0–6 mo',cert:'BMQ',detail:'Basic Military Qualification at Borden, ON. All CAF trades.',certs:[]},
+      {stage:'Trade Qualification',years:'6–18 mo',cert:'Trade cert',detail:'Technical trade training at RCAF / Army / Navy trade school.',certs:[]},
+      {stage:'Systems Operator',years:'1–5 yrs',cert:'Platform endorsement',detail:'Qualified on specific aircraft, sensor, or surveillance platform.',certs:[]},
+      {stage:'Senior Operator / Supervisor',years:'5–10 yrs',cert:'TS clearance',detail:'Supervisory authority; possibly TS clearance for sensitive platforms.',certs:[]},
+      {stage:'Systems / Program Specialist',years:'10+ yrs',cert:'Program management',detail:'Technical authority, acquisition support, or civilian transition.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'CAF Regular Force Enlistment',duration:'1–3 yrs to trade-qualified',cost:'Fully funded',funded:true,note:'Most direct. Paid training, salary, benefits throughout. 3–9 yr initial service commitment.'},
+      {route:'CAF Reserve Force',duration:'2–4 yrs part-time',cost:'Partially funded',funded:true,note:'Part-time commitment with trade qualification. Flexible alongside civilian education.'},
+      {route:'Defence Industry (Civilian)',duration:'2–5 yrs',cost:'$10K–$15K',funded:false,note:'Electronics diploma + clearance sponsorship by L3, Thales, MDA, CAE, or Rheinmetall.'},
+    ],
+    salary:{entry:54000,year5:82000,year10:110000,senior:150000},
+    cum10:880000,
+    roi:{cost:0,breakEven:0},
+    regions:{AB:{entry:54000,y10:110000},BC:{entry:55000,y10:112000},ON:{entry:58000,y10:118000},QC:{entry:54000,y10:108000}},
+    free:false,
+  },
+  {
+    id:'space_systems', title:'Space Systems Analyst', sector:'Aerospace & Technology', col:'#00bcd4',
+    tagline:"Support satellite operations, mission planning, and space systems engineering for Canada's growing new space sector.",
+    entryRequire:"Bachelor's in Engineering, Physics, or Computer Science; clearance for government roles",
+    timeToEntry:"4–6 years (degree + 1–2 yr entry-level)",
+    trainingCost:{low:28000,high:60000,note:"STEM degree (4 yrs). Co-op available at most programs. Source: AUCC estimates"},
+    paidPathway:"Co-op and internship programs through CSA, MDA, Maxar, Telesat, and DND",
+    education:"Engineering, Physics, or CS: Carleton, U of Calgary, U of Waterloo, U of Manitoba, UQAM",
+    jobDemand:"Growing — Canada's New Space economy and NORAD SATCOM investment",
+    jobDemandLevel:4,
+    demand_note:"MDA, Telesat LEO, CSA, DND SATCOM programs driving demand; global satellite ops growth",
+    demand_sources:"Canadian Space Agency; Engineers Canada LMI; MDA/Telesat public announcements",
+    licences:['EIT registration','P.Eng (optional)','DND Secret/TS clearance (government roles)'],
+    progression:[
+      {stage:'Engineering Student / Co-op',years:'0–4 yrs',cert:'STEM degree',detail:'4 yr degree with co-op work terms at CSA, MDA, Maxar, or DND.',certs:[]},
+      {stage:'Junior Analyst / EIT',years:'4–6 yrs',cert:'EIT',detail:'Systems operations, ground control, or systems verification roles.',certs:['gold']},
+      {stage:'Systems Analyst',years:'6–9 yrs',cert:'P.Eng or equiv.',detail:'Mission planning, satellite health monitoring, payload ops.',certs:['gold']},
+      {stage:'Senior Analyst',years:'9–13 yrs',cert:'Systems clearance',detail:'Mission critical operations; possibly TS clearance for DND roles.',certs:[]},
+      {stage:'Principal / Program Lead',years:'13+ yrs',cert:'TS clearance',detail:'Program ownership, acquisition support, international partnerships.',certs:[]},
+    ],
+    entryRoutes:[
+      {route:'4-Year STEM Degree',duration:'4 yrs',cost:'$28K–$60K',funded:false,note:'Core pathway. Physics, CS, or engineering with space systems focus.'},
+      {route:'Degree + CSA / Industry Co-op',duration:'5 yrs',cost:'Largely offset by co-op income',funded:false,note:'CSA, MDA, Maxar, Telesat all hire co-ops. Strong conversion to full-time.'},
+      {route:'CAF Regular Officer Training Plan',duration:'4 yrs + service',cost:'Fully funded',funded:true,note:'DND funds engineering degree with aerospace/space systems specialization.'},
+    ],
+    salary:{entry:70000,year5:100000,year10:138000,senior:180000},
+    cum10:1050000,
+    roi:{cost:44000,breakEven:0.8},
+    regions:{AB:{entry:72000,y10:140000},BC:{entry:73000,y10:143000},ON:{entry:76000,y10:148000},QC:{entry:68000,y10:132000}},
+    free:false,
+  },
+];
+
+/* ── Compare state ──────────────────────────────────────────────── */
+var cmpSelected = ['pilot','ame','atc','uav'];
+var cmpView = 'pathway';
+var cmpSpan = 10;
+var cmpChart = null;
+
+function setCmpView(v) {
+  cmpView = v;
+  document.querySelectorAll('.compare-filter-btn').forEach(function(b){b.classList.toggle('active', b.dataset.view===v)});
+  document.querySelectorAll('.compare-view').forEach(function(el){el.classList.remove('active')});
+  var panel = document.getElementById('cmpView-'+v);
+  if (panel) panel.classList.add('active');
+  renderCompare();
+}
+
+function setCmpChartSpan(span, btn) {
+  cmpSpan = span;
+  document.querySelectorAll('.chart-toggle-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderCompare();
+}
+
+function getRegionKey() { return document.getElementById('cmpRegion').value; }
+
+function getSalary(c, key) {
+  var reg = getRegionKey();
+  if (reg !== 'national' && c.regions[reg]) {
+    return key === 'entry' ? c.regions[reg].entry : c.regions[reg].y10;
+  }
+  return key === 'entry' ? c.salary.entry : c.salary.year10;
+}
+
+function fmt(n) { return '$'+n.toLocaleString('en-CA'); }
+
+function buildCmpToggles() {
+  var el = document.getElementById('cmpCareerToggles');
+  if (!el) return;
+  el.innerHTML = COMPARE_CAREERS.map(function(c,i){
+    var checked = cmpSelected.indexOf(c.id) !== -1 ? 'checked' : '';
+    return '<label class="compare-career-toggle"><input type="checkbox" '+checked+' onchange="toggleCmpCareer(\''+c.id+'\')" /><span class="compare-career-dot" style="background:'+c.col+'"></span>'+c.title+'</label>';
+  }).join('');
+}
+
+function toggleCmpCareer(id) {
+  var idx = cmpSelected.indexOf(id);
+  if (idx === -1) {
+    if (cmpSelected.length >= 5) { alert('Select up to 5 careers to compare.'); buildCmpToggles(); return; }
+    cmpSelected.push(id);
+  } else {
+    if (cmpSelected.length <= 1) { buildCmpToggles(); return; }
+    cmpSelected.splice(idx, 1);
+  }
+  renderCompare();
+}
+
+function activeCareers() {
+  return COMPARE_CAREERS.filter(function(c){ return cmpSelected.indexOf(c.id) !== -1; });
+}
+
+function demandStars(level) {
+  var out = '';
+  for (var i=1;i<=5;i++) out += '<span style="color:'+(i<=level?'var(--gold)':'var(--border2)')+'">★</span>';
+  return out;
+}
+
+function renderCompare() {
+  if (cmpView === 'pathway') renderPathwayView();
+  else if (cmpView === 'entry') renderEntryView();
+  else if (cmpView === 'earnings') renderEarningsView();
+  else if (cmpView === 'demand') renderDemandView();
+}
+
+function renderPathwayView() {
+  var careers = activeCareers();
+  var cols = careers.length;
+  var el = document.getElementById('cmpPathwayCards');
+  if (!el) return;
+  el.style.display = 'grid';
+  el.style.gridTemplateColumns = 'repeat('+Math.min(cols,2)+',1fr)';
+  el.style.gap = '16px';
+  el.innerHTML = careers.map(function(c){
+    var stagesHtml = c.progression.map(function(s,i){
+      var certs = (s.certs||[]).map(function(ct){
+        return '<span class="pathway-stage-cert '+ct+'">'+({tc:'Transport Canada',nav:'NAV Canada',gold:'Professional'}[ct]||ct)+'</span>';
+      }).join('');
+      return '<div class="pathway-stage">'+
+        '<div class="pathway-stage-node">'+(i+1)+'</div>'+
+        '<div class="pathway-stage-content">'+
+          '<div class="pathway-stage-name">'+s.stage+'</div>'+
+          '<div class="pathway-stage-detail" style="font-size:12px;color:var(--fg3)">'+s.years+' · '+s.cert+'</div>'+
+          '<div style="font-size:12px;color:var(--fg2);margin-top:3px;line-height:1.5">'+s.detail+'</div>'+
+          (certs?'<div class="pathway-stage-certs">'+certs+'</div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+    return '<div class="cmp-card">'+
+      '<div class="cmp-card-head">'+
+        '<div class="cmp-card-sector" style="color:'+c.col+'">'+c.sector+'</div>'+
+        '<div class="cmp-card-title">'+c.title+'</div>'+
+        '<div class="cmp-card-tagline">'+c.tagline+'</div>'+
+      '</div>'+
+      '<div class="cmp-card-body">'+
+        '<div class="pathway-lane">'+
+          '<div class="pathway-lane-title">Career Progression</div>'+
+          stagesHtml+
+        '</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;border-top:1px solid var(--border);padding-top:12px">'+
+          '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Time to entry</div><div style="font-size:13px;font-weight:600">'+c.timeToEntry+'</div></div>'+
+          '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--fg3);margin-bottom:3px">Entry salary (est.)</div><div style="font-size:13px;font-weight:600;color:var(--gold)">'+fmt(getSalary(c,'entry'))+'</div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderEntryView() {
+  var careers = activeCareers();
+  var el = document.getElementById('cmpEntryCards');
+  if (!el) return;
+  el.style.display = 'grid';
+  el.style.gridTemplateColumns = 'repeat('+Math.min(careers.length,2)+',1fr)';
+  el.style.gap = '16px';
+  el.innerHTML = careers.map(function(c){
+    var routesHtml = c.entryRoutes.map(function(r){
+      var fundedBadge = r.funded
+        ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--green-soft);border:1px solid rgba(72,186,124,.3);color:var(--green-fg);margin-left:6px">Funded</span>'
+        : '';
+      return '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;background:var(--surface2)">'+
+        '<div style="display:flex;align-items:center;gap:0;margin-bottom:4px">'+
+          '<div style="font-size:13px;font-weight:600">'+r.route+'</div>'+fundedBadge+
+        '</div>'+
+        '<div style="display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap">'+
+          '<span style="font-size:12px;color:var(--fg3)">⏱ '+r.duration+'</span>'+
+          '<span style="font-size:12px;color:'+(r.funded?'var(--green-fg)':'var(--fg2)')+'">'+r.cost+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--fg2);line-height:1.5">'+r.note+'</div>'+
+      '</div>';
+    }).join('');
+    return '<div class="cmp-card">'+
+      '<div class="cmp-card-head">'+
+        '<div class="cmp-card-sector" style="color:'+c.col+'">'+c.sector+'</div>'+
+        '<div class="cmp-card-title">'+c.title+'</div>'+
+      '</div>'+
+      '<div class="cmp-card-body">'+
+        '<div class="cmp-row"><span class="cmp-row-label">Requirements</span><span class="cmp-row-value">'+c.entryRequire+'</span></div>'+
+        '<div class="cmp-row"><span class="cmp-row-label">Time to enter</span><span class="cmp-row-value"><strong>'+c.timeToEntry+'</strong></span></div>'+
+        '<div class="cmp-row"><span class="cmp-row-label">Training cost</span><span class="cmp-row-value"><strong>'+(c.trainingCost.low===0?'Free (employer-funded)':fmt(c.trainingCost.low)+'–'+fmt(c.trainingCost.high))+'</strong></span></div>'+
+        '<div class="cmp-row"><span class="cmp-row-label">Education</span><span class="cmp-row-value">'+c.education+'</span></div>'+
+        '<div style="margin-top:12px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px">Entry Routes</div>'+
+        routesHtml+
+        (c.paidPathway?'<div style="background:var(--green-soft);border:1px solid rgba(72,186,124,.25);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--green-fg);margin-top:4px"><strong>Paid pathway available:</strong> '+c.paidPathway+'</div>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function buildEarningsData(span) {
+  var careers = activeCareers();
+  var labels = [];
+  for (var y=1;y<=span;y++) labels.push('Year '+y);
+  var datasets = careers.map(function(c,i){
+    var reg = getRegionKey();
+    var entry = (reg!=='national'&&c.regions[reg])?c.regions[reg].entry:c.salary.entry;
+    var y5 = c.salary.year5;
+    var y10 = (reg!=='national'&&c.regions[reg])?c.regions[reg].y10:c.salary.year10;
+    var data = [];
+    for (var y=1;y<=span;y++) {
+      if (y<=5) data.push(Math.round(entry + (y5-entry)*((y-1)/4)));
+      else data.push(Math.round(y5 + (y10-y5)*((y-5)/5)));
+    }
+    return {label:c.title, data:data, borderColor:c.col, backgroundColor:c.col+'22', tension:.4, fill:false, pointRadius:3, pointHoverRadius:5};
+  });
+  return {labels:labels, datasets:datasets};
+}
+
+function renderEarningsView() {
+  var careers = activeCareers();
+  var isPremium = false;
+  document.getElementById('cmpPremiumGate').style.display = isPremium ? 'none' : 'block';
+
+  // chart
+  var ctx = document.getElementById('cmpEarningsChart');
+  if (cmpChart) { cmpChart.destroy(); cmpChart = null; }
+  if (ctx && typeof Chart !== 'undefined') {
+    var chartData = buildEarningsData(cmpSpan);
+    cmpChart = new Chart(ctx, {
+      type:'line',
+      data: chartData,
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+fmt(ctx.raw);}}}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7a6890',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7a6890',font:{size:11},callback:function(v){return '$'+Math.round(v/1000)+'K';}}}
+        }
+      }
+    });
+  }
+
+  // legend
+  var leg = document.getElementById('cmpChartLegend');
+  if (leg) leg.innerHTML = careers.map(function(c){
+    return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:'+c.col+'"></span>'+c.title+'</div>';
+  }).join('');
+
+  // takeaways
+  var sorted = careers.slice().sort(function(a,b){ return getSalary(b,'y10')-getSalary(a,'y10'); });
+  var taEl = document.getElementById('cmpTakeaways');
+  if (taEl) {
+    taEl.innerHTML = [
+      '<div class="takeaway-card highlight"><div class="takeaway-label">Highest Year-10 Salary</div><div class="takeaway-value">'+sorted[0].title+'</div><div class="takeaway-note">Est. '+fmt(getSalary(sorted[0],'y10'))+'/yr</div></div>',
+      '<div class="takeaway-card"><div class="takeaway-label">Fastest Entry</div><div class="takeaway-value">'+(careers.reduce(function(a,b){return a.timeToEntry.length<b.timeToEntry.length?a:b;})).title+'</div><div class="takeaway-note">Shortest path to paid work</div></div>',
+      '<div class="takeaway-card"><div class="takeaway-label">Lowest Training Cost</div><div class="takeaway-value">'+(careers.reduce(function(a,b){return a.trainingCost.low<b.trainingCost.low?a:b;})).title+'</div><div class="takeaway-note">'+(function(){var c=careers.reduce(function(a,b){return a.trainingCost.low<b.trainingCost.low?a:b;});return c.trainingCost.low===0?'Fully employer-funded':fmt(c.trainingCost.low)+' min.';}())+'</div></div>',
+    ].join('');
+  }
+
+  // per-career earnings cards (shown above gate)
+  var ecEl = document.getElementById('cmpEarningsCards');
+  if (ecEl) {
+    ecEl.style.display = 'grid';
+    ecEl.style.gridTemplateColumns = 'repeat('+Math.min(careers.length,2)+',1fr)';
+    ecEl.style.gap = '14px';
+    ecEl.style.marginBottom = '16px';
+    ecEl.innerHTML = careers.map(function(c){
+      return '<div class="cmp-card">'+
+        '<div class="cmp-card-head">'+
+          '<div class="cmp-card-sector" style="color:'+c.col+'">'+c.sector+'</div>'+
+          '<div class="cmp-card-title">'+c.title+'</div>'+
+        '</div>'+
+        '<div class="cmp-card-body">'+
+          '<div class="cmp-row"><span class="cmp-row-label">Entry salary</span><span class="cmp-row-value"><strong>'+fmt(getSalary(c,'entry'))+'</strong></span></div>'+
+          '<div class="cmp-row"><span class="cmp-row-label">Year 5 (est.)</span><span class="cmp-row-value"><strong>'+fmt(c.salary.year5)+'</strong></span></div>'+
+          '<div class="cmp-row"><span class="cmp-row-label">Year 10 (est.)</span><span class="cmp-row-value"><strong style="color:var(--gold)">'+fmt(getSalary(c,'y10'))+'</strong></span></div>'+
+          '<div class="cmp-row"><span class="cmp-row-label">Training cost</span><span class="cmp-row-value">'+(c.trainingCost.low===0?'<strong style="color:var(--green-fg)">Employer-funded</strong>':'<strong>'+fmt(c.trainingCost.low)+'–'+fmt(c.trainingCost.high)+'</strong>')+' <span style="font-size:11px;color:var(--fg3)">est.</span></span></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+function renderDemandView() {
+  var careers = activeCareers();
+  var el = document.getElementById('cmpDemandCards');
+  if (!el) return;
+  el.style.display = 'grid';
+  el.style.gridTemplateColumns = 'repeat('+Math.min(careers.length,2)+',1fr)';
+  el.style.gap = '16px';
+  el.innerHTML = careers.map(function(c){
+    return '<div class="cmp-card">'+
+      '<div class="cmp-card-head">'+
+        '<div class="cmp-card-sector" style="color:'+c.col+'">'+c.sector+'</div>'+
+        '<div class="cmp-card-title">'+c.title+'</div>'+
+      '</div>'+
+      '<div class="cmp-card-body">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+          '<div style="font-size:22px;line-height:1">'+demandStars(c.jobDemandLevel)+'</div>'+
+          '<div style="font-size:12px;color:var(--fg2)">'+c.jobDemand+'</div>'+
+        '</div>'+
+        '<div style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:10px">'+c.demand_note+'</div>'+
+        '<div class="cmp-row"><span class="cmp-row-label">Licences</span><span class="cmp-row-value" style="font-size:12px">'+c.licences.join(', ')+'</span></div>'+
+        '<div class="cmp-row"><span class="cmp-row-label">Authority</span><span class="cmp-row-value" style="font-size:12px">'+c.licences[0].match(/TC|Transport|NAV|DND|CAF|CSA|P\.Eng|Engineers/)?'':''+'</span></div>'+
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--fg3)">Sources: '+c.demand_sources+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function saveCmpComparison() {
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem('cmpSaved')||'[]'); } catch(e){}
+  var entry = { careers: cmpSelected.slice(), view: cmpView, region: getRegionKey(), date: new Date().toLocaleDateString('en-CA') };
+  saved.unshift(entry);
+  if (saved.length > 5) saved = saved.slice(0,5);
+  try { localStorage.setItem('cmpSaved', JSON.stringify(saved)); } catch(e){}
+  var note = document.getElementById('cmpSaveNote');
+  if (note) { note.style.display='block'; setTimeout(function(){note.style.display='none';},2500); }
+  renderSavedComparisons();
+}
+
+function renderSavedComparisons() {
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem('cmpSaved')||'[]'); } catch(e){}
+  var sec = document.getElementById('cmpSavedSection');
+  var list = document.getElementById('cmpSavedList');
+  if (!sec||!list) return;
+  if (!saved.length) { sec.style.display='none'; return; }
+  sec.style.display='block';
+  list.innerHTML = saved.map(function(s,i){
+    var names = s.careers.map(function(id){var c=COMPARE_CAREERS.find(function(x){return x.id===id;});return c?c.title:id;}).join(', ');
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px">'+
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+names+'</div>'+
+      '<div style="font-size:11px;color:var(--fg3)">'+s.view+' · '+s.region+' · '+s.date+'</div></div>'+
+      '<button onclick="loadSaved('+i+')" style="font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);background:none;border:1px solid var(--border2);color:var(--fg2);cursor:pointer">Load</button>'+
+    '</div>';
+  }).join('');
+}
+
+function loadSaved(i) {
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem('cmpSaved')||'[]'); } catch(e){}
+  if (!saved[i]) return;
+  cmpSelected = saved[i].careers.filter(function(id){ return COMPARE_CAREERS.some(function(c){return c.id===id;}); });
+  if (!cmpSelected.length) cmpSelected = ['pilot','ame'];
+  buildCmpToggles();
+  var reg = document.getElementById('cmpRegion');
+  if (reg) reg.value = saved[i].region || 'national';
+  setCmpView(saved[i].view || 'pathway');
+}
+
+/* ── Init Compare ───────────────────────────────────────────────── */
+buildCmpToggles();
+renderSavedComparisons();
+renderCompare();
 </script>
 </body>
 </html>
