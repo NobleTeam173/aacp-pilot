@@ -14841,6 +14841,318 @@ async function handleAdminValidationSessionAuthorize(request, user, env) {
 
 // ── Main fetch handler ────────────────────────────────────────────────────────
 
+// ── Career Navigator — Stripe Integration ────────────────────────────────────
+
+const NAVIGATOR_PLANS = {
+  premium_student: { name: 'Premium Student', priceEnv: 'STRIPE_NAVIGATOR_PRICE_STUDENT',  priceCAD: 9.99 },
+  advisor_invited:  { name: 'Advisor Invited',  priceEnv: 'STRIPE_NAVIGATOR_PRICE_INVITED',  priceCAD: 7.99 },
+  career_advisor:   { name: 'Career Advisor',   priceEnv: 'STRIPE_NAVIGATOR_PRICE_ADVISOR',  priceCAD: 14.99 },
+};
+
+function nanoid10() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let r = '';
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  for (const b of bytes) r += chars[b % chars.length];
+  return r;
+}
+
+async function stripeRequest(env, method, path, body) {
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY secret not configured');
+  const opts = {
+    method,
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  };
+  if (body) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) {
+      if (v !== undefined && v !== null) params.set(k, String(v));
+    }
+    opts.body = params.toString();
+  }
+  const res = await fetch(`https://api.stripe.com/v1${path}`, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Stripe ${method} ${path} → ${res.status}: ${data?.error?.message ?? JSON.stringify(data)}`);
+  return data;
+}
+
+async function stripeRequestNested(env, method, path, params) {
+  // For deeply nested Stripe params (e.g. metadata[key]=val, line_items[0][price]=...)
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY secret not configured');
+  const encoded = new URLSearchParams(params).toString();
+  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encoded,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Stripe ${method} ${path} → ${res.status}: ${data?.error?.message ?? JSON.stringify(data)}`);
+  return data;
+}
+
+// GET /navigator/subscription — returns current plan/status for the authenticated user
+async function handleNavigatorSubscription(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, current_period_end, cancel_at_period_end, invites_remaining, trial_ends_at
+     FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+  if (!sub) return json({ plan: 'free', status: 'active', invites_remaining: 0 });
+  return json(sub);
+}
+
+// POST /navigator/checkout — create a Stripe Checkout Session and return the URL
+// Body: { plan: 'premium_student'|'advisor_invited'|'career_advisor', invite_code?: string, success_url, cancel_url }
+async function handleNavigatorCheckout(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const body = await request.json().catch(() => ({}));
+  const { plan, invite_code, success_url, cancel_url } = body;
+
+  if (!NAVIGATOR_PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
+  const planMeta = NAVIGATOR_PLANS[plan];
+  const priceId = env[planMeta.priceEnv];
+  if (!priceId) return json({ error: `Price ID not configured for plan ${plan}` }, 500);
+
+  const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.id).first();
+  if (!userRow) return json({ error: 'User not found' }, 404);
+
+  // Resolve or create Stripe customer
+  let customerId;
+  const existing = await env.DB.prepare(
+    'SELECT stripe_customer_id FROM navigator_subscriptions WHERE user_id = ?'
+  ).bind(user.id).first();
+  if (existing?.stripe_customer_id) {
+    customerId = existing.stripe_customer_id;
+  } else {
+    const customer = await stripeRequest(env, 'POST', '/customers', {
+      email: userRow.email,
+      'metadata[user_id]': user.id,
+    });
+    customerId = customer.id;
+  }
+
+  // Validate invite code if provided
+  let discounts = [];
+  let inviteCodeId = null;
+  if (invite_code) {
+    const code = await env.DB.prepare(
+      `SELECT id, stripe_coupon_id, max_redemptions, redemptions_used, status, expires_at
+       FROM navigator_invite_codes WHERE code = ?`
+    ).bind(invite_code.trim().toUpperCase()).first();
+    if (!code || code.status !== 'active') return json({ error: 'Invalid or expired invite code' }, 400);
+    if (code.max_redemptions !== null && code.redemptions_used >= code.max_redemptions)
+      return json({ error: 'Invite code has reached its maximum redemptions' }, 400);
+    if (code.expires_at && new Date(code.expires_at) < new Date())
+      return json({ error: 'Invite code has expired' }, 400);
+    if (code.stripe_coupon_id) discounts = [['discounts[0][coupon]', code.stripe_coupon_id]];
+    inviteCodeId = code.id;
+  }
+
+  const params = [
+    ['mode', 'subscription'],
+    ['customer', customerId],
+    ['line_items[0][price]', priceId],
+    ['line_items[0][quantity]', '1'],
+    ['success_url', success_url || 'https://d3k3i0zeriprn5.cloudfront.net/career-navigator.html?payment=success'],
+    ['cancel_url', cancel_url || 'https://d3k3i0zeriprn5.cloudfront.net/career-navigator.html?payment=cancelled'],
+    ['automatic_tax[enabled]', 'true'],
+    ['metadata[user_id]', user.id],
+    ['metadata[plan]', plan],
+    ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
+    ...discounts,
+  ];
+
+  const session = await stripeRequestNested(env, 'POST', '/checkout/sessions', params);
+  return json({ url: session.url, session_id: session.id });
+}
+
+// POST /navigator/webhook — Stripe webhook handler (raw body, signature verified)
+async function handleNavigatorWebhook(request, env) {
+  const sig = request.headers.get('stripe-signature');
+  const webhookSecret = env.STRIPE_NAVIGATOR_WEBHOOK_SECRET;
+  if (!webhookSecret) return json({ error: 'Webhook secret not configured' }, 500);
+
+  const rawBody = await request.text();
+
+  // Verify Stripe-Signature using HMAC-SHA256
+  let event;
+  try {
+    event = await verifyStripeWebhook(rawBody, sig, webhookSecret);
+  } catch (err) {
+    console.error('[navigator/webhook] signature verification failed:', err.message);
+    return json({ error: 'Invalid signature' }, 400);
+  }
+
+  const { type, data } = event;
+  const obj = data.object;
+
+  if (type === 'checkout.session.completed') {
+    const userId = obj.metadata?.user_id;
+    const plan = obj.metadata?.plan;
+    const inviteCodeId = obj.metadata?.invite_code_id || null;
+    const customerId = obj.customer;
+    const subscriptionId = obj.subscription;
+    if (!userId || !plan) return json({ received: true });
+
+    const now = new Date().toISOString();
+    // Upsert subscription record
+    await env.DB.prepare(`
+      INSERT INTO navigator_subscriptions
+        (id, user_id, plan, status, stripe_customer_id, stripe_subscription_id, invite_code_id, invites_remaining, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        plan = excluded.plan,
+        status = excluded.status,
+        stripe_customer_id = excluded.stripe_customer_id,
+        stripe_subscription_id = excluded.stripe_subscription_id,
+        invite_code_id = excluded.invite_code_id,
+        invites_remaining = excluded.invites_remaining,
+        updated_at = excluded.updated_at
+    `).bind(
+      crypto.randomUUID(), userId, plan, 'active',
+      customerId, subscriptionId, inviteCodeId,
+      plan === 'career_advisor' ? 5 : 0,
+      now, now
+    ).run();
+
+    if (inviteCodeId) {
+      await env.DB.prepare(
+        `UPDATE navigator_invite_codes SET redemptions_used = redemptions_used + 1, updated_at = ? WHERE id = ?`
+      ).bind(now, inviteCodeId).run();
+      const subRow = await env.DB.prepare('SELECT id FROM navigator_subscriptions WHERE user_id = ?').bind(userId).first();
+      if (subRow) {
+        await env.DB.prepare(`
+          INSERT INTO navigator_invite_redemptions (id, code_id, redeemed_by, subscription_id, redeemed_at)
+          VALUES (?,?,?,?,?)
+        `).bind(crypto.randomUUID(), inviteCodeId, userId, subRow.id, now).run();
+      }
+    }
+    await audit(env.DB, 'navigator_subscribe', userId, 'navigator_subscription', { plan, subscriptionId });
+  }
+
+  if (type === 'customer.subscription.updated') {
+    const sub = await env.DB.prepare(
+      'SELECT id, user_id FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
+    ).bind(obj.id).first();
+    if (sub) {
+      const now = new Date().toISOString();
+      const status = obj.status;
+      const periodEnd = obj.current_period_end ? new Date(obj.current_period_end * 1000).toISOString() : null;
+      const periodStart = obj.current_period_start ? new Date(obj.current_period_start * 1000).toISOString() : null;
+      await env.DB.prepare(`
+        UPDATE navigator_subscriptions SET
+          status = ?, current_period_start = ?, current_period_end = ?,
+          cancel_at_period_end = ?, updated_at = ?
+        WHERE id = ?
+      `).bind(status, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, now, sub.id).run();
+    }
+  }
+
+  if (type === 'customer.subscription.deleted') {
+    const sub = await env.DB.prepare(
+      'SELECT id, user_id FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
+    ).bind(obj.id).first();
+    if (sub) {
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        `UPDATE navigator_subscriptions SET plan = 'free', status = 'canceled', updated_at = ? WHERE id = ?`
+      ).bind(now, sub.id).run();
+      await audit(env.DB, 'navigator_cancel', sub.user_id, 'navigator_subscription', { subscriptionId: obj.id });
+    }
+  }
+
+  return json({ received: true });
+}
+
+async function verifyStripeWebhook(payload, sigHeader, secret) {
+  if (!sigHeader) throw new Error('Missing stripe-signature header');
+  const parts = Object.fromEntries(sigHeader.split(',').map(p => p.split('=')));
+  const timestamp = parts.t;
+  const v1 = parts.v1;
+  if (!timestamp || !v1) throw new Error('Malformed stripe-signature');
+
+  const signed = `${timestamp}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signed));
+  const hex = Array.from(new Uint8Array(mac)).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (hex !== v1) throw new Error('Signature mismatch');
+
+  // Reject events older than 5 minutes
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) throw new Error('Webhook timestamp too old');
+
+  return JSON.parse(payload);
+}
+
+// POST /navigator/invite — advisor creates an invite code
+async function handleNavigatorInviteCreate(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, invites_remaining FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+
+  const isAdvisor = sub?.plan === 'career_advisor' && sub?.status === 'active';
+  const isTrial = sub?.plan === 'career_advisor' && sub?.status === 'trialing';
+  if (!isAdvisor && !isTrial) return json({ error: 'Career Advisor subscription required to generate invite codes' }, 403);
+  if ((sub.invites_remaining ?? 0) <= 0) return json({ error: 'No invite codes remaining on your plan' }, 400);
+
+  const code = nanoid10();
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+
+  // Create Stripe coupon for 20% off
+  let stripeCouponId = null;
+  try {
+    const coupon = await stripeRequest(env, 'POST', '/coupons', {
+      percent_off: '20',
+      duration: 'once',
+      name: `AACP Navigator Advisor Invite`,
+      'metadata[code]': code,
+      'metadata[advisor_user_id]': user.id,
+    });
+    stripeCouponId = coupon.id;
+  } catch (err) {
+    console.error('[navigator/invite] Stripe coupon creation failed:', err.message);
+    // Continue — code still works, just without Stripe discount
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO navigator_invite_codes
+      (id, code, advisor_user_id, stripe_coupon_id, max_redemptions, discount_percent, status, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).bind(id, code, user.id, stripeCouponId, 1, 20, 'active', now, now).run();
+
+  await env.DB.prepare(
+    `UPDATE navigator_subscriptions SET invites_remaining = invites_remaining - 1, updated_at = ? WHERE user_id = ?`
+  ).bind(now, user.id).run();
+
+  await audit(env.DB, 'navigator_invite_create', user.id, 'navigator_invite_code', { code, id });
+  return json({ code, discount_percent: 20, expires_at: null });
+}
+
+// POST /navigator/invite/validate — public, validate an invite code before checkout
+async function handleNavigatorInviteValidate(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const code = (body.code || '').trim().toUpperCase();
+  if (!code) return json({ error: 'code required' }, 400);
+  const row = await env.DB.prepare(
+    `SELECT discount_percent, status, expires_at, max_redemptions, redemptions_used
+     FROM navigator_invite_codes WHERE code = ?`
+  ).bind(code).first();
+  if (!row || row.status !== 'active') return json({ valid: false, error: 'Invalid or expired code' });
+  if (row.max_redemptions !== null && row.redemptions_used >= row.max_redemptions)
+    return json({ valid: false, error: 'Code fully redeemed' });
+  if (row.expires_at && new Date(row.expires_at) < new Date())
+    return json({ valid: false, error: 'Code expired' });
+  return json({ valid: true, discount_percent: row.discount_percent });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const _resp = await _routeRequest(request, env, ctx);
@@ -14873,6 +15185,10 @@ async function _routeRequest(request, env, ctx) {
 
     // ── Consent audit log (no auth, no PII) ───────────────────────────────────
     if (path === '/consent/record' && request.method === 'POST') return handleConsentRecord(request, env);
+
+    // ── Career Navigator — Stripe (public, no JWT) ───────────────────────────
+    if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
+    if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
@@ -15169,6 +15485,11 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/vr-evidence' && request.method === 'POST')         return handleAdminVrEvidenceSubmit(request, user, env);
     if (path === '/admin/external-industry-evidence' && request.method === 'POST') return handleAdminExternalEvidenceSubmit(request, user, env);
     if (path === '/admin/participant-longitudinal-diagnostics' && request.method === 'GET') return handleAdminLongitudinalDiagnostics(request, user, env);
+
+    // ── Career Navigator — Stripe (JWT required) ─────────────────────────────
+    if (path === '/navigator/subscription' && request.method === 'GET')  return handleNavigatorSubscription(request, user, env);
+    if (path === '/navigator/checkout'     && request.method === 'POST') return handleNavigatorCheckout(request, user, env);
+    if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {
