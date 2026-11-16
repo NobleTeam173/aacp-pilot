@@ -14954,13 +14954,25 @@ async function handleNavigatorCheckout(request, user, env) {
   }
 
   const params = [
+    // sample_only — real values, preserved as-is
     ['mode', 'subscription'],
-    ['customer', customerId],
-    ['line_items[0][price]', priceId],
-    ['line_items[0][quantity]', '1'],
     ['success_url', success_url || 'https://d3k3i0zeriprn5.cloudfront.net/career-navigator.html?payment=success'],
     ['cancel_url', cancel_url || 'https://d3k3i0zeriprn5.cloudfront.net/career-navigator.html?payment=cancelled'],
-    ['automatic_tax[enabled]', 'true'],
+    ['line_items[0][price]', priceId],
+    ['line_items[0][quantity]', '1'],
+    // fixed_by_ui — Checkout Studio configuration
+    ['ui_mode', 'hosted_page'],
+    ['billing_address_collection', 'auto'],
+    ['phone_number_collection[enabled]', 'false'],
+    ['automatic_tax[enabled]', 'false'],
+    ['allow_promotion_codes', 'true'],
+    ['payment_method_collection', 'always'],
+    ['submit_type', 'auto'],
+    ['saved_payment_method_options[payment_method_save]', 'enabled'],
+    ['integration_identifier', 'hosted_web_0001'],
+    ['origin_context', 'web'],
+    // customer + metadata
+    ['customer', customerId],
     ['metadata[user_id]', user.id],
     ['metadata[plan]', plan],
     ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
