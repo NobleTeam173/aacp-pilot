@@ -669,9 +669,54 @@ header{
 }
 .compare-premium-gate h3{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:8px}
 .compare-premium-gate p{font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:18px;max-width:400px;margin-left:auto;margin-right:auto}
+#rolePicker button[onclick^="setRole"]:hover{border-color:var(--gold)!important;background:var(--surface2)!important}
+.role-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--gold);color:#000;margin-left:6px;vertical-align:middle;line-height:1.4}
+.plan-card.role-recommended{border-color:var(--gold)}
 </style>
 </head>
 <body>
+
+<!-- ── Role picker overlay ────────────────────────────────────── -->
+<div id="rolePicker" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--bg);overflow-y:auto;padding:40px max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))">
+  <div style="max-width:720px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:36px">
+      <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="width:32px;height:32px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#000">A</div>
+        <span style="font-weight:700;font-size:16px">AACP™ Career Navigator</span>
+      </div>
+      <h1 style="font-family:'Fraunces',serif;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1.2;margin-bottom:10px">Who are you exploring for?</h1>
+      <p style="font-size:14px;color:var(--fg3);max-width:420px;margin:0 auto">We'll highlight the tools and plans most relevant to you. You can always change this later.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px">
+
+      <button onclick="setRole('student')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:28px;margin-bottom:10px">🎓</div>
+        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Student</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Exploring aviation and aerospace careers using my strengths and interests.</div>
+      </button>
+
+      <button onclick="setRole('teacher')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:28px;margin-bottom:10px">📚</div>
+        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Teacher</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Using this in a classroom or program to introduce students to aviation careers.</div>
+      </button>
+
+      <button onclick="setRole('advisor')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:28px;margin-bottom:10px">🧭</div>
+        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Career Advisor</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Guiding youth and young adults toward careers in aviation and aerospace.</div>
+      </button>
+
+      <button onclick="setRole('institution')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:28px;margin-bottom:10px">🏫</div>
+        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I represent an Institution</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">School board, college, university, or organization seeking institutional access.</div>
+      </button>
+
+    </div>
+    <p style="text-align:center"><button onclick="setRole('student',true)" style="background:none;border:none;font-size:13px;color:var(--fg3);cursor:pointer;text-decoration:underline">Skip — just let me explore</button></p>
+  </div>
+</div>
 
 <!-- ── Header ─────────────────────────────────────────────────── -->
 <header>
@@ -1438,7 +1483,7 @@ header{
 
   <div class="plan-grid">
 
-    <div class="plan-card">
+    <div class="plan-card" id="plan-free">
       <div class="plan-role">Free Student</div>
       <div class="plan-price"><span class="plan-price-num">$0</span></div>
       <div class="plan-price-cad">Free forever</div>
@@ -1452,7 +1497,7 @@ header{
       <button class="plan-cta outlined" onclick="startFree()">Start Free</button>
     </div>
 
-    <div class="plan-card featured">
+    <div class="plan-card featured" id="plan-premium">
       <div class="plan-badge-top">Most Popular</div>
       <div class="plan-role">Premium Student</div>
       <div class="plan-price"><span class="plan-price-num">$9.99</span><span class="plan-price-period">/mo</span></div>
@@ -1469,7 +1514,7 @@ header{
       <button class="plan-cta filled" onclick="checkoutStudent()">Start Free Trial</button>
     </div>
 
-    <div class="plan-card">
+    <div class="plan-card" id="plan-invited">
       <div class="plan-role">Advisor-Invited Student</div>
       <div class="plan-price"><span class="plan-price-num">$7.99</span><span class="plan-price-period">/mo</span></div>
       <div class="plan-price-cad">CAD + GST · 20% off with invite code</div>
@@ -1490,7 +1535,7 @@ header{
       </div>
     </div>
 
-    <div class="plan-card">
+    <div class="plan-card" id="plan-advisor">
       <div class="plan-role">Career Advisor</div>
       <div class="plan-price"><span class="plan-price-num">$14.99</span><span class="plan-price-period">/mo</span></div>
       <div class="plan-price-cad">CAD + GST · 7-day free trial</div>
@@ -1835,6 +1880,85 @@ let activePathway = null;
 let chatQuestionsLeft = 3;
 let navigatorPlan = 'free'; // updated on load if token present
 let chatHistory = []; // {role, content} pairs for context window
+
+// ── Role-based onboarding ───────────────────────────────────────
+let navigatorRole = null;
+try { navigatorRole = localStorage.getItem('navigatorRole'); } catch(e) {}
+
+function initRolePicker() {
+  if (!navigatorRole) {
+    const el = document.getElementById('rolePicker');
+    if (el) el.style.display = 'block';
+  } else {
+    applyRole(navigatorRole, false);
+  }
+}
+
+function setRole(role, isSkip) {
+  if (role === 'institution') {
+    window.location.href = 'institution.html';
+    return;
+  }
+  try { localStorage.setItem('navigatorRole', role); } catch(e) {}
+  navigatorRole = role;
+  const el = document.getElementById('rolePicker');
+  if (el) el.style.display = 'none';
+  applyRole(role, false);
+}
+
+function changeRole() {
+  try { localStorage.removeItem('navigatorRole'); } catch(e) {}
+  navigatorRole = null;
+  document.querySelectorAll('.role-badge').forEach(b => b.remove());
+  document.querySelectorAll('.plan-card.role-recommended').forEach(c => c.classList.remove('role-recommended'));
+  const el = document.getElementById('rolePicker');
+  if (el) el.style.display = 'block';
+}
+
+function applyRole(role, animate) {
+  document.body.setAttribute('data-role', role);
+  // Add "For you" badge to relevant tab buttons
+  document.querySelectorAll('.role-badge').forEach(b => b.remove());
+  const tabBadges = {
+    student:  ['explore','education','scholarships','chat'],
+    teacher:  ['explore','education','compare'],
+    advisor:  ['explore','chat','compare','subscribe'],
+  };
+  const tabs = tabBadges[role] || [];
+  tabs.forEach(tabId => {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (btn && !btn.querySelector('.role-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'role-badge';
+      badge.textContent = '★';
+      btn.appendChild(badge);
+    }
+  });
+  // Highlight relevant plan cards
+  document.querySelectorAll('.plan-card.role-recommended').forEach(c => c.classList.remove('role-recommended'));
+  const planMap = {
+    student: ['plan-free','plan-premium'],
+    teacher: ['plan-free','plan-premium'],
+    advisor: ['plan-advisor'],
+  };
+  (planMap[role] || []).forEach(id => {
+    const card = document.getElementById(id);
+    if (card) card.classList.add('role-recommended');
+  });
+  // Show/update change-role link in header
+  let crLink = document.getElementById('changeRoleLink');
+  if (!crLink) {
+    crLink = document.createElement('button');
+    crLink.id = 'changeRoleLink';
+    crLink.onclick = changeRole;
+    crLink.style.cssText = 'background:none;border:none;font-size:12px;color:var(--fg3);cursor:pointer;text-decoration:underline;padding:0';
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions) headerActions.prepend(crLink);
+  }
+  const labels = {student:'Student',teacher:'Teacher',advisor:'Career Advisor'};
+  crLink.textContent = `Role: ${labels[role] || role} ✕`;
+}
+// ── End role onboarding ─────────────────────────────────────────
 
 function scrollToSectors() {
   document.getElementById('sectorGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3659,6 +3783,9 @@ function loadSaved(i) {
 buildCmpToggles();
 renderSavedComparisons();
 renderCompare();
+
+/* ── Init role picker ───────────────────────────────────────────── */
+initRolePicker();
 </script>
 </body>
 </html>
