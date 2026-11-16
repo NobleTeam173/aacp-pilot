@@ -12,8 +12,8 @@ The following `sample_only` parameters have real values in production code but s
 
 | Field | Current Value | What to Set |
 |-------|--------------|-------------|
-| `success_url` | `https://dcthj58xklr8p.cloudfront.net/career-navigator.html?payment=success` | Update if the CloudFront URL changes or you add a dedicated success page. Keep `?payment=success` so the page shows a confirmation toast. |
-| `cancel_url` | `https://dcthj58xklr8p.cloudfront.net/career-navigator.html?payment=cancelled` | Update if the CloudFront URL changes. |
+| `success_url` | `https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=success` | Update if the domain changes or you add a dedicated success page. Keep `?payment=success` so the page shows a confirmation toast. |
+| `cancel_url` | `https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=cancelled` | Update if the domain changes. |
 | `line_items[0][price]` | Resolved at runtime from wrangler secrets (`STRIPE_NAVIGATOR_PRICE_STUDENT`, `STRIPE_NAVIGATOR_PRICE_INVITED`, `STRIPE_NAVIGATOR_PRICE_ADVISOR`) | ✅ Already using real Price IDs — just ensure the secrets are set (see below). |
 
 ---
