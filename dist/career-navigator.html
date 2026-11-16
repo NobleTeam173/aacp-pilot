@@ -2471,6 +2471,9 @@ async function submitSignIn() {
 }
 
 async function loadNavigatorProfile(token) {
+  // Always hide the auth gate before showing the app
+  var authGate = document.getElementById('authGate');
+  if (authGate) authGate.style.display = 'none';
   try {
     var res = await fetch(NAV_API + '/navigator/profile', {
       headers: { 'Authorization': 'Bearer ' + token }
@@ -2494,6 +2497,8 @@ async function loadNavigatorProfile(token) {
       try { localStorage.setItem('navigatorRole', role); } catch(e) {}
       navigatorRole = role;
       applyRole(role, false);
+      // Students always land on My Career Pathway
+      if (role === 'student') showTab('subscribe');
     } else {
       // No role set — show role picker
       document.getElementById('rolePicker').style.display = 'block';
@@ -2504,6 +2509,7 @@ async function loadNavigatorProfile(token) {
     // Network error — fall back to localStorage role if available
     if (navigatorRole) {
       applyRole(navigatorRole, false);
+      if (navigatorRole === 'student') showTab('subscribe');
     } else {
       document.getElementById('rolePicker').style.display = 'block';
     }
