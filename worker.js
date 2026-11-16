@@ -124,6 +124,7 @@ CONDUCT — both phases
 const ALLOWED_ORIGINS = new Set([
   'https://aviationaerospacecompetency.com',
   'https://www.aviationaerospacecompetency.com',
+  'https://careers.aviationaerospacecompetency.com',
   'http://localhost:3000',
   'http://localhost:8787',
 ]);
