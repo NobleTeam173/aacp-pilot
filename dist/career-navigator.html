@@ -672,6 +672,44 @@ header{
 #rolePicker button[onclick^="setRole"]:hover{border-color:var(--crimson)!important;background:var(--crimson-soft)!important}
 .role-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--crimson);color:#fff;margin-left:6px;vertical-align:middle;line-height:1.4}
 .plan-card.role-recommended{border-color:var(--crimson)}
+/* ── My Career Pathway Dashboard ───────────────────────── */
+.pathway-goal-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.pathway-goal-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--crimson-soft);border:1px solid var(--crimson-light);font-size:18px;flex-shrink:0}
+.pathway-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.pathway-stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 12px;text-align:center}
+.pathway-stat-icon{font-size:18px;margin-bottom:4px;opacity:.7}
+.pathway-stat-num{font-size:26px;font-weight:800;color:var(--fg);line-height:1}
+.pathway-stat-label{font-size:11px;color:var(--fg3);margin-top:4px}
+.pathway-section-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px}
+.pathway-roadmap-steps{display:flex;flex-direction:column;gap:0}
+.pathway-roadmap-step{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .12s;position:relative}
+.pathway-roadmap-step:hover{background:var(--surface2)}
+.pathway-roadmap-step+.pathway-roadmap-step{border-top:1px solid var(--border)}
+.roadmap-check{font-size:18px;flex-shrink:0;width:22px;text-align:center;transition:color .15s}
+.roadmap-check.done{color:var(--crimson)}
+.roadmap-step-title{font-size:13px;font-weight:600;color:var(--fg)}
+.roadmap-step-sub{font-size:11px;color:var(--fg3);margin-top:1px}
+.roadmap-go-btn{margin-left:auto;background:none;border:none;color:var(--fg3);font-size:14px;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0;transition:color .12s,background .12s}
+.roadmap-go-btn:hover{color:var(--fg);background:var(--surface2)}
+.pathway-saved-item{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .12s}
+.pathway-saved-item:hover{background:var(--surface2)}
+.pathway-saved-item+.pathway-saved-item{border-top:1px solid var(--border)}
+.pathway-saved-icon{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.pathway-saved-status{font-size:11px;padding:2px 7px;border-radius:12px;font-weight:600;white-space:nowrap}
+.pathway-saved-status.primary{background:var(--crimson-soft);color:#e05575;border:1px solid var(--crimson-light)}
+.pathway-saved-status.exploring{background:var(--surface2);color:var(--fg3);border:1px solid var(--border)}
+.save-pathway-btn{font-size:11px;padding:4px 10px;border-radius:12px;background:var(--crimson-soft);color:#e05575;border:1px solid var(--crimson-light);font-weight:600;cursor:pointer;white-space:nowrap;transition:background .12s}
+.save-pathway-btn:hover{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.save-pathway-btn.saved{background:color-mix(in srgb,#2a9 15%,transparent);color:#2a9;border-color:color-mix(in srgb,#2a9 30%,transparent)}
+.milestone-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm)}
+.milestone-item+.milestone-item{border-top:1px solid var(--border)}
+.milestone-check{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s}
+.milestone-check.done{background:var(--crimson);border-color:var(--crimson)}
+.milestone-text{font-size:13px;color:var(--fg);flex:1}
+.milestone-text.done{text-decoration:line-through;color:var(--fg3)}
+.milestone-del{background:none;border:none;color:var(--fg3);font-size:14px;cursor:pointer;padding:2px 5px;opacity:.5;transition:opacity .12s}
+.milestone-del:hover{opacity:1;color:#e55}
+@media(max-width:560px){.pathway-stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -747,7 +785,7 @@ header{
     Compare Careers
   </button>
   <button class="tab-btn" data-tab="subscribe" onclick="showTab('subscribe')" role="tab">
-    Plans
+    My Career Pathway
   </button>
 </nav>
 
@@ -1547,11 +1585,179 @@ header{
 </main>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     TAB 6 — PLANS / SUBSCRIBE
+     TAB 6 — MY CAREER PATHWAY
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
-  <p class="section-label">Career Navigator Plans</p>
-  <h2 class="section-title">Go Deeper With Your Exploration</h2>
+
+  <!-- ── My Career Pathway Dashboard ─────────────────────────── -->
+  <div id="pathwayDashboard">
+
+    <!-- Empty state (shown when no pathways saved yet) -->
+    <div id="pathwayEmpty" style="display:none;text-align:center;padding:48px 24px">
+      <div style="font-size:36px;margin-bottom:16px;opacity:.4">&#9670;</div>
+      <p class="section-label" style="margin-bottom:8px">My Career Pathway</p>
+      <h2 class="section-title" style="margin-bottom:12px">Your Pathway Starts Here</h2>
+      <p class="section-sub" style="max-width:420px;margin:0 auto 24px">Save careers as you explore to build your personalised pathway plan. Start with Career Discovery to find your best-fit roles.</p>
+      <button class="btn-primary" onclick="showTab('discovery')">Start Exploring</button>
+    </div>
+
+    <!-- Dashboard (shown when at least one career saved) -->
+    <div id="pathwayMain" style="display:none">
+
+      <!-- Primary goal card -->
+      <div class="pathway-goal-card" id="pathwayGoalCard">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <p class="section-label" style="margin-bottom:6px">My Primary Career Goal</p>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span id="pathwayGoalIcon" class="pathway-goal-icon">&#9992;</span>
+              <div>
+                <div id="pathwayGoalName" style="font-size:20px;font-weight:700;color:var(--fg)">—</div>
+                <div id="pathwayGoalMeta" style="font-size:13px;color:var(--fg3);margin-top:2px"></div>
+              </div>
+            </div>
+            <div id="pathwayGoalTags" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+          </div>
+          <span id="pathwaySavedBadge" style="display:none;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:color-mix(in srgb,#2a9 20%,transparent);color:#2a9;border:1px solid color-mix(in srgb,#2a9 35%,transparent);white-space:nowrap">&#10003; Saved</span>
+        </div>
+        <button class="btn-secondary" style="margin-top:16px;width:100%;justify-content:center;background:var(--surface2);border-color:var(--border2)" onclick="showPathwayGoalPicker()">Edit My Career Goal</button>
+      </div>
+
+      <!-- No goal yet notice -->
+      <div id="pathwayNoGoal" style="display:none;padding:16px;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius);margin-bottom:20px;text-align:center">
+        <p style="font-size:13px;color:var(--fg3);margin:0 0 10px">Set a primary career goal to track your progress</p>
+        <button class="btn-secondary" style="font-size:12px;padding:6px 14px" onclick="showPathwayGoalPicker()">Set Career Goal</button>
+      </div>
+
+      <!-- Stats row -->
+      <div class="pathway-stats-row">
+        <div class="pathway-stat-tile">
+          <div class="pathway-stat-icon">&#128278;</div>
+          <div id="statSavedCareers" class="pathway-stat-num">0</div>
+          <div class="pathway-stat-label">Saved Careers</div>
+        </div>
+        <div class="pathway-stat-tile">
+          <div class="pathway-stat-icon">&#128279;</div>
+          <div id="statEntryRoutes" class="pathway-stat-num">0</div>
+          <div class="pathway-stat-label">Entry Routes</div>
+        </div>
+        <div class="pathway-stat-tile">
+          <div class="pathway-stat-icon">&#9989;</div>
+          <div id="statNextSteps" class="pathway-stat-num">0</div>
+          <div class="pathway-stat-label">Next Steps</div>
+        </div>
+      </div>
+
+      <!-- Career Roadmap -->
+      <div class="pathway-section-card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:15px;font-weight:700;color:var(--fg)">My Career Roadmap</div>
+          <button onclick="resetPathwayRoadmap()" style="font-size:11px;color:var(--fg3);background:none;border:none;cursor:pointer;padding:0">Example</button>
+        </div>
+        <div class="pathway-roadmap-steps" id="pathwayRoadmapSteps">
+          <div class="pathway-roadmap-step" data-step="discover" onclick="togglePathwayStep('discover')">
+            <span class="roadmap-check" id="step-discover">&#9711;</span>
+            <div>
+              <div class="roadmap-step-title">Discover My Strengths</div>
+              <div class="roadmap-step-sub">Explore interests and career possibilities</div>
+            </div>
+            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('discovery')" title="Go to Discovery">&#8594;</button>
+          </div>
+          <div class="pathway-roadmap-step" data-step="explore" onclick="togglePathwayStep('explore')">
+            <span class="roadmap-check" id="step-explore">&#9711;</span>
+            <div>
+              <div class="roadmap-step-title">Explore &amp; Compare Careers</div>
+              <div class="roadmap-step-sub">Identify careers worth exploring</div>
+            </div>
+            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('explore')" title="Go to Explore">&#8594;</button>
+          </div>
+          <div class="pathway-roadmap-step" data-step="entryRoute" onclick="togglePathwayStep('entryRoute')">
+            <span class="roadmap-check" id="step-entryRoute">&#9711;</span>
+            <div>
+              <div class="roadmap-step-title">Choose an Entry Route</div>
+              <div class="roadmap-step-sub">Compare training, requirements, and costs</div>
+            </div>
+            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('explore')" title="Go to Explore">&#8594;</button>
+          </div>
+          <div class="pathway-roadmap-step" data-step="education" onclick="togglePathwayStep('education')">
+            <span class="roadmap-check" id="step-education">&#9711;</span>
+            <div>
+              <div class="roadmap-step-title">Plan Education &amp; Funding</div>
+              <div class="roadmap-step-sub">Save programs and scholarship opportunities</div>
+            </div>
+            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('education')" title="Go to Education">&#8594;</button>
+          </div>
+          <div class="pathway-roadmap-step" data-step="milestones" onclick="togglePathwayStep('milestones')">
+            <span class="roadmap-check" id="step-milestones">&#9711;</span>
+            <div>
+              <div class="roadmap-step-title">Set My Next Steps</div>
+              <div class="roadmap-step-sub">Create goals and track personal milestones</div>
+            </div>
+            <button class="roadmap-go-btn" onclick="event.stopPropagation();openMilestones()" title="Add milestones">&#43;</button>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg3);margin-bottom:6px">
+            <span>Roadmap progress</span>
+            <span id="roadmapPct">0%</span>
+          </div>
+          <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+            <div id="roadmapBar" style="height:100%;background:var(--crimson);border-radius:3px;width:0%;transition:width .4s ease"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Saved Career Options -->
+      <div class="pathway-section-card" style="margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--fg);margin-bottom:14px">My Saved Career Options</div>
+        <div id="pathwaySavedList"></div>
+        <button class="btn-secondary" style="margin-top:12px;font-size:12px;width:100%;justify-content:center" onclick="showTab('explore')">+ Add More Careers</button>
+      </div>
+
+      <!-- My Next Steps / Milestones -->
+      <div class="pathway-section-card" id="milestonesCard" style="margin-bottom:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:15px;font-weight:700;color:var(--fg)">My Next Steps</div>
+          <button onclick="addMilestone()" style="font-size:12px;color:var(--crimson);background:none;border:none;cursor:pointer;font-weight:600">+ Add</button>
+        </div>
+        <div id="milestoneList"></div>
+        <div id="milestoneAddForm" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px">
+            <input id="milestoneInput" type="text" placeholder="e.g. Research PPL flight schools in BC"
+              style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:13px;outline:none"
+              onkeydown="if(event.key==='Enter')saveMilestone();if(event.key==='Escape')cancelMilestone()">
+            <button onclick="saveMilestone()" style="padding:8px 14px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upgrade nudge for free users -->
+      <div id="pathwayUpgradeNudge" style="display:none;padding:16px;background:var(--crimson-soft);border:1px solid var(--crimson-light);border-radius:var(--radius);margin-bottom:20px;text-align:center">
+        <p style="font-size:13px;font-weight:600;color:#e05575;margin:0 0 6px">Unlock Your Full Pathway</p>
+        <p style="font-size:12px;color:var(--fg2);margin:0 0 12px">Premium subscribers get complete pathway maps, salary data, the full education directory, and unlimited ACIA™ chat.</p>
+        <button class="btn-primary" onclick="scrollToPlans()">View Plans</button>
+      </div>
+
+    </div><!-- /pathwayMain -->
+  </div><!-- /pathwayDashboard -->
+
+  <!-- ── Goal picker modal ────────────────────────────────────── -->
+  <div id="pathwayGoalModal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(8,2,10,.85);overflow-y:auto;padding:40px 16px">
+    <div style="max-width:520px;margin:0 auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700;color:var(--fg)">Set My Primary Career Goal</div>
+        <button onclick="closeGoalModal()" style="background:none;border:none;color:var(--fg3);font-size:20px;cursor:pointer;padding:0;line-height:1">&times;</button>
+      </div>
+      <p style="font-size:13px;color:var(--fg3);margin-bottom:16px">Choose the career you want to focus on most. You can still save and explore others.</p>
+      <div id="goalPickerList" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Subscription Plans (existing, scrolled to via "View Plans") ── -->
+  <div id="plansSection">
+    <div style="height:1px;background:var(--border);margin:8px 0 32px"></div>
+    <p class="section-label">Career Navigator Plans</p>
+    <h2 class="section-title">Go Deeper With Your Exploration</h2>
   <p class="section-sub">The free tier gives you a quick starting point. A Premium subscription unlocks the full Guided Discovery Session — 20–30 minutes of structured reflection that delivers a personalized pathway summary, ACIA™ career insights, and actionable next steps tailored to your profile.</p>
 
   <!-- Subscription status banner — shown when signed in -->
@@ -1666,6 +1872,7 @@ header{
       <p style="font-size:12px;color:var(--fg3)">No invite codes yet. Generate one to share with a student.</p>
     </div>
   </div>
+  </div><!-- /plansSection -->
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1679,6 +1886,7 @@ function showTab(id) {
   const btn = document.querySelector('[data-tab="' + id + '"]');
   if (btn) btn.classList.add('active');
   if (id === 'subscribe' && navigatorPlan === 'career_advisor') loadAdvisorDashboard();
+  if (id === 'subscribe') renderPathwayDashboard();
 }
 
 /* ── Sector and pathway data ───────────────────────────────────── */
@@ -2323,12 +2531,20 @@ function openPathway(id) {
   ` : '';
   const detail = document.getElementById('pathwayDetail');
   detail.style.display = 'block';
+  const isSaved = isPathwaySaved(id);
   detail.innerHTML = `
     <div class="pathway-detail">
       <div class="pathway-detail-header">
-        <span class="pathway-detail-code">${sector.code} — ${sector.name}</span>
-        <div class="pathway-detail-title">${p.title}</div>
-        <div class="pathway-detail-sector">${p.licenceSource} · ${p.licenceType}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <span class="pathway-detail-code">${sector.code} — ${sector.name}</span>
+            <div class="pathway-detail-title">${p.title}</div>
+            <div class="pathway-detail-sector">${p.licenceSource} · ${p.licenceType}</div>
+          </div>
+          <button id="savePathwayBtn-${id}" class="save-pathway-btn${isSaved ? ' saved' : ''}" onclick="toggleSavePathway('${id}','${p.title}','${sector.name}')" style="margin-top:4px">
+            ${isSaved ? '&#10003; Saved' : '+ Save to My Pathway'}
+          </button>
+        </div>
       </div>
       <div class="journey-map">
         <div class="journey-label">Career Pathway Map · Regulated by ${p.licenceSource}</div>
@@ -4064,6 +4280,322 @@ function loadSaved(i) {
 buildCmpToggles();
 renderSavedComparisons();
 renderCompare();
+
+/* ── Init role picker ───────────────────────────────────────────── */
+initRolePicker();
+
+/* ════════════════════════════════════════════════════════════════
+   MY CAREER PATHWAY — data model + dashboard
+════════════════════════════════════════════════════════════════ */
+var PATHWAY_KEY = 'navigatorPathway';
+
+function loadPathway() {
+  try {
+    var raw = localStorage.getItem(PATHWAY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { primaryGoal: null, saved: [], roadmap: { discover:false, explore:false, entryRoute:false, education:false, milestones:false }, nextSteps: [] };
+}
+
+function savePathway(data) {
+  try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function isPathwaySaved(id) {
+  var d = loadPathway();
+  return d.saved.some(function(s){ return s.id === id; });
+}
+
+function toggleSavePathway(id, title, sector) {
+  var d = loadPathway();
+  var idx = d.saved.findIndex(function(s){ return s.id === id; });
+  if (idx >= 0) {
+    // unsave (but keep as primary goal if set)
+    if (d.primaryGoal && d.primaryGoal.id === id) d.primaryGoal = null;
+    d.saved.splice(idx, 1);
+  } else {
+    d.saved.push({ id: id, title: title, sector: sector, savedAt: Date.now(), status: 'Exploring' });
+    // auto-mark explore step done
+    d.roadmap.explore = true;
+  }
+  savePathway(d);
+  // update button
+  var btn = document.getElementById('savePathwayBtn-' + id);
+  if (btn) {
+    var nowSaved = d.saved.some(function(s){ return s.id === id; });
+    btn.className = 'save-pathway-btn' + (nowSaved ? ' saved' : '');
+    btn.innerHTML = nowSaved ? '&#10003; Saved' : '+ Save to My Pathway';
+  }
+  // show toast
+  showToast(d.saved.some(function(s){ return s.id === id; }) ? 'Saved to My Career Pathway' : 'Removed from My Career Pathway');
+}
+
+function setPathwayGoal(id) {
+  var d = loadPathway();
+  var p = PATHWAYS.find(function(x){ return x.id === id; });
+  if (!p) return;
+  var sector = SECTORS[p.sector];
+  d.primaryGoal = { id: id, title: p.title, sector: sector.name };
+  // ensure it's also in saved list
+  if (!d.saved.some(function(s){ return s.id === id; })) {
+    d.saved.push({ id: id, title: p.title, sector: sector.name, savedAt: Date.now(), status: 'Primary goal' });
+  } else {
+    var item = d.saved.find(function(s){ return s.id === id; });
+    if (item) item.status = 'Primary goal';
+  }
+  // others go back to Exploring
+  d.saved.forEach(function(s){ if (s.id !== id) s.status = 'Exploring'; });
+  d.roadmap.explore = true;
+  savePathway(d);
+  closeGoalModal();
+  renderPathwayDashboard();
+}
+
+function togglePathwayStep(step) {
+  var d = loadPathway();
+  d.roadmap[step] = !d.roadmap[step];
+  savePathway(d);
+  renderRoadmap(d);
+}
+
+function renderRoadmap(d) {
+  var steps = ['discover','explore','entryRoute','education','milestones'];
+  var done = 0;
+  steps.forEach(function(s) {
+    var el = document.getElementById('step-' + s);
+    if (!el) return;
+    if (d.roadmap[s]) {
+      el.innerHTML = '&#10003;';
+      el.classList.add('done');
+      done++;
+    } else {
+      el.innerHTML = '&#9711;';
+      el.classList.remove('done');
+    }
+  });
+  var pct = Math.round(done / steps.length * 100);
+  var bar = document.getElementById('roadmapBar');
+  var pctEl = document.getElementById('roadmapPct');
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+var SECTOR_ICONS = {
+  flight_ops: '&#9992;', maintenance: '&#128295;', atc_nav: '&#128225;',
+  airport_ops: '&#9992;', engineering: '&#128264;'
+};
+
+function getPathwaySector(id) {
+  var p = PATHWAYS.find(function(x){ return x.id === id; });
+  return p ? p.sector : 'flight_ops';
+}
+
+function renderPathwaySavedList(saved) {
+  var el = document.getElementById('pathwaySavedList');
+  if (!el) return;
+  if (!saved.length) { el.innerHTML = '<p style="font-size:13px;color:var(--fg3);text-align:center;padding:12px 0">No careers saved yet. Explore pathways and save ones you\'re interested in.</p>'; return; }
+  el.innerHTML = saved.map(function(s) {
+    var sector = getPathwaySector(s.id);
+    var icon = SECTOR_ICONS[sector] || '&#9992;';
+    var statusClass = s.status === 'Primary goal' ? 'primary' : 'exploring';
+    return '<div class="pathway-saved-item" onclick="openPathway(\'' + s.id + '\');showTab(\'explore\')">'
+      + '<div class="pathway-saved-icon">' + icon + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--fg)">' + s.title + '</div><div style="font-size:11px;color:var(--fg3);margin-top:1px">' + s.sector + '</div></div>'
+      + '<span class="pathway-saved-status ' + statusClass + '">' + s.status + '</span>'
+      + '<button onclick="event.stopPropagation();unsavePathway(\'' + s.id + '\')" title="Remove" style="background:none;border:none;color:var(--fg3);font-size:12px;cursor:pointer;padding:2px 5px;opacity:.4;transition:opacity .12s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">&times;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function unsavePathway(id) {
+  var d = loadPathway();
+  d.saved = d.saved.filter(function(s){ return s.id !== id; });
+  if (d.primaryGoal && d.primaryGoal.id === id) d.primaryGoal = null;
+  savePathway(d);
+  renderPathwayDashboard();
+  // update save button if visible
+  var btn = document.getElementById('savePathwayBtn-' + id);
+  if (btn) { btn.className = 'save-pathway-btn'; btn.innerHTML = '+ Save to My Pathway'; }
+}
+
+function renderPathwayDashboard() {
+  var d = loadPathway();
+  var empty = document.getElementById('pathwayEmpty');
+  var main = document.getElementById('pathwayMain');
+  if (!empty || !main) return;
+  if (!d.saved.length) {
+    empty.style.display = 'block';
+    main.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  main.style.display = 'block';
+
+  // Primary goal
+  var goalCard = document.getElementById('pathwayGoalCard');
+  var noGoal = document.getElementById('pathwayNoGoal');
+  if (d.primaryGoal) {
+    goalCard.style.display = 'block';
+    if (noGoal) noGoal.style.display = 'none';
+    var sector = getPathwaySector(d.primaryGoal.id);
+    var icon = SECTOR_ICONS[sector] || '&#9992;';
+    document.getElementById('pathwayGoalIcon').innerHTML = icon;
+    document.getElementById('pathwayGoalName').textContent = d.primaryGoal.title;
+    var sectorName = SECTORS[sector] ? SECTORS[sector].name : d.primaryGoal.sector;
+    document.getElementById('pathwayGoalMeta').textContent = sectorName + ' · Canada';
+    // tags
+    var tags = document.getElementById('pathwayGoalTags');
+    var entryCount = d.saved.filter(function(s){ return s.id === d.primaryGoal.id; }).length;
+    var savedOpp = d.nextSteps.length;
+    tags.innerHTML = '<span style="font-size:11px;padding:3px 9px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--fg3)">Exploring</span>'
+      + '<span style="font-size:11px;padding:3px 9px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--fg3)">' + (d.roadmap.entryRoute ? '1' : '0') + ' entry routes</span>'
+      + (d.nextSteps.length ? '<span style="font-size:11px;padding:3px 9px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--fg3)">' + d.nextSteps.length + ' saved opportunities</span>' : '');
+    var badge = document.getElementById('pathwaySavedBadge');
+    if (badge) badge.style.display = 'inline-block';
+  } else {
+    goalCard.style.display = 'none';
+    if (noGoal) noGoal.style.display = 'block';
+  }
+
+  // Stats
+  var completedSteps = Object.values(d.roadmap).filter(Boolean).length;
+  document.getElementById('statSavedCareers').textContent = d.saved.length;
+  document.getElementById('statEntryRoutes').textContent = d.roadmap.entryRoute ? d.saved.length : 0;
+  document.getElementById('statNextSteps').textContent = d.nextSteps.length;
+
+  // Roadmap
+  renderRoadmap(d);
+
+  // Saved list
+  renderPathwaySavedList(d.saved);
+
+  // Milestones
+  renderMilestones(d);
+  var mc = document.getElementById('milestonesCard');
+  if (mc) mc.style.display = d.nextSteps.length || d.roadmap.milestones ? 'block' : 'none';
+
+  // Upgrade nudge for free users
+  var nudge = document.getElementById('pathwayUpgradeNudge');
+  if (nudge) nudge.style.display = navigatorPlan === 'free' && d.saved.length >= 2 ? 'block' : 'none';
+}
+
+/* ── Goal picker modal ──────────────────────────────────────────── */
+function showPathwayGoalPicker() {
+  var d = loadPathway();
+  var list = document.getElementById('goalPickerList');
+  if (!list) return;
+  list.innerHTML = PATHWAYS.map(function(p) {
+    var sector = SECTORS[p.sector];
+    var icon = SECTOR_ICONS[p.sector] || '&#9992;';
+    var isCurrent = d.primaryGoal && d.primaryGoal.id === p.id;
+    return '<button onclick="setPathwayGoal(\'' + p.id + '\')" style="display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;background:' + (isCurrent ? 'var(--crimson-soft)' : 'var(--surface2)') + ';border:1px solid ' + (isCurrent ? 'var(--crimson)' : 'var(--border)') + ';border-radius:var(--radius-sm);cursor:pointer;text-align:left;transition:border-color .12s">'
+      + '<span style="font-size:16px;width:28px;text-align:center">' + icon + '</span>'
+      + '<div><div style="font-size:13px;font-weight:600;color:var(--fg)">' + p.title + '</div><div style="font-size:11px;color:var(--fg3)">' + sector.name + '</div></div>'
+      + (isCurrent ? '<span style="margin-left:auto;font-size:11px;color:#e05575;font-weight:600">Current</span>' : '')
+      + '</button>';
+  }).join('');
+  document.getElementById('pathwayGoalModal').style.display = 'block';
+}
+
+function closeGoalModal() {
+  var modal = document.getElementById('pathwayGoalModal');
+  if (modal) modal.style.display = 'none';
+}
+
+/* ── Milestones ─────────────────────────────────────────────────── */
+function openMilestones() {
+  var mc = document.getElementById('milestonesCard');
+  if (mc) { mc.style.display = 'block'; mc.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  addMilestone();
+}
+
+function addMilestone() {
+  var form = document.getElementById('milestoneAddForm');
+  if (form) form.style.display = 'block';
+  var inp = document.getElementById('milestoneInput');
+  if (inp) { inp.value = ''; setTimeout(function(){ inp.focus(); }, 50); }
+}
+
+function saveMilestone() {
+  var inp = document.getElementById('milestoneInput');
+  if (!inp || !inp.value.trim()) return;
+  var d = loadPathway();
+  d.nextSteps.push({ id: Date.now(), text: inp.value.trim(), done: false });
+  d.roadmap.milestones = true;
+  savePathway(d);
+  renderPathwayDashboard();
+  cancelMilestone();
+}
+
+function cancelMilestone() {
+  var form = document.getElementById('milestoneAddForm');
+  if (form) form.style.display = 'none';
+}
+
+function toggleMilestone(id) {
+  var d = loadPathway();
+  var m = d.nextSteps.find(function(x){ return x.id === id; });
+  if (m) m.done = !m.done;
+  savePathway(d);
+  renderMilestones(d);
+  document.getElementById('statNextSteps').textContent = d.nextSteps.length;
+}
+
+function deleteMilestone(id) {
+  var d = loadPathway();
+  d.nextSteps = d.nextSteps.filter(function(x){ return x.id !== id; });
+  savePathway(d);
+  renderMilestones(d);
+  document.getElementById('statNextSteps').textContent = d.nextSteps.length;
+}
+
+function renderMilestones(d) {
+  var el = document.getElementById('milestoneList');
+  if (!el) return;
+  if (!d.nextSteps.length) { el.innerHTML = ''; return; }
+  el.innerHTML = d.nextSteps.map(function(m) {
+    return '<div class="milestone-item">'
+      + '<div class="milestone-check' + (m.done ? ' done' : '') + '" onclick="toggleMilestone(' + m.id + ')" title="Mark done"></div>'
+      + '<span class="milestone-text' + (m.done ? ' done' : '') + '">' + m.text.replace(/</g,'&lt;') + '</span>'
+      + '<button class="milestone-del" onclick="deleteMilestone(' + m.id + ')" title="Remove">&times;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function resetPathwayRoadmap() {
+  var d = loadPathway();
+  // Show example state
+  d.roadmap = { discover: true, explore: true, entryRoute: false, education: false, milestones: false };
+  renderRoadmap(d);
+}
+
+function scrollToPlans() {
+  var ps = document.getElementById('plansSection');
+  if (ps) ps.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Also mark discover step when Discovery tab is used
+var _origShowTab = showTab;
+(function(){
+  var orig = showTab;
+  showTab = function(id) {
+    orig(id);
+    if (id === 'discovery') {
+      var d = loadPathway();
+      if (!d.roadmap.discover) {
+        d.roadmap.discover = true;
+        savePathway(d);
+      }
+    }
+    if (id === 'education') {
+      var d = loadPathway();
+      if (!d.roadmap.education) {
+        d.roadmap.education = true;
+        savePathway(d);
+      }
+    }
+  };
+})();
 
 /* ── Init role picker ───────────────────────────────────────────── */
 initRolePicker();
