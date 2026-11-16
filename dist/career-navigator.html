@@ -1478,7 +1478,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <button class="st-choice-btn" onclick="s2Choose(0,'Exactly right. Avionics Technicians are trained to trace faults through complex systems under time pressure. Their diagnostic work determines whether this is a quick fix or a deeper issue that requires engineering support.')" style="text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;font-size:13px;color:var(--fg);line-height:1.5">
             <strong>A.</strong> The Avionics Technician performs a detailed diagnostic on the affected system.
           </button>
-          <button class="st-choice-btn" onclick="s2Choose(1,'Correct procedure. No maintenance decision in Canadian aviation is made without reference to approved data. The Aircraft Maintenance Manual defines what the fault code means and exactly what actions are required — it&#39;s the foundation of everything.')" style="text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;font-size:13px;color:var(--fg);line-height:1.5">
+          <button class="st-choice-btn" onclick="s2Choose(1,'Correct procedure. No maintenance decision in Canadian aviation is made without reference to approved data. The Aircraft Maintenance Manual defines what the fault code means and exactly what actions are required — the foundation of everything.')" style="text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;font-size:13px;color:var(--fg);line-height:1.5">
             <strong>B.</strong> The AME consults the Aircraft Maintenance Manual and cross-references the fault code before proceeding.
           </button>
           <button class="st-choice-btn" onclick="s2Choose(2,'Appropriate escalation. Some faults require an engineering assessment before maintenance can continue. Recognizing when a situation exceeds standard maintenance scope — and knowing who to call — is a critical skill in aviation.')" style="text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;font-size:13px;color:var(--fg);line-height:1.5">
@@ -4630,8 +4630,6 @@ function showDiscoveryEntry() {
   if (sc) sc.style.display = 'none';
 }
 
-/* ── Workplace Scenes (Phase 3) ───────────────────────────────── */
-var SCENE_CAREER_MATCHES = [
 
 // ---- Story navigation — 5-stage experience ----
 var activeStory = 1;
@@ -4807,6 +4805,17 @@ function startGuidedDiscovery() {
   showGuidedPhotos();
   resetPhotoState();
   window.scrollTo(0, document.getElementById('tab-discovery').offsetTop - 80);
+}
+function startWorkplaceScenes() {
+  ['discEntry','discAssessment','discGuided','discCounsellor'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  var sc = document.getElementById('discScenes');
+  if (sc) sc.style.display = '';
+  switchStory(1);
+  s1GoTo(0);
+  var tab = document.getElementById('tab-discovery');
+  if (tab) window.scrollTo(0, tab.offsetTop - 80);
 }
 function resetGuidedDiscovery() {
   resetPhotoState();
