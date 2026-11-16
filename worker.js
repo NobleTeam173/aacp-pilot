@@ -14969,7 +14969,11 @@ async function handleNavigatorCheckout(request, user, env) {
     ['payment_method_collection', 'always'],
     ['submit_type', 'auto'],
     ['saved_payment_method_options[payment_method_save]', 'enabled'],
-    ['integration_identifier', 'hosted_web_0001'],
+    ['tax_id_collection[enabled]', 'true'],
+    ['tax_id_collection[required]', 'if_supported'],
+    ['name_collection[individual][enabled]', 'true'],
+    ['name_collection[individual][optional]', 'true'],
+    ['integration_identifier', 'hosted_web_0002'],
     ['origin_context', 'web'],
     // customer + metadata
     ['customer', customerId],
