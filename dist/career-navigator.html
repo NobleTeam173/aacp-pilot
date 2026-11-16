@@ -727,7 +727,7 @@ header{
       <button class="disc-mode-card featured" onclick="startGuidedDiscovery()">
         <div class="disc-mode-icon guided">&#9654;</div>
         <div class="disc-mode-title">Guided Discovery Session</div>
-        <div class="disc-mode-sub">Explore real images from aviation careers, reflect on what draws you in, and let ACIA™ help you identify your direction. No right answers — just curiosity.</div>
+        <div class="disc-mode-sub">Explore real images from Canadian aviation careers, reflect on what draws you in, and receive a personalized pathway summary with ACIA™ career insights and actionable next steps.</div>
         <div class="disc-mode-meta">
           <span class="disc-mode-time">20–30 min</span>
           <span class="disc-mode-badge sub">Subscriber</span>
@@ -737,8 +737,8 @@ header{
 
       <button class="disc-mode-card" onclick="startAssessment()">
         <div class="disc-mode-icon assess">&#9632;</div>
-        <div class="disc-mode-title">Strength &amp; Competency Assessment</div>
-        <div class="disc-mode-sub">Rate your natural strengths directly. The Navigator matches your profile against the requirements of 14 Canadian aviation and aerospace careers.</div>
+        <div class="disc-mode-title">Explore Your Strengths</div>
+        <div class="disc-mode-sub">Rate your natural strengths and preferences. See which Canadian aviation and aerospace careers align with what you describe — a quick starting point, not a formal assessment.</div>
         <div class="disc-mode-meta">
           <span class="disc-mode-time">10 min</span>
           <span class="disc-mode-badge free">Free</span>
@@ -748,7 +748,7 @@ header{
 
     </div>
 
-    <p style="font-size:12px;color:var(--fg3);line-height:1.6">The Guided Discovery Session uses open-ended reflection to help you explore interests and motivations. Responses are not used as competency assessments, employment eligibility decisions, or guaranteed career matches.</p>
+    <p style="font-size:12px;color:var(--fg3);line-height:1.6">The Guided Discovery Session uses structured open-ended reflection and delivers a personalized pathway summary powered by ACIA™ — available to subscribers. The free Explore Your Strengths tool is a self-guided starting point; results reflect your self-reported preferences and are not a formal competency assessment, employment eligibility decision, or career outcome guarantee.</p>
   </div>
 
   <!-- ── Guided Discovery Session ─────────────────────────────── -->
@@ -852,12 +852,12 @@ header{
     <div id="guidedGate" style="display:none">
       <div class="guided-gate">
         <div class="guided-gate-title">Continue Your Discovery</div>
-        <p class="guided-gate-body">You've started your Guided Discovery Session. Subscribe to Career Navigator to explore all three career images, complete the guided reflection, and receive your personalized pathway summary.</p>
+        <p class="guided-gate-body">You've started your Guided Discovery Session. Subscribe to Career Navigator to explore all three career images, complete your guided reflection, and receive a personalized pathway summary with ACIA™ career insights and recommended next steps.</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
           <button class="btn-primary" onclick="showTab('subscribe')">View Plans &rarr;</button>
           <button class="btn-secondary" onclick="startAssessment()">Try Free Assessment</button>
         </div>
-        <p style="font-size:11px;color:var(--fg3)">The free Strength &amp; Competency Assessment is always available — no subscription required.</p>
+        <p style="font-size:11px;color:var(--fg3)">The free Explore Your Strengths tool is always available — no subscription required.</p>
       </div>
     </div>
 
@@ -899,15 +899,15 @@ header{
 
   </div><!-- /discGuided -->
 
-  <!-- ── Strength & Competency Assessment ─────────────────────── -->
+  <!-- ── Explore Your Strengths ───────────────────────────────── -->
   <div id="discAssessment" style="display:none">
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
-      <p class="section-label" style="margin:0">Strength &amp; Competency Assessment</p>
+      <p class="section-label" style="margin:0">Explore Your Strengths</p>
     </div>
-    <h2 class="section-title" style="margin-bottom:6px">Discover Your Best-Fit Career</h2>
-    <p class="section-sub">Rate your natural strengths and preferences. The Navigator will match your profile against the competency requirements of 14 Canadian aviation and aerospace careers — and explain why each is a strong fit for you.</p>
+    <h2 class="section-title" style="margin-bottom:6px">Which Careers Match What You Describe?</h2>
+    <p class="section-sub">Rate your natural strengths and preferences. The Navigator will suggest which Canadian aviation and aerospace careers align with your self-described profile — a helpful starting point for further exploration.</p>
 
     <div class="discovery-stages" id="discoveryStages">
 
@@ -928,15 +928,15 @@ header{
 
       <!-- Stage 1: Strengths -->
       <div class="stage active" id="stage1">
-        <p class="section-label">Stage 1 of 2 — Your Strengths</p>
-        <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Rate each area from 1 (not really me) to 5 (this is a core strength). Be honest — there are no wrong answers.</p>
+        <p class="section-label">Step 1 of 2 — Your Strengths</p>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Rate each area from 1 (not really me) to 5 (this is a core strength). Be honest — there are no right or wrong answers.</p>
         <div class="strength-grid" id="strengthGrid"></div>
         <button class="btn-primary" onclick="goToStage2()">Next: Work Preferences &rarr;</button>
       </div>
 
       <!-- Stage 2: Preferences -->
       <div class="stage" id="stage2">
-        <p class="section-label">Stage 2 of 2 — Work Preferences</p>
+        <p class="section-label">Step 2 of 2 — Work Preferences</p>
         <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6">Select the option that best describes how you prefer to work.</p>
         <div class="pref-grid" id="prefGrid"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -947,15 +947,15 @@ header{
 
       <!-- Stage 3: Results -->
       <div class="stage" id="stage3">
-        <p class="section-label">Your Top Matches</p>
-        <h3 class="section-title" id="resultsHeadline">Your Best-Fit Careers</h3>
+        <p class="section-label">Your Suggested Pathways</p>
+        <h3 class="section-title" id="resultsHeadline">Careers That Align With Your Profile</h3>
         <p style="font-size:13px;color:var(--fg2);margin-bottom:20px;line-height:1.6" id="resultsSub"></p>
         <div class="result-cards" id="resultCards"></div>
         <div style="margin-top:8px;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">
-          <p style="font-size:12px;color:var(--fg3);line-height:1.6">Match percentages reflect how closely your strength profile aligns with the competency requirements of each career — not a prediction of success. All 15 pathways are open to anyone willing to put in the work.</p>
+          <p style="font-size:12px;color:var(--fg3);line-height:1.6">These suggestions are based on the strengths and preferences you self-reported — not a formal competency assessment, employment eligibility decision, or outcome guarantee. All 15 pathways are open to anyone willing to pursue them.</p>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn-secondary" onclick="resetDiscovery()">Retake Assessment</button>
+          <button class="btn-secondary" onclick="resetDiscovery()">Start Over</button>
           <button class="btn-primary" onclick="showTab('explore')">Explore All Pathways &rarr;</button>
         </div>
       </div>
@@ -1248,7 +1248,7 @@ header{
 <main class="tab-panel" id="tab-chat" role="tabpanel">
   <p class="section-label">AI Career Mentor</p>
   <h2 class="section-title">Ask ACIA™</h2>
-  <p class="section-sub">Get personalized career guidance from ACIA, the AACP AI aviation career mentor. Ask about pathways, licences, training requirements, and how to break into the industry.</p>
+  <p class="section-sub">ACIA™ is AACP's proprietary Aviation Career Intelligence &amp; Advising system. Ask about pathways, Transport Canada licensing, training requirements, and how to break into the industry. Premium subscribers receive unlimited access and personalized pathway summaries generated through the full Guided Discovery experience.</p>
 
   <div class="chat-container">
     <div class="chat-header">
@@ -1382,8 +1382,8 @@ header{
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
   <p class="section-label">Career Navigator Plans</p>
-  <h2 class="section-title">Choose Your Access</h2>
-  <p class="section-sub">All plans are billed in Canadian dollars. Payments processed securely by Stripe. Alberta GST applied at checkout.</p>
+  <h2 class="section-title">Go Deeper With Your Exploration</h2>
+  <p class="section-sub">The free tier gives you a quick starting point. A Premium subscription unlocks the full Guided Discovery Session — 20–30 minutes of structured reflection that delivers a personalized pathway summary, ACIA™ career insights, and actionable next steps tailored to your profile.</p>
 
   <div class="plan-grid">
 
@@ -1392,9 +1392,9 @@ header{
       <div class="plan-price"><span class="plan-price-num">$0</span></div>
       <div class="plan-price-cad">Free forever</div>
       <ul class="plan-features">
-        <li>14 career pathway previews</li>
+        <li>15 career pathway previews</li>
         <li>Sector and role descriptions</li>
-        <li>Career Discovery assessment</li>
+        <li>Explore Your Strengths tool</li>
         <li>3 ACIA™ questions/month</li>
         <li>OSCA workshop resources</li>
       </ul>
@@ -1407,12 +1407,13 @@ header{
       <div class="plan-price"><span class="plan-price-num">$9.99</span><span class="plan-price-period">/mo</span></div>
       <div class="plan-price-cad">CAD + GST · 7-day free trial</div>
       <ul class="plan-features">
+        <li>Full Guided Discovery Session (20–30 min)</li>
+        <li>Personalized ACIA™ pathway summary</li>
         <li>Full interactive pathway maps</li>
         <li>Complete TC ATO &amp; FTU directory</li>
         <li>Scholarship &amp; funding directory</li>
         <li>Unlimited ACIA™ career chat</li>
-        <li>Save and track careers</li>
-        <li>Salary data (LMI-sourced)</li>
+        <li>Salary &amp; career progression data</li>
       </ul>
       <button class="plan-cta filled" onclick="checkoutStudent()">Start Free Trial</button>
     </div>
@@ -1855,7 +1856,7 @@ function openPathway(id) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   CAREER DISCOVERY — Strength & Competency Assessment
+   CAREER DISCOVERY — Explore Your Strengths
 ══════════════════════════════════════════════════════════════════ */
 
 const STRENGTHS = [
