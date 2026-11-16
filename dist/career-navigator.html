@@ -694,9 +694,7 @@ body[data-role="advisor"] .dash-advisor{display:block}
 body[data-role] .dash-norole{display:none}
 /* Student dashboard states */
 .dash-student-new,.dash-student-returning{display:none}
-/* Student tab nav: hide explore + scholarships; swap labels */
-body[data-role="student"] .tab-btn[data-tab="explore"],
-body[data-role="student"] .tab-btn[data-tab="scholarships"]{display:none}
+/* All roles access all tabs — no tab hiding */
 body[data-role="student"] .tab-label-default{display:none}
 body[data-role="student"] .tab-label-student{display:inline!important}
 body[data-role="teacher"] .tab-label-advisor-teacher,
@@ -1021,6 +1019,12 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
         </div>
       </div>
       <div class="dash-grid">
+        <button class="dash-card" onclick="showTab('explore')">
+          <div class="dash-card-label">Browse</div>
+          <div class="dash-card-title">Explore All Careers</div>
+          <div class="dash-card-sub">Browse all 15 aviation and aerospace career pathways.</div>
+          <span class="dash-card-arrow">&#8594;</span>
+        </button>
         <button class="dash-card" onclick="showTab('compare')">
           <div class="dash-card-label">Compare</div>
           <div class="dash-card-title">Compare Careers</div>
