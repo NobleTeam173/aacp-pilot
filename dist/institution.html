@@ -9,45 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #ffffff;
-  --bg2: #f7f7f5;
-  --surface: #f2f2ef;
-  --surface2: #ebebea;
-  --border: #e0dfd8;
-  --fg: #1a1a18;
-  --fg2: #3c3c38;
-  --fg3: #7a7a74;
-  --gold: #c9a84c;
-  --gold-light: #f5e9c6;
-  --crimson: #c0392b;
+  --bg: #08020a;
+  --bg2: #100614;
+  --surface: #150a1a;
+  --surface2: #1c1024;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --fg: #f0eaf4;
+  --fg2: #b4a4c4;
+  --fg3: #7a6890;
+  --crimson: #80011f;
+  --crimson-h: #9a0126;
+  --crimson-soft: rgba(128,1,31,0.18);
+  --crimson-light: rgba(128,1,31,0.35);
   --radius: 12px;
   --radius-sm: 8px;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #18181a;
-    --bg2: #1e1e20;
-    --surface: #242428;
-    --surface2: #2a2a2e;
-    --border: #35353a;
-    --fg: #f0f0ec;
-    --fg2: #c0c0bc;
-    --fg3: #80807c;
-    --gold-light: #3a2f10;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #18181a;
-  --bg2: #1e1e20;
-  --surface: #242428;
-  --surface2: #2a2a2e;
-  --border: #35353a;
-  --fg: #f0f0ec;
-  --fg2: #c0c0bc;
-  --fg3: #80807c;
-  --gold-light: #3a2f10;
   color-scheme: dark;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -96,14 +72,14 @@ header::before {
 .logo-mark {
   width: 32px;
   height: 32px;
-  background: var(--gold);
+  background: var(--crimson);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 16px;
-  color: #000;
+  color: #fff;
   flex-shrink: 0;
 }
 .logo-text {
@@ -135,15 +111,15 @@ header::before {
   display: inline-block;
   transition: border-color .15s;
 }
-.btn-outline:hover { border-color: var(--gold); }
+.btn-outline:hover { border-color: #e05575; }
 .btn-gold {
   padding: 8px 18px;
-  background: var(--gold);
+  background: var(--crimson);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 700;
-  color: #000;
+  color: #fff;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
@@ -170,8 +146,8 @@ header::before {
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--gold);
-  background: var(--gold-light);
+  color: #e05575;
+  background: var(--crimson-soft);
   padding: 5px 12px;
   border-radius: 20px;
   margin-bottom: 20px;
@@ -186,7 +162,7 @@ header::before {
 }
 .hero h1 em {
   font-style: normal;
-  color: var(--gold);
+  color: #e05575;
 }
 .hero-lead {
   font-size: clamp(15px, 2.5vw, 18px);
@@ -203,12 +179,12 @@ header::before {
 }
 .btn-primary {
   padding: 13px 28px;
-  background: var(--gold);
+  background: var(--crimson);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 15px;
   font-weight: 700;
-  color: #000;
+  color: #fff;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
@@ -226,7 +202,7 @@ header::before {
   text-decoration: none;
   display: inline-block;
 }
-.btn-secondary:hover { border-color: var(--gold); }
+.btn-secondary:hover { border-color: #e05575; }
 
 /* ── Sections ── */
 .section {
@@ -243,7 +219,7 @@ header::before {
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: #e05575;
   margin-bottom: 10px;
 }
 .section-title {
@@ -323,7 +299,7 @@ header::before {
 }
 .feature-list li::before {
   content: '✓';
-  color: var(--gold);
+  color: #e05575;
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 1px;
@@ -343,12 +319,12 @@ header::before {
   padding: 28px 24px;
 }
 .pricing-card.featured {
-  border-color: var(--gold);
+  border-color: var(--crimson);
   background: var(--bg);
 }
 .pricing-tier { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--fg3); margin-bottom: 8px; }
 .pricing-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-.pricing-card .price { font-size: 28px; font-weight: 800; color: var(--gold); margin-bottom: 4px; }
+.pricing-card .price { font-size: 28px; font-weight: 800; color: #e05575; margin-bottom: 4px; }
 .pricing-card .price span { font-size: 14px; font-weight: 500; color: var(--fg3); }
 .pricing-card .price-note { font-size: 12px; color: var(--fg3); margin-bottom: 18px; }
 .pricing-features {
@@ -365,7 +341,7 @@ header::before {
   gap: 8px;
   align-items: flex-start;
 }
-.pricing-features li::before { content: '✓'; color: var(--gold); font-weight: 700; flex-shrink: 0; }
+.pricing-features li::before { content: '✓'; color: #e05575; font-weight: 700; flex-shrink: 0; }
 .pricing-cta {
   width: 100%;
   padding: 11px;
@@ -373,11 +349,11 @@ header::before {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  border: 2px solid var(--gold);
+  border: 2px solid var(--crimson);
   background: none;
-  color: var(--gold);
+  color: #e05575;
 }
-.pricing-cta.filled { background: var(--gold); color: #000; }
+.pricing-cta.filled { background: var(--crimson); color: #fff; }
 .pricing-cta:hover { opacity: .85; }
 
 /* ── Form ── */
@@ -402,7 +378,7 @@ header::before {
   outline: none;
   transition: border-color .15s;
 }
-.form-input:focus { border-color: var(--gold); }
+.form-input:focus { border-color: #e05575; }
 .form-select {
   width: 100%;
   padding: 10px 13px;
@@ -416,7 +392,7 @@ header::before {
   appearance: none;
   cursor: pointer;
 }
-.form-select:focus { border-color: var(--gold); }
+.form-select:focus { border-color: #e05575; }
 .form-textarea {
   width: 100%;
   padding: 10px 13px;
@@ -430,23 +406,23 @@ header::before {
   resize: vertical;
   min-height: 90px;
 }
-.form-textarea:focus { border-color: var(--gold); }
+.form-textarea:focus { border-color: #e05575; }
 .form-submit {
   width: 100%;
   padding: 13px;
-  background: var(--gold);
+  background: var(--crimson);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 15px;
   font-weight: 700;
-  color: #000;
+  color: #fff;
   cursor: pointer;
 }
 .form-submit:hover { opacity: .9; }
 #formSuccess {
   display: none;
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
-  border: 1px solid var(--gold);
+  background: color-mix(in srgb, var(--crimson) 12%, transparent);
+  border: 1px solid var(--crimson);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   font-size: 14px;
@@ -474,7 +450,7 @@ header::before {
   gap: 4px;
   text-align: center;
 }
-.trust-item strong { font-size: 22px; font-weight: 800; color: var(--gold); }
+.trust-item strong { font-size: 22px; font-weight: 800; color: #e05575; }
 .trust-item span { font-size: 12px; color: var(--fg3); }
 
 /* ── Footer ── */
@@ -741,7 +717,7 @@ footer nav a:hover { color: var(--fg); }
           <textarea class="form-textarea" id="f-interest" placeholder="e.g. Career education integration, student pathway guidance, faculty professional development…"></textarea>
         </div>
         <div class="form-row" style="display:flex;gap:10px;align-items:flex-start">
-          <input type="checkbox" id="f-pilot" style="margin-top:3px;accent-color:var(--gold)">
+          <input type="checkbox" id="f-pilot" style="margin-top:3px;accent-color:var(--crimson)">
           <label for="f-pilot" style="font-size:13px;color:var(--fg2);cursor:pointer">I'm interested in starting a free 30-day pilot program for up to 50 students.</label>
         </div>
         <div id="formError" style="display:none;font-size:13px;color:#e55;margin-bottom:12px"></div>
@@ -758,7 +734,7 @@ footer nav a:hover { color: var(--fg); }
 <!-- Footer -->
 <footer>
   <a href="career-navigator.html" class="footer-logo">
-    <div style="width:24px;height:24px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#000">A</div>
+    <div style="width:24px;height:24px;background:var(--crimson);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff">A</div>
     AACP™ Career Navigator
   </a>
   <nav>

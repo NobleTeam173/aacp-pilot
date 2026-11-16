@@ -669,9 +669,9 @@ header{
 }
 .compare-premium-gate h3{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:8px}
 .compare-premium-gate p{font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:18px;max-width:400px;margin-left:auto;margin-right:auto}
-#rolePicker button[onclick^="setRole"]:hover{border-color:var(--gold)!important;background:var(--surface2)!important}
-.role-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--gold);color:#000;margin-left:6px;vertical-align:middle;line-height:1.4}
-.plan-card.role-recommended{border-color:var(--gold)}
+#rolePicker button[onclick^="setRole"]:hover{border-color:var(--crimson)!important;background:var(--crimson-soft)!important}
+.role-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--crimson);color:#fff;margin-left:6px;vertical-align:middle;line-height:1.4}
+.plan-card.role-recommended{border-color:var(--crimson)}
 </style>
 </head>
 <body>
@@ -681,7 +681,7 @@ header{
   <div style="max-width:720px;margin:0 auto">
     <div style="text-align:center;margin-bottom:36px">
       <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:20px">
-        <div style="width:32px;height:32px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#000">A</div>
+        <div style="width:32px;height:32px;background:var(--crimson);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff">A</div>
         <span style="font-weight:700;font-size:16px">AACP™ Career Navigator</span>
       </div>
       <h1 style="font-family:'Fraunces',serif;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1.2;margin-bottom:10px">Who are you exploring for?</h1>
@@ -789,12 +789,12 @@ header{
       </button>
 
       <button class="disc-mode-card" id="counsellorModeCard" style="display:none" onclick="startCounsellorSession()">
-        <div class="disc-mode-icon" style="background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold);border-color:var(--gold)">&#9670;</div>
+        <div class="disc-mode-icon" style="background:var(--crimson-soft);color:var(--crimson);border-color:var(--crimson)">&#9670;</div>
         <div class="disc-mode-title">Counsellor Session</div>
         <div class="disc-mode-sub">Answer three structured questions about a student — what they enjoy, what they're good at, and where they want to go. Receive a matched pathway summary to share with them.</div>
         <div class="disc-mode-meta">
           <span class="disc-mode-time">5 min</span>
-          <span class="disc-mode-badge" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold);border:1px solid var(--gold)">Advisor</span>
+          <span class="disc-mode-badge" style="background:var(--crimson-soft);color:var(--crimson-h);border:1px solid var(--crimson)">Advisor</span>
           <span class="disc-mode-arrow">&#8594;</span>
         </div>
       </button>
@@ -816,7 +816,7 @@ header{
 
     <!-- Step indicators -->
     <div style="display:flex;gap:8px;margin-bottom:28px" id="csStepIndicators">
-      <div id="csInd0" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 10%,transparent);font-size:12px;font-weight:700;text-align:center">1. Enjoys</div>
+      <div id="csInd0" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--crimson);background:var(--crimson-soft);font-size:12px;font-weight:700;text-align:center">1. Enjoys</div>
       <div id="csInd1" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--border);font-size:12px;font-weight:600;text-align:center;color:var(--fg3)">2. Strengths</div>
       <div id="csInd2" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--border);font-size:12px;font-weight:600;text-align:center;color:var(--fg3)">3. Direction</div>
     </div>
@@ -2114,8 +2114,8 @@ function cstoggleItem(key, id, btn) {
   var idx = arr.indexOf(id);
   if (idx === -1) {
     arr.push(id);
-    btn.style.borderColor = 'var(--gold)';
-    btn.style.background = 'color-mix(in srgb,var(--gold) 12%,transparent)';
+    btn.style.borderColor = 'var(--crimson)';
+    btn.style.background = 'var(--crimson-soft)';
     btn.style.fontWeight = '700';
   } else {
     arr.splice(idx, 1);
@@ -2145,8 +2145,8 @@ function csUpdateIndicators(active) {
     var el = document.getElementById('csInd' + i);
     if (!el) continue;
     if (i === active) {
-      el.style.borderColor = 'var(--gold)';
-      el.style.background = 'color-mix(in srgb,var(--gold) 10%,transparent)';
+      el.style.borderColor = 'var(--crimson)';
+      el.style.background = 'var(--crimson-soft)';
       el.style.color = 'var(--fg)';
       el.style.fontWeight = '700';
     } else {
@@ -2201,7 +2201,7 @@ function csBuildResults() {
     var card = document.createElement('div');
     card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;gap:16px;align-items:flex-start';
     var rank = document.createElement('div');
-    rank.style.cssText = 'flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#000;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px';
+    rank.style.cssText = 'flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--crimson);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px';
     rank.textContent = idx + 1;
     var body = document.createElement('div');
     body.style.flex = '1';
@@ -2209,7 +2209,7 @@ function csBuildResults() {
       + '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">' + p.tagline + '</div>'
       + '<div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:10px">' + p.whatTheyDo + '</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      + '<button onclick="openPathway(\'' + p.id + '\');showTab(\'explore\')" style="font-size:12px;padding:5px 12px;background:var(--gold);border:none;border-radius:var(--radius-sm);font-weight:700;color:#000;cursor:pointer">View Full Pathway</button>'
+      + '<button onclick="openPathway(\'' + p.id + '\');showTab(\'explore\')" style="font-size:12px;padding:5px 12px;background:var(--crimson);border:none;border-radius:var(--radius-sm);font-weight:700;color:#fff;cursor:pointer">View Full Pathway</button>'
       + '<span style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg3)">' + p.licenceType + '</span>'
       + '<span style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg3)">' + p.salary.low + ' &ndash; ' + p.salary.high + '</span>'
       + '</div>';
