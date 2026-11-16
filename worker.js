@@ -14964,7 +14964,7 @@ async function handleNavigatorCheckout(request, user, env) {
     ['ui_mode', 'hosted_page'],
     ['billing_address_collection', 'auto'],
     ['phone_number_collection[enabled]', 'false'],
-    ['automatic_tax[enabled]', 'false'],
+    ['automatic_tax[enabled]', 'true'],
     ['allow_promotion_codes', 'true'],
     ['payment_method_collection', 'always'],
     ['submit_type', 'auto'],

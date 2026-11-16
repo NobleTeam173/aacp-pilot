@@ -29,7 +29,7 @@ These parameters were set in Checkout Studio and are already applied in `worker.
 | `ui_mode` | `hosted_page` |
 | `billing_address_collection` | `auto` |
 | `phone_number_collection[enabled]` | `false` |
-| `automatic_tax[enabled]` | `false` (overrides earlier `true` — GST now handled outside Stripe Tax) |
+| `automatic_tax[enabled]` | `true` — Stripe Tax calculates and collects GST/HST automatically |
 | `allow_promotion_codes` | `true` |
 | `payment_method_collection` | `always` (subscription mode) |
 | `submit_type` | `auto` |
@@ -81,7 +81,7 @@ After saving, copy the **Signing secret** (`whsec_...`) and set `STRIPE_NAVIGATO
 
 ### 3. Note on `automatic_tax`
 
-`automatic_tax` is set to `false` per Checkout Studio config. If you want Stripe to calculate and collect GST/HST automatically, set it back to `true` in the params and ensure your Stripe account has Tax enabled with the correct registration for Canada. The previous integration used `true`.
+`automatic_tax` is enabled (`true`). Stripe will automatically calculate and collect GST/HST at checkout. Ensure your Stripe account has [Stripe Tax](https://dashboard.stripe.com/tax) enabled with a Canada tax registration added before going live.
 
 ---
 
