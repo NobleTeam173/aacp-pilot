@@ -1929,6 +1929,19 @@ async function runMigrations(db) {
   await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_pilot_code   ON navigator_pilot_codes(code)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_label  ON navigator_pilot_codes(label)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_status ON navigator_pilot_codes(status)`).run().catch(() => {});
+
+  // navigator_profiles — navigator-role and pathway data for self-registered users.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_profiles (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL UNIQUE REFERENCES users(id),
+      navigator_role TEXT NOT NULL DEFAULT 'student',
+      pathway_data TEXT,
+      created_at   TEXT NOT NULL,
+      updated_at   TEXT NOT NULL
+    )
+  `).run();
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_profile_user ON navigator_profiles(user_id)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -15010,6 +15023,100 @@ async function handleNavigatorCheckout(request, user, env) {
   return json({ url: session.url, session_id: session.id });
 }
 
+// POST /navigator/account/register — self-service registration for navigator users (no admin approval required)
+async function handleNavigatorAccountRegister(request, env) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const rateLimitKey = `nav_register:${clientIp}`;
+  const attempts = await countAllAttempts(env.DB, rateLimitKey, 60 * 60 * 1000);
+  if (attempts >= 10) return err('Too many registration attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, rateLimitKey, true);
+
+  const body = await request.json().catch(() => null);
+  if (!body?.email || !body?.password || !body?.name) return err('email, password, and name are required');
+
+  const email = body.email.trim().toLowerCase();
+  if (email.length > 254) return err('Email address is too long');
+  if (body.name.trim().length > 100) return err('Name is too long');
+  if (body.password.length < 8) return err('Password must be at least 8 characters');
+  if (body.password.length > 128) return err('Password is too long');
+
+  const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : null;
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) return err('An account with this email already exists. Please sign in.', 409);
+
+  const userId = crypto.randomUUID();
+  const passwordHash = await hashPassword(body.password);
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'participant', 'active', 0, ?, ?)
+  `).bind(userId, email, body.name.trim(), passwordHash, now, now).run();
+
+  if (navigatorRole) {
+    await env.DB.prepare(`
+      INSERT INTO navigator_profiles (id, user_id, navigator_role, pathway_data, created_at, updated_at)
+      VALUES (?, ?, ?, NULL, ?, ?)
+    `).bind(crypto.randomUUID(), userId, navigatorRole, now, now).run();
+  }
+
+  await audit(env.DB, 'navigator_account_register', userId, 'user', { email, navigatorRole });
+
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: userId, email, role: 'participant', tokenType: 'access' },
+    accessSecret,
+    30 * 24 * 60 * 60
+  );
+
+  return json({ token, email, navigatorRole, message: 'Account created' }, 201);
+}
+
+// GET /navigator/profile — returns navigator_role + pathway_data for the authenticated user
+async function handleNavigatorProfileGet(request, user, env) {
+  const [profile, sub, userRow] = await Promise.all([
+    env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT plan, status FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first(),
+  ]);
+  return json({
+    navigatorRole: profile?.navigator_role ?? null,
+    pathwayData: profile?.pathway_data ? JSON.parse(profile.pathway_data) : null,
+    plan: sub?.plan ?? 'free',
+    email: user.email,
+    name: userRow?.name ?? null,
+  });
+}
+
+// PUT /navigator/profile — saves navigator_role and/or pathway_data
+async function handleNavigatorProfileUpdate(request, user, env) {
+  const body = await request.json().catch(() => null);
+  if (!body) return err('Invalid request body');
+
+  const now = new Date().toISOString();
+  const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : undefined;
+  const pathwayData = body.pathwayData !== undefined ? JSON.stringify(body.pathwayData) : undefined;
+
+  const existing = await env.DB.prepare(`SELECT id FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first();
+  if (existing) {
+    const sets = []; const vals = [];
+    if (navigatorRole !== undefined) { sets.push('navigator_role = ?'); vals.push(navigatorRole); }
+    if (pathwayData !== undefined)   { sets.push('pathway_data = ?');   vals.push(pathwayData); }
+    if (sets.length) {
+      sets.push('updated_at = ?'); vals.push(now); vals.push(user.sub);
+      await env.DB.prepare(`UPDATE navigator_profiles SET ${sets.join(', ')} WHERE user_id = ?`).bind(...vals).run();
+    }
+  } else {
+    await env.DB.prepare(`
+      INSERT INTO navigator_profiles (id, user_id, navigator_role, pathway_data, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(crypto.randomUUID(), user.sub, navigatorRole ?? 'student', pathwayData ?? null, now, now).run();
+  }
+
+  return json({ success: true });
+}
+
 // POST /navigator/pilot/redeem — public; validate pilot code, create/link user, activate subscription
 async function handleNavigatorPilotRedeem(request, env) {
   const body = await request.json().catch(() => ({}));
@@ -15478,6 +15585,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
     if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
     if (path === '/navigator/pilot/redeem'     && request.method === 'POST') return handleNavigatorPilotRedeem(request, env);
+    if (path === '/navigator/account/register' && request.method === 'POST') return handleNavigatorAccountRegister(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
@@ -15781,6 +15889,8 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/invites'      && request.method === 'GET')  return handleNavigatorInviteList(request, user, env);
     if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
     if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
+    if (path === '/navigator/profile'      && request.method === 'GET')  return handleNavigatorProfileGet(request, user, env);
+    if (path === '/navigator/profile'      && request.method === 'PUT')  return handleNavigatorProfileUpdate(request, user, env);
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
     if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
     if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {

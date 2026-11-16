@@ -715,6 +715,58 @@ header{
 <body>
 
 <!-- ── Role picker overlay ────────────────────────────────────── -->
+<!-- ── Auth Gate (shown before role picker for unauthenticated users) ── -->
+<div id="authGate" style="display:none;position:fixed;inset:0;z-index:1100;background:var(--bg);overflow-y:auto;padding:40px max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="width:32px;height:32px;background:var(--crimson);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff">A</div>
+        <span style="font-weight:700;font-size:16px">AACP™ Career Navigator</span>
+      </div>
+      <h1 id="authGateTitle" style="font-family:'Fraunces',serif;font-size:clamp(22px,5vw,30px);font-weight:700;line-height:1.2;margin-bottom:8px">Welcome to Career Navigator</h1>
+      <p id="authGateSub" style="font-size:14px;color:var(--fg3);max-width:340px;margin:0 auto">Create a free account to save your pathway, track your progress, and return to your personalised dashboard anytime.</p>
+    </div>
+
+    <!-- Welcome step -->
+    <div id="authStep0">
+      <button onclick="showAuthStep('register')" class="btn-primary" style="width:100%;justify-content:center;margin-bottom:12px">Create Account</button>
+      <button onclick="showAuthStep('signin')" class="btn-secondary" style="width:100%;justify-content:center;background:var(--surface2)">Sign In</button>
+    </div>
+
+    <!-- Register step -->
+    <div id="authStepRegister" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <input id="authRegName" type="text" placeholder="Full name" autocomplete="name"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
+        <input id="authRegEmail" type="email" placeholder="Email address" autocomplete="email"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
+        <input id="authRegPass" type="password" placeholder="Password (8+ characters)" autocomplete="new-password"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none"
+          onkeydown="if(event.key==='Enter')submitRegister()">
+        <p id="authRegError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
+        <button onclick="submitRegister()" id="authRegBtn" class="btn-primary" style="width:100%;justify-content:center">Create Account</button>
+        <p style="text-align:center;font-size:13px;color:var(--fg3)">Already have an account? <button onclick="showAuthStep('signin')" style="background:none;border:none;color:#e05575;cursor:pointer;font-size:13px;text-decoration:underline">Sign in</button></p>
+      </div>
+    </div>
+
+    <!-- Sign-in step -->
+    <div id="authStepSignin" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <input id="authSiEmail" type="email" placeholder="Email address" autocomplete="email"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
+        <input id="authSiPass" type="password" placeholder="Password" autocomplete="current-password"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none"
+          onkeydown="if(event.key==='Enter')submitSignIn()">
+        <p id="authSiError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
+        <button onclick="submitSignIn()" id="authSiBtn" class="btn-primary" style="width:100%;justify-content:center">Sign In</button>
+        <p style="text-align:center;font-size:13px;color:var(--fg3)">New here? <button onclick="showAuthStep('register')" style="background:none;border:none;color:#e05575;cursor:pointer;font-size:13px;text-decoration:underline">Create a free account</button></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Role Picker (shown after auth for new users who haven't chosen a role) ── -->
 <div id="rolePicker" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--bg);overflow-y:auto;padding:40px max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))">
   <div style="max-width:720px;margin:0 auto">
     <div style="text-align:center;margin-bottom:36px">
@@ -748,7 +800,6 @@ header{
       </button>
 
     </div>
-    <p style="text-align:center"><button onclick="setRole('student',true)" style="background:none;border:none;font-size:13px;color:var(--fg3);cursor:pointer;text-decoration:underline">Skip — just let me explore</button></p>
   </div>
 </div>
 
@@ -2165,17 +2216,196 @@ let chatQuestionsLeft = 3;
 let navigatorPlan = 'free'; // updated on load if token present
 let chatHistory = []; // {role, content} pairs for context window
 
-// ── Role-based onboarding ───────────────────────────────────────
+// ── Auth + Role-based onboarding ───────────────────────────────
 let navigatorRole = null;
 try { navigatorRole = localStorage.getItem('navigatorRole'); } catch(e) {}
 
+var NAV_API = 'https://api.aviationaerospacecompetency.com';
+
 function initRolePicker() {
-  if (!navigatorRole) {
-    const el = document.getElementById('rolePicker');
-    if (el) el.style.display = 'block';
-  } else {
-    applyRole(navigatorRole, false);
+  var token = null;
+  try { token = localStorage.getItem('navigatorToken'); } catch(e) {}
+
+  if (!token) {
+    // No token — require authentication
+    showAuthGate();
+    return;
   }
+  // Token present — load profile from backend
+  loadNavigatorProfile(token);
+}
+
+function showAuthGate(step) {
+  document.getElementById('authGate').style.display = 'block';
+  document.getElementById('rolePicker').style.display = 'none';
+  showAuthStep(step || 'welcome');
+}
+
+function showAuthStep(step) {
+  document.getElementById('authStep0').style.display = 'none';
+  document.getElementById('authStepRegister').style.display = 'none';
+  document.getElementById('authStepSignin').style.display = 'none';
+  if (step === 'welcome') {
+    document.getElementById('authGateTitle').textContent = 'Welcome to Career Navigator';
+    document.getElementById('authGateSub').textContent = 'Create a free account to save your pathway, track your progress, and return to your personalised dashboard anytime.';
+    document.getElementById('authStep0').style.display = 'block';
+  } else if (step === 'register') {
+    document.getElementById('authGateTitle').textContent = 'Create Your Account';
+    document.getElementById('authGateSub').textContent = 'Free to sign up. Your career pathway saves automatically.';
+    document.getElementById('authStepRegister').style.display = 'block';
+    setTimeout(function(){ var el = document.getElementById('authRegName'); if(el) el.focus(); }, 50);
+  } else if (step === 'signin') {
+    document.getElementById('authGateTitle').textContent = 'Sign In';
+    document.getElementById('authGateSub').textContent = 'Welcome back. Your saved pathway will load automatically.';
+    document.getElementById('authStepSignin').style.display = 'block';
+    setTimeout(function(){ var el = document.getElementById('authSiEmail'); if(el) el.focus(); }, 50);
+  }
+}
+
+async function submitRegister() {
+  var name = (document.getElementById('authRegName').value || '').trim();
+  var email = (document.getElementById('authRegEmail').value || '').trim();
+  var password = document.getElementById('authRegPass').value || '';
+  var errEl = document.getElementById('authRegError');
+  errEl.style.display = 'none';
+  if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+  if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+  var btn = document.getElementById('authRegBtn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    var res = await fetch(NAV_API + '/navigator/account/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+    var data = await res.json().catch(() => ({}));
+    if (!res.ok) { errEl.textContent = data.error || 'Registration failed. Please try again.'; errEl.style.display = 'block'; return; }
+    // Success — store token, show role picker
+    try { localStorage.setItem('navigatorToken', data.token); } catch(e) {}
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('rolePicker').style.display = 'block';
+  } catch(e) {
+    errEl.textContent = 'Connection error. Please check your internet and try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+async function submitSignIn() {
+  var email = (document.getElementById('authSiEmail').value || '').trim();
+  var password = document.getElementById('authSiPass').value || '';
+  var errEl = document.getElementById('authSiError');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+  var btn = document.getElementById('authSiBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    var res = await fetch(NAV_API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    var data = await res.json().catch(() => ({}));
+    if (!res.ok) { errEl.textContent = data.error || 'Sign in failed. Please check your credentials.'; errEl.style.display = 'block'; return; }
+    if (data.mfaRequired) { errEl.textContent = 'MFA is not supported in this sign-in flow. Please contact support.'; errEl.style.display = 'block'; return; }
+    var token = data.token || data.accessToken;
+    if (!token) { errEl.textContent = 'Sign in failed. Please try again.'; errEl.style.display = 'block'; return; }
+    try { localStorage.setItem('navigatorToken', token); } catch(e) {}
+    document.getElementById('authGate').style.display = 'none';
+    loadNavigatorProfile(token);
+  } catch(e) {
+    errEl.textContent = 'Connection error. Please check your internet and try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function loadNavigatorProfile(token) {
+  try {
+    var res = await fetch(NAV_API + '/navigator/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.status === 401 || res.status === 403) {
+      // Token invalid/expired — re-auth
+      try { localStorage.removeItem('navigatorToken'); } catch(e) {}
+      showAuthGate();
+      return;
+    }
+    var data = await res.json().catch(() => ({}));
+    // Load subscription plan
+    if (data.plan) navigatorPlan = data.plan;
+    // Load pathway data from backend (merge with localStorage)
+    if (data.pathwayData) {
+      try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data.pathwayData)); } catch(e) {}
+    }
+    // Set role
+    var role = data.navigatorRole;
+    if (role) {
+      try { localStorage.setItem('navigatorRole', role); } catch(e) {}
+      navigatorRole = role;
+      applyRole(role, false);
+    } else {
+      // No role set — show role picker
+      document.getElementById('rolePicker').style.display = 'block';
+    }
+    // Show sign-out link
+    showSignOutLink();
+  } catch(e) {
+    // Network error — fall back to localStorage role if available
+    if (navigatorRole) {
+      applyRole(navigatorRole, false);
+    } else {
+      document.getElementById('rolePicker').style.display = 'block';
+    }
+  }
+}
+
+function showSignOutLink() {
+  var existing = document.getElementById('signOutLink');
+  if (existing) return;
+  var link = document.createElement('button');
+  link.id = 'signOutLink';
+  link.textContent = 'Sign Out';
+  link.onclick = signOut;
+  link.style.cssText = 'background:none;border:none;font-size:12px;color:var(--fg3);cursor:pointer;text-decoration:underline;padding:0;margin-left:8px';
+  var headerActions = document.querySelector('.header-actions');
+  if (headerActions) headerActions.appendChild(link);
+}
+
+function signOut() {
+  try { localStorage.removeItem('navigatorToken'); } catch(e) {}
+  try { localStorage.removeItem('navigatorRole'); } catch(e) {}
+  navigatorRole = null;
+  document.querySelectorAll('.role-badge').forEach(b => b.remove());
+  var crl = document.getElementById('changeRoleLink');
+  if (crl) crl.remove();
+  var sol = document.getElementById('signOutLink');
+  if (sol) sol.remove();
+  showAuthGate();
+}
+
+function saveRoleToBackend(role) {
+  var token = null;
+  try { token = localStorage.getItem('navigatorToken'); } catch(e) {}
+  if (!token) return;
+  fetch(NAV_API + '/navigator/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ navigatorRole: role })
+  }).catch(() => {});
+}
+
+function savePathwayToBackend(data) {
+  var token = null;
+  try { token = localStorage.getItem('navigatorToken'); } catch(e) {}
+  if (!token) return;
+  fetch(NAV_API + '/navigator/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ pathwayData: data })
+  }).catch(() => {});
 }
 
 function setRole(role, isSkip) {
@@ -2187,7 +2417,9 @@ function setRole(role, isSkip) {
   navigatorRole = role;
   const el = document.getElementById('rolePicker');
   if (el) el.style.display = 'none';
+  saveRoleToBackend(role);
   applyRole(role, false);
+  showSignOutLink();
 }
 
 function changeRole() {
@@ -4299,6 +4531,7 @@ function loadPathway() {
 
 function savePathway(data) {
   try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data)); } catch(e) {}
+  savePathwayToBackend(data);
 }
 
 function isPathwaySaved(id) {
