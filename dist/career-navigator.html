@@ -788,9 +788,89 @@ header{
         </div>
       </button>
 
+      <button class="disc-mode-card" id="counsellorModeCard" style="display:none" onclick="startCounsellorSession()">
+        <div class="disc-mode-icon" style="background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold);border-color:var(--gold)">&#9670;</div>
+        <div class="disc-mode-title">Counsellor Session</div>
+        <div class="disc-mode-sub">Answer three structured questions about a student — what they enjoy, what they're good at, and where they want to go. Receive a matched pathway summary to share with them.</div>
+        <div class="disc-mode-meta">
+          <span class="disc-mode-time">5 min</span>
+          <span class="disc-mode-badge" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold);border:1px solid var(--gold)">Advisor</span>
+          <span class="disc-mode-arrow">&#8594;</span>
+        </div>
+      </button>
+
     </div>
 
     <p style="font-size:12px;color:var(--fg3);line-height:1.6">The Guided Discovery Session uses structured open-ended reflection and delivers a personalized pathway summary powered by ACIA™ — available to subscribers. The free Explore Your Strengths tool is a self-guided starting point; results reflect your self-reported preferences and are not a formal competency assessment, employment eligibility decision, or career outcome guarantee.</p>
+  </div>
+
+  <!-- ── Counsellor Session ─────────────────────────────────────── -->
+  <div id="discCounsellor" style="display:none;max-width:720px;margin:0 auto;padding:0 0 48px">
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
+      <p class="section-label" style="margin:0">Counsellor Session</p>
+    </div>
+    <h2 class="section-title" style="margin-bottom:6px">Three Questions to Find the Right Pathway</h2>
+    <p style="font-size:13px;color:var(--fg2);margin-bottom:28px;line-height:1.6">Answer these questions about your student. The Navigator will match their profile to the aviation and aerospace pathways most likely to resonate — and give you a summary to share.</p>
+
+    <!-- Step indicators -->
+    <div style="display:flex;gap:8px;margin-bottom:28px" id="csStepIndicators">
+      <div id="csInd0" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 10%,transparent);font-size:12px;font-weight:700;text-align:center">1. Enjoys</div>
+      <div id="csInd1" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--border);font-size:12px;font-weight:600;text-align:center;color:var(--fg3)">2. Strengths</div>
+      <div id="csInd2" style="flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:2px solid var(--border);font-size:12px;font-weight:600;text-align:center;color:var(--fg3)">3. Direction</div>
+    </div>
+
+    <!-- Step 1: What does this student enjoy? -->
+    <div id="csStep0">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;color:var(--fg)">What activities or problems does this student enjoy?</div>
+      <p style="font-size:13px;color:var(--fg3);margin-bottom:16px">Select everything that fits — even loosely. You can pick as many as apply.</p>
+      <div id="csActivitiesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:24px"></div>
+      <button class="btn-primary" style="font-size:13px;padding:10px 24px" onclick="csNextStep(0)">Next &#8594;</button>
+    </div>
+
+    <!-- Step 2: What strengths have they demonstrated? -->
+    <div id="csStep1" style="display:none">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;color:var(--fg)">What strengths and capabilities have they demonstrated?</div>
+      <p style="font-size:13px;color:var(--fg3);margin-bottom:16px">Based on what you've observed — in class, in conversation, or through their record. Select all that apply.</p>
+      <div id="csStrengthsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:24px"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-secondary" style="font-size:13px;padding:10px 20px" onclick="csPrevStep(1)">&#8592; Back</button>
+        <button class="btn-primary" style="font-size:13px;padding:10px 24px" onclick="csNextStep(1)">Next &#8594;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Which direction are they leaning? -->
+    <div id="csStep2" style="display:none">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;color:var(--fg)">Which career pathways might help them develop those strengths?</div>
+      <p style="font-size:13px;color:var(--fg3);margin-bottom:16px">If the student has expressed a leaning, select it. Otherwise leave blank and we'll let the first two answers guide the match.</p>
+      <div id="csDirectionGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:24px"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-secondary" style="font-size:13px;padding:10px 20px" onclick="csPrevStep(2)">&#8592; Back</button>
+        <button class="btn-primary" style="font-size:13px;padding:10px 24px" onclick="csBuildResults()">See Pathway Matches &#8594;</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="csResults" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--fg)">Matched Pathways</div>
+          <div style="font-size:13px;color:var(--fg3)" id="csResultsSub"></div>
+        </div>
+        <button class="btn-secondary" style="font-size:12px;padding:7px 14px" onclick="csRestart()">Start Over</button>
+      </div>
+      <div id="csMatchCards" style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px"></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Share with this student</div>
+        <p style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px">The student can explore these pathways, complete an ACIA™ chat session, and find training options by visiting the Navigator directly — or you can walk through the Explore tab together.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-primary" style="font-size:13px;padding:9px 18px" onclick="showTab('explore')">Open Explore Tab &#8594;</button>
+          <button class="btn-secondary" style="font-size:13px;padding:9px 18px" onclick="csPrintSummary()">Print Summary</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── Guided Discovery Session ─────────────────────────────── -->
@@ -1913,6 +1993,9 @@ function changeRole() {
 
 function applyRole(role, animate) {
   document.body.setAttribute('data-role', role);
+  // Show counsellor mode card for teacher/advisor
+  var ccCard = document.getElementById('counsellorModeCard');
+  if (ccCard) ccCard.style.display = (role === 'teacher' || role === 'advisor') ? 'block' : 'none';
   // Add "For you" badge to relevant tab buttons
   document.querySelectorAll('.role-badge').forEach(b => b.remove());
   const tabBadges = {
@@ -1955,6 +2038,207 @@ function applyRole(role, animate) {
   crLink.textContent = `Role: ${labels[role] || role} ✕`;
 }
 // ── End role onboarding ─────────────────────────────────────────
+
+// ── Counsellor Session ───────────────────────────────────────────
+var CS_ACTIVITIES = [
+  { id:'problem_solving',  label:'Solving problems / puzzles',       pathways:['atc','fss','aerospace_eng','aviation_tech','avionics'] },
+  { id:'working_hands',    label:'Working with hands / tools',       pathways:['ame','avionics','structures','gas_turbine','aerospace_mfg'] },
+  { id:'outdoors',         label:'Working outdoors / on the move',   pathways:['pilot','uav','airport_ops','ground_ops'] },
+  { id:'technology',       label:'Technology / computers / systems', pathways:['aviation_tech','avionics','uav','aerospace_eng','atc'] },
+  { id:'helping_people',   label:'Helping people / customer focus',  pathways:['customer_ops','fss','pilot','airport_ops'] },
+  { id:'precision',        label:'Precision / attention to detail',  pathways:['ame','avionics','structures','gas_turbine','atc'] },
+  { id:'leadership',       label:'Leadership / coordinating teams',  pathways:['pilot','atc','airport_ops','cargo','aerospace_mfg'] },
+  { id:'science_math',     label:'Science / math / engineering',     pathways:['aerospace_eng','aerospace_mfg','aviation_tech','gas_turbine'] },
+  { id:'communication',    label:'Communication / language',         pathways:['atc','fss','customer_ops','pilot'] },
+  { id:'logistics',        label:'Planning / logistics / operations',pathways:['cargo','ground_ops','airport_ops','fss','dispatcher'] },
+  { id:'creative',         label:'Creative / design / visual',       pathways:['uav','aerospace_mfg','aerospace_eng'] },
+  { id:'physical',         label:'Physical / active / hands-on',     pathways:['ame','structures','gas_turbine','ground_ops'] },
+];
+
+var CS_STRENGTHS = [
+  { id:'spatial',      label:'Spatial reasoning',               pathways:['pilot','atc','aerospace_eng','structures'] },
+  { id:'analytical',   label:'Analytical thinking',             pathways:['atc','aerospace_eng','aviation_tech','fss','avionics'] },
+  { id:'mechanical',   label:'Mechanical aptitude',             pathways:['ame','gas_turbine','structures','avionics'] },
+  { id:'calm',         label:'Calm under pressure',             pathways:['pilot','atc','fss','ame'] },
+  { id:'communication',label:'Strong communicator',             pathways:['atc','fss','customer_ops','pilot','dispatcher'] },
+  { id:'teamwork',     label:'Works well in teams',             pathways:['ground_ops','cargo','airport_ops','aerospace_mfg'] },
+  { id:'independent',  label:'Works well independently',        pathways:['uav','ame','structures','gas_turbine'] },
+  { id:'tech',         label:'Technical / electronics',         pathways:['avionics','aviation_tech','aerospace_eng','gas_turbine'] },
+  { id:'leadership',   label:'Demonstrated leadership',         pathways:['pilot','atc','airport_ops','aerospace_mfg'] },
+  { id:'math',         label:'Strong in math / physics',        pathways:['aerospace_eng','pilot','atc','gas_turbine'] },
+  { id:'organised',    label:'Highly organised',                pathways:['cargo','dispatcher','fss','airport_ops'] },
+  { id:'curious',      label:'Curious / self-directed learner', pathways:['uav','aerospace_eng','aviation_tech','avionics'] },
+];
+
+var CS_DIRECTIONS = [
+  { id:'flying',       label:'Flying / being in the air',    pathways:['pilot','uav'] },
+  { id:'maintenance',  label:'Keeping aircraft airworthy',   pathways:['ame','avionics','structures','gas_turbine'] },
+  { id:'control',      label:'Air traffic / communications', pathways:['atc','fss'] },
+  { id:'ground',       label:'Airport / ground operations',  pathways:['airport_ops','ground_ops','cargo','customer_ops'] },
+  { id:'engineering',  label:'Engineering / design / tech',  pathways:['aerospace_eng','aerospace_mfg','aviation_tech'] },
+  { id:'unsure',       label:'Not sure yet — open to anything', pathways:[] },
+];
+
+var csSelections = { activities: [], strengths: [], directions: [] };
+
+function startCounsellorSession() {
+  csSelections = { activities: [], strengths: [], directions: [] };
+  buildCsGrid('csActivitiesGrid', CS_ACTIVITIES, 'activities');
+  buildCsGrid('csStrengthsGrid', CS_STRENGTHS, 'strengths');
+  buildCsGrid('csDirectionGrid', CS_DIRECTIONS, 'directions');
+  ['csStep0','csStep1','csStep2','csResults'].forEach(function(id,i){
+    var el = document.getElementById(id);
+    if (el) el.style.display = i===0 ? 'block' : 'none';
+  });
+  csUpdateIndicators(0);
+  document.getElementById('discEntry').style.display = 'none';
+  document.getElementById('discCounsellor').style.display = 'block';
+}
+
+function buildCsGrid(containerId, items, key) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  items.forEach(function(item) {
+    var btn = document.createElement('button');
+    btn.setAttribute('data-id', item.id);
+    btn.style.cssText = 'text-align:left;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-size:13px;font-weight:500;color:var(--fg);line-height:1.4;transition:border-color .15s,background .15s';
+    btn.textContent = item.label;
+    btn.onclick = function() { cstoggleItem(key, item.id, btn); };
+    container.appendChild(btn);
+  });
+}
+
+function cstoggleItem(key, id, btn) {
+  var arr = csSelections[key];
+  var idx = arr.indexOf(id);
+  if (idx === -1) {
+    arr.push(id);
+    btn.style.borderColor = 'var(--gold)';
+    btn.style.background = 'color-mix(in srgb,var(--gold) 12%,transparent)';
+    btn.style.fontWeight = '700';
+  } else {
+    arr.splice(idx, 1);
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background = 'var(--surface)';
+    btn.style.fontWeight = '500';
+  }
+}
+
+function csNextStep(from) {
+  document.getElementById('csStep' + from).style.display = 'none';
+  var to = from + 1;
+  document.getElementById('csStep' + to).style.display = 'block';
+  csUpdateIndicators(to);
+}
+
+function csPrevStep(from) {
+  document.getElementById('csStep' + from).style.display = 'none';
+  var to = from - 1;
+  document.getElementById('csStep' + to).style.display = 'block';
+  csUpdateIndicators(to);
+}
+
+function csUpdateIndicators(active) {
+  var labels = ['1. Enjoys','2. Strengths','3. Direction'];
+  for (var i = 0; i < 3; i++) {
+    var el = document.getElementById('csInd' + i);
+    if (!el) continue;
+    if (i === active) {
+      el.style.borderColor = 'var(--gold)';
+      el.style.background = 'color-mix(in srgb,var(--gold) 10%,transparent)';
+      el.style.color = 'var(--fg)';
+      el.style.fontWeight = '700';
+    } else {
+      el.style.borderColor = 'var(--border)';
+      el.style.background = 'transparent';
+      el.style.color = 'var(--fg3)';
+      el.style.fontWeight = '600';
+    }
+  }
+}
+
+function csBuildResults() {
+  document.getElementById('csStep2').style.display = 'none';
+
+  // Score pathways
+  var scores = {};
+  function addScores(items, selectedIds, weight) {
+    items.forEach(function(item) {
+      if (selectedIds.indexOf(item.id) !== -1) {
+        item.pathways.forEach(function(pid) {
+          scores[pid] = (scores[pid] || 0) + weight;
+        });
+      }
+    });
+  }
+  addScores(CS_ACTIVITIES, csSelections.activities, 1);
+  addScores(CS_STRENGTHS, csSelections.strengths, 1.5);
+
+  // Direction: if "unsure" or nothing, don't filter — just boost
+  var hasDirection = csSelections.directions.length > 0 && csSelections.directions[0] !== 'unsure';
+  if (hasDirection) {
+    addScores(CS_DIRECTIONS, csSelections.directions, 2);
+  }
+
+  // Rank PATHWAYS
+  var ranked = PATHWAYS
+    .map(function(p) { return { p: p, score: scores[p.id] || 0 }; })
+    .filter(function(x) { return x.score > 0; })
+    .sort(function(a,b) { return b.score - a.score; })
+    .slice(0, 5);
+
+  // Fallback: if nothing scored, show top 3 by direction only or first 3
+  if (ranked.length === 0) {
+    ranked = PATHWAYS.slice(0, 3).map(function(p) { return { p: p, score: 0 }; });
+  }
+
+  // Render
+  var container = document.getElementById('csMatchCards');
+  container.innerHTML = '';
+  ranked.forEach(function(item, idx) {
+    var p = item.p;
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;gap:16px;align-items:flex-start';
+    var rank = document.createElement('div');
+    rank.style.cssText = 'flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#000;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px';
+    rank.textContent = idx + 1;
+    var body = document.createElement('div');
+    body.style.flex = '1';
+    body.innerHTML = '<div style="font-weight:700;font-size:14px;margin-bottom:3px">' + p.title + '</div>'
+      + '<div style="font-size:12px;color:var(--fg3);margin-bottom:8px">' + p.tagline + '</div>'
+      + '<div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:10px">' + p.whatTheyDo + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      + '<button onclick="openPathway(\'' + p.id + '\');showTab(\'explore\')" style="font-size:12px;padding:5px 12px;background:var(--gold);border:none;border-radius:var(--radius-sm);font-weight:700;color:#000;cursor:pointer">View Full Pathway</button>'
+      + '<span style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg3)">' + p.licenceType + '</span>'
+      + '<span style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg3)">' + p.salary.low + ' &ndash; ' + p.salary.high + '</span>'
+      + '</div>';
+    card.appendChild(rank);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+
+  var acts = csSelections.activities.length;
+  var strs = csSelections.strengths.length;
+  document.getElementById('csResultsSub').textContent = 'Based on ' + acts + ' activit' + (acts===1?'y':'ies') + ' and ' + strs + ' strength' + (strs===1?'':'s') + ' selected';
+
+  document.getElementById('csResults').style.display = 'block';
+}
+
+function csRestart() {
+  document.getElementById('csResults').style.display = 'none';
+  csSelections = { activities: [], strengths: [], directions: [] };
+  buildCsGrid('csActivitiesGrid', CS_ACTIVITIES, 'activities');
+  buildCsGrid('csStrengthsGrid', CS_STRENGTHS, 'strengths');
+  buildCsGrid('csDirectionGrid', CS_DIRECTIONS, 'directions');
+  document.getElementById('csStep0').style.display = 'block';
+  csUpdateIndicators(0);
+}
+
+function csPrintSummary() {
+  window.print();
+}
+// ── End Counsellor Session ───────────────────────────────────────
 
 function scrollToSectors() {
   document.getElementById('sectorGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2831,6 +3115,7 @@ function showDiscoveryEntry() {
   document.getElementById('discEntry').style.display = '';
   document.getElementById('discGuided').style.display = 'none';
   document.getElementById('discAssessment').style.display = 'none';
+  document.getElementById('discCounsellor').style.display = 'none';
 }
 function startAssessment() {
   document.getElementById('discEntry').style.display = 'none';
