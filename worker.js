@@ -1908,6 +1908,27 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_code ON navigator_invite_redemptions(code_id)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_user ON navigator_invite_redemptions(redeemed_by)`).run().catch(() => {});
+
+  // navigator_pilot_codes — admin-generated complimentary access codes (OSCA / pilot cohort).
+  // Grants free premium access without Stripe, creates/links a navigator user on redemption.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_pilot_codes (
+      id               TEXT PRIMARY KEY,
+      code             TEXT NOT NULL UNIQUE,
+      label            TEXT NOT NULL,
+      created_by       TEXT REFERENCES users(id),
+      plan             TEXT NOT NULL DEFAULT 'premium_student',
+      max_redemptions  INTEGER,
+      redemptions_used INTEGER NOT NULL DEFAULT 0,
+      expires_at       TEXT,
+      status           TEXT NOT NULL DEFAULT 'active',
+      created_at       TEXT NOT NULL,
+      updated_at       TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_pilot_code   ON navigator_pilot_codes(code)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_label  ON navigator_pilot_codes(label)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_status ON navigator_pilot_codes(status)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -14987,6 +15008,141 @@ async function handleNavigatorCheckout(request, user, env) {
   return json({ url: session.url, session_id: session.id });
 }
 
+// POST /navigator/pilot/redeem — public; validate pilot code, create/link user, activate subscription
+async function handleNavigatorPilotRedeem(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const code = String(body.code ?? '').trim().toUpperCase();
+  const email = String(body.email ?? '').trim().toLowerCase();
+  const name  = String(body.name  ?? '').trim().slice(0, 120);
+
+  if (!code)  return err('code is required');
+  if (!email) return err('email is required');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Invalid email address');
+
+  // Rate limit by IP to prevent brute-force
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const attempts = await countAllAttempts(env.DB, `pilot_redeem:${clientIp}`, 10 * 60 * 1000);
+  if (attempts >= 10) return err('Too many attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, `pilot_redeem:${clientIp}`, true);
+
+  const now = new Date().toISOString();
+
+  // Validate pilot code
+  const pc = await env.DB.prepare(
+    `SELECT id, plan, max_redemptions, redemptions_used, expires_at, status FROM navigator_pilot_codes WHERE code = ?`
+  ).bind(code).first();
+
+  if (!pc || pc.status !== 'active') return err('Invalid or inactive pilot code');
+  if (pc.expires_at && now > pc.expires_at) return err('This pilot code has expired');
+  if (pc.max_redemptions !== null && pc.redemptions_used >= pc.max_redemptions) return err('This pilot code has reached its redemption limit');
+
+  // Find or create user
+  let user = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(email).first();
+  if (!user) {
+    const userId = crypto.randomUUID();
+    // Create a minimal navigator account (no usable password; auth is via pilot JWT)
+    const dummyHash = `pilot:${crypto.randomUUID()}`;
+    await env.DB.prepare(`
+      INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)
+    `).bind(userId, email, name || email.split('@')[0], dummyHash, now, now).run();
+    user = { id: userId, email, role: 'participant' };
+  }
+
+  // Upsert navigator subscription (pilot tier — no Stripe IDs)
+  const plan = pc.plan || 'premium_student';
+  const pilotExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 yr
+  await env.DB.prepare(`
+    INSERT INTO navigator_subscriptions
+      (id, user_id, plan, status, invites_remaining, current_period_end, created_at, updated_at)
+    VALUES (?, ?, ?, 'active', 0, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      plan = excluded.plan, status = 'active',
+      current_period_end = excluded.current_period_end, updated_at = excluded.updated_at
+  `).bind(crypto.randomUUID(), user.id, plan, pilotExpiry, now, now).run();
+
+  // Increment redemptions
+  await env.DB.prepare(
+    `UPDATE navigator_pilot_codes SET redemptions_used = redemptions_used + 1, updated_at = ? WHERE id = ?`
+  ).bind(now, pc.id).run();
+
+  await audit(env.DB, 'navigator_pilot_redeem', user.id, 'navigator_pilot_code', { code, plan, email });
+
+  // Issue 90-day JWT
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: user.id, email: user.email, role: user.role, tokenType: 'access' },
+    accessSecret,
+    90 * 24 * 60 * 60
+  );
+
+  return json({ token, email: user.email, plan, message: 'Pilot access activated' });
+}
+
+// GET /admin/navigator — subscriber stats and pilot code list (admin only)
+async function handleAdminNavigatorDashboard(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+
+  const [plans, pilotCodes] = await Promise.all([
+    env.DB.prepare(`
+      SELECT plan, status, COUNT(*) as count
+      FROM navigator_subscriptions
+      GROUP BY plan, status
+      ORDER BY plan, status
+    `).all(),
+    env.DB.prepare(`
+      SELECT id, code, label, plan, max_redemptions, redemptions_used, expires_at, status, created_at
+      FROM navigator_pilot_codes
+      ORDER BY created_at DESC
+      LIMIT 200
+    `).all(),
+  ]);
+
+  return json({ plans: plans.results, pilotCodes: pilotCodes.results });
+}
+
+// POST /admin/navigator/pilot-codes — generate pilot access codes (admin only)
+async function handleAdminNavigatorPilotCodesCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const body = await request.json().catch(() => ({}));
+  const label         = String(body.label ?? 'OSCA-2026').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  const count         = Math.min(Math.max(Number(body.count) || 1, 1), 50);
+  const maxRedemptions = body.max_redemptions != null ? Number(body.max_redemptions) : null;
+  const expiresAt     = body.expires_at || null;
+  const plan          = body.plan || 'premium_student';
+
+  if (!label) return err('label is required');
+
+  const now = new Date().toISOString();
+  const created = [];
+
+  for (let i = 0; i < count; i++) {
+    const suffix = crypto.randomUUID().split('-')[0].toUpperCase();
+    const code = `${label}-${suffix}`;
+    const id = crypto.randomUUID();
+    await env.DB.prepare(`
+      INSERT INTO navigator_pilot_codes (id, code, label, created_by, plan, max_redemptions, redemptions_used, expires_at, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', ?, ?)
+    `).bind(id, code, label, user.id, plan, maxRedemptions, expiresAt, now, now).run();
+    created.push({ id, code, label, plan });
+  }
+
+  await audit(env.DB, 'navigator_pilot_codes_create', user.id, 'navigator_pilot_code', { label, count, plan });
+  return json({ created });
+}
+
+// DELETE /admin/navigator/pilot-codes/:id — revoke a pilot code (admin only)
+async function handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare(
+    `UPDATE navigator_pilot_codes SET status = 'revoked', updated_at = ? WHERE id = ? AND status = 'active'`
+  ).bind(now, codeId).run();
+  if (!result.meta?.changes) return err('Code not found or already revoked', 404);
+  await audit(env.DB, 'navigator_pilot_code_revoke', user.id, 'navigator_pilot_code', { codeId });
+  return json({ success: true });
+}
+
 // POST /navigator/chat — ACIA chat for active Navigator premium subscribers
 async function handleNavigatorChat(request, user, env) {
   const g = requireAuth(user); if (g) return g;
@@ -15261,9 +15417,10 @@ async function _routeRequest(request, env, ctx) {
     // ── Consent audit log (no auth, no PII) ───────────────────────────────────
     if (path === '/consent/record' && request.method === 'POST') return handleConsentRecord(request, env);
 
-    // ── Career Navigator — Stripe (public, no JWT) ───────────────────────────
+    // ── Career Navigator — public (no JWT) ───────────────────────────────────
     if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
     if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
+    if (path === '/navigator/pilot/redeem'     && request.method === 'POST') return handleNavigatorPilotRedeem(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
@@ -15566,6 +15723,12 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/checkout'     && request.method === 'POST') return handleNavigatorCheckout(request, user, env);
     if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
     if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
+    if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
+    if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
+    if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {
+      const codeId = path.split('/')[4];
+      return handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId);
+    }
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {

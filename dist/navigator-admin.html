@@ -1,0 +1,284 @@
+<title>Navigator Admin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  --bg: #f5f5f7; --surface: #fff; --surface2: #f0f0f2; --border: #e0e0e4;
+  --fg: #111; --fg2: #444; --fg3: #888;
+  --gold: #c8992a; --accent: #1a56c4;
+  --radius: 10px; --radius-sm: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0f10; --surface: #1a1a1c; --surface2: #232325; --border: #2e2e30;
+  --fg: #f0f0f2; --fg2: #aaa; --fg3: #666; color-scheme: dark;
+}}
+:root[data-theme="dark"] {
+  --bg: #0f0f10; --surface: #1a1a1c; --surface2: #232325; --border: #2e2e30;
+  --fg: #f0f0f2; --fg2: #aaa; --fg3: #666; color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg); min-height: 100vh;
+  padding: 24px max(16px, env(safe-area-inset-left,0px));
+  padding-right: max(16px, env(safe-area-inset-right,0px));
+}
+.page-header { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+.page-title { font-size:20px; font-weight:700; }
+.page-sub { font-size:13px; color:var(--fg3); margin-top:2px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+.card-title { font-size:15px; font-weight:600; margin-bottom:16px; }
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+.stat { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; }
+.stat-val { font-size:28px; font-weight:700; line-height:1; }
+.stat-label { font-size:12px; color:var(--fg3); margin-top:4px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--border); font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); }
+td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+.badge-active { background:color-mix(in srgb,#2a9c5c 15%,transparent); color:#2a9c5c; }
+.badge-revoked { background:color-mix(in srgb,#e55 12%,transparent); color:#e55; }
+input, select { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); color:var(--fg); font-size:13px; outline:none; }
+.form-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.form-row > * { flex:1; min-width:160px; }
+label { font-size:12px; color:var(--fg3); display:block; margin-bottom:4px; }
+.btn { padding:9px 18px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; border:none; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-danger { background:color-mix(in srgb,#e55 15%,transparent); color:#e55; border:1px solid color-mix(in srgb,#e55 25%,transparent); }
+.login-wrap { max-width:380px; margin:80px auto; }
+.auth-err { font-size:13px; color:#e55; margin-top:10px; display:none; }
+#mainContent { display:none; }
+.copy-code { background:none; border:none; cursor:pointer; color:var(--accent); font-size:12px; padding:0 4px; }
+</style>
+
+<!-- Login gate -->
+<div id="loginWrap" class="login-wrap">
+  <div class="card">
+    <div class="card-title">Navigator Admin</div>
+    <p style="font-size:13px;color:var(--fg3);margin-bottom:16px">Sign in with an AACP admin account.</p>
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="admin@example.com" style="margin-bottom:10px">
+    <label>Password</label>
+    <input id="loginPassword" type="password" placeholder="••••••••" style="margin-bottom:14px" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+    <p id="loginErr" class="auth-err"></p>
+  </div>
+</div>
+
+<!-- Main content -->
+<div id="mainContent">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Career Navigator — Admin</div>
+      <div class="page-sub" id="adminLabel">Loading…</div>
+    </div>
+    <button class="btn btn-sm" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--fg2)" onclick="signOut()">Sign Out</button>
+  </div>
+
+  <!-- Subscriber stats -->
+  <div class="card">
+    <div class="card-title">Subscriber Summary</div>
+    <div class="stat-grid" id="statGrid"><p style="color:var(--fg3);font-size:13px">Loading…</p></div>
+  </div>
+
+  <!-- Pilot codes list -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <span class="card-title" style="margin:0">Pilot Access Codes</span>
+      <button class="btn btn-sm btn-primary" onclick="document.getElementById('genForm').style.display=document.getElementById('genForm').style.display==='none'?'':'none'">+ Generate</button>
+    </div>
+
+    <div id="genForm" style="display:none;padding:16px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:16px">
+      <div class="form-row">
+        <div><label>Label prefix (e.g. OSCA-2026)</label><input id="gLabel" placeholder="OSCA-2026" style="text-transform:uppercase"></div>
+        <div><label>Plan</label>
+          <select id="gPlan">
+            <option value="premium_student">Premium Student ($9.99/mo)</option>
+            <option value="career_advisor">Career Advisor ($14.99/mo)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label>Number of codes</label><input id="gCount" type="number" min="1" max="50" value="1"></div>
+        <div><label>Max redemptions per code (blank = unlimited)</label><input id="gMax" type="number" min="1" placeholder="e.g. 1"></div>
+        <div><label>Expires at (blank = no expiry)</label><input id="gExpiry" type="date"></div>
+      </div>
+      <button class="btn btn-primary" onclick="generateCodes()">Generate Codes</button>
+      <p id="genResult" style="font-size:13px;color:var(--gold);margin-top:10px;display:none"></p>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table id="codesTable">
+        <thead><tr>
+          <th>Code</th><th>Label</th><th>Plan</th><th>Redeemed</th><th>Expires</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody id="codesTbody"><tr><td colspan="7" style="color:var(--fg3);text-align:center;padding:20px">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.aviationaerospacecompetency.com';
+let adminToken = null;
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw    = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Email and password required.'; errEl.style.display = ''; return; }
+
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.accessToken) {
+      errEl.textContent = data.error || data.message || 'Login failed.';
+      errEl.style.display = ''; return;
+    }
+    if (!['admin','super_admin'].includes(data.role)) {
+      errEl.textContent = 'Admin account required.';
+      errEl.style.display = ''; return;
+    }
+    adminToken = data.accessToken;
+    localStorage.setItem('nav_admin_token', adminToken);
+    showApp(data.email || email);
+    loadDashboard();
+  } catch {
+    errEl.textContent = 'Connection error — please try again.';
+    errEl.style.display = '';
+  }
+}
+
+function showApp(label) {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('mainContent').style.display = '';
+  document.getElementById('adminLabel').textContent = label;
+}
+
+function signOut() {
+  adminToken = null;
+  localStorage.removeItem('nav_admin_token');
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('loginWrap').style.display = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API}/admin/navigator`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    if (!res.ok) { if (res.status === 401 || res.status === 403) { signOut(); return; } throw new Error(); }
+    const data = await res.json();
+    renderStats(data.plans);
+    renderCodes(data.pilotCodes);
+  } catch {
+    document.getElementById('statGrid').innerHTML = '<p style="color:#e55;font-size:13px">Failed to load data.</p>';
+  }
+}
+
+function renderStats(plans) {
+  const grid = document.getElementById('statGrid');
+  if (!plans || !plans.length) { grid.innerHTML = '<p style="color:var(--fg3);font-size:13px">No subscribers yet.</p>'; return; }
+
+  // Aggregate
+  const totals = {};
+  for (const row of plans) {
+    const key = row.plan + (row.status === 'active' ? '' : ' (' + row.status + ')');
+    totals[key] = (totals[key] || 0) + row.count;
+  }
+  const total = Object.values(totals).reduce((a,b)=>a+b,0);
+
+  grid.innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">Total subscribers</div></div>
+    ${Object.entries(totals).map(([k,v]) => `
+      <div class="stat"><div class="stat-val">${v}</div><div class="stat-label">${k}</div></div>
+    `).join('')}
+  `;
+}
+
+function renderCodes(codes) {
+  const tbody = document.getElementById('codesTbody');
+  if (!codes || !codes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--fg3);text-align:center;padding:20px">No pilot codes yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = codes.map(c => `
+    <tr>
+      <td style="font-family:monospace;font-size:12px;letter-spacing:.04em">${escHtml(c.code)}
+        <button class="copy-code" onclick="navigator.clipboard.writeText('${escHtml(c.code)}')" title="Copy">⧉</button>
+      </td>
+      <td>${escHtml(c.label)}</td>
+      <td style="color:var(--fg3);font-size:12px">${escHtml(c.plan)}</td>
+      <td>${c.redemptions_used}${c.max_redemptions != null ? ' / ' + c.max_redemptions : ''}</td>
+      <td style="font-size:12px;color:var(--fg3)">${c.expires_at ? c.expires_at.slice(0,10) : '—'}</td>
+      <td><span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-revoked'}">${c.status}</span></td>
+      <td>${c.status === 'active' ? `<button class="btn btn-sm btn-danger" onclick="revokeCode('${c.id}', this)">Revoke</button>` : ''}</td>
+    </tr>
+  `).join('');
+}
+
+async function generateCodes() {
+  const label   = document.getElementById('gLabel').value.trim().toUpperCase() || 'OSCA-2026';
+  const plan    = document.getElementById('gPlan').value;
+  const count   = Number(document.getElementById('gCount').value) || 1;
+  const maxR    = document.getElementById('gMax').value ? Number(document.getElementById('gMax').value) : null;
+  const expiry  = document.getElementById('gExpiry').value || null;
+  const resultEl = document.getElementById('genResult');
+  resultEl.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/admin/navigator/pilot-codes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ label, plan, count, max_redemptions: maxR, expires_at: expiry }),
+    });
+    const data = await res.json();
+    if (!res.ok) { resultEl.textContent = data.error || 'Failed to generate codes.'; resultEl.style.color='#e55'; resultEl.style.display=''; return; }
+    resultEl.textContent = `Generated ${data.created.length} code(s): ${data.created.map(c=>c.code).join(', ')}`;
+    resultEl.style.color = 'var(--gold)'; resultEl.style.display = '';
+    loadDashboard();
+  } catch {
+    resultEl.textContent = 'Connection error.'; resultEl.style.color='#e55'; resultEl.style.display='';
+  }
+}
+
+async function revokeCode(codeId, btn) {
+  if (!confirm('Revoke this pilot code? It cannot be redeemed after revocation.')) return;
+  btn.disabled = true; btn.textContent = 'Revoking…';
+  try {
+    const res = await fetch(`${API}/admin/navigator/pilot-codes/${codeId}/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    if (res.ok) loadDashboard();
+    else { btn.disabled = false; btn.textContent = 'Revoke'; alert('Failed to revoke code.'); }
+  } catch { btn.disabled = false; btn.textContent = 'Revoke'; }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-login from stored token
+(async function init() {
+  const stored = localStorage.getItem('nav_admin_token');
+  if (!stored) return;
+  adminToken = stored;
+  // Quick validation — load dashboard; if 401/403, sign out
+  const res = await fetch(`${API}/admin/navigator`, { headers: { Authorization: `Bearer ${stored}` } }).catch(()=>null);
+  if (!res || res.status === 401 || res.status === 403) { signOut(); return; }
+  if (res.ok) {
+    const data = await res.json();
+    showApp('Admin');
+    renderStats(data.plans);
+    renderCodes(data.pilotCodes);
+  }
+})();
+</script>

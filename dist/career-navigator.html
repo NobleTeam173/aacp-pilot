@@ -1496,9 +1496,23 @@ header{
 
   <p class="stripe-note">Payments secured by Stripe &middot; Cancel anytime &middot; Alberta GST applied at checkout</p>
 
-  <div style="margin-top:28px;padding:18px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
-    <p style="font-size:13px;font-weight:600;margin-bottom:8px">OSCA 2026 Early Access</p>
-    <p style="font-size:13px;color:var(--fg2);line-height:1.65">OSCA 2026 participants receive complimentary pilot access to Career Navigator. Contact your AACP workshop facilitator for your access code.</p>
+  <div style="margin-top:28px;padding:20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)" id="oscaBox">
+    <p style="font-size:13px;font-weight:600;margin-bottom:4px">OSCA 2026 Early Access</p>
+    <p style="font-size:12px;color:var(--fg3);line-height:1.6;margin-bottom:14px">OSCA 2026 participants receive complimentary Premium access. Enter the code from your workshop facilitator to activate.</p>
+    <div id="oscaForm" style="display:flex;flex-direction:column;gap:10px">
+      <input id="oscaEmail" type="email" placeholder="Your email address" autocomplete="email"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:13px;outline:none">
+      <div style="display:flex;gap:8px">
+        <input id="oscaCode" type="text" placeholder="Access code (e.g. OSCA-2026-XXXX)" autocomplete="off" spellcheck="false"
+          style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:13px;text-transform:uppercase;letter-spacing:.04em;outline:none">
+        <button onclick="redeemPilotCode()" style="padding:9px 16px;background:var(--gold);color:#000;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Activate</button>
+      </div>
+      <p id="oscaError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
+    </div>
+    <div id="oscaSuccess" style="display:none;padding:12px;background:color-mix(in srgb,var(--gold) 12%,transparent);border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);border-radius:var(--radius-sm)">
+      <p style="font-size:13px;font-weight:600;color:var(--gold);margin:0 0 4px">Pilot access activated!</p>
+      <p style="font-size:12px;color:var(--fg2);margin:0">Your Premium access is now active. Explore the full Career Navigator above.</p>
+    </div>
   </div>
 </main>
 
@@ -2441,6 +2455,52 @@ async function redeemInvite() {
     initiateCheckout('advisor_invited', trimmed);
   } catch {
     showToast('Could not validate invite code. Please try again.');
+  }
+}
+
+async function redeemPilotCode() {
+  const email = document.getElementById('oscaEmail').value.trim();
+  const code  = document.getElementById('oscaCode').value.trim().toUpperCase();
+  const errEl = document.getElementById('oscaError');
+  errEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = ''; return; }
+  if (!code)  { errEl.textContent = 'Please enter your access code.';  errEl.style.display = ''; return; }
+
+  const btn = document.querySelector('#oscaForm button');
+  btn.disabled = true; btn.textContent = 'Activating…';
+
+  try {
+    const res = await fetch(`${API_BASE}/navigator/pilot/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, email }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Could not activate code. Please try again.';
+      errEl.style.display = '';
+      btn.disabled = false; btn.textContent = 'Activate';
+      return;
+    }
+    // Store token and activate premium UI
+    localStorage.setItem('navigator_token', data.token);
+    navigatorPlan = data.plan || 'premium_student';
+    document.getElementById('oscaForm').style.display = 'none';
+    document.getElementById('oscaSuccess').style.display = '';
+    // Update chat banner
+    const banner = document.getElementById('chatUpgradeBanner');
+    if (banner) {
+      banner.innerHTML = '<strong>Pilot access active.</strong> Unlimited ACIA™ career mentorship — powered by AI.';
+      banner.style.background = 'color-mix(in srgb,var(--gold) 12%,transparent)';
+      banner.style.borderColor = 'color-mix(in srgb,var(--gold) 30%,transparent)';
+      banner.style.color = 'var(--gold)';
+    }
+    showToast('Pilot access activated! Welcome to Career Navigator Premium.');
+  } catch {
+    errEl.textContent = 'Connection error — please try again.';
+    errEl.style.display = '';
+    btn.disabled = false; btn.textContent = 'Activate';
   }
 }
 
