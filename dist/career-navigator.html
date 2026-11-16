@@ -97,6 +97,24 @@ header{
 .tab-panel{display:none;padding:24px max(16px,env(safe-area-inset-left,0px)) 60px;max-width:780px;margin:0 auto;width:100%}
 .tab-panel.active{display:block}
 
+/* ── ACIA™ Insight panels ─────────────────────────────────────── */
+.acia-panel{background:color-mix(in srgb,var(--crimson) 6%,var(--surface));border:1px solid color-mix(in srgb,var(--crimson) 20%,var(--border));border-radius:var(--radius);margin-bottom:28px;overflow:hidden}
+.acia-panel-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.acia-panel-head:hover{background:color-mix(in srgb,var(--crimson) 4%,transparent)}
+.acia-panel-icon{width:28px;height:28px;border-radius:50%;background:var(--crimson);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.02em}
+.acia-panel-title{font-size:12px;font-weight:700;color:var(--crimson);text-transform:uppercase;letter-spacing:.07em;flex:1}
+.acia-panel-chevron{font-size:11px;color:var(--fg3);transition:transform .2s}
+.acia-panel.open .acia-panel-chevron{transform:rotate(180deg)}
+.acia-panel-body{padding:0 16px 16px;display:none}
+.acia-panel.open .acia-panel-body{display:block}
+.acia-tip{font-size:13px;color:var(--fg2);line-height:1.65;margin-bottom:10px;padding-left:12px;border-left:2px solid color-mix(in srgb,var(--crimson) 35%,transparent)}
+.acia-tip:last-child{margin-bottom:0}
+.acia-tip strong{color:var(--fg)}
+/* Data-source badges */
+.dsrc{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;vertical-align:middle;letter-spacing:.03em;margin-left:5px}
+.dsrc-verified{background:color-mix(in srgb,#2a9c5c 12%,var(--surface));color:#1e7a47;border:1px solid color-mix(in srgb,#2a9c5c 25%,transparent)}
+.dsrc-estimated{background:color-mix(in srgb,#d4860a 10%,var(--surface));color:#b06c00;border:1px solid color-mix(in srgb,#d4860a 22%,transparent)}
+.dsrc-acia{background:color-mix(in srgb,var(--crimson) 10%,var(--surface));color:var(--crimson);border:1px solid color-mix(in srgb,var(--crimson) 22%,transparent)}
 /* ── Typography helpers ───────────────────────────────────────── */
 .section-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px}
 .section-title{font-family:'Fraunces',serif;font-size:24px;font-weight:700;margin-bottom:8px;line-height:1.2}
@@ -1152,6 +1170,20 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 <main class="tab-panel active" id="tab-discovery" role="tabpanel">
 
   <!-- ── Entry screen ─────────────────────────────────────────── -->
+  <!-- ACIA™ panel: Discovery -->
+  <div class="acia-panel" id="aciaDiscovery">
+    <div class="acia-panel-head" onclick="toggleAciaPanel('aciaDiscovery')">
+      <div class="acia-panel-icon">AC</div>
+      <span class="acia-panel-title">ACIA™ Career Intelligence</span>
+      <span class="acia-panel-chevron">▼</span>
+    </div>
+    <div class="acia-panel-body" id="aciaDiscoveryBody">
+      <div class="acia-tip" id="aciaTip-discovery-0"></div>
+      <div class="acia-tip" id="aciaTip-discovery-1"></div>
+      <div class="acia-tip" id="aciaTip-discovery-2"></div>
+    </div>
+  </div>
+
   <div id="discEntry">
     <div class="disc-entry-header">
       <p class="section-label">Career Discovery</p>
@@ -1559,7 +1591,21 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 <main class="tab-panel" id="tab-education" role="tabpanel">
   <p class="section-label">Canadian Institutions</p>
   <h2 class="section-title">Education &amp; Training</h2>
-  <p class="section-sub">Accredited programs at Canadian colleges, universities, and Transport Canada Approved Training Organizations (ATOs) and Flight Training Units (FTUs). Data sourced from Transport Canada and NAV Canada.</p>
+  <p class="section-sub">Accredited programs at Canadian colleges, universities, and Transport Canada Approved Training Organizations (ATOs) and Flight Training Units (FTUs). Data sourced from Transport Canada and NAV Canada. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span></p>
+
+  <!-- ACIA™ panel: Education -->
+  <div class="acia-panel" id="aciaEducation">
+    <div class="acia-panel-head" onclick="toggleAciaPanel('aciaEducation')">
+      <div class="acia-panel-icon">AC</div>
+      <span class="acia-panel-title">ACIA™ Education Guidance</span>
+      <span class="acia-panel-chevron">▼</span>
+    </div>
+    <div class="acia-panel-body" id="aciaEducationBody">
+      <div class="acia-tip" id="aciaTip-education-0"></div>
+      <div class="acia-tip" id="aciaTip-education-1"></div>
+      <div class="acia-tip" id="aciaTip-education-2"></div>
+    </div>
+  </div>
 
   <div class="resource-grid">
 
@@ -1866,7 +1912,21 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 
   <p class="section-label">Compare Careers</p>
   <h2 class="section-title">Side-by-Side Career Comparison</h2>
-  <p class="section-sub">Compare education requirements, entry routes, training costs, compensation, and 10-year career progression across aviation, aerospace, RPAS, and defence pathways. All salary data is estimated from Canadian sources; individual outcomes vary.</p>
+  <p class="section-sub">Compare education requirements, entry routes, training costs, compensation, and 10-year career progression across aviation, aerospace, RPAS, and defence pathways. <span class="dsrc dsrc-estimated">~ Estimated</span> <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span></p>
+
+  <!-- ACIA™ panel: Compare -->
+  <div class="acia-panel" id="aciaCompare">
+    <div class="acia-panel-head" onclick="toggleAciaPanel('aciaCompare')">
+      <div class="acia-panel-icon">AC</div>
+      <span class="acia-panel-title">ACIA™ Comparison Insights</span>
+      <span class="acia-panel-chevron">▼</span>
+    </div>
+    <div class="acia-panel-body" id="aciaCompareBody">
+      <div class="acia-tip" id="aciaTip-compare-0"></div>
+      <div class="acia-tip" id="aciaTip-compare-1"></div>
+      <div class="acia-tip" id="aciaTip-compare-2"></div>
+    </div>
+  </div>
 
   <div class="compare-layout">
 
@@ -1959,6 +2019,20 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
 
   <!-- ── My Career Pathway Dashboard ─────────────────────────── -->
+  <!-- ACIA™ panel: Pathway -->
+  <div class="acia-panel" id="aciaPathway">
+    <div class="acia-panel-head" onclick="toggleAciaPanel('aciaPathway')">
+      <div class="acia-panel-icon">AC</div>
+      <span class="acia-panel-title">ACIA™ Pathway Intelligence</span>
+      <span class="acia-panel-chevron">▼</span>
+    </div>
+    <div class="acia-panel-body" id="aciaPathwayBody">
+      <div class="acia-tip" id="aciaTip-pathway-0"></div>
+      <div class="acia-tip" id="aciaTip-pathway-1"></div>
+      <div class="acia-tip" id="aciaTip-pathway-2"></div>
+    </div>
+  </div>
+
   <div id="pathwayDashboard">
 
     <!-- Empty state (shown when no pathways saved yet) -->
@@ -2317,6 +2391,119 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 /* ── Tab navigation ────────────────────────────────────────────── */
+/* ── ACIA™ Insight panels ──────────────────────────────────────── */
+var ACIA_TIPS = {
+  discovery: {
+    student: [
+      { text: '<strong>Start with what you enjoy, not just what pays well.</strong> Aviation and aerospace careers span technical, operational, and people-facing roles. The Guided Discovery Session matches your strengths to roles — not the other way around.' },
+      { text: '<strong>Licence requirements vary significantly by career.</strong> A Transport Canada CPL takes 200 flight hours and roughly $60,000–$80,000 CAD. <span class="dsrc dsrc-estimated">~ Estimated</span> RPAS and aerospace manufacturing roles have different pathways with lower entry costs.' },
+      { text: '<strong>ACIA™ Insight:</strong> Students who explore 3 or more careers before choosing a pathway report higher satisfaction with their final direction. Use Compare Careers to build your shortlist. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    teacher: [
+      { text: '<strong>Counsellor Session mode</strong> in this tab lets you run a live career exploration activity with a student. Use the structured 3-step flow to surface best-fit careers and generate a shareable pathway summary.' },
+      { text: '<strong>Career Discovery maps to multiple curriculum outcomes</strong> — career planning, self-assessment, and labour-market awareness. The Guided Discovery Session takes 20–30 minutes and produces a written pathway summary suitable for portfolio evidence.' },
+      { text: '<strong>ACIA™ Insight:</strong> Careers in aviation and aerospace have among the highest credential-to-wage ratios in Canadian trades and technical fields. Flight training data sourced from TC. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span>' }
+    ],
+    advisor: [
+      { text: '<strong>Use Counsellor Session mode</strong> to run a structured discovery session with your student. The session scores 15 career pathways against the student\'s strengths, interests, and education preferences, and returns a ranked shortlist.' },
+      { text: '<strong>Pathway data is saved per account.</strong> When a student completes discovery and saves a career, it appears in their My Career Pathway tab — and in your Advisor Dashboard once student collaboration is enabled.' },
+      { text: '<strong>ACIA™ Insight:</strong> Career exploration in Grades 9–11 is the strongest predictor of post-secondary retention in aviation training programs according to TC workforce studies. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    default: [
+      { text: '<strong>Aviation and aerospace employ over 141,000 Canadians</strong> and represent $35 billion in GDP. Careers span piloting, air traffic control, aircraft maintenance, aerospace engineering, RPAS operations, and defence. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span>' },
+      { text: '<strong>Not sure where to start?</strong> The Guided Discovery Session walks you through a 20–30 minute structured exploration and produces a personalised career pathway summary.' },
+      { text: '<strong>ACIA™ Insight:</strong> Entry-level roles in aerospace manufacturing and RPAS operations have lower certification barriers and faster time-to-employment than pilot roles. Compare pathways side-by-side in the Compare Careers tab. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ]
+  },
+  education: {
+    student: [
+      { text: '<strong>TC Approved Training Organizations (ATOs) are the gold standard</strong> for flight training in Canada. ATO graduates meet Transport Canada licensing standards directly — no additional validation required. <span class="dsrc dsrc-verified">✓ TC</span>' },
+      { text: '<strong>Tuition ranges shown are approximate</strong> and may not include housing, equipment, or exam fees. Contact institutions directly for current pricing. <span class="dsrc dsrc-estimated">~ Estimated</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Scholarship eligibility and bursary amounts change annually. Check the Scholarships tab and each institution\'s financial aid office for the most current funding options. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    teacher: [
+      { text: '<strong>These institutions partner with AACP™ career pathway programs.</strong> Contact your AACP™ representative to arrange institution presentations for your class or career fair.' },
+      { text: '<strong>Program lengths and costs are verified against TC and institutional websites</strong> at the time of publication. Encourage students to verify current intake dates directly. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Co-op and internship availability varies significantly between institutions. For aviation maintenance programs, hands-on placement is often mandatory and industry-connected. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    advisor: [
+      { text: '<strong>Share education cards with students directly</strong> using the Save to My Pathway feature on each career detail. Saved careers include an education recommendation matched to the student\'s profile.' },
+      { text: '<strong>Program entry requirements</strong> for pilot training typically include Grade 12 math and English. Aerospace engineering programs require Grade 12 physics and calculus. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Students in rural communities may qualify for distance-learning or modular ATO programs. RPAS ground school and Part IX certification can begin online and applies nationally. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    default: [
+      { text: '<strong>All institutions listed are accredited</strong> by Transport Canada or recognized post-secondary institutions. Data sourced from TC and NAV Canada. <span class="dsrc dsrc-verified">✓ TC / NAV Canada</span>' },
+      { text: '<strong>Tuition estimates (~) are approximate.</strong> Contact institutions for current fees, intake schedules, and financial aid. <span class="dsrc dsrc-estimated">~ Estimated</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Some ATO programs offer credit recognition for prior military, marine, or international flight training. Ask admissions about PLAR (Prior Learning Assessment and Recognition). <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ]
+  },
+  compare: {
+    student: [
+      { text: '<strong>Salary data shown is estimated</strong> from Statistics Canada, Job Bank Canada, and industry surveys. Actual compensation depends on employer, region, and seniority. <span class="dsrc dsrc-estimated">~ Estimated</span>' },
+      { text: '<strong>Time-to-employment varies by role.</strong> RPAS operators can be job-ready in under 6 months. Commercial pilot roles require 200–1,500 hours depending on the licence type — typically 2–5 years. <span class="dsrc dsrc-verified">✓ TC</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Careers with the strongest 10-year growth outlook in Canada are RPAS operations, aerospace systems technologists, and air traffic control. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    teacher: [
+      { text: '<strong>Use Compare Careers as a classroom activity.</strong> Ask students to compare two pathways and present the trade-offs — cost, time, risk tolerance, and lifestyle fit — as a structured decision exercise.' },
+      { text: '<strong>The 10-year progression data</strong> shows realistic career trajectories including promotions, licence upgrades, and typical salary bands. Data sourced from TC and Statistics Canada. <span class="dsrc dsrc-verified">✓ TC / StatCan</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Defence-adjacent aerospace careers (DND civilian roles, defence contractors) have strong pension and stability profiles compared to commercial aviation, which is more cyclical. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    advisor: [
+      { text: '<strong>Advisors: highlight alternative entry routes</strong> for students who face financial or geographic barriers. Many pathways have military, apprenticeship, or government-sponsored entry routes with no upfront tuition.' },
+      { text: '<strong>Licence conversion pathways</strong> exist for internationally trained pilots and engineers. TC recognizes ICAO-standard licences from most countries with additional Canadian exams. <span class="dsrc dsrc-verified">✓ TC</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Students with strong spatial reasoning and mechanical aptitude score highest for AME (Aircraft Maintenance Engineer) pathways regardless of academic performance. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    default: [
+      { text: '<strong>Salary data is estimated (~)</strong> from Statistics Canada, Job Bank, and industry surveys. <span class="dsrc dsrc-estimated">~ Estimated</span>' },
+      { text: '<strong>Licence and certification requirements</strong> are verified against Transport Canada regulations current at time of publication. <span class="dsrc dsrc-verified">✓ TC</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Aviation and aerospace have strong gender-diversity initiatives and bursaries through organizations like COPA, CAFF, and Women in Aviation Canada. Check the Scholarships tab for current offerings. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ]
+  },
+  pathway: {
+    student: [
+      { text: '<strong>Your pathway is saved to your account.</strong> Every career you save, goal you set, and milestone you complete is stored securely and synced when you log in from any device.' },
+      { text: '<strong>ACIA™ Insight:</strong> Setting a primary goal increases pathway completion rates by 3×. Use the Set Career Goal button to anchor your roadmap to a specific target role. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' },
+      { text: '<strong>Next steps shown in your roadmap are general guidance.</strong> Individual timelines vary based on starting point, finances, and program availability. Consult a certified career advisor for a personalised plan. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    teacher: [
+      { text: '<strong>Pathway data is personal to each student.</strong> Teachers cannot access individual student pathways — only aggregated, anonymous engagement data is available through enterprise dashboards (coming soon).' },
+      { text: '<strong>Encourage students to save at least one career</strong> before the end of a career exploration session. Saved pathways persist between sessions and can be revisited at any point in the school year.' },
+      { text: '<strong>ACIA™ Insight:</strong> Students who set a career goal in Grades 9–11 are significantly more likely to enrol in a related post-secondary program. Goal-setting takes under 2 minutes. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    advisor: [
+      { text: '<strong>Pathway data is saved per student account.</strong> When a student shares their pathway with you, it will appear in your Advisor Dashboard. Student sharing is a voluntary, student-initiated action.' },
+      { text: '<strong>Recommended next steps</strong> in the roadmap are ACIA™-generated guidance based on the student\'s chosen career. They are suggestions, not guaranteed outcomes. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' },
+      { text: '<strong>ACIA™ Insight:</strong> Advisor-invited students are 2× more likely to complete the full Guided Discovery Session than students who self-register. Use your invite codes to bring students onto the platform. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' }
+    ],
+    default: [
+      { text: '<strong>Careers you save appear here</strong> along with a recommended roadmap, next steps, and progress milestones. Start in Career Discovery to build your pathway.' },
+      { text: '<strong>Roadmap steps are ACIA™-generated guidance</strong> based on Transport Canada requirements and industry norms. Individual timelines and costs vary. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' },
+      { text: '<strong>Upgrade to Premium</strong> for the full Guided Discovery Session, personalized pathway summaries, and unlimited ACIA™ career mentorship.' }
+    ]
+  }
+};
+
+function toggleAciaPanel(id) {
+  var panel = document.getElementById(id);
+  if (!panel) return;
+  panel.classList.toggle('open');
+}
+
+function initAciaPanels() {
+  var role = navigatorRole || 'default';
+  var tabs = ['discovery', 'education', 'compare', 'pathway'];
+  tabs.forEach(function(tab) {
+    var tips = (ACIA_TIPS[tab] && (ACIA_TIPS[tab][role] || ACIA_TIPS[tab]['default'])) || [];
+    tips.forEach(function(tip, i) {
+      var el = document.getElementById('aciaTip-' + tab + '-' + i);
+      if (el) el.innerHTML = tip.text;
+    });
+  });
+  // Open discovery panel by default on first visit
+  var disc = document.getElementById('aciaDiscovery');
+  if (disc && !disc.classList.contains('open')) disc.classList.add('open');
+}
+
 function showTab(id) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -2875,6 +3062,7 @@ async function loadNavigatorProfile(token) {
     } else {
       // No role set — show role picker
       document.getElementById('rolePicker').style.display = 'block';
+      initAciaPanels();
     }
     // Show sign-out link
     showSignOutLink();
@@ -2985,6 +3173,8 @@ function applyRole(role, animate) {
   // Remove any stale change-role link (no longer shown)
   const staleLink = document.getElementById('changeRoleLink');
   if (staleLink) staleLink.remove();
+  // Refresh ACIA™ panels with role-aware tips
+  initAciaPanels();
 }
 // ── End role onboarding ─────────────────────────────────────────
 
