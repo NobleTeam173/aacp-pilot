@@ -1057,15 +1057,15 @@ header{
   <!-- ── Guided Discovery Session ─────────────────────────────── -->
   <div id="discGuided" style="display:none">
 
-    <!-- Photo steps (1–3) -->
+    <!-- Video steps (1–3) -->
     <div id="guidedPhotos">
 
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
         <p class="section-label" style="margin:0">Guided Career Discovery</p>
       </div>
-      <h2 class="section-title" style="margin-bottom:6px">Visual Career Discovery</h2>
-      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">We'll show you three images from Canadian aviation and aerospace careers. For each one, tell us what interests you — in your own words. ACIA™ will ask one follow-up question to help you explore further.</p>
+      <h2 class="section-title" style="margin-bottom:6px">Career Discovery Videos</h2>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">Watch a short clip from each career area. Tell us what interests you — ACIA™ will ask one follow-up question to help you explore further.</p>
 
       <div class="photo-nav-bar">
         <div class="photo-nav-dots">
@@ -1073,21 +1073,35 @@ header{
           <div class="photo-nav-dot" id="pndot1"></div>
           <div class="photo-nav-dot" id="pndot2"></div>
         </div>
-        <span id="photoStepLabel" style="font-size:12px;color:var(--fg3);margin-left:8px">Photo 1 of 3</span>
+        <span id="photoStepLabel" style="font-size:12px;color:var(--fg3);margin-left:8px">Video 1 of 3</span>
         <button class="photo-skip" onclick="skipPhoto()" id="photoSkipBtn">Skip &#8594;</button>
       </div>
 
-      <!-- Photo 1: Aviation & Flight Operations -->
+      <!-- Video 1: Aviation & Flight Operations -->
       <div class="photo-step active" id="photoStep0">
-        <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80&auto=format&fit=crop" alt="Ground crew working on the ramp beside a commercial aircraft at dusk" loading="lazy">
+        <div class="photo-card" style="background:#000;position:relative;">
+          <div class="video-wrap" id="videoWrap0">
+            <iframe
+              id="yt0"
+              style="width:100%;height:260px;display:block;border:0;"
+              src="https://www.youtube.com/embed/U5RBR_4b3yY?rel=0&modestbranding=1&color=white"
+              title="Aviation ramp operations — ground crew at work"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"
+              onerror="this.style.display='none';document.getElementById('videoFallback0').style.display='block'">
+            </iframe>
+            <img id="videoFallback0" class="photo-img" style="display:none;"
+              src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80&auto=format&fit=crop"
+              alt="Ground crew working on the ramp beside a commercial aircraft at dusk">
+          </div>
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aviation &amp; Flight Operations</div>
             <div class="photo-overlay-title">On the Ramp</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">What interests you most about what you see in this picture?</div>
+          <div class="photo-question-text">What interests you most about what you see in this video?</div>
           <textarea class="photo-textarea" id="photoResp0" placeholder="Tell us what catches your attention — the aircraft, the people, the environment, the teamwork, or something else entirely…" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup0">
@@ -1095,23 +1109,41 @@ header{
           <div class="acia-followup-q" id="followupQ0"></div>
           <textarea class="photo-textarea" id="followupResp0" placeholder="Your thoughts…" rows="2"></textarea>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <div id="pathwaySuggestions0" style="display:none;margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">Career Pathways to Explore</div>
+          <div id="pathwayCards0" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <button class="btn-primary" id="photoContinueBtn0" onclick="submitPhotoResponse(0)">Continue &#8594;</button>
-          <button class="btn-secondary" id="photoNextBtn0" onclick="nextPhoto(0)" style="display:none">Next Photo &#8594;</button>
+          <button class="btn-secondary" id="photoNextBtn0" onclick="nextPhoto(0)" style="display:none">Next Video &#8594;</button>
         </div>
       </div>
 
-      <!-- Photo 2: RPAS & Autonomous Systems -->
+      <!-- Video 2: RPAS & Autonomous Systems -->
       <div class="photo-step" id="photoStep1">
-        <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80&auto=format&fit=crop" alt="Drone operator in an open field launching a professional RPAS system" loading="lazy">
+        <div class="photo-card" style="background:#000;position:relative;">
+          <div class="video-wrap" id="videoWrap1">
+            <iframe
+              id="yt1"
+              style="width:100%;height:260px;display:block;border:0;"
+              src="https://www.youtube.com/embed/5Tp0_qcogNM?rel=0&modestbranding=1&color=white"
+              title="Commercial RPAS drone operations in Canada"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"
+              onerror="this.style.display='none';document.getElementById('videoFallback1').style.display='block'">
+            </iframe>
+            <img id="videoFallback1" class="photo-img" style="display:none;"
+              src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80&auto=format&fit=crop"
+              alt="Drone operator in an open field launching a professional RPAS system">
+          </div>
           <div class="photo-overlay">
             <div class="photo-overlay-label">RPAS &amp; Autonomous Systems</div>
             <div class="photo-overlay-title">Remote Piloting</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">What would you be most curious to learn about this technology?</div>
+          <div class="photo-question-text">What would you be most curious to learn about this work?</div>
           <textarea class="photo-textarea" id="photoResp1" placeholder="What draws your curiosity — how it works, what it's used for, the regulations, or the skills it takes?" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup1">
@@ -1119,23 +1151,41 @@ header{
           <div class="acia-followup-q" id="followupQ1"></div>
           <textarea class="photo-textarea" id="followupResp1" placeholder="Your thoughts…" rows="2"></textarea>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <div id="pathwaySuggestions1" style="display:none;margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">Career Pathways to Explore</div>
+          <div id="pathwayCards1" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <button class="btn-primary" id="photoContinueBtn1" onclick="submitPhotoResponse(1)">Continue &#8594;</button>
-          <button class="btn-secondary" id="photoNextBtn1" onclick="nextPhoto(1)" style="display:none">Next Photo &#8594;</button>
+          <button class="btn-secondary" id="photoNextBtn1" onclick="nextPhoto(1)" style="display:none">Next Video &#8594;</button>
         </div>
       </div>
 
-      <!-- Photo 3: Aerospace Engineering & Manufacturing -->
+      <!-- Video 3: Aerospace Engineering & Manufacturing -->
       <div class="photo-step" id="photoStep2">
-        <div class="photo-card">
-          <img class="photo-img" src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80&auto=format&fit=crop" alt="Aerospace technician working on a jet engine in a hangar" loading="lazy">
+        <div class="photo-card" style="background:#000;position:relative;">
+          <div class="video-wrap" id="videoWrap2">
+            <iframe
+              id="yt2"
+              style="width:100%;height:260px;display:block;border:0;"
+              src="https://www.youtube.com/embed/H_itEC4BVrA?rel=0&modestbranding=1&color=white"
+              title="Aircraft maintenance technician AME at work"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"
+              onerror="this.style.display='none';document.getElementById('videoFallback2').style.display='block'">
+            </iframe>
+            <img id="videoFallback2" class="photo-img" style="display:none;"
+              src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80&auto=format&fit=crop"
+              alt="Aerospace technician working on a jet engine in a hangar">
+          </div>
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aerospace Engineering &amp; Manufacturing</div>
             <div class="photo-overlay-title">Engineering What Flies</div>
           </div>
         </div>
         <div class="photo-question-block">
-          <div class="photo-question-text">Which part of the work shown here would you most like to explore?</div>
+          <div class="photo-question-text">Which part of this work would you most like to explore?</div>
           <textarea class="photo-textarea" id="photoResp2" placeholder="The design, the hands-on assembly, the precision testing, the engineering — what calls to you?" rows="3"></textarea>
         </div>
         <div class="acia-followup-block" id="followup2">
@@ -1143,7 +1193,11 @@ header{
           <div class="acia-followup-q" id="followupQ2"></div>
           <textarea class="photo-textarea" id="followupResp2" placeholder="Your thoughts…" rows="2"></textarea>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <div id="pathwaySuggestions2" style="display:none;margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">Career Pathways to Explore</div>
+          <div id="pathwayCards2" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <button class="btn-primary" id="photoContinueBtn2" onclick="submitPhotoResponse(2)">Continue &#8594;</button>
           <button class="btn-secondary" id="photoNextBtn2" onclick="nextPhoto(2)" style="display:none">Continue to Questions &#8594;</button>
         </div>
@@ -4001,10 +4055,80 @@ function updatePhotoNav(n) {
     else if (i === n) dot.classList.add('active');
   }
   var lbl = document.getElementById('photoStepLabel');
-  if (lbl) lbl.textContent = 'Photo '+(n+1)+' of 3';
+  if (lbl) lbl.textContent = 'Video '+(n+1)+' of 3';
   var skipBtn = document.getElementById('photoSkipBtn');
   if (skipBtn) skipBtn.style.display = n < 2 ? '' : 'none';
 }
+// Pathway suggestions per video based on keywords in the response
+var VIDEO_PATHWAY_MAP = [
+  // Video 0: Aviation & Flight Operations
+  { default: ['pilot','atc','ground_ops','airport_ops','customer_ops'],
+    keywords: { pilot:['fly','pilot','cockpit','captain','flight','aircraft'],
+                atc:['control','traffic','coordinate','direct','guide','tower'],
+                ground_ops:['ramp','ground','crew','team','load','baggage'],
+                airport_ops:['airport','security','operations','manage'],
+                customer_ops:['passenger','service','customer','cabin','flight attendant'] } },
+  // Video 1: RPAS & Autonomous Systems
+  { default: ['uav','aviation_tech','aerospace_eng','atc','pilot'],
+    keywords: { uav:['drone','rpas','uav','autonomous','remote','fly'],
+                aviation_tech:['tech','software','data','systems','program','sensor'],
+                aerospace_eng:['engineer','design','build','develop'],
+                atc:['regulate','rules','airspace','control'],
+                pilot:['pilot','fly','operate'] } },
+  // Video 2: Aerospace Engineering & Manufacturing
+  { default: ['ame','aerospace_eng','avionics','structures','gas_turbine'],
+    keywords: { ame:['maintain','repair','fix','mechanic','technician','hands'],
+                aerospace_eng:['design','engineer','build','create','develop'],
+                avionics:['electronics','avionics','systems','wiring','instrument'],
+                structures:['structure','build','assemble','fabricate','material'],
+                gas_turbine:['engine','turbine','power','propulsion','thrust'] } }
+];
+
+function getPathwaySuggestions(videoIdx, text) {
+  var map = VIDEO_PATHWAY_MAP[videoIdx];
+  var lower = text.toLowerCase();
+  var scored = {};
+  // Score default pathways
+  map.default.forEach(function(id,i){ scored[id] = (scored[id]||0) + (map.default.length - i); });
+  // Boost keyword matches
+  Object.keys(map.keywords).forEach(function(id){
+    map.keywords[id].forEach(function(kw){
+      if (lower.indexOf(kw) !== -1) scored[id] = (scored[id]||0) + 5;
+    });
+  });
+  // Sort and return top 3 pathway IDs
+  return Object.keys(scored).sort(function(a,b){ return scored[b]-scored[a]; }).slice(0,3);
+}
+
+function renderPathwayCards(containerEl, pathwayIds) {
+  containerEl.innerHTML = '';
+  pathwayIds.forEach(function(id){
+    var p = PATHWAYS.find(function(x){ return x.id === id; });
+    if (!p) return;
+    var card = document.createElement('div');
+    card.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);';
+    var info = document.createElement('div');
+    info.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--fg)">' + p.title + '</div>'
+      + '<div style="font-size:12px;color:var(--fg3);margin-top:2px">' + (p.sector||'').replace(/_/g,' ') + '</div>';
+    var btn = document.createElement('button');
+    btn.className = 'btn-secondary';
+    btn.style.cssText = 'font-size:11px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
+    var d = loadPathway();
+    var saved = d.saved.some(function(c){ return c.id===id; });
+    btn.textContent = saved ? '✓ Saved' : '+ Save';
+    if (saved) btn.disabled = true;
+    btn.onclick = function(){
+      var sector = SECTORS[p.sector];
+      toggleSavePathway(p.id, p.title, sector ? sector.name : '');
+      btn.textContent = '✓ Saved';
+      btn.disabled = true;
+    };
+    card.appendChild(info);
+    card.appendChild(btn);
+    containerEl.appendChild(card);
+  });
+}
+
 function submitPhotoResponse(n) {
   var resp = (document.getElementById('photoResp'+n)||{}).value || '';
   if (!resp.trim()) {
@@ -4019,6 +4143,14 @@ function submitPhotoResponse(n) {
   if (fu && fuQ) {
     fuQ.textContent = PHOTO_FOLLOWUPS[n](resp);
     fu.classList.add('visible');
+  }
+  // Show pathway suggestions
+  var suggBox = document.getElementById('pathwaySuggestions'+n);
+  var suggCards = document.getElementById('pathwayCards'+n);
+  if (suggBox && suggCards) {
+    var suggested = getPathwaySuggestions(n, resp);
+    renderPathwayCards(suggCards, suggested);
+    suggBox.style.display = '';
   }
   var cb = document.getElementById('photoContinueBtn'+n);
   var nb = document.getElementById('photoNextBtn'+n);
