@@ -1942,6 +1942,20 @@ async function runMigrations(db) {
     )
   `).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_profile_user ON navigator_profiles(user_id)`).run().catch(() => {});
+
+  // OAuth provider links — federated identity (Google, Microsoft)
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS oauth_providers (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL REFERENCES users(id),
+      provider      TEXT NOT NULL,
+      provider_id   TEXT NOT NULL,
+      provider_email TEXT,
+      created_at    TEXT NOT NULL,
+      UNIQUE(provider, provider_id)
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_providers(user_id)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -2818,6 +2832,7 @@ const FROM_ADDRESS = 'noreply@aviationaerospacecompetency.com';
 const FROM_NAME    = 'AACP Platform';
 const PLATFORM_URL = 'https://aviationaerospacecompetency.com/app.html';
 const CONTACT_EMAIL = 'info@aviationaerospacecompetency.com';
+const NAVIGATOR_URL = 'https://careers.aviationaerospacecompetency.com/career-navigator.html';
 
 // Core send — throws on failure so callers can log the actual Resend error.
 async function sendEmail(env, { event, to, subject, text, html }) {
@@ -3934,6 +3949,21 @@ async function emailPasswordReset(env, { name, email, token }) {
       eNote(`If you did not request a reset, please ignore this email — your password remains unchanged.<br>If the button does not work, copy this link: <a href="${resetUrl}" style="color:#80011f">${resetUrl}</a>`),
   });
   return sendEmail(env, { event: 'password_reset', to: email, subject: 'AACP — Reset your password', text: `Hello ${name},\n\nReset your AACP password here: ${resetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`, html });
+}
+
+// ── Navigator: email verification link ────────────────────────────────────────
+async function emailNavigatorVerification(env, { name, email, token }) {
+  const verifyUrl = `${NAVIGATOR_URL}?nav_verify=${token}`;
+  const html = emailLayout({
+    preheader: 'Verify your email to activate your AACP Career Navigator account.',
+    body: eH1('Verify Your Email Address') +
+      eP(`Hi ${name},`) +
+      eP('Thank you for creating an AACP Career Navigator account. Click the button below to verify your email and activate your account.') +
+      eBtn('Verify Email Address', verifyUrl) +
+      eP('This link expires in <strong>24 hours</strong>.') +
+      eNote(`If you did not create an account, you can safely ignore this email.<br>If the button does not work, copy this link: <a href="${verifyUrl}" style="color:#80011f;word-break:break-all">${verifyUrl}</a>`),
+  });
+  return sendEmail(env, { event: 'navigator_verify_email', to: email, subject: 'Verify your email — AACP Career Navigator', text: `Hi ${name},\n\nVerify your AACP Career Navigator email:\n${verifyUrl}\n\nThis link expires in 24 hours.`, html });
 }
 
 // Fire-and-forget wrapper — uses ctx.waitUntil() so the Cloudflare Worker does
@@ -15024,7 +15054,7 @@ async function handleNavigatorCheckout(request, user, env) {
 }
 
 // POST /navigator/account/register — self-service registration for navigator users (no admin approval required)
-async function handleNavigatorAccountRegister(request, env) {
+async function handleNavigatorAccountRegister(request, env, ctx) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const rateLimitKey = `nav_register:${clientIp}`;
   const attempts = await countAllAttempts(env.DB, rateLimitKey, 60 * 60 * 1000);
@@ -15039,6 +15069,9 @@ async function handleNavigatorAccountRegister(request, env) {
   if (body.name.trim().length > 100) return err('Name is too long');
   if (body.password.length < 8) return err('Password must be at least 8 characters');
   if (body.password.length > 128) return err('Password is too long');
+  if (!/[A-Z]/.test(body.password)) return err('Password must contain at least one uppercase letter');
+  if (!/[a-z]/.test(body.password)) return err('Password must contain at least one lowercase letter');
+  if (!/[0-9]/.test(body.password)) return err('Password must contain at least one number');
 
   const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : null;
 
@@ -15063,14 +15096,16 @@ async function handleNavigatorAccountRegister(request, env) {
 
   await audit(env.DB, 'navigator_account_register', userId, 'user', { email, navigatorRole });
 
-  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
-  const token = await createJwt(
-    { sub: userId, email, role: 'participant', tokenType: 'access' },
-    accessSecret,
-    30 * 24 * 60 * 60
-  );
+  // Send verification email — account activates on click
+  const verToken = randomHex(32);
+  const verHash = await sha256hex(verToken);
+  const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), userId, verHash, verExpiry, now).run();
+  fireEmail(ctx, emailNavigatorVerification(env, { name: body.name.trim(), email, token: verToken }), 'navigator_verify_email');
 
-  return json({ token, email, navigatorRole, message: 'Account created' }, 201);
+  return json({ message: 'Account created. Please check your email to verify your address.', emailVerificationRequired: true, email }, 201);
 }
 
 // GET /navigator/profile — returns navigator_role + pathway_data for the authenticated user
@@ -15115,6 +15150,266 @@ async function handleNavigatorProfileUpdate(request, user, env) {
   }
 
   return json({ success: true });
+}
+
+// POST /navigator/auth/login — navigator-specific login with email verification enforcement
+async function handleNavigatorAuthLogin(request, env) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const body = await request.json().catch(() => null);
+  if (!body?.email || !body?.password) return err('email and password are required');
+  const email = body.email.trim().toLowerCase();
+
+  const ipFails = await countRecentAttempts(env.DB, `nav_login_ip:${clientIp}`, 15 * 60 * 1000);
+  if (ipFails >= 20) return err('Too many login attempts from this address. Please wait 15 minutes.', 429);
+  const recentFails = await countRecentAttempts(env.DB, `nav_login:${email}`, 15 * 60 * 1000);
+  if (recentFails >= 10) return err('Too many failed login attempts. Please wait 15 minutes.', 429);
+
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
+  const pwResult = user ? await verifyPassword(body.password, user.passwordHash) : { valid: false, needsRehash: false };
+  if (!user || !pwResult.valid) {
+    await recordAttempt(env.DB, `nav_login:${email}`, false);
+    await recordAttempt(env.DB, `nav_login_ip:${clientIp}`, false);
+    return err('Invalid email or password.', 401);
+  }
+  if (pwResult.needsRehash) {
+    const newHash = await hashPassword(body.password);
+    await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, user.id).run().catch(() => {});
+  }
+  if (user.status !== 'active') return err('Your account is not active. Please contact AACP for assistance.', 403);
+
+  if (!user.emailVerified) {
+    // Resend a fresh verification link
+    const verToken = randomHex(32);
+    const verHash = await sha256hex(verToken);
+    const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
+    await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
+    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+    return json({ emailVerificationRequired: true, email: user.email, message: 'Please verify your email. We\'ve resent the verification link.' });
+  }
+
+  await recordAttempt(env.DB, `nav_login:${email}`, true);
+  await audit(env.DB, 'navigator_login', user.id, 'session');
+
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: user.id, email: user.email, role: user.role, tokenType: 'access' },
+    accessSecret,
+    30 * 24 * 60 * 60
+  );
+  return json({ token, email: user.email });
+}
+
+// POST /navigator/account/verify-email — verify token link, activate account, return JWT
+async function handleNavigatorVerifyEmail(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.token) return err('token is required');
+  const tokenHash = await sha256hex(body.token);
+  const now = new Date().toISOString();
+
+  const row = await env.DB.prepare(
+    `SELECT ev.id, ev.user_id, u.email, u.role, u.name FROM email_verifications ev
+     JOIN users u ON u.id = ev.user_id
+     WHERE ev.code_hash = ? AND ev.expires_at > ? AND ev.verified_at IS NULL`
+  ).bind(tokenHash, now).first();
+
+  if (!row) return err('Invalid or expired verification link. Please request a new one.', 400);
+
+  await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?`).bind(now, row.user_id).run();
+  await env.DB.prepare(`UPDATE email_verifications SET verified_at = ? WHERE id = ?`).bind(now, row.id).run();
+  await audit(env.DB, 'navigator_email_verified', row.user_id, 'user', {});
+
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: row.user_id, email: row.email, role: row.role, tokenType: 'access' },
+    accessSecret,
+    30 * 24 * 60 * 60
+  );
+  return json({ token, email: row.email, name: row.name, message: 'Email verified. Welcome to Career Navigator!' });
+}
+
+// POST /navigator/account/resend-verification — rate-limited resend of verification email
+async function handleNavigatorResendVerification(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.email) return err('email is required');
+  const email = body.email.trim().toLowerCase();
+
+  const attempts = await countRecentAttempts(env.DB, `nav_resend:${email}`, 10 * 60 * 1000);
+  if (attempts >= 3) return err('Too many resend requests. Please wait 10 minutes.', 429);
+  await recordAttempt(env.DB, `nav_resend:${email}`, false);
+
+  const user = await env.DB.prepare(`SELECT id, name, email, email_verified FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
+  if (user && !user.email_verified) {
+    const verToken = randomHex(32);
+    const verHash = await sha256hex(verToken);
+    const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
+    await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
+    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+  }
+  return json({ message: 'If your account exists and is unverified, a new verification email has been sent.' });
+}
+
+// GET /navigator/auth/google — start Google OAuth
+async function handleNavigatorAuthGoogle(request, env) {
+  if (!env.GOOGLE_CLIENT_ID) return err('Google sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
+  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', callbackUrl);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', 'openid email profile');
+  authUrl.searchParams.set('state', state);
+  authUrl.searchParams.set('prompt', 'select_account');
+  return Response.redirect(authUrl.toString(), 302);
+}
+
+// GET /navigator/auth/google/callback — exchange code, find/create user, redirect with JWT
+async function handleNavigatorAuthGoogleCallback(request, env) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return err('Google sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
+  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
+
+  let statePayload;
+  try {
+    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
+    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
+  } catch (_) {
+    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
+  }
+  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
+  });
+  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
+  const tokenData = await tokenRes.json();
+
+  const uiRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+  if (!uiRes.ok) return Response.redirect(`${redirectTo}?oauth_error=userinfo_failed`, 302);
+  const ui = await uiRes.json();
+  if (!ui.email) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
+
+  try {
+    const navToken = await upsertOAuthUser(env, { provider: 'google', providerId: ui.sub, email: ui.email, name: ui.name || ui.email.split('@')[0] });
+    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
+  } catch (e) {
+    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
+  }
+}
+
+// GET /navigator/auth/microsoft — start Microsoft OAuth
+async function handleNavigatorAuthMicrosoft(request, env) {
+  if (!env.MICROSOFT_CLIENT_ID) return err('Microsoft sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
+  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
+  const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+  authUrl.searchParams.set('client_id', env.MICROSOFT_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', callbackUrl);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', 'openid email profile');
+  authUrl.searchParams.set('state', state);
+  authUrl.searchParams.set('prompt', 'select_account');
+  return Response.redirect(authUrl.toString(), 302);
+}
+
+// GET /navigator/auth/microsoft/callback — exchange code, find/create user, redirect with JWT
+async function handleNavigatorAuthMicrosoftCallback(request, env) {
+  if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return err('Microsoft sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
+  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
+
+  let statePayload;
+  try {
+    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
+    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
+  } catch (_) {
+    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
+  }
+  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
+
+  const tokenRes = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code, client_id: env.MICROSOFT_CLIENT_ID, client_secret: env.MICROSOFT_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
+  });
+  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
+  const tokenData = await tokenRes.json();
+
+  let msEmail, msName, msSub;
+  try {
+    const parts = tokenData.id_token.split('.');
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    msEmail = payload.email || payload.preferred_username;
+    msName = payload.name || (msEmail ? msEmail.split('@')[0] : 'User');
+    msSub = payload.sub || payload.oid;
+  } catch (_) {
+    return Response.redirect(`${redirectTo}?oauth_error=token_decode_failed`, 302);
+  }
+  if (!msEmail || !msSub) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
+
+  try {
+    const navToken = await upsertOAuthUser(env, { provider: 'microsoft', providerId: msSub, email: msEmail, name: msName });
+    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
+  } catch (e) {
+    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
+  }
+}
+
+// Helper — find or create a user from an OAuth provider, return navigator JWT
+async function upsertOAuthUser(env, { provider, providerId, email, name }) {
+  const now = new Date().toISOString();
+  const normalEmail = email.toLowerCase();
+
+  const existing = await env.DB.prepare(
+    `SELECT op.user_id, u.email, u.role FROM oauth_providers op JOIN users u ON u.id = op.user_id WHERE op.provider = ? AND op.provider_id = ?`
+  ).bind(provider, providerId).first();
+
+  let userId, userEmail, userRole;
+  if (existing) {
+    userId = existing.user_id; userEmail = existing.email; userRole = existing.role;
+  } else {
+    const emailUser = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(normalEmail).first();
+    if (emailUser) {
+      userId = emailUser.id; userEmail = emailUser.email; userRole = emailUser.role;
+      await env.DB.prepare(`INSERT OR IGNORE INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run().catch(() => {});
+      await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0`).bind(now, userId).run().catch(() => {});
+    } else {
+      userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'participant';
+      const dummyHash = await sha256hex('oauth_no_password_' + providerId);
+      await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)`)
+        .bind(userId, userEmail, name, dummyHash, now, now).run();
+      await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run();
+      await audit(env.DB, 'navigator_oauth_register', userId, 'user', { provider, email: userEmail });
+    }
+  }
+
+  await audit(env.DB, 'navigator_oauth_login', userId, 'session', { provider });
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  return createJwt({ sub: userId, email: userEmail, role: userRole, tokenType: 'access' }, accessSecret, 30 * 24 * 60 * 60);
 }
 
 // POST /navigator/pilot/redeem — public; validate pilot code, create/link user, activate subscription
@@ -15585,7 +15880,14 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
     if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
     if (path === '/navigator/pilot/redeem'     && request.method === 'POST') return handleNavigatorPilotRedeem(request, env);
-    if (path === '/navigator/account/register' && request.method === 'POST') return handleNavigatorAccountRegister(request, env);
+    if (path === '/navigator/account/register'         && request.method === 'POST') return handleNavigatorAccountRegister(request, env, ctx);
+    if (path === '/navigator/auth/login'               && request.method === 'POST') return handleNavigatorAuthLogin(request, env);
+    if (path === '/navigator/account/verify-email'     && request.method === 'POST') return handleNavigatorVerifyEmail(request, env);
+    if (path === '/navigator/account/resend-verification' && request.method === 'POST') return handleNavigatorResendVerification(request, env);
+    if (path === '/navigator/auth/google'              && request.method === 'GET')  return handleNavigatorAuthGoogle(request, env);
+    if (path === '/navigator/auth/google/callback'     && request.method === 'GET')  return handleNavigatorAuthGoogleCallback(request, env);
+    if (path === '/navigator/auth/microsoft'           && request.method === 'GET')  return handleNavigatorAuthMicrosoft(request, env);
+    if (path === '/navigator/auth/microsoft/callback'  && request.method === 'GET')  return handleNavigatorAuthMicrosoftCallback(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
