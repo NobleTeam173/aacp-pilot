@@ -699,6 +699,10 @@ body[data-role="student"] .tab-btn[data-tab="explore"],
 body[data-role="student"] .tab-btn[data-tab="scholarships"]{display:none}
 body[data-role="student"] .tab-label-default{display:none}
 body[data-role="student"] .tab-label-student{display:inline!important}
+body[data-role="teacher"] .tab-label-advisor-teacher,
+body[data-role="advisor"] .tab-label-advisor-teacher{display:inline!important}
+body[data-role="teacher"] .tab-label-student-or-default,
+body[data-role="advisor"] .tab-label-student-or-default{display:none}
 /* Student pathway cards */
 .dash-pathway-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
 .dash-pathway-row:last-child{border-bottom:none}
@@ -977,7 +981,7 @@ body[data-role="student"] .tab-label-student{display:inline!important}
     Compare Careers
   </button>
   <button class="tab-btn" data-tab="subscribe" onclick="showTab('subscribe')" role="tab">
-    My Career Pathway
+    <span class="tab-label-student-or-default">My Career Pathway</span><span class="tab-label-advisor-teacher" style="display:none">Account &amp; Plans</span>
   </button>
 </nav>
 
@@ -1070,88 +1074,72 @@ body[data-role="student"] .tab-label-student{display:inline!important}
   <!-- ── Teacher Dashboard ─────────────────────────────────────── -->
   <div class="dash-teacher">
     <div class="dash-welcome">Teacher Dashboard</div>
-    <p class="dash-sub">Bring aviation and aerospace career exploration into your classroom.</p>
+    <p class="dash-sub">Designed for classroom-based career exploration.</p>
     <div class="dash-grid">
       <button class="dash-card" onclick="showTab('discovery')">
-        <div class="dash-card-label">Classroom Tool</div>
-        <div class="dash-card-title">Career Discovery</div>
-        <div class="dash-card-sub">Run the visual career discovery activity with your students — includes Counsellor Session mode.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('explore')">
-        <div class="dash-card-label">Browse</div>
-        <div class="dash-card-title">Explore All Careers</div>
-        <div class="dash-card-sub">Review all 15 aviation and aerospace career pathways to guide classroom discussions.</div>
+        <div class="dash-card-title">Career Activities</div>
+        <div class="dash-card-sub">Launch visual career exploration activities with your class, including Counsellor Session mode.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
       <button class="dash-card" onclick="showTab('compare')">
-        <div class="dash-card-label">Activity</div>
         <div class="dash-card-title">Compare Careers</div>
         <div class="dash-card-sub">Use the side-by-side comparison tool for group research and class presentations.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
       <button class="dash-card" onclick="showTab('education')">
-        <div class="dash-card-label">Resources</div>
         <div class="dash-card-title">Education &amp; Training</div>
-        <div class="dash-card-sub">Share approved training pathways and costs with students and parents.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('scholarships')">
-        <div class="dash-card-label">Funding</div>
-        <div class="dash-card-title">Scholarships</div>
-        <div class="dash-card-sub">Find aviation scholarships and funding opportunities for your students.</div>
+        <div class="dash-card-sub">Share approved training pathways, costs, and scholarships with students and parents.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
       <button class="dash-card" onclick="showTab('chat')">
-        <div class="dash-card-label">AI Assistant</div>
         <div class="dash-card-title">Ask ACIA™</div>
         <div class="dash-card-sub">Ask career and curriculum questions to prepare classroom content.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
+      <div class="dash-card" style="cursor:default;opacity:.6">
+        <div class="dash-card-title">My Classes <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--fg3);margin-left:6px;vertical-align:middle">Coming Soon</span></div>
+        <div class="dash-card-sub">Manage assigned groups and track student engagement.</div>
+      </div>
+      <div class="dash-card" style="cursor:default;opacity:.6">
+        <div class="dash-card-title">Class Insights <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--fg3);margin-left:6px;vertical-align:middle">Coming Soon</span></div>
+        <div class="dash-card-sub">View aggregate class engagement and career interest data.</div>
+      </div>
     </div>
   </div>
 
   <!-- ── Career Advisor Dashboard ──────────────────────────────── -->
   <div class="dash-advisor">
     <div class="dash-welcome">Career Advisor Dashboard</div>
-    <p class="dash-sub">Support your clients with personalized aviation and aerospace career guidance.</p>
+    <p class="dash-sub">Designed for personalized student pathway guidance.</p>
     <div class="dash-grid">
       <button class="dash-card" onclick="showTab('discovery')">
-        <div class="dash-card-label">Session Tool</div>
-        <div class="dash-card-title">Career Discovery</div>
-        <div class="dash-card-sub">Run a guided visual career discovery session with clients using Counsellor Session mode.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('compare')">
-        <div class="dash-card-label">Planning</div>
-        <div class="dash-card-title">Compare Careers</div>
-        <div class="dash-card-sub">Compare salary, training time, and entry routes to build a client career plan.</div>
+        <div class="dash-card-title">Career Guidance</div>
+        <div class="dash-card-sub">Run a guided career discovery session with clients using Counsellor Session mode.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
       <button class="dash-card" onclick="showTab('chat')">
-        <div class="dash-card-label">AI Assistant</div>
         <div class="dash-card-title">Ask ACIA™</div>
         <div class="dash-card-sub">Use ACIA™ for in-depth career research and client session preparation.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
-      <button class="dash-card" onclick="showTab('explore')">
-        <div class="dash-card-label">Reference</div>
-        <div class="dash-card-title">Explore All Careers</div>
-        <div class="dash-card-sub">Browse all 15 career pathways including entry routes, salary ranges, and requirements.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('education')">
-        <div class="dash-card-label">Resources</div>
-        <div class="dash-card-title">Education &amp; Training</div>
-        <div class="dash-card-sub">Review approved training organizations, costs, and timelines for client planning.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
       <button class="dash-card" onclick="showTab('subscribe')">
-        <div class="dash-card-label">Account</div>
-        <div class="dash-card-title">My Plan &amp; Invites</div>
-        <div class="dash-card-sub">Manage your subscription and generate discounted invite codes for clients.</div>
+        <div class="dash-card-title">Advisor Invitations</div>
+        <div class="dash-card-sub">Invite students and manage discounted access codes from your account.</div>
         <span class="dash-card-arrow">&#8594;</span>
       </button>
+      <button class="dash-card" onclick="showTab('compare')">
+        <div class="dash-card-title">Compare Careers</div>
+        <div class="dash-card-sub">Compare salary, training time, and entry routes to build a client career plan.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <div class="dash-card" style="cursor:default;opacity:.6">
+        <div class="dash-card-title">My Students <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--fg3);margin-left:6px;vertical-align:middle">Coming Soon</span></div>
+        <div class="dash-card-sub">View authorized student plans and track their pathway progress.</div>
+      </div>
+      <div class="dash-card" style="cursor:default;opacity:.6">
+        <div class="dash-card-title">Pathway Reviews <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--fg3);margin-left:6px;vertical-align:middle">Coming Soon</span></div>
+        <div class="dash-card-sub">Review shared student goals and milestones submitted for guidance.</div>
+      </div>
     </div>
   </div>
 
