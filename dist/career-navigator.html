@@ -1475,7 +1475,16 @@ header{
         <li>Direct link to your advisor</li>
         <li>Shared pathway saves</li>
       </ul>
-      <button class="plan-cta outlined" onclick="redeemInvite()">Enter Invite Code</button>
+      <button class="plan-cta outlined" id="inviteToggleBtn" onclick="toggleInviteForm()">Enter Invite Code</button>
+      <div id="inviteForm" style="display:none;margin-top:12px">
+        <div style="display:flex;gap:8px">
+          <input id="inviteCodeInput" type="text" placeholder="e.g. AB3X7K2P" autocomplete="off" spellcheck="false"
+            style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:13px;text-transform:uppercase;letter-spacing:.04em;outline:none"
+            onkeydown="if(event.key==='Enter')redeemInvite()">
+          <button onclick="redeemInvite()" style="padding:8px 14px;background:var(--gold);color:#000;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Apply</button>
+        </div>
+        <p id="inviteError" style="display:none;font-size:12px;color:#e55;margin:6px 0 0"></p>
+      </div>
     </div>
 
     <div class="plan-card">
@@ -1514,6 +1523,24 @@ header{
       <p style="font-size:12px;color:var(--fg2);margin:0">Your Premium access is now active. Explore the full Career Navigator above.</p>
     </div>
   </div>
+
+  <!-- Advisor dashboard — shown only when navigatorPlan === 'career_advisor' -->
+  <div id="advisorDashboard" style="display:none;margin-top:28px;padding:20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <div>
+        <p style="font-size:13px;font-weight:600;margin:0 0 2px">Your Advisor Invite Codes</p>
+        <p id="advisorInvitesLeft" style="font-size:12px;color:var(--fg3);margin:0">Loading…</p>
+      </div>
+      <button onclick="generateAdvisorCode()" id="genAdvisorBtn"
+        style="padding:8px 16px;background:var(--gold);color:#000;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+        + Generate Code
+      </button>
+    </div>
+    <p id="advisorGenResult" style="display:none;font-size:12px;padding:10px 12px;background:color-mix(in srgb,var(--gold) 10%,transparent);border:1px solid color-mix(in srgb,var(--gold) 25%,transparent);border-radius:var(--radius-sm);margin-bottom:12px"></p>
+    <div id="advisorCodesList">
+      <p style="font-size:12px;color:var(--fg3)">No invite codes yet. Generate one to share with a student.</p>
+    </div>
+  </div>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1526,6 +1553,7 @@ function showTab(id) {
   if (panel) panel.classList.add('active');
   const btn = document.querySelector('[data-tab="' + id + '"]');
   if (btn) btn.classList.add('active');
+  if (id === 'subscribe' && navigatorPlan === 'career_advisor') loadAdvisorDashboard();
 }
 
 /* ── Sector and pathway data ───────────────────────────────────── */
@@ -2440,10 +2468,22 @@ async function initiateCheckout(plan, inviteCode) {
 function checkoutStudent() { initiateCheckout('premium_student'); }
 function checkoutAdvisor() { initiateCheckout('career_advisor'); }
 
+function toggleInviteForm() {
+  const form = document.getElementById('inviteForm');
+  const btn  = document.getElementById('inviteToggleBtn');
+  const open = form.style.display === 'none';
+  form.style.display = open ? '' : 'none';
+  btn.textContent = open ? 'Cancel' : 'Enter Invite Code';
+  if (open) document.getElementById('inviteCodeInput').focus();
+  document.getElementById('inviteError').style.display = 'none';
+}
+
 async function redeemInvite() {
-  const code = prompt('Enter your advisor invite code:');
-  if (!code) return;
-  const trimmed = code.trim().toUpperCase();
+  const input = document.getElementById('inviteCodeInput');
+  const errEl = document.getElementById('inviteError');
+  errEl.style.display = 'none';
+  const trimmed = (input?.value || '').trim().toUpperCase();
+  if (!trimmed) { errEl.textContent = 'Please enter an invite code.'; errEl.style.display = ''; return; }
   try {
     const res = await fetch(`${API_BASE}/navigator/invite/validate`, {
       method: 'POST',
@@ -2451,10 +2491,86 @@ async function redeemInvite() {
       body: JSON.stringify({ code: trimmed }),
     });
     const data = await res.json();
-    if (!data.valid) { showToast(data.error || 'Invalid invite code'); return; }
+    if (!data.valid) { errEl.textContent = data.error || 'Invalid invite code'; errEl.style.display = ''; return; }
     initiateCheckout('advisor_invited', trimmed);
   } catch {
-    showToast('Could not validate invite code. Please try again.');
+    errEl.textContent = 'Could not validate invite code. Please try again.';
+    errEl.style.display = '';
+  }
+}
+
+async function loadAdvisorDashboard() {
+  const token = localStorage.getItem('navigator_token');
+  if (!token || navigatorPlan !== 'career_advisor') return;
+  document.getElementById('advisorDashboard').style.display = '';
+  try {
+    const res = await fetch(`${API_BASE}/navigator/invites`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const rem = data.invites_remaining ?? 0;
+    document.getElementById('advisorInvitesLeft').textContent =
+      rem === 0 ? 'No invite codes remaining' : `${rem} invite code${rem !== 1 ? 's' : ''} remaining`;
+    document.getElementById('genAdvisorBtn').disabled = rem === 0;
+    renderAdvisorCodes(data.codes || []);
+  } catch { /* silent */ }
+}
+
+function renderAdvisorCodes(codes) {
+  const el = document.getElementById('advisorCodesList');
+  if (!codes.length) {
+    el.innerHTML = '<p style="font-size:12px;color:var(--fg3)">No invite codes yet. Generate one to share with a student.</p>';
+    return;
+  }
+  el.innerHTML = codes.map(c => {
+    const redeemed = c.redemptions_used > 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <span style="font-family:monospace;font-size:13px;letter-spacing:.05em;font-weight:600">${escHtmlNav(c.code)}</span>
+      <button onclick="navigator.clipboard.writeText('${escHtmlNav(c.code)}').then(()=>showToast('Code copied')).catch(()=>showToast('Copy failed'))"
+        style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;color:var(--fg2);cursor:pointer">Copy</button>
+      <span style="font-size:11px;color:var(--fg3);margin-left:auto">${redeemed ? '<span style="color:#2a9c5c;font-weight:600">Redeemed</span>' : '<span style="color:var(--fg3)">Not yet redeemed</span>'}</span>
+      <span style="font-size:11px;color:var(--fg3)">${c.expires_at ? 'Exp ' + c.expires_at.slice(0,10) : '20% off'}</span>
+    </div>`;
+  }).join('');
+}
+
+function escHtmlNav(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function generateAdvisorCode() {
+  const token = localStorage.getItem('navigator_token');
+  if (!token) return;
+  const btn = document.getElementById('genAdvisorBtn');
+  const resultEl = document.getElementById('advisorGenResult');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  resultEl.style.display = 'none';
+  try {
+    const res = await fetch(`${API_BASE}/navigator/invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resultEl.textContent = data.error || 'Failed to generate code.';
+      resultEl.style.background = 'color-mix(in srgb,#e55 10%,transparent)';
+      resultEl.style.borderColor = 'color-mix(in srgb,#e55 25%,transparent)';
+      resultEl.style.display = '';
+    } else {
+      resultEl.textContent = `Code generated: ${data.code} — Share this 20%-off code with your student.`;
+      resultEl.style.background = 'color-mix(in srgb,var(--gold) 10%,transparent)';
+      resultEl.style.borderColor = 'color-mix(in srgb,var(--gold) 25%,transparent)';
+      resultEl.style.display = '';
+      await loadAdvisorDashboard();
+    }
+  } catch {
+    resultEl.textContent = 'Connection error. Please try again.';
+    resultEl.style.background = 'color-mix(in srgb,#e55 10%,transparent)';
+    resultEl.style.display = '';
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Generate Code';
   }
 }
 
@@ -2554,6 +2670,7 @@ function showToast(msg) {
         banner.style.borderColor = 'color-mix(in srgb,var(--gold) 30%,transparent)';
         banner.style.color = 'var(--gold)';
       }
+      if (sub.plan === 'career_advisor') loadAdvisorDashboard();
     }
   } catch {}
 })();

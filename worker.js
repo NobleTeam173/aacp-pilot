@@ -15367,6 +15367,20 @@ async function handleNavigatorInviteCreate(request, user, env) {
   return json({ code, discount_percent: 20, expires_at: null });
 }
 
+// GET /navigator/invites — JWT, return career advisor's own invite codes
+async function handleNavigatorInviteList(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, invites_remaining FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+  if (!sub || sub.plan !== 'career_advisor') return json({ error: 'Career Advisor subscription required' }, 403);
+  const { results } = await env.DB.prepare(
+    `SELECT id, code, discount_percent, status, redemptions_used, max_redemptions, expires_at, created_at
+     FROM navigator_invite_codes WHERE advisor_user_id = ? ORDER BY created_at DESC LIMIT 50`
+  ).bind(user.id).all();
+  return json({ codes: results || [], invites_remaining: sub.invites_remaining ?? 0 });
+}
+
 // POST /navigator/invite/validate — public, validate an invite code before checkout
 async function handleNavigatorInviteValidate(request, env) {
   const body = await request.json().catch(() => ({}));
@@ -15721,6 +15735,7 @@ async function _routeRequest(request, env, ctx) {
     // ── Career Navigator — Stripe (JWT required) ─────────────────────────────
     if (path === '/navigator/subscription' && request.method === 'GET')  return handleNavigatorSubscription(request, user, env);
     if (path === '/navigator/checkout'     && request.method === 'POST') return handleNavigatorCheckout(request, user, env);
+    if (path === '/navigator/invites'      && request.method === 'GET')  return handleNavigatorInviteList(request, user, env);
     if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
     if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
