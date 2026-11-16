@@ -672,6 +672,26 @@ header{
 #rolePicker button[onclick^="setRole"]:hover{border-color:var(--crimson)!important;background:var(--crimson-soft)!important}
 .role-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--crimson);color:#fff;margin-left:6px;vertical-align:middle;line-height:1.4}
 .plan-card.role-recommended{border-color:var(--crimson)}
+
+/* ── Role Dashboards ──────────────────────────────────────────── */
+.dash-welcome{font-family:'Fraunces',serif;font-size:clamp(20px,4vw,28px);font-weight:700;line-height:1.2;margin-bottom:4px}
+.dash-sub{font-size:14px;color:var(--fg3);margin-bottom:28px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:left;width:100%}
+.dash-card:hover{border-color:var(--crimson);box-shadow:0 2px 12px color-mix(in srgb,var(--crimson) 12%,transparent)}
+.dash-card-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px}
+.dash-card-title{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:4px}
+.dash-card-sub{font-size:13px;color:var(--fg3);line-height:1.5}
+.dash-card-arrow{font-size:16px;color:var(--crimson);margin-top:10px;display:block}
+.dash-section-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px}
+/* Per-role visibility */
+.dash-student,.dash-teacher,.dash-advisor{display:none}
+body[data-role="student"] .dash-student{display:block}
+body[data-role="teacher"] .dash-teacher{display:block}
+body[data-role="advisor"] .dash-advisor{display:block}
+/* No-role state */
+.dash-norole{display:block}
+body[data-role] .dash-norole{display:none}
 /* ── My Career Pathway Dashboard ───────────────────────── */
 .pathway-goal-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;margin-bottom:20px}
 .pathway-goal-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--crimson-soft);border:1px solid var(--crimson-light);font-size:18px;flex-shrink:0}
@@ -910,6 +930,9 @@ header{
 
 <!-- ── Tab nav ────────────────────────────────────────────────── -->
 <nav class="tab-nav" role="tablist">
+  <button class="tab-btn" data-tab="dashboard" onclick="showTab('dashboard')" role="tab">
+    Dashboard
+  </button>
   <button class="tab-btn active" data-tab="discovery" onclick="showTab('discovery')" role="tab">
     Career Discovery
   </button>
@@ -936,6 +959,148 @@ header{
 <!-- ═══════════════════════════════════════════════════════════════
      TAB 1 — CAREER DISCOVERY
 ════════════════════════════════════════════════════════════════ -->
+<main class="tab-panel" id="tab-dashboard" role="tabpanel">
+
+  <!-- ── No role (shouldn't normally show, but fallback) ───────── -->
+  <div class="dash-norole" style="text-align:center;padding:48px 24px">
+    <h2 class="section-title" style="margin-bottom:12px">Welcome to AACP™ Career Navigator</h2>
+    <p class="section-sub" style="max-width:420px;margin:0 auto 24px">Sign in and select your role to see your personalized dashboard.</p>
+  </div>
+
+  <!-- ── Student Dashboard ─────────────────────────────────────── -->
+  <div class="dash-student">
+    <div class="dash-welcome" id="dashStudentWelcome">Your Career Dashboard</div>
+    <p class="dash-sub">Explore aviation and aerospace careers, build your pathway, and track your progress.</p>
+    <div class="dash-grid">
+      <button class="dash-card" onclick="showTab('discovery')">
+        <div class="dash-card-label">Step 1</div>
+        <div class="dash-card-title">Career Discovery</div>
+        <div class="dash-card-sub">Find careers that match your strengths and interests.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('explore')">
+        <div class="dash-card-label">Step 2</div>
+        <div class="dash-card-title">Explore Careers</div>
+        <div class="dash-card-sub">Browse all 15 aviation and aerospace career pathways.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('compare')">
+        <div class="dash-card-label">Step 3</div>
+        <div class="dash-card-title">Compare Careers</div>
+        <div class="dash-card-sub">Compare salary, training, and entry routes side by side.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('subscribe')">
+        <div class="dash-card-label">My Pathway</div>
+        <div class="dash-card-title">My Career Pathway</div>
+        <div class="dash-card-sub">View your saved careers, roadmap progress, and next steps.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('education')">
+        <div class="dash-card-label">Planning</div>
+        <div class="dash-card-title">Education &amp; Training</div>
+        <div class="dash-card-sub">Find approved training organizations and programs near you.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('chat')">
+        <div class="dash-card-label">AI Mentor</div>
+        <div class="dash-card-title">Ask ACIA™</div>
+        <div class="dash-card-sub">Get personalized career guidance from ACIA, your aviation career mentor.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Teacher Dashboard ─────────────────────────────────────── -->
+  <div class="dash-teacher">
+    <div class="dash-welcome">Teacher Dashboard</div>
+    <p class="dash-sub">Bring aviation and aerospace career exploration into your classroom.</p>
+    <div class="dash-grid">
+      <button class="dash-card" onclick="showTab('discovery')">
+        <div class="dash-card-label">Classroom Tool</div>
+        <div class="dash-card-title">Career Discovery</div>
+        <div class="dash-card-sub">Run the visual career discovery activity with your students — includes Counsellor Session mode.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('explore')">
+        <div class="dash-card-label">Browse</div>
+        <div class="dash-card-title">Explore All Careers</div>
+        <div class="dash-card-sub">Review all 15 aviation and aerospace career pathways to guide classroom discussions.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('compare')">
+        <div class="dash-card-label">Activity</div>
+        <div class="dash-card-title">Compare Careers</div>
+        <div class="dash-card-sub">Use the side-by-side comparison tool for group research and class presentations.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('education')">
+        <div class="dash-card-label">Resources</div>
+        <div class="dash-card-title">Education &amp; Training</div>
+        <div class="dash-card-sub">Share approved training pathways and costs with students and parents.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('scholarships')">
+        <div class="dash-card-label">Funding</div>
+        <div class="dash-card-title">Scholarships</div>
+        <div class="dash-card-sub">Find aviation scholarships and funding opportunities for your students.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('chat')">
+        <div class="dash-card-label">AI Assistant</div>
+        <div class="dash-card-title">Ask ACIA™</div>
+        <div class="dash-card-sub">Ask career and curriculum questions to prepare classroom content.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Career Advisor Dashboard ──────────────────────────────── -->
+  <div class="dash-advisor">
+    <div class="dash-welcome">Career Advisor Dashboard</div>
+    <p class="dash-sub">Support your clients with personalized aviation and aerospace career guidance.</p>
+    <div class="dash-grid">
+      <button class="dash-card" onclick="showTab('discovery')">
+        <div class="dash-card-label">Session Tool</div>
+        <div class="dash-card-title">Career Discovery</div>
+        <div class="dash-card-sub">Run a guided visual career discovery session with clients using Counsellor Session mode.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('compare')">
+        <div class="dash-card-label">Planning</div>
+        <div class="dash-card-title">Compare Careers</div>
+        <div class="dash-card-sub">Compare salary, training time, and entry routes to build a client career plan.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('chat')">
+        <div class="dash-card-label">AI Assistant</div>
+        <div class="dash-card-title">Ask ACIA™</div>
+        <div class="dash-card-sub">Use ACIA™ for in-depth career research and client session preparation.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('explore')">
+        <div class="dash-card-label">Reference</div>
+        <div class="dash-card-title">Explore All Careers</div>
+        <div class="dash-card-sub">Browse all 15 career pathways including entry routes, salary ranges, and requirements.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('education')">
+        <div class="dash-card-label">Resources</div>
+        <div class="dash-card-title">Education &amp; Training</div>
+        <div class="dash-card-sub">Review approved training organizations, costs, and timelines for client planning.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+      <button class="dash-card" onclick="showTab('subscribe')">
+        <div class="dash-card-label">Account</div>
+        <div class="dash-card-title">My Plan &amp; Invites</div>
+        <div class="dash-card-sub">Manage your subscription and generate discounted invite codes for clients.</div>
+        <span class="dash-card-arrow">&#8594;</span>
+      </button>
+    </div>
+  </div>
+
+</main>
+
 <main class="tab-panel active" id="tab-discovery" role="tabpanel">
 
   <!-- ── Entry screen ─────────────────────────────────────────── -->
@@ -2510,8 +2675,7 @@ async function loadNavigatorProfile(token) {
       try { localStorage.setItem('navigatorRole', role); } catch(e) {}
       navigatorRole = role;
       applyRole(role, false);
-      // Returning users land on Explore (personalised dashboard), not Plans
-      showTab('explore');
+      showTab('dashboard');
     } else {
       // No role set — show role picker
       document.getElementById('rolePicker').style.display = 'block';
@@ -2522,7 +2686,7 @@ async function loadNavigatorProfile(token) {
     // Network error — fall back to localStorage role if available
     if (navigatorRole) {
       applyRole(navigatorRole, false);
-      showTab('explore');
+      showTab('dashboard');
     } else {
       document.getElementById('rolePicker').style.display = 'block';
     }
@@ -2585,7 +2749,7 @@ function setRole(role, isSkip) {
   saveRoleToBackend(role);
   applyRole(role, false);
   showSignOutLink();
-  showTab('explore');
+  showTab('dashboard');
 }
 
 
@@ -3795,7 +3959,7 @@ function oauthSignIn(provider) {
           navigatorRole = data.navigatorRole;
           applyRole(data.navigatorRole, false);
           showSignOutLink();
-          showTab('explore');
+          showTab('dashboard');
         }
       } catch(e) { showAuthGate(); }
     })();
