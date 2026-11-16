@@ -3279,6 +3279,13 @@ function sendChat() {
   if (navigatorPlan === 'free') {
     if (chatQuestionsLeft <= 0) { showTab('subscribe'); return; }
   }
+  if (navigatorPlan === 'expired') {
+    if (chatQuestionsLeft <= 0) {
+      showToast('Resubscribe to restore unlimited ACIA™ chat.');
+      showTab('subscribe');
+      return;
+    }
+  }
 
   const messagesEl = document.getElementById('chatMessages');
   messagesEl.innerHTML += `<div class="msg user">${escHtml(msg)}</div>`;
@@ -3286,13 +3293,13 @@ function sendChat() {
   input.style.height = 'auto';
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
-  if (navigatorPlan !== 'free') {
+  if (navigatorPlan !== 'free' && navigatorPlan !== 'expired') {
     // Premium: call real /navigator/chat endpoint
     chatHistory.push({ role: 'user', content: msg });
     messagesEl.innerHTML += `<div class="msg bot" id="typing">ACIA is thinking&hellip;</div>`;
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
-    const token = localStorage.getItem('navigator_token');
+    const token = localStorage.getItem('navigatorToken');
     fetch(`${API_BASE}/navigator/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -3443,7 +3450,7 @@ function escHtml(s) {
 }
 
 /* ── Subscription CTAs (Stripe) ─────────────────────────────────── */
-const API_BASE = 'https://api.aviationaerospacecompetency.com';
+const API_BASE = NAV_API;
 const STRIPE_PK = 'pk_test_51UcBhc9QRR8NtwaTig51ho3ZWWeBvQh6FzbxzZdJZdpdnauz9YrqZhom6E5fezsh8svG7lDjKDpylHCbcLtl2QSu005hQQIkL3';
 
 function startFree() {
@@ -3451,7 +3458,7 @@ function startFree() {
 }
 
 async function initiateCheckout(plan, inviteCode) {
-  const token = localStorage.getItem('navigator_token');
+  const token = localStorage.getItem('navigatorToken');
   if (!token) {
     showAuthModal('Sign in to subscribe');
     return;
@@ -3513,7 +3520,7 @@ async function redeemInvite() {
 }
 
 async function loadAdvisorDashboard() {
-  const token = localStorage.getItem('navigator_token');
+  const token = localStorage.getItem('navigatorToken');
   if (!token || navigatorPlan !== 'career_advisor') return;
   document.getElementById('advisorDashboard').style.display = '';
   try {
@@ -3560,7 +3567,7 @@ function escHtmlNav(s) {
 }
 
 async function generateAdvisorCode() {
-  const token = localStorage.getItem('navigator_token');
+  const token = localStorage.getItem('navigatorToken');
   if (!token) return;
   const btn = document.getElementById('genAdvisorBtn');
   const resultEl = document.getElementById('advisorGenResult');
@@ -3620,7 +3627,7 @@ async function redeemPilotCode() {
       return;
     }
     // Store token and activate premium UI
-    localStorage.setItem('navigator_token', data.token);
+    localStorage.setItem('navigatorToken', data.token);
     navigatorPlan = data.plan || 'premium_student';
     document.getElementById('oscaForm').style.display = 'none';
     document.getElementById('oscaSuccess').style.display = '';
@@ -3824,9 +3831,9 @@ function oauthSignIn(provider) {
   }
 })();
 
-// Load subscription status and update ACIA chat banner if premium
+// Load subscription status and update plan banner + feature gating
 (async function loadSubscriptionStatus() {
-  const token = localStorage.getItem('navigator_token');
+  const token = localStorage.getItem('navigatorToken');
   if (!token) return;
   try {
     const res = await fetch(`${API_BASE}/navigator/subscription`, {
@@ -3834,8 +3841,14 @@ function oauthSignIn(provider) {
     });
     if (!res.ok) return;
     const sub = await res.json();
-    if (sub.plan && sub.plan !== 'free' && (sub.status === 'active' || sub.status === 'trialing')) {
+    const planLabels = { premium_student: 'Premium Student', advisor_invited: 'Advisor-Invited Student', career_advisor: 'Career Advisor' };
+    const planName = planLabels[sub.plan] || sub.plan;
+    const isActive = sub.plan && sub.plan !== 'free' && (sub.status === 'active' || sub.status === 'trialing');
+    const isExpired = sub.plan && sub.plan !== 'free' && sub.status === 'past_due' || sub.status === 'canceled' || sub.status === 'unpaid';
+
+    if (isActive) {
       navigatorPlan = sub.plan;
+      // Update ACIA chat banner
       const banner = document.getElementById('chatUpgradeBanner');
       if (banner) {
         const label = sub.status === 'trialing' ? 'Trial access active.' : 'Premium access active.';
@@ -3847,8 +3860,6 @@ function oauthSignIn(provider) {
       // Plans tab status banner
       const sb = document.getElementById('subStatusBanner');
       if (sb) {
-        const planLabels = { premium_student: 'Premium Student', advisor_invited: 'Advisor-Invited Student', career_advisor: 'Career Advisor' };
-        const planName = planLabels[sub.plan] || sub.plan;
         if (sub.status === 'trialing' && sub.trial_ends_at) {
           const daysLeft = Math.max(0, Math.ceil((new Date(sub.trial_ends_at) - Date.now()) / 86400000));
           sb.innerHTML = `<strong>Free trial active</strong> — ${planName} &middot; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining${sub.invites_remaining != null ? ` &middot; ${sub.invites_remaining} invite slot${sub.invites_remaining !== 1 ? 's' : ''} available` : ''}`;
@@ -3856,7 +3867,7 @@ function oauthSignIn(provider) {
           sb.style.borderColor = 'color-mix(in srgb,var(--gold) 25%,transparent)';
           sb.style.color = 'var(--gold)';
         } else {
-          sb.innerHTML = `<strong>Subscribed</strong> — ${planName}${sub.cancel_at_period_end ? ' &middot; Cancels at period end' : ''}${sub.plan === 'career_advisor' && sub.invites_remaining != null ? ` &middot; ${sub.invites_remaining} invite slot${sub.invites_remaining !== 1 ? 's' : ''} remaining` : ''}`;
+          sb.innerHTML = `<strong>Subscribed</strong> — ${planName}${sub.cancel_at_period_end ? ' &middot; <em>Cancels at period end</em>' : ''}${sub.plan === 'career_advisor' && sub.invites_remaining != null ? ` &middot; ${sub.invites_remaining} invite slot${sub.invites_remaining !== 1 ? 's' : ''} remaining` : ''}`;
           sb.style.background = 'color-mix(in srgb,#2a9c5c 8%,transparent)';
           sb.style.borderColor = 'color-mix(in srgb,#2a9c5c 22%,transparent)';
           sb.style.color = '#2a9c5c';
@@ -3864,6 +3875,23 @@ function oauthSignIn(provider) {
         sb.style.display = '';
       }
       if (sub.plan === 'career_advisor') loadAdvisorDashboard();
+
+    } else if (isExpired) {
+      // Trial or subscription expired — allow viewing but prompt to resubscribe
+      navigatorPlan = 'expired';
+      const sb = document.getElementById('subStatusBanner');
+      if (sb) {
+        sb.innerHTML = `<strong>Your ${planName} ${sub.status === 'past_due' ? 'payment is past due' : 'subscription has ended'}.</strong> <a href="#" onclick="showTab('subscribe');return false;" style="color:inherit;font-weight:700;text-decoration:underline">Resubscribe</a> to restore full access. You can still browse all content.`;
+        sb.style.background = 'color-mix(in srgb,#c0392b 8%,transparent)';
+        sb.style.borderColor = 'color-mix(in srgb,#c0392b 25%,transparent)';
+        sb.style.color = '#c0392b';
+        sb.style.display = '';
+      }
+      // Show expired notice on ACIA chat banner too
+      const banner = document.getElementById('chatUpgradeBanner');
+      if (banner) {
+        banner.innerHTML = `<strong>Subscription ended.</strong> <a href="#" onclick="showTab('subscribe');return false;" style="color:inherit;font-weight:700;text-decoration:underline">Resubscribe</a> to restore unlimited ACIA™ chat.`;
+      }
     }
   } catch {}
 })();
