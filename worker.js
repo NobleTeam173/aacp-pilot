@@ -15459,11 +15459,11 @@ async function handleNavigatorPilotRedeem(request, env) {
   const pilotExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 yr
   await env.DB.prepare(`
     INSERT INTO navigator_subscriptions
-      (id, user_id, plan, status, invites_remaining, current_period_end, created_at, updated_at)
+      (id, user_id, plan, status, invites_remaining, trial_ends_at, created_at, updated_at)
     VALUES (?, ?, ?, 'active', 0, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
       plan = excluded.plan, status = 'active',
-      current_period_end = excluded.current_period_end, updated_at = excluded.updated_at
+      trial_ends_at = excluded.trial_ends_at, updated_at = excluded.updated_at
   `).bind(crypto.randomUUID(), user.id, plan, pilotExpiry, now, now).run();
 
   // Increment redemptions
