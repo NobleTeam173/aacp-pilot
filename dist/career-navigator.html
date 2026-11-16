@@ -2510,8 +2510,8 @@ async function loadNavigatorProfile(token) {
       try { localStorage.setItem('navigatorRole', role); } catch(e) {}
       navigatorRole = role;
       applyRole(role, false);
-      // Students always land on My Career Pathway
-      if (role === 'student') showTab('subscribe');
+      // Returning users land on Explore (personalised dashboard), not Plans
+      showTab('explore');
     } else {
       // No role set — show role picker
       document.getElementById('rolePicker').style.display = 'block';
@@ -2522,7 +2522,7 @@ async function loadNavigatorProfile(token) {
     // Network error — fall back to localStorage role if available
     if (navigatorRole) {
       applyRole(navigatorRole, false);
-      if (navigatorRole === 'student') showTab('subscribe');
+      showTab('explore');
     } else {
       document.getElementById('rolePicker').style.display = 'block';
     }
@@ -2587,9 +2587,7 @@ function setRole(role, isSkip) {
   saveRoleToBackend(role);
   applyRole(role, false);
   showSignOutLink();
-  if (role === 'student') {
-    showTab('subscribe');
-  }
+  showTab('explore');
 }
 
 function changeRole() {
@@ -3816,7 +3814,7 @@ function oauthSignIn(provider) {
           navigatorRole = data.navigatorRole;
           applyRole(data.navigatorRole, false);
           showSignOutLink();
-          showTab('subscribe');
+          showTab('explore');
         }
       } catch(e) { showAuthGate(); }
     })();
