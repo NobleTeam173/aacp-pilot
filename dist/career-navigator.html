@@ -1787,6 +1787,8 @@ const PATHWAYS = [
 let activeSector = 'all';
 let activePathway = null;
 let chatQuestionsLeft = 3;
+let navigatorPlan = 'free'; // updated on load if token present
+let chatHistory = []; // {role, content} pairs for context window
 
 function scrollToSectors() {
   document.getElementById('sectorGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2218,11 +2220,49 @@ function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
-  if (chatQuestionsLeft <= 0) { showTab('subscribe'); return; }
-  const messages = document.getElementById('chatMessages');
-  messages.innerHTML += `<div class="msg user">${escHtml(msg)}</div>`;
+
+  if (navigatorPlan === 'free') {
+    if (chatQuestionsLeft <= 0) { showTab('subscribe'); return; }
+  }
+
+  const messagesEl = document.getElementById('chatMessages');
+  messagesEl.innerHTML += `<div class="msg user">${escHtml(msg)}</div>`;
   input.value = '';
   input.style.height = 'auto';
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  if (navigatorPlan !== 'free') {
+    // Premium: call real /navigator/chat endpoint
+    chatHistory.push({ role: 'user', content: msg });
+    messagesEl.innerHTML += `<div class="msg bot" id="typing">ACIA is thinking&hellip;</div>`;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    const token = localStorage.getItem('navigator_token');
+    fetch(`${API_BASE}/navigator/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messages: chatHistory, maxTokens: 800 }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        const typing = document.getElementById('typing');
+        if (typing) typing.remove();
+        const reply = data.reply || data.error || 'I encountered an issue — please try again.';
+        messagesEl.innerHTML += `<div class="msg bot">${reply.replace(/\n/g, '<br>')}</div>`;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        chatHistory.push({ role: 'assistant', content: reply });
+      })
+      .catch(() => {
+        const typing = document.getElementById('typing');
+        if (typing) typing.remove();
+        messagesEl.innerHTML += `<div class="msg bot">I had trouble connecting — please try again in a moment.</div>`;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        chatHistory.pop(); // remove the user message since we didn't get a reply
+      });
+    return;
+  }
+
+  // Free tier: scripted responses with question limit
   chatQuestionsLeft--;
   const banner = document.getElementById('chatUpgradeBanner');
   if (chatQuestionsLeft > 0) {
@@ -2231,17 +2271,16 @@ function sendChat() {
     banner.innerHTML = `<strong>Free preview limit reached.</strong> Upgrade to Premium for unlimited ACIA™ career mentorship. <button onclick="showTab('subscribe')" style="margin-left:auto;font-size:11px;font-weight:600;background:none;border:none;color:var(--gold);cursor:pointer;white-space:nowrap">Upgrade</button>`;
   }
   setTimeout(() => {
-    messages.innerHTML += `<div class="msg bot" id="typing">ACIA is thinking&hellip;</div>`;
-    messages.scrollTop = messages.scrollHeight;
+    messagesEl.innerHTML += `<div class="msg bot" id="typing">ACIA is thinking&hellip;</div>`;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
     setTimeout(() => {
       const typing = document.getElementById('typing');
       if (typing) typing.remove();
       const response = getACIAResponse(msg);
-      messages.innerHTML += `<div class="msg bot">${response}</div>`;
-      messages.scrollTop = messages.scrollHeight;
+      messagesEl.innerHTML += `<div class="msg bot">${response}</div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
     }, 1400);
   }, 300);
-  messages.scrollTop = messages.scrollHeight;
 }
 function getACIAResponse(msg) {
   const q = msg.toLowerCase();
@@ -2434,6 +2473,29 @@ function showToast(msg) {
     history.replaceState({}, '', location.pathname);
     showToast('Checkout cancelled — your plan has not changed.');
   }
+})();
+
+// Load subscription status and update ACIA chat banner if premium
+(async function loadSubscriptionStatus() {
+  const token = localStorage.getItem('navigator_token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE}/navigator/subscription`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const sub = await res.json();
+    if (sub.plan && sub.plan !== 'free' && sub.status === 'active') {
+      navigatorPlan = sub.plan;
+      const banner = document.getElementById('chatUpgradeBanner');
+      if (banner) {
+        banner.innerHTML = '<strong>Premium access active.</strong> Unlimited ACIA™ career mentorship — powered by AI.';
+        banner.style.background = 'color-mix(in srgb,var(--gold) 12%,transparent)';
+        banner.style.borderColor = 'color-mix(in srgb,var(--gold) 30%,transparent)';
+        banner.style.color = 'var(--gold)';
+      }
+    }
+  } catch {}
 })();
 
 /* ── Discovery mode navigation ─────────────────────────────────── */

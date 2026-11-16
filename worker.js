@@ -14987,6 +14987,65 @@ async function handleNavigatorCheckout(request, user, env) {
   return json({ url: session.url, session_id: session.id });
 }
 
+// POST /navigator/chat — ACIA chat for active Navigator premium subscribers
+async function handleNavigatorChat(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+
+  // Check active premium subscription
+  const sub = await env.DB.prepare(
+    `SELECT plan, status FROM navigator_subscriptions WHERE user_id = ? AND status = 'active'`
+  ).bind(user.id).first();
+  if (!sub || sub.plan === 'free') {
+    return err('Active Navigator premium subscription required', 403);
+  }
+
+  // Rate limit: 30 requests per hour per user
+  const attempts = await countAllAttempts(env.DB, `nav_chat:${user.id}`, 60 * 60 * 1000);
+  if (attempts >= 30) {
+    return err('Chat limit reached. Please try again in an hour.', 429);
+  }
+  await recordAttempt(env.DB, `nav_chat:${user.id}`, true);
+
+  const body = await request.json().catch(() => null);
+  if (!body?.messages || !Array.isArray(body.messages)) {
+    return err('messages array required');
+  }
+
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) return err('AI service not configured', 503);
+
+  const ALLOWED_ROLES = new Set(['user', 'assistant']);
+  const messages = body.messages.slice(-20)
+    .filter(m => ALLOWED_ROLES.has(m.role))
+    .map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+
+  const maxTokens = Math.min(Number(body.maxTokens ?? 600), 1200);
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: maxTokens,
+      system: CAPTAIN_ACIA_SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error('Anthropic API error (navigator/chat):', res.status, await res.text());
+    return err('AI service error', 502);
+  }
+
+  const data = await res.json();
+  const reply = data.content?.[0]?.text ?? '';
+  return json({ reply });
+}
+
 // POST /navigator/webhook — Stripe webhook handler (raw body, signature verified)
 async function handleNavigatorWebhook(request, env) {
   const sig = request.headers.get('stripe-signature');
@@ -15506,6 +15565,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/subscription' && request.method === 'GET')  return handleNavigatorSubscription(request, user, env);
     if (path === '/navigator/checkout'     && request.method === 'POST') return handleNavigatorCheckout(request, user, env);
     if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
+    if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {
