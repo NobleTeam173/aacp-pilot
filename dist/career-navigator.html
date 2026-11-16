@@ -2546,8 +2546,6 @@ function signOut() {
   try { localStorage.removeItem('navigatorRole'); } catch(e) {}
   navigatorRole = null;
   document.querySelectorAll('.role-badge').forEach(b => b.remove());
-  var crl = document.getElementById('changeRoleLink');
-  if (crl) crl.remove();
   var sol = document.getElementById('signOutLink');
   if (sol) sol.remove();
   showAuthGate();
@@ -2590,14 +2588,6 @@ function setRole(role, isSkip) {
   showTab('explore');
 }
 
-function changeRole() {
-  try { localStorage.removeItem('navigatorRole'); } catch(e) {}
-  navigatorRole = null;
-  document.querySelectorAll('.role-badge').forEach(b => b.remove());
-  document.querySelectorAll('.plan-card.role-recommended').forEach(c => c.classList.remove('role-recommended'));
-  const el = document.getElementById('rolePicker');
-  if (el) el.style.display = 'block';
-}
 
 function applyRole(role, animate) {
   document.body.setAttribute('data-role', role);
@@ -2632,18 +2622,9 @@ function applyRole(role, animate) {
     const card = document.getElementById(id);
     if (card) card.classList.add('role-recommended');
   });
-  // Show/update change-role link in header
-  let crLink = document.getElementById('changeRoleLink');
-  if (!crLink) {
-    crLink = document.createElement('button');
-    crLink.id = 'changeRoleLink';
-    crLink.onclick = changeRole;
-    crLink.style.cssText = 'background:none;border:none;font-size:12px;color:var(--fg3);cursor:pointer;text-decoration:underline;padding:0';
-    const headerActions = document.querySelector('.header-actions');
-    if (headerActions) headerActions.prepend(crLink);
-  }
-  const labels = {student:'Student',teacher:'Teacher',advisor:'Career Advisor'};
-  crLink.textContent = `Role: ${labels[role] || role} ✕`;
+  // Remove any stale change-role link (no longer shown)
+  const staleLink = document.getElementById('changeRoleLink');
+  if (staleLink) staleLink.remove();
 }
 // ── End role onboarding ─────────────────────────────────────────
 
