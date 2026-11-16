@@ -692,6 +692,31 @@ body[data-role="advisor"] .dash-advisor{display:block}
 /* No-role state */
 .dash-norole{display:block}
 body[data-role] .dash-norole{display:none}
+/* Student dashboard states */
+.dash-student-new,.dash-student-returning{display:none}
+/* Student tab nav: hide explore + scholarships; swap labels */
+body[data-role="student"] .tab-btn[data-tab="explore"],
+body[data-role="student"] .tab-btn[data-tab="scholarships"]{display:none}
+body[data-role="student"] .tab-label-default{display:none}
+body[data-role="student"] .tab-label-student{display:inline!important}
+/* Student pathway cards */
+.dash-pathway-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.dash-pathway-row:last-child{border-bottom:none}
+.dash-pathway-icon{font-size:20px;flex-shrink:0}
+.dash-pathway-info{flex:1;min-width:0}
+.dash-pathway-title{font-size:14px;font-weight:700;color:var(--fg)}
+.dash-pathway-meta{font-size:12px;color:var(--fg3);margin-top:2px}
+.dash-cta-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+@media(max-width:480px){.dash-cta-pair{grid-template-columns:1fr}}
+.dash-cta-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;cursor:pointer;transition:border-color .15s}
+.dash-cta-btn:hover{border-color:var(--crimson)}
+.dash-cta-icon{font-size:18px;margin-bottom:8px;color:var(--crimson)}
+.dash-cta-title{font-size:14px;font-weight:700;color:var(--fg);margin-bottom:3px}
+.dash-cta-sub{font-size:12px;color:var(--fg3);line-height:1.4}
+.dash-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.dash-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.dash-stat-num{font-size:22px;font-weight:800;color:var(--fg)}
+.dash-stat-label{font-size:11px;color:var(--fg3);margin-top:2px}
 /* ── My Career Pathway Dashboard ───────────────────────── */
 .pathway-goal-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;margin-bottom:20px}
 .pathway-goal-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--crimson-soft);border:1px solid var(--crimson-light);font-size:18px;flex-shrink:0}
@@ -940,7 +965,7 @@ body[data-role] .dash-norole{display:none}
     Explore Careers
   </button>
   <button class="tab-btn" data-tab="education" onclick="showTab('education')" role="tab">
-    Education &amp; Training
+    <span class="tab-label-default">Education &amp; Training</span><span class="tab-label-student" style="display:none">Education &amp; Funding</span>
   </button>
   <button class="tab-btn" data-tab="scholarships" onclick="showTab('scholarships')" role="tab">
     Scholarships
@@ -969,45 +994,76 @@ body[data-role] .dash-norole{display:none}
 
   <!-- ── Student Dashboard ─────────────────────────────────────── -->
   <div class="dash-student">
-    <div class="dash-welcome" id="dashStudentWelcome">Your Career Dashboard</div>
-    <p class="dash-sub">Explore aviation and aerospace careers, build your pathway, and track your progress.</p>
-    <div class="dash-grid">
-      <button class="dash-card" onclick="showTab('discovery')">
-        <div class="dash-card-label">Step 1</div>
-        <div class="dash-card-title">Career Discovery</div>
-        <div class="dash-card-sub">Find careers that match your strengths and interests.</div>
-        <span class="dash-card-arrow">&#8594;</span>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      <div class="dash-welcome">My Career Dashboard</div>
+    </div>
+    <p class="dash-sub">Discover your possibilities. Build your future.</p>
+
+    <!-- First-time student state -->
+    <div class="dash-student-new" id="dashStudentNew">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px">Welcome! Where would you like to begin?</div>
+        <div class="dash-cta-pair">
+          <button class="dash-cta-btn" onclick="showTab('discovery')">
+            <div class="dash-cta-icon">&#9685;</div>
+            <div class="dash-cta-title">Discover Careers</div>
+            <div class="dash-cta-sub">Explore your interests and strengths</div>
+          </button>
+          <button class="dash-cta-btn" onclick="showTab('subscribe')">
+            <div class="dash-cta-icon">&#128279;</div>
+            <div class="dash-cta-title">Build My Pathway</div>
+            <div class="dash-cta-sub">Save goals and plan your next steps</div>
+          </button>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <button class="dash-card" onclick="showTab('compare')">
+          <div class="dash-card-label">Compare</div>
+          <div class="dash-card-title">Compare Careers</div>
+          <div class="dash-card-sub">Compare salary, training, and entry routes side by side.</div>
+          <span class="dash-card-arrow">&#8594;</span>
+        </button>
+        <button class="dash-card" onclick="showTab('education')">
+          <div class="dash-card-label">Planning</div>
+          <div class="dash-card-title">Education &amp; Funding</div>
+          <div class="dash-card-sub">Find approved training programs and scholarships.</div>
+          <span class="dash-card-arrow">&#8594;</span>
+        </button>
+        <button class="dash-card" onclick="showTab('chat')">
+          <div class="dash-card-label">AI Mentor</div>
+          <div class="dash-card-title">Ask ACIA™</div>
+          <div class="dash-card-sub">Get personalized guidance from your aviation career mentor.</div>
+          <span class="dash-card-arrow">&#8594;</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Returning student state -->
+    <div class="dash-student-returning" id="dashStudentReturning">
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:20px;font-size:15px;padding:14px" onclick="showTab('subscribe')">
+        Continue My Pathway &#8594;
       </button>
-      <button class="dash-card" onclick="showTab('explore')">
-        <div class="dash-card-label">Step 2</div>
-        <div class="dash-card-title">Explore Careers</div>
-        <div class="dash-card-sub">Browse all 15 aviation and aerospace career pathways.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('compare')">
-        <div class="dash-card-label">Step 3</div>
-        <div class="dash-card-title">Compare Careers</div>
-        <div class="dash-card-sub">Compare salary, training, and entry routes side by side.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('subscribe')">
-        <div class="dash-card-label">My Pathway</div>
-        <div class="dash-card-title">My Career Pathway</div>
-        <div class="dash-card-sub">View your saved careers, roadmap progress, and next steps.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('education')">
-        <div class="dash-card-label">Planning</div>
-        <div class="dash-card-title">Education &amp; Training</div>
-        <div class="dash-card-sub">Find approved training organizations and programs near you.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
-      <button class="dash-card" onclick="showTab('chat')">
-        <div class="dash-card-label">AI Mentor</div>
-        <div class="dash-card-title">Ask ACIA™</div>
-        <div class="dash-card-sub">Get personalized career guidance from ACIA, your aviation career mentor.</div>
-        <span class="dash-card-arrow">&#8594;</span>
-      </button>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px">My Career Pathways</div>
+        <div id="dashSavedPathwaysList"></div>
+        <div class="dash-stats-row" id="dashStudentStats">
+          <div class="dash-stat"><div class="dash-stat-num" id="dashStatSaved">0</div><div class="dash-stat-label">Saved careers</div></div>
+          <div class="dash-stat"><div class="dash-stat-num" id="dashStatRoutes">0</div><div class="dash-stat-label">Entry routes</div></div>
+          <div class="dash-stat"><div class="dash-stat-num" id="dashStatSteps">0</div><div class="dash-stat-label">Next steps</div></div>
+        </div>
+      </div>
+      <div class="dash-cta-pair">
+        <button class="dash-cta-btn" onclick="showTab('discovery')">
+          <div class="dash-cta-icon">&#9685;</div>
+          <div class="dash-cta-title">Discover More Careers</div>
+          <div class="dash-cta-sub">Explore more aviation and aerospace pathways</div>
+        </button>
+        <button class="dash-cta-btn" onclick="showTab('chat')">
+          <div class="dash-cta-icon">&#128172;</div>
+          <div class="dash-cta-title">Ask ACIA™</div>
+          <div class="dash-cta-sub">Get guidance from your career mentor</div>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2208,6 +2264,49 @@ function showTab(id) {
   if (btn) btn.classList.add('active');
   if (id === 'subscribe' && navigatorPlan === 'career_advisor') loadAdvisorDashboard();
   if (id === 'subscribe') renderPathwayDashboard();
+  if (id === 'dashboard' && navigatorRole === 'student') renderStudentDashboard();
+}
+
+function renderStudentDashboard() {
+  var pathway = loadPathway();
+  var saved = pathway.saved || [];
+  var newEl = document.getElementById('dashStudentNew');
+  var retEl = document.getElementById('dashStudentReturning');
+  if (!newEl || !retEl) return;
+  if (saved.length === 0) {
+    newEl.style.display = 'block';
+    retEl.style.display = 'none';
+  } else {
+    newEl.style.display = 'none';
+    retEl.style.display = 'block';
+    // Populate saved pathways list
+    var list = document.getElementById('dashSavedPathwaysList');
+    if (list) {
+      list.innerHTML = saved.slice(0, 3).map(function(s) {
+        var p = CAREER_PATHWAYS && CAREER_PATHWAYS[s.id];
+        var title = p ? p.title : s.id;
+        var icon = p ? (p.icon || '&#9992;') : '&#9992;';
+        return '<div class="dash-pathway-row"><div class="dash-pathway-icon">' + icon + '</div>'
+          + '<div class="dash-pathway-info"><div class="dash-pathway-title">' + title + '</div>'
+          + '<div class="dash-pathway-meta">Saved career &middot; Tap to view</div></div>'
+          + '<button onclick="openPathway(\'' + s.id + '\');showTab(\'explore\')" style="font-size:12px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--crimson);font-weight:600">View</button>'
+          + '</div>';
+      }).join('');
+      if (saved.length > 3) {
+        list.innerHTML += '<div style="font-size:12px;color:var(--fg3);padding:10px 0 0;text-align:center">+' + (saved.length - 3) + ' more in <a href="#" onclick="showTab(\'subscribe\');return false" style="color:var(--crimson)">My Career Pathway</a></div>';
+      }
+    }
+    // Stats
+    var steps = pathway.nextSteps || [];
+    var roadmap = pathway.roadmap || {};
+    var routeCount = saved.reduce(function(acc, s) { var p = CAREER_PATHWAYS && CAREER_PATHWAYS[s.id]; return acc + (p && p.entryRoutes ? p.entryRoutes.length : 0); }, 0);
+    var statSaved = document.getElementById('dashStatSaved');
+    var statRoutes = document.getElementById('dashStatRoutes');
+    var statSteps = document.getElementById('dashStatSteps');
+    if (statSaved) statSaved.textContent = saved.length;
+    if (statRoutes) statRoutes.textContent = routeCount;
+    if (statSteps) statSteps.textContent = steps.length;
+  }
 }
 
 /* ── Sector and pathway data ───────────────────────────────────── */
