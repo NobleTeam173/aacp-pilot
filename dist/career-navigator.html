@@ -866,29 +866,34 @@ header{
         <div style="width:32px;height:32px;background:var(--crimson);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff">A</div>
         <span style="font-weight:700;font-size:16px">AACP™ Career Navigator</span>
       </div>
-      <h1 style="font-family:'Fraunces',serif;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1.2;margin-bottom:10px">Who are you exploring for?</h1>
-      <p style="font-size:14px;color:var(--fg3);max-width:420px;margin:0 auto">We'll highlight the tools and plans most relevant to you. You can always change this later.</p>
+      <h1 style="font-family:'Fraunces',serif;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1.2;margin-bottom:10px">Welcome to AACP™ Career Navigator</h1>
+      <p style="font-size:15px;font-weight:600;color:var(--fg);max-width:480px;margin:0 auto 8px">Your pathway to aviation, aerospace, RPAS and defence careers starts here.</p>
+      <p style="font-size:13px;color:var(--fg3);max-width:420px;margin:0 auto">Tell us how you'll use the Navigator so we can personalize your experience.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px">
 
       <button onclick="setRole('student')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:22px;margin-bottom:10px">🎓</div>
         <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Student</div>
-        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Exploring aviation and aerospace careers using my strengths and interests.</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Discover careers, explore your strengths, and build your personalized career pathway.</div>
       </button>
 
       <button onclick="setRole('teacher')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:22px;margin-bottom:10px">📖</div>
         <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Teacher</div>
-        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Using this in a classroom or program to introduce students to aviation careers.</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Bring aviation and aerospace career exploration into your classroom.</div>
       </button>
 
       <button onclick="setRole('advisor')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:22px;margin-bottom:10px">🧭</div>
         <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I'm a Career Advisor</div>
-        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Guiding youth and young adults toward careers in aviation and aerospace.</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Help students discover opportunities, compare pathways, and plan their next steps.</div>
       </button>
 
       <button onclick="setRole('institution')" style="text-align:left;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s">
-        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I represent an Institution</div>
-        <div style="font-size:13px;color:var(--fg3);line-height:1.5">School board, college, university, or organization seeking institutional access.</div>
+        <div style="font-size:22px;margin-bottom:10px">🏛️</div>
+        <div style="font-weight:700;font-size:15px;color:var(--fg);margin-bottom:4px">I Represent an Institution</div>
+        <div style="font-size:13px;color:var(--fg3);line-height:1.5">Explore career guidance solutions, student access, and institutional licensing.</div>
       </button>
 
     </div>
@@ -1064,8 +1069,8 @@ header{
         <button class="btn-secondary" onclick="showDiscoveryEntry()" style="font-size:12px;padding:6px 14px">&#8592; Back</button>
         <p class="section-label" style="margin:0">Guided Career Discovery</p>
       </div>
-      <h2 class="section-title" style="margin-bottom:6px">Career Discovery Videos</h2>
-      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">Watch a short clip from each career area. Tell us what interests you — ACIA™ will ask one follow-up question to help you explore further.</p>
+      <h2 class="section-title" style="margin-bottom:6px">Visual Career Discovery</h2>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:22px;line-height:1.6">We'll show you three images from Canadian aviation and aerospace careers. For each one, tell us what interests you — ACIA™ will ask one follow-up question to help you explore further.</p>
 
       <div class="photo-nav-bar">
         <div class="photo-nav-dots">
@@ -1073,28 +1078,14 @@ header{
           <div class="photo-nav-dot" id="pndot1"></div>
           <div class="photo-nav-dot" id="pndot2"></div>
         </div>
-        <span id="photoStepLabel" style="font-size:12px;color:var(--fg3);margin-left:8px">Video 1 of 3</span>
+        <span id="photoStepLabel" style="font-size:12px;color:var(--fg3);margin-left:8px">Photo 1 of 3</span>
         <button class="photo-skip" onclick="skipPhoto()" id="photoSkipBtn">Skip &#8594;</button>
       </div>
 
       <!-- Video 1: Aviation & Flight Operations -->
       <div class="photo-step active" id="photoStep0">
-        <div class="photo-card" style="background:#000;position:relative;">
-          <div class="video-wrap" id="videoWrap0">
-            <iframe
-              id="yt0"
-              style="width:100%;height:260px;display:block;border:0;"
-              src="https://www.youtube.com/embed/U5RBR_4b3yY?rel=0&modestbranding=1&color=white"
-              title="Aviation ramp operations — ground crew at work"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy"
-              onerror="this.style.display='none';document.getElementById('videoFallback0').style.display='block'">
-            </iframe>
-            <img id="videoFallback0" class="photo-img" style="display:none;"
-              src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80&auto=format&fit=crop"
-              alt="Ground crew working on the ramp beside a commercial aircraft at dusk">
-          </div>
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80&auto=format&fit=crop" alt="Ground crew working on the ramp beside a commercial aircraft at dusk" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aviation &amp; Flight Operations</div>
             <div class="photo-overlay-title">On the Ramp</div>
@@ -1121,22 +1112,8 @@ header{
 
       <!-- Video 2: RPAS & Autonomous Systems -->
       <div class="photo-step" id="photoStep1">
-        <div class="photo-card" style="background:#000;position:relative;">
-          <div class="video-wrap" id="videoWrap1">
-            <iframe
-              id="yt1"
-              style="width:100%;height:260px;display:block;border:0;"
-              src="https://www.youtube.com/embed/5Tp0_qcogNM?rel=0&modestbranding=1&color=white"
-              title="Commercial RPAS drone operations in Canada"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy"
-              onerror="this.style.display='none';document.getElementById('videoFallback1').style.display='block'">
-            </iframe>
-            <img id="videoFallback1" class="photo-img" style="display:none;"
-              src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80&auto=format&fit=crop"
-              alt="Drone operator in an open field launching a professional RPAS system">
-          </div>
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80&auto=format&fit=crop" alt="Drone operator in an open field launching a professional RPAS system" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">RPAS &amp; Autonomous Systems</div>
             <div class="photo-overlay-title">Remote Piloting</div>
@@ -1163,22 +1140,8 @@ header{
 
       <!-- Video 3: Aerospace Engineering & Manufacturing -->
       <div class="photo-step" id="photoStep2">
-        <div class="photo-card" style="background:#000;position:relative;">
-          <div class="video-wrap" id="videoWrap2">
-            <iframe
-              id="yt2"
-              style="width:100%;height:260px;display:block;border:0;"
-              src="https://www.youtube.com/embed/H_itEC4BVrA?rel=0&modestbranding=1&color=white"
-              title="Aircraft maintenance technician AME at work"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy"
-              onerror="this.style.display='none';document.getElementById('videoFallback2').style.display='block'">
-            </iframe>
-            <img id="videoFallback2" class="photo-img" style="display:none;"
-              src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80&auto=format&fit=crop"
-              alt="Aerospace technician working on a jet engine in a hangar">
-          </div>
+        <div class="photo-card">
+          <img class="photo-img" src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80&auto=format&fit=crop" alt="Aerospace technician working on a jet engine in a hangar" loading="lazy">
           <div class="photo-overlay">
             <div class="photo-overlay-label">Aerospace Engineering &amp; Manufacturing</div>
             <div class="photo-overlay-title">Engineering What Flies</div>
@@ -4055,7 +4018,7 @@ function updatePhotoNav(n) {
     else if (i === n) dot.classList.add('active');
   }
   var lbl = document.getElementById('photoStepLabel');
-  if (lbl) lbl.textContent = 'Video '+(n+1)+' of 3';
+  if (lbl) lbl.textContent = 'Photo '+(n+1)+' of 3';
   var skipBtn = document.getElementById('photoSkipBtn');
   if (skipBtn) skipBtn.style.display = n < 2 ? '' : 'none';
 }
