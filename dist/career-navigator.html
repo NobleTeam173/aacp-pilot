@@ -1433,6 +1433,9 @@ header{
   <h2 class="section-title">Go Deeper With Your Exploration</h2>
   <p class="section-sub">The free tier gives you a quick starting point. A Premium subscription unlocks the full Guided Discovery Session — 20–30 minutes of structured reflection that delivers a personalized pathway summary, ACIA™ career insights, and actionable next steps tailored to your profile.</p>
 
+  <!-- Subscription status banner — shown when signed in -->
+  <div id="subStatusBanner" style="display:none;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid;margin-bottom:20px;font-size:13px"></div>
+
   <div class="plan-grid">
 
     <div class="plan-card">
@@ -1529,7 +1532,8 @@ header{
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
       <div>
         <p style="font-size:13px;font-weight:600;margin:0 0 2px">Your Advisor Invite Codes</p>
-        <p id="advisorInvitesLeft" style="font-size:12px;color:var(--fg3);margin:0">Loading…</p>
+        <p id="advisorInvitesLeft" style="font-size:12px;color:var(--fg3);margin:0 0 2px">Loading…</p>
+        <p id="advisorTrialNote" style="display:none;font-size:11px;color:var(--gold);margin:0"></p>
       </div>
       <button onclick="generateAdvisorCode()" id="genAdvisorBtn"
         style="padding:8px 16px;background:var(--gold);color:#000;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
@@ -2513,6 +2517,13 @@ async function loadAdvisorDashboard() {
     document.getElementById('advisorInvitesLeft').textContent =
       rem === 0 ? 'No invite codes remaining' : `${rem} invite code${rem !== 1 ? 's' : ''} remaining`;
     document.getElementById('genAdvisorBtn').disabled = rem === 0;
+    // Show trial note if applicable
+    const trialNote = document.getElementById('advisorTrialNote');
+    if (trialNote && data.trial_ends_at) {
+      const daysLeft = Math.max(0, Math.ceil((new Date(data.trial_ends_at) - Date.now()) / 86400000));
+      trialNote.textContent = `Free trial — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining · 20 slots unlock when trial converts`;
+      trialNote.style.display = '';
+    }
     renderAdvisorCodes(data.codes || []);
   } catch { /* silent */ }
 }
@@ -2661,14 +2672,34 @@ function showToast(msg) {
     });
     if (!res.ok) return;
     const sub = await res.json();
-    if (sub.plan && sub.plan !== 'free' && sub.status === 'active') {
+    if (sub.plan && sub.plan !== 'free' && (sub.status === 'active' || sub.status === 'trialing')) {
       navigatorPlan = sub.plan;
       const banner = document.getElementById('chatUpgradeBanner');
       if (banner) {
-        banner.innerHTML = '<strong>Premium access active.</strong> Unlimited ACIA™ career mentorship — powered by AI.';
+        const label = sub.status === 'trialing' ? 'Trial access active.' : 'Premium access active.';
+        banner.innerHTML = `<strong>${label}</strong> Unlimited ACIA™ career mentorship — powered by AI.`;
         banner.style.background = 'color-mix(in srgb,var(--gold) 12%,transparent)';
         banner.style.borderColor = 'color-mix(in srgb,var(--gold) 30%,transparent)';
         banner.style.color = 'var(--gold)';
+      }
+      // Plans tab status banner
+      const sb = document.getElementById('subStatusBanner');
+      if (sb) {
+        const planLabels = { premium_student: 'Premium Student', advisor_invited: 'Advisor-Invited Student', career_advisor: 'Career Advisor' };
+        const planName = planLabels[sub.plan] || sub.plan;
+        if (sub.status === 'trialing' && sub.trial_ends_at) {
+          const daysLeft = Math.max(0, Math.ceil((new Date(sub.trial_ends_at) - Date.now()) / 86400000));
+          sb.innerHTML = `<strong>Free trial active</strong> — ${planName} &middot; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining${sub.invites_remaining != null ? ` &middot; ${sub.invites_remaining} invite slot${sub.invites_remaining !== 1 ? 's' : ''} available` : ''}`;
+          sb.style.background = 'color-mix(in srgb,var(--gold) 8%,transparent)';
+          sb.style.borderColor = 'color-mix(in srgb,var(--gold) 25%,transparent)';
+          sb.style.color = 'var(--gold)';
+        } else {
+          sb.innerHTML = `<strong>Subscribed</strong> — ${planName}${sub.cancel_at_period_end ? ' &middot; Cancels at period end' : ''}${sub.plan === 'career_advisor' && sub.invites_remaining != null ? ` &middot; ${sub.invites_remaining} invite slot${sub.invites_remaining !== 1 ? 's' : ''} remaining` : ''}`;
+          sb.style.background = 'color-mix(in srgb,#2a9c5c 8%,transparent)';
+          sb.style.borderColor = 'color-mix(in srgb,#2a9c5c 22%,transparent)';
+          sb.style.color = '#2a9c5c';
+        }
+        sb.style.display = '';
       }
       if (sub.plan === 'career_advisor') loadAdvisorDashboard();
     }

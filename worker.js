@@ -15001,6 +15001,8 @@ async function handleNavigatorCheckout(request, user, env) {
     ['metadata[user_id]', user.id],
     ['metadata[plan]', plan],
     ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
+    // 7-day free trial for premium_student and career_advisor
+    ...(plan !== 'advisor_invited' ? [['subscription_data[trial_period_days]', '7']] : []),
     ...discounts,
   ];
 
@@ -15231,11 +15233,30 @@ async function handleNavigatorWebhook(request, env) {
     if (!userId || !plan) return json({ received: true });
 
     const now = new Date().toISOString();
+
+    // Fetch the Stripe subscription to get real status and trial_end
+    let subStatus = 'active';
+    let trialEndsAt = null;
+    let periodEnd = null;
+    if (subscriptionId) {
+      try {
+        const stripeSub = await stripeRequest(env, 'GET', `/subscriptions/${subscriptionId}`, null);
+        subStatus = stripeSub.status || 'active';
+        if (stripeSub.trial_end) trialEndsAt = new Date(stripeSub.trial_end * 1000).toISOString();
+        if (stripeSub.current_period_end) periodEnd = new Date(stripeSub.current_period_end * 1000).toISOString();
+      } catch (e) {
+        console.error('[navigator/webhook] failed to fetch subscription:', e.message);
+      }
+    }
+
+    // During trial career_advisor gets 5 invite slots; paid gets 20
+    const invitesInit = plan === 'career_advisor' ? (subStatus === 'trialing' ? 5 : 20) : 0;
+
     // Upsert subscription record
     await env.DB.prepare(`
       INSERT INTO navigator_subscriptions
-        (id, user_id, plan, status, stripe_customer_id, stripe_subscription_id, invite_code_id, invites_remaining, created_at, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?)
+        (id, user_id, plan, status, stripe_customer_id, stripe_subscription_id, invite_code_id, invites_remaining, trial_ends_at, current_period_end, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(user_id) DO UPDATE SET
         plan = excluded.plan,
         status = excluded.status,
@@ -15243,11 +15264,13 @@ async function handleNavigatorWebhook(request, env) {
         stripe_subscription_id = excluded.stripe_subscription_id,
         invite_code_id = excluded.invite_code_id,
         invites_remaining = excluded.invites_remaining,
+        trial_ends_at = excluded.trial_ends_at,
+        current_period_end = excluded.current_period_end,
         updated_at = excluded.updated_at
     `).bind(
-      crypto.randomUUID(), userId, plan, 'active',
+      crypto.randomUUID(), userId, plan, subStatus,
       customerId, subscriptionId, inviteCodeId,
-      plan === 'career_advisor' ? 5 : 0,
+      invitesInit, trialEndsAt, periodEnd,
       now, now
     ).run();
 
@@ -15268,19 +15291,34 @@ async function handleNavigatorWebhook(request, env) {
 
   if (type === 'customer.subscription.updated') {
     const sub = await env.DB.prepare(
-      'SELECT id, user_id FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
+      'SELECT id, user_id, plan, status AS prev_status, invites_remaining FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
     ).bind(obj.id).first();
     if (sub) {
       const now = new Date().toISOString();
-      const status = obj.status;
+      const newStatus = obj.status;
       const periodEnd = obj.current_period_end ? new Date(obj.current_period_end * 1000).toISOString() : null;
       const periodStart = obj.current_period_start ? new Date(obj.current_period_start * 1000).toISOString() : null;
+      const trialEndsAt = obj.trial_end ? new Date(obj.trial_end * 1000).toISOString() : null;
+
+      // When a career_advisor trial converts to paid, bump invites from 5 → 20
+      let invitesBump = null;
+      if (sub.plan === 'career_advisor' && sub.prev_status === 'trialing' && newStatus === 'active') {
+        // Add 15 more slots (5 trial → 20 paid), preserving any unused trial slots
+        invitesBump = Math.max((sub.invites_remaining ?? 0) + 15, 20);
+      }
+
       await env.DB.prepare(`
         UPDATE navigator_subscriptions SET
           status = ?, current_period_start = ?, current_period_end = ?,
-          cancel_at_period_end = ?, updated_at = ?
+          cancel_at_period_end = ?, trial_ends_at = ?,
+          ${invitesBump !== null ? 'invites_remaining = ?,' : ''}
+          updated_at = ?
         WHERE id = ?
-      `).bind(status, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, now, sub.id).run();
+      `).bind(
+        ...(invitesBump !== null
+          ? [newStatus, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, trialEndsAt, invitesBump, now, sub.id]
+          : [newStatus, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, trialEndsAt, now, sub.id])
+      ).run();
     }
   }
 
@@ -15371,14 +15409,19 @@ async function handleNavigatorInviteCreate(request, user, env) {
 async function handleNavigatorInviteList(request, user, env) {
   const g = requireAuth(user); if (g) return g;
   const sub = await env.DB.prepare(
-    `SELECT plan, status, invites_remaining FROM navigator_subscriptions WHERE user_id = ?`
+    `SELECT plan, status, invites_remaining, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`
   ).bind(user.id).first();
   if (!sub || sub.plan !== 'career_advisor') return json({ error: 'Career Advisor subscription required' }, 403);
   const { results } = await env.DB.prepare(
     `SELECT id, code, discount_percent, status, redemptions_used, max_redemptions, expires_at, created_at
      FROM navigator_invite_codes WHERE advisor_user_id = ? ORDER BY created_at DESC LIMIT 50`
   ).bind(user.id).all();
-  return json({ codes: results || [], invites_remaining: sub.invites_remaining ?? 0 });
+  return json({
+    codes: results || [],
+    invites_remaining: sub.invites_remaining ?? 0,
+    trial_ends_at: sub.trial_ends_at || null,
+    subscription_status: sub.status,
+  });
 }
 
 // POST /navigator/invite/validate — public, validate an invite code before checkout
