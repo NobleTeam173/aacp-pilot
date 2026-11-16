@@ -774,6 +774,40 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .milestone-text.done{text-decoration:line-through;color:var(--fg3)}
 .milestone-del{background:none;border:none;color:var(--fg3);font-size:14px;cursor:pointer;padding:2px 5px;opacity:.5;transition:opacity .12s}
 .milestone-del:hover{opacity:1;color:#e55}
+/* ── Visual timeline roadmap (Phase 2) ───────────────────────── */
+.vr-timeline{position:relative;padding-left:36px}
+.vr-timeline::before{content:'';position:absolute;left:13px;top:16px;bottom:16px;width:2px;background:var(--border2);border-radius:1px}
+.vr-phase{position:relative;margin-bottom:20px}
+.vr-phase:last-child{margin-bottom:0}
+.vr-dot{position:absolute;left:-32px;top:14px;width:18px;height:18px;border-radius:50%;background:var(--surface);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:9px;transition:background .2s,border-color .2s;cursor:pointer;z-index:1}
+.vr-dot.done{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.vr-dot.done::after{content:'✓';font-size:9px;font-weight:800;color:#fff}
+.vr-phase-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;transition:border-color .15s}
+.vr-phase-card.done{border-color:color-mix(in srgb,var(--crimson) 25%,var(--border))}
+.vr-phase-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer}
+.vr-phase-head:hover{background:var(--surface2)}
+.vr-phase-num{font-size:10px;font-weight:800;color:var(--fg3);min-width:18px;padding-top:1px}
+.vr-phase-info{flex:1;min-width:0}
+.vr-phase-title{font-size:13px;font-weight:700;color:var(--fg);margin-bottom:2px}
+.vr-phase-sub{font-size:11px;color:var(--fg3);line-height:1.5}
+.vr-phase-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.vr-phase-tag{font-size:10px;padding:2px 7px;border-radius:12px;background:var(--surface2);color:var(--fg3);border:1px solid var(--border)}
+.vr-phase-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.vr-check-btn{width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);background:none;cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:transparent}
+.vr-check-btn.done{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.vr-phase-expand{background:none;border:none;color:var(--fg3);font-size:11px;cursor:pointer;padding:2px 4px;transition:transform .2s}
+.vr-phase-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.vr-phase.open .vr-phase-body{display:block}
+.vr-phase.open .vr-phase-expand{transform:rotate(180deg)}
+.vr-edit-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.vr-edit-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px}
+.vr-edit-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3)}
+.vr-edit-input{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:12px;outline:none;transition:border-color .15s}
+.vr-edit-input:focus{border-color:var(--crimson)}
+.vr-acia-hint{font-size:12px;color:var(--fg2);line-height:1.6;padding:8px 10px;background:color-mix(in srgb,var(--crimson) 5%,var(--surface));border-left:2px solid color-mix(in srgb,var(--crimson) 35%,transparent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:10px}
+.vr-alt-route{padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-top:8px;font-size:12px;color:var(--fg2);border:1px dashed var(--border2)}
+.vr-alt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);margin-bottom:3px}
+.vr-no-goal{text-align:center;padding:28px 16px;color:var(--fg3);font-size:13px}
 @media(max-width:560px){.pathway-stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -2091,54 +2125,14 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
         </div>
       </div>
 
-      <!-- Career Roadmap -->
+      <!-- Visual Career Roadmap (Phase 2) -->
       <div class="pathway-section-card" style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="font-size:15px;font-weight:700;color:var(--fg)">My Career Roadmap</div>
-          <button onclick="resetPathwayRoadmap()" style="font-size:11px;color:var(--fg3);background:none;border:none;cursor:pointer;padding:0">Example</button>
+          <span class="dsrc dsrc-verified" style="font-size:10px">✓ TC / NAV Canada</span>
         </div>
-        <div class="pathway-roadmap-steps" id="pathwayRoadmapSteps">
-          <div class="pathway-roadmap-step" data-step="discover" onclick="togglePathwayStep('discover')">
-            <span class="roadmap-check" id="step-discover">&#9711;</span>
-            <div>
-              <div class="roadmap-step-title">Discover My Strengths</div>
-              <div class="roadmap-step-sub">Explore interests and career possibilities</div>
-            </div>
-            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('discovery')" title="Go to Discovery">&#8594;</button>
-          </div>
-          <div class="pathway-roadmap-step" data-step="explore" onclick="togglePathwayStep('explore')">
-            <span class="roadmap-check" id="step-explore">&#9711;</span>
-            <div>
-              <div class="roadmap-step-title">Explore &amp; Compare Careers</div>
-              <div class="roadmap-step-sub">Identify careers worth exploring</div>
-            </div>
-            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('explore')" title="Go to Explore">&#8594;</button>
-          </div>
-          <div class="pathway-roadmap-step" data-step="entryRoute" onclick="togglePathwayStep('entryRoute')">
-            <span class="roadmap-check" id="step-entryRoute">&#9711;</span>
-            <div>
-              <div class="roadmap-step-title">Choose an Entry Route</div>
-              <div class="roadmap-step-sub">Compare training, requirements, and costs</div>
-            </div>
-            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('explore')" title="Go to Explore">&#8594;</button>
-          </div>
-          <div class="pathway-roadmap-step" data-step="education" onclick="togglePathwayStep('education')">
-            <span class="roadmap-check" id="step-education">&#9711;</span>
-            <div>
-              <div class="roadmap-step-title">Plan Education &amp; Funding</div>
-              <div class="roadmap-step-sub">Save programs and scholarship opportunities</div>
-            </div>
-            <button class="roadmap-go-btn" onclick="event.stopPropagation();showTab('education')" title="Go to Education">&#8594;</button>
-          </div>
-          <div class="pathway-roadmap-step" data-step="milestones" onclick="togglePathwayStep('milestones')">
-            <span class="roadmap-check" id="step-milestones">&#9711;</span>
-            <div>
-              <div class="roadmap-step-title">Set My Next Steps</div>
-              <div class="roadmap-step-sub">Create goals and track personal milestones</div>
-            </div>
-            <button class="roadmap-go-btn" onclick="event.stopPropagation();openMilestones()" title="Add milestones">&#43;</button>
-          </div>
-        </div>
+        <p style="font-size:12px;color:var(--fg3);margin:0 0 16px;line-height:1.5">Career-specific phases drawn from Transport Canada requirements. Mark phases complete, add target dates and estimated costs, and track your progress.</p>
+        <div id="vrTimeline"></div>
         <div style="margin-top:16px">
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg3);margin-bottom:6px">
             <span>Roadmap progress</span>
@@ -5571,6 +5565,183 @@ function renderRoadmap(d) {
   if (pctEl) pctEl.textContent = pct + '%';
 }
 
+/* ACIA™ hints per journey phase index (0-based, matched to PATHWAY journey arrays) */
+var VR_ACIA_HINTS = {
+  pilot: [
+    'Medical standards change with age. Book your Category 1 medical early — some conditions are disqualifying. Source: Transport Canada CARs 404.',
+    'Ground school before flight training reduces total hours and cost. Many FTUs offer an integrated ground school package.',
+    'Night rating and IFR rating are rarely mandatory for CPL but almost always required by employers. Budget them into your plan.',
+    'Flight instructing (Class 4 FI) is the most common and cost-effective way to build hours toward 1,500. Instructors typically earn $30–45/hr while building time.',
+    'ATPL theory exams can be written before meeting the experience requirements. Many pilots begin studying during their hour-building phase.',
+  ],
+  uav: [
+    'Basic RPAS Certificate can be obtained in a day. Advanced requires a flight review with a TC examiner — budget $300–$600 CAD.',
+    'Most commercial contracts require Advanced certification and site-specific risk assessments (SFOC for BVLOS). Check TC\'s drone site for current exemptions.',
+    'RPAS operations insurance is mandatory for most commercial contracts. Budget $500–$2,000/year depending on equipment value and operation type.',
+    'Specialized sectors (oil & gas inspection, precision agriculture, public safety) pay significantly more. Certifications like thermal imaging add value.',
+  ],
+  ame: [
+    'ATO selection matters: SAIT, NAIT, and BCIT have strong AMO partnerships that fast-track OJT placement. Visit open houses before applying.',
+    'OJT must be at a TC-approved AMO (Approved Maintenance Organization). Keep a detailed logbook — it is your licence evidence.',
+    'Written exams have no limit on attempts but require preparation. CAMC study guides are the standard reference.',
+    'AME licence endorsements (M1 piston, M2 turbine, E avionics, S structures) can be earned separately. Most employers want M2 for commercial aircraft.',
+  ],
+  avionics: [
+    'Avionics (AME E) requires the same ATO training path as AME but focuses on electrical and electronic systems. Some ATOs offer combined programs.',
+    'OJT at a commercial AMO with active avionics work is essential. Military avionics experience may count toward TC requirements with documentation.',
+    'The E licence examination covers CARs Part V, aircraft electrical systems, and avionics systems. CAMC prep materials are available through the ATO.',
+    'Avionics technicians with software-defined radio (SDR) and cybersecurity skills are increasingly sought by defence contractors and airlines.',
+  ],
+  atc: [
+    'NAV CANADA recruits from Transport Canada-accredited ATC programs at BCIT, Seneca, and SAIT, or directly via their own training academy.',
+    'NAV CANADA\'s selection process includes aptitude testing, medical, and security clearance. The process typically takes 12–18 months.',
+    'ATC trainees receive full salary during NAV CANADA facility-based training. No out-of-pocket tuition once accepted to the NAV CANADA program.',
+    'Controllers specialize in area (en-route), terminal (approach/departure), or tower (aerodrome) control. Most start in area control.',
+  ],
+  default: [
+    'Each career pathway has specific Transport Canada or NAV CANADA licensing requirements. Verify current standards before committing to a training program.',
+    'Set a target date for each phase to build realistic momentum. Most aviation careers take 3–7 years from start to full employment.',
+    'Scholarships through COPA, CAFF, and Women in Aviation Canada can offset significant training costs. Apply 12–18 months in advance.',
+  ]
+};
+
+/* Alternative routes per career */
+var VR_ALT_ROUTES = {
+  pilot: { phaseIdx: 2, label: 'Military route', text: 'CAF Pilot: sponsored training, no tuition, service commitment of 7–9 years. Applications via Canadian Armed Forces recruitment.' },
+  ame: { phaseIdx: 1, label: 'Apprenticeship route', text: 'Some provinces offer Red Seal aircraft maintenance apprenticeships. Contact your provincial apprenticeship board for eligibility.' },
+  atc: { phaseIdx: 0, label: 'NAV CANADA direct intake', text: 'NAV CANADA periodically recruits non-ATC-diploma candidates through direct-entry programs. Monitor navcanadarecruit.com.' },
+  aerospace_eng: { phaseIdx: 0, label: 'Cooperative education', text: 'UofT, UofA, and Concordia aerospace engineering programs include mandatory co-op terms that count toward experience requirements.' },
+};
+
+function renderVisualRoadmap(d) {
+  var el = document.getElementById('vrTimeline');
+  if (!el) return;
+
+  var goalId = d.primaryGoal ? d.primaryGoal.id : (d.saved.length ? d.saved[0].id : null);
+  var pathway = goalId ? PATHWAYS.find(function(p){ return p.id === goalId; }) : null;
+
+  if (!pathway || !pathway.journey || !pathway.journey.length) {
+    el.innerHTML = '<div class="vr-no-goal">'
+      + (d.saved.length ? 'Set a primary career goal above to see your personalised roadmap.' : 'Save a career in Explore to generate your roadmap.')
+      + '</div>';
+    var bar = document.getElementById('roadmapBar');
+    var pct = document.getElementById('roadmapPct');
+    if (bar) bar.style.width = '0%';
+    if (pct) pct.textContent = '0%';
+    return;
+  }
+
+  if (!d.vrPhases) d.vrPhases = {};
+  var hints = VR_ACIA_HINTS[goalId] || VR_ACIA_HINTS['default'];
+  var altRoute = VR_ALT_ROUTES[goalId] || null;
+  var done = 0;
+
+  var html = '<div class="vr-timeline">';
+  pathway.journey.forEach(function(phase, i) {
+    var key = goalId + '_' + i;
+    var state = d.vrPhases[key] || { done: false, cost: '', targetDate: '', open: false };
+    if (state.done) done++;
+    var hint = hints[i] || hints[hints.length - 1] || '';
+
+    html += '<div class="vr-phase' + (state.open ? ' open' : '') + (state.done ? ' done' : '') + '" id="vrPhase_' + key + '">'
+      + '<div class="vr-dot' + (state.done ? ' done' : '') + '" onclick="toggleVrCheck(\'' + key + '\')"></div>'
+      + '<div class="vr-phase-card' + (state.done ? ' done' : '') + '">'
+
+      // Header row
+      + '<div class="vr-phase-head" onclick="toggleVrPhase(\'' + key + '\')">'
+      + '<span class="vr-phase-num">0' + (i + 1) + '</span>'
+      + '<div class="vr-phase-info">'
+      + '<div class="vr-phase-title">' + phase.title + '</div>'
+      + '<div class="vr-phase-sub">' + (phase.body.length > 90 ? phase.body.substring(0, 90) + '…' : phase.body) + '</div>';
+
+    if (state.cost || state.targetDate) {
+      html += '<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">';
+      if (state.cost) html += '<span style="font-size:10px;padding:1px 7px;border-radius:12px;background:color-mix(in srgb,#d4860a 12%,var(--surface));color:#b06c00;border:1px solid color-mix(in srgb,#d4860a 22%,transparent)">~ ' + state.cost + '</span>';
+      if (state.targetDate) html += '<span style="font-size:10px;padding:1px 7px;border-radius:12px;background:var(--surface2);color:var(--fg3);border:1px solid var(--border)">Target: ' + state.targetDate + '</span>';
+      html += '</div>';
+    }
+
+    html += '</div>'
+      + '<div class="vr-phase-actions">'
+      + '<button class="vr-check-btn' + (state.done ? ' done' : '') + '" onclick="event.stopPropagation();toggleVrCheck(\'' + key + '\')" title="Mark complete">' + (state.done ? '✓' : '') + '</button>'
+      + '<button class="vr-phase-expand" onclick="event.stopPropagation();toggleVrPhase(\'' + key + '\')" title="Details">▼</button>'
+      + '</div>'
+      + '</div>'
+
+      // Expanded body
+      + '<div class="vr-phase-body">'
+      + '<p style="font-size:13px;color:var(--fg2);line-height:1.65;margin:10px 0 0">' + phase.body + '</p>';
+
+    // Tags
+    if (phase.tags && phase.tags.length) {
+      html += '<div class="vr-phase-tags" style="margin-top:8px">';
+      phase.tags.forEach(function(t){ html += '<span class="vr-phase-tag">' + t + '</span>'; });
+      html += '</div>';
+    }
+
+    // Editable fields
+    html += '<div class="vr-edit-row">'
+      + '<div class="vr-edit-field"><label class="vr-edit-label">Estimated Cost</label>'
+      + '<input class="vr-edit-input" type="text" placeholder="e.g. $12,000 CAD" value="' + (state.cost || '') + '" onchange="saveVrField(\'' + key + '\',\'cost\',this.value)" onblur="saveVrField(\'' + key + '\',\'cost\',this.value)"></div>'
+      + '<div class="vr-edit-field"><label class="vr-edit-label">Target Date</label>'
+      + '<input class="vr-edit-input" type="text" placeholder="e.g. Sept 2026" value="' + (state.targetDate || '') + '" onchange="saveVrField(\'' + key + '\',\'targetDate\',this.value)" onblur="saveVrField(\'' + key + '\',\'targetDate\',this.value)"></div>'
+      + '</div>';
+
+    // ACIA™ hint
+    if (hint) {
+      html += '<div class="vr-acia-hint"><strong>ACIA™ Insight:</strong> ' + hint + ' <span class="dsrc dsrc-acia" style="vertical-align:middle">ACIA™</span></div>';
+    }
+
+    // Alternative route on specific phase
+    if (altRoute && altRoute.phaseIdx === i) {
+      html += '<div class="vr-alt-route"><div class="vr-alt-label">Alternative route: ' + altRoute.label + '</div>' + altRoute.text + '</div>';
+    }
+
+    html += '</div></div></div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+
+  // Progress bar
+  var pct = Math.round(done / pathway.journey.length * 100);
+  var bar = document.getElementById('roadmapBar');
+  var pctEl = document.getElementById('roadmapPct');
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+function toggleVrPhase(key) {
+  var d = loadPathway();
+  if (!d.vrPhases) d.vrPhases = {};
+  if (!d.vrPhases[key]) d.vrPhases[key] = {};
+  d.vrPhases[key].open = !d.vrPhases[key].open;
+  savePathway(d);
+  var el = document.getElementById('vrPhase_' + key);
+  if (el) el.classList.toggle('open', d.vrPhases[key].open);
+}
+
+function toggleVrCheck(key) {
+  var d = loadPathway();
+  if (!d.vrPhases) d.vrPhases = {};
+  if (!d.vrPhases[key]) d.vrPhases[key] = {};
+  d.vrPhases[key].done = !d.vrPhases[key].done;
+  savePathway(d);
+  renderVisualRoadmap(d);
+}
+
+function saveVrField(key, field, value) {
+  var d = loadPathway();
+  if (!d.vrPhases) d.vrPhases = {};
+  if (!d.vrPhases[key]) d.vrPhases[key] = {};
+  d.vrPhases[key][field] = value;
+  savePathway(d);
+  // re-render just the summary chips without full re-render
+  var phaseEl = document.getElementById('vrPhase_' + key);
+  if (!phaseEl) return;
+  renderVisualRoadmap(d);
+}
+
 var SECTOR_ICONS = {
   flight_ops: '&#9992;', maintenance: '&#128295;', atc_nav: '&#128225;',
   airport_ops: '&#9992;', engineering: '&#128264;'
@@ -5654,8 +5825,8 @@ function renderPathwayDashboard() {
   document.getElementById('statEntryRoutes').textContent = d.roadmap.entryRoute ? d.saved.length : 0;
   document.getElementById('statNextSteps').textContent = d.nextSteps.length;
 
-  // Roadmap
-  renderRoadmap(d);
+  // Visual roadmap
+  renderVisualRoadmap(d);
 
   // Saved list
   renderPathwaySavedList(d.saved);
