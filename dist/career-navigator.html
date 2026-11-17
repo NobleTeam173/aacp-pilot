@@ -1150,6 +1150,8 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
         </button>
       </div>
     </div>
+    <!-- ACIA Intelligence Card — dynamically populated by aciaUpdateDashboard() -->
+    <div id="aciaDashCard" style="display:none;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--crimson);border-radius:var(--radius);padding:18px;margin-top:16px"></div>
   </div>
 
   <!-- ── Teacher Dashboard ─────────────────────────────────────── -->
@@ -2609,20 +2611,317 @@ function toggleAciaPanel(id) {
   panel.classList.toggle('open');
 }
 
-function initAciaPanels() {
-  var role = navigatorRole || 'default';
+// ── ACIA Intelligence Layer ───────────────────────────────────────────────────
+// Central profile builder — assembles everything ACIA knows about this student
+// from every touchpoint: discovery reflections, viewed careers, saved careers,
+// pathway goal, compare history, and chat signals.
+
+function aciaProfile() {
+  var d = loadPathway();
+  var profile = {
+    // Story reflections (raw text)
+    reflections: [
+      (d.story1Responses && d.story1Responses[0]) || '',
+      (d.story2Responses && d.story2Responses[0]) || ''
+    ].filter(Boolean),
+    // Careers ACIA matched from discovery stories
+    storyMatches: [].concat(d.story1Matches || [], d.story2Matches || []),
+    // Careers the student explicitly saved
+    saved: (d.saved || []).map(function(s){ return s.id; }),
+    savedTitles: (d.saved || []).map(function(s){ return s.title; }),
+    // Primary goal career
+    primaryGoal: d.primaryGoal ? d.primaryGoal.id : null,
+    primaryGoalTitle: d.primaryGoal ? d.primaryGoal.title : null,
+    // Careers the student has viewed (tracked below)
+    viewed: aciaGetViewed(),
+    // Combined interest signals across all text
+    allText: ((d.story1Responses||[''])[0] + ' ' + (d.story2Responses||[''])[0]).toLowerCase().trim(),
+    // Whether discovery is complete
+    discoveredStory1: !!(d.story1Matches && d.story1Matches.length),
+    discoveredStory2: !!(d.story2Matches && d.story2Matches.length),
+  };
+  // Derive top interests: saved > matched > viewed, deduplicated
+  var seen = {};
+  var top = [];
+  [].concat(
+    profile.primaryGoal ? [profile.primaryGoal] : [],
+    profile.saved,
+    profile.storyMatches,
+    profile.viewed
+  ).forEach(function(id){
+    if (id && !seen[id]) { seen[id] = true; top.push(id); }
+  });
+  profile.topInterests = top.slice(0, 5); // up to 5 unique career ids
+  profile.hasActivity = profile.reflections.length > 0 || profile.saved.length > 0 || profile.viewed.length > 0;
+  return profile;
+}
+
+// Track which careers a student has viewed (openPathway calls this)
+function aciaTrackView(id) {
+  try {
+    var viewed = aciaGetViewed();
+    if (viewed.indexOf(id) === -1) {
+      viewed.unshift(id);
+      localStorage.setItem('acia_viewed', JSON.stringify(viewed.slice(0, 20)));
+    }
+  } catch(e) {}
+}
+function aciaGetViewed() {
+  try { return JSON.parse(localStorage.getItem('acia_viewed') || '[]'); } catch(e) { return []; }
+}
+
+// Build a compact, natural-language context summary for injecting into the chat system
+function aciaChatContext() {
+  var p = aciaProfile();
+  if (!p.hasActivity) return '';
+  var parts = [];
+  if (p.primaryGoalTitle) parts.push('Primary career goal: ' + p.primaryGoalTitle + '.');
+  if (p.savedTitles.length) parts.push('Saved careers: ' + p.savedTitles.join(', ') + '.');
+  var matchTitles = p.storyMatches.map(function(id){
+    var pw = PATHWAYS.find(function(x){return x.id===id;});
+    return pw ? pw.title : id;
+  }).filter(function(t,i,a){return a.indexOf(t)===i;}).slice(0,4);
+  if (matchTitles.length) parts.push('ACIA discovery matches: ' + matchTitles.join(', ') + '.');
+  if (p.allText && p.allText.length > 10) parts.push('Student reflection (summarised): "' + p.allText.slice(0, 200) + '".');
+  if (!parts.length) return '';
+  return '\n\n[ACIA Student Context — use this to personalise your response]\n' + parts.join(' ') + '\n[End context]';
+}
+
+// Generate personalised tip HTML for a given panel based on the student profile
+function aciaPersonalisedTips(tab, profile) {
+  var tips = [];
+  var top = profile.topInterests;
+  var topTitles = top.map(function(id){
+    var pw = PATHWAYS.find(function(x){return x.id===id;});
+    return pw ? pw.title : null;
+  }).filter(Boolean);
+
+  if (!profile.hasActivity) {
+    // Fall back to static tips for students with no activity yet
+    var role = navigatorRole || 'default';
+    return (ACIA_TIPS[tab] && (ACIA_TIPS[tab][role] || ACIA_TIPS[tab]['default'])) || [];
+  }
+
+  var interestStr = topTitles.slice(0,3).join(', ');
+  var goalStr = profile.primaryGoalTitle || (topTitles[0] || 'your chosen pathway');
+
+  if (tab === 'discovery') {
+    if (profile.discoveredStory1 || profile.discoveredStory2) {
+      tips.push({ text: '<strong>ACIA™ knows your interests.</strong> Based on your reflections, you seem drawn to <em>' + interestStr + '</em>. Explore Story 2 for more careers, or head to Compare Careers to see them side by side. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    } else {
+      tips.push({ text: '<strong>Start exploring below.</strong> ACIA™ will personalise your experience as you go — the more you reflect and save, the smarter your guidance gets. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    }
+    if (profile.saved.length) {
+      tips.push({ text: '<strong>You\'ve saved ' + profile.saved.length + ' career' + (profile.saved.length>1?'s':'') + '.</strong> Head to My Career Pathway to review your roadmap and set a primary goal. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    } else {
+      tips.push({ text: '<strong>Save careers you\'re curious about.</strong> ACIA™ uses your saved list to personalise guidance across Education, Compare, and Ask ACIA™. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    }
+    tips.push({ text: '<strong>Ask ACIA™ anything.</strong> Your career mentor already knows what you\'ve been exploring — ask a specific question about ' + goalStr + ' for a personalised answer. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+  }
+
+  if (tab === 'education') {
+    if (topTitles.length) {
+      var eduMap = {
+        pilot: 'TC-approved Flight Training Units (FTUs) such as Mount Royal University, Seneca College, and Confederation College offer integrated pilot programs.',
+        ame: 'Transport Canada Approved Training Organizations (ATOs) for AME include SAIT, NAIT, and BCIT — 2-year diploma programs.',
+        avionics: 'Avionics specialization programs at SAIT, BCIT, and CEGEP Édouard-Montpetit lead directly to the TC AME-E licence.',
+        atc: 'The only pathway to a TC ATC licence in Canada is through the NAV Canada Training Institute in Cornwall, ON.',
+        aerospace_eng: 'Aerospace engineering programs at Carleton University, Ryerson (TMU), and UOIT are TC-recognized and industry-connected.',
+        uav: 'RPAS ground school is available online through Transport Canada and several private ATO providers — fast, low-cost entry.',
+        structures: 'Aircraft structures programs at SAIT, NAIT, and BCIT lead to the TC AME-S licence.',
+        fss: 'NAV Canada selects and trains Flight Service Specialists at their Training Institute — no prior aviation credential required.',
+        aerospace_mfg: 'Aerospace manufacturing technology programs at BCIT, Seneca, and Cégep de l\'Outaouais combine machining and composites.',
+        aviation_tech: 'Aviation systems technology programs at BCIT and NAIT offer a bridge between maintenance and engineering.',
+        gas_turbine: 'Gas turbine maintenance is a specialization within AME-M2 — look for programs offering turbine-heavy shop time.',
+      };
+      var eduTip = eduMap[top[0]] || ('Programs aligned with ' + topTitles[0] + ' are listed below. Contact institutions directly for intake dates and fees.');
+      tips.push({ text: '<strong>ACIA™ Recommendation for ' + topTitles[0] + ':</strong> ' + eduTip + ' <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+      if (topTitles[1]) {
+        var eduTip2 = eduMap[top[1]] || ('For ' + topTitles[1] + ', filter the list below by career pathway to find matched programs.');
+        tips.push({ text: '<strong>Also considering ' + topTitles[1] + '?</strong> ' + eduTip2 + ' <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+      }
+    } else {
+      tips = (ACIA_TIPS.education[navigatorRole] || ACIA_TIPS.education['default']);
+      return tips;
+    }
+    tips.push({ text: '<strong>Check the Scholarships tab</strong> for funding matched to your pathway — AACP tracks bursaries specific to AME, ATC, and pilot training streams. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+  }
+
+  if (tab === 'compare') {
+    if (topTitles.length >= 2) {
+      tips.push({ text: '<strong>ACIA™ suggests comparing ' + topTitles[0] + ' vs. ' + topTitles[1] + '</strong> — both align with your interests. See the salary, training time, and entry route differences side by side below. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    } else if (topTitles.length === 1) {
+      tips.push({ text: '<strong>You\'re most interested in ' + topTitles[0] + '.</strong> Try comparing it against a related pathway — ACIA™ can help you understand trade-offs before committing. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    }
+    tips.push({ text: '<strong>Salary data is estimated (~)</strong> from Statistics Canada and Job Bank Canada. Actual compensation depends on employer, region, and seniority. <span class="dsrc dsrc-estimated">~ Estimated</span>' });
+    tips.push({ text: '<strong>Ask ACIA™</strong> for a personalised comparison narrative — your mentor knows your interests and can explain which pathway fits your goals better than a table can. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+  }
+
+  if (tab === 'pathway') {
+    if (profile.primaryGoalTitle) {
+      tips.push({ text: '<strong>Your goal is ' + profile.primaryGoalTitle + '.</strong> ACIA™ has built a roadmap based on Transport Canada requirements. Use the milestones to track real progress. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    } else if (profile.saved.length) {
+      tips.push({ text: '<strong>You\'ve saved ' + profile.saved.length + ' career' + (profile.saved.length>1?'s':'') + '.</strong> Set a primary goal to unlock a personalised roadmap with step-by-step milestones. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    } else {
+      tips.push({ text: '<strong>Save a career to build your pathway.</strong> Explore Career Discovery or Browse Careers, then save the roles that interest you. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    }
+    tips.push({ text: '<strong>Ask ACIA™ about your next step.</strong> Your career mentor knows your goal and can answer specific questions about licences, costs, and timelines. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+    tips.push({ text: '<strong>Roadmap steps are ACIA™-generated guidance</strong> based on Transport Canada requirements. Individual timelines and costs vary — consult a certified advisor for a personalised plan. <span class="dsrc dsrc-acia">ACIA™ Insight</span>' });
+  }
+
+  return tips.length ? tips : ((ACIA_TIPS[tab] && (ACIA_TIPS[tab][navigatorRole] || ACIA_TIPS[tab]['default'])) || []);
+}
+
+// Update all ACIA panels with personalised content based on the current profile
+function aciaUpdatePanels() {
+  var profile = aciaProfile();
   var tabs = ['discovery', 'education', 'compare', 'pathway'];
   tabs.forEach(function(tab) {
-    var tips = (ACIA_TIPS[tab] && (ACIA_TIPS[tab][role] || ACIA_TIPS[tab]['default'])) || [];
+    var tips = aciaPersonalisedTips(tab, profile);
     tips.forEach(function(tip, i) {
       var el = document.getElementById('aciaTip-' + tab + '-' + i);
-      if (el) el.innerHTML = tip.text;
+      if (el) el.innerHTML = tip.text || '';
     });
   });
-  // Open discovery panel by default on first visit
+  // Also refresh the ACIA dashboard card if visible
+  aciaUpdateDashboard(profile);
+  // Auto-open discovery panel
   var disc = document.getElementById('aciaDiscovery');
   if (disc && !disc.classList.contains('open')) disc.classList.add('open');
 }
+
+// Inject an ACIA intelligence card into the student dashboard
+function aciaUpdateDashboard(profile) {
+  var card = document.getElementById('aciaDashCard');
+  if (!card) return;
+  if (!profile.hasActivity) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  var top = profile.topInterests;
+  var topTitles = top.slice(0,3).map(function(id){
+    var pw = PATHWAYS.find(function(x){return x.id===id;});
+    return pw ? pw.title : null;
+  }).filter(Boolean);
+
+  var headline = profile.primaryGoalTitle
+    ? 'You\'re on a path toward <strong>' + profile.primaryGoalTitle + '</strong>.'
+    : topTitles.length
+      ? 'ACIA™ sees strong interest in <strong>' + topTitles[0] + '</strong>' + (topTitles[1] ? ' and <strong>' + topTitles[1] + '</strong>' : '') + '.'
+      : 'ACIA™ is building your profile as you explore.';
+
+  var nextAction = '';
+  if (!profile.discoveredStory1 && !profile.discoveredStory2) {
+    nextAction = '<button onclick="showTab(\'discovery\')" style="font-size:12px;font-weight:700;padding:6px 14px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;margin-top:10px">Start Career Discovery</button>';
+  } else if (!profile.saved.length) {
+    nextAction = '<button onclick="showTab(\'explore\')" style="font-size:12px;font-weight:700;padding:6px 14px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;margin-top:10px">Save a Career</button>';
+  } else if (!profile.primaryGoal) {
+    nextAction = '<button onclick="showTab(\'subscribe\')" style="font-size:12px;font-weight:700;padding:6px 14px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;margin-top:10px">Set My Career Goal</button>';
+  } else {
+    nextAction = '<button onclick="showTab(\'chat\')" style="font-size:12px;font-weight:700;padding:6px 14px;background:var(--crimson);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;margin-top:10px">Ask ACIA™ a Question</button>';
+  }
+
+  card.innerHTML = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    + '<div style="width:34px;height:34px;border-radius:50%;background:var(--crimson);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0">AC</div>'
+    + '<div><div style="font-size:13px;font-weight:800;color:var(--crimson)">ACIA™ Intelligence Update</div>'
+    + '<div style="font-size:11px;color:var(--fg3)">Aviation Career Intelligence Advisor</div></div></div>'
+    + '<p style="font-size:13px;color:var(--fg);line-height:1.6;margin:0">' + headline + '</p>'
+    + (topTitles.length > 1 ? '<p style="font-size:12px;color:var(--fg2);margin:6px 0 0;line-height:1.5">Your interest profile spans: ' + topTitles.join(' · ') + '.</p>' : '')
+    + nextAction;
+}
+
+// Auto-populate Compare Careers with student's top 2 interests
+function aciaPreloadCompare() {
+  var profile = aciaProfile();
+  if (!profile.topInterests.length) return;
+  var top = profile.topInterests;
+  if (typeof renderCompare !== 'function' || !top.length) return;
+  // Set the first two toggles on
+  var toggles = document.querySelectorAll('#cmpCareerToggles input[type="checkbox"]');
+  if (!toggles.length) return;
+  var ids = Array.from(toggles).map(function(cb){ return cb.dataset.id || cb.value; });
+  // Turn off all first
+  toggles.forEach(function(cb){ cb.checked = false; });
+  // Turn on top interests that exist in compare
+  var activated = 0;
+  top.forEach(function(id){
+    var idx = ids.indexOf(id);
+    if (idx >= 0 && activated < 2) { toggles[idx].checked = true; activated++; }
+  });
+  if (activated < 2) {
+    // Fill remaining slots with any checked
+    toggles.forEach(function(cb){ if (activated < 2 && !cb.checked) { cb.checked = true; activated++; } });
+  }
+  renderCompare();
+}
+
+function initAciaPanels() {
+  aciaUpdatePanels();
+}
+
+// ── Hook openPathway to track career views ──────────────────────────────────
+var _origOpenPathway = typeof openPathway === 'function' ? openPathway : null;
+// (patched below after openPathway is defined — see aciaInitHooks)
+
+function aciaInitHooks() {
+  // Patch openPathway to track views
+  if (typeof openPathway === 'function') {
+    var _orig = openPathway;
+    openPathway = function(id) {
+      aciaTrackView(id);
+      _orig.call(this, id);
+      aciaUpdatePanels(); // refresh panels when a career is viewed
+    };
+  }
+  // Patch showTab to refresh ACIA panels on each tab switch
+  if (typeof showTab === 'function') {
+    var _origShow = showTab;
+    showTab = function(id) {
+      _origShow.call(this, id);
+      aciaUpdatePanels();
+      if (id === 'compare') aciaPreloadCompare();
+    };
+  }
+  // Patch sendChat to inject student context into backend calls
+  if (typeof sendChat === 'function') {
+    var _origChat = sendChat;
+    sendChat = function() {
+      // Inject context into chatHistory before the call
+      var context = aciaChatContext();
+      if (context && typeof chatHistory !== 'undefined' && navigatorPlan !== 'free' && navigatorPlan !== 'expired') {
+        var input = document.getElementById('chatInput');
+        if (input && input.value.trim()) {
+          var userMsg = input.value.trim();
+          // Temporarily enrich the message with context (stripped from display)
+          input.value = userMsg;
+          // Inject context as a system-style note appended to this user turn
+          if (chatHistory.length === 0) {
+            chatHistory.push({ role: 'user', content: context });
+            chatHistory.push({ role: 'assistant', content: 'Understood — I have your profile context and will personalise my guidance accordingly.' });
+          }
+        }
+      }
+      _origChat.call(this);
+    };
+  }
+  // Patch addToPathway / toggleSavePathway to refresh panels after saving
+  if (typeof addToPathway === 'function') {
+    var _origAdd = addToPathway;
+    addToPathway = function(id) {
+      _origAdd.call(this, id);
+      setTimeout(aciaUpdatePanels, 100);
+    };
+  }
+  if (typeof toggleSavePathway === 'function') {
+    var _origToggle = toggleSavePathway;
+    toggleSavePathway = function(id, title, sector) {
+      _origToggle.call(this, id, title, sector);
+      setTimeout(aciaUpdatePanels, 100);
+    };
+  }
+}
+// ── End ACIA Intelligence Layer ──────────────────────────────────────────────
 
 function showTab(id) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -2711,6 +3010,8 @@ function renderStudentDashboard() {
     if (statRoutes) statRoutes.textContent = routeCount;
     if (statSteps) statSteps.textContent = steps.length;
   }
+  // Refresh ACIA intelligence card
+  aciaUpdateDashboard(aciaProfile());
 }
 
 /* ── Sector and pathway data ───────────────────────────────────── */
@@ -3183,6 +3484,7 @@ async function loadNavigatorProfile(token) {
       // No role set — show role picker
       document.getElementById('rolePicker').style.display = 'block';
       initAciaPanels();
+      aciaInitHooks();
     }
     // Show sign-out link
     showSignOutLink();
@@ -3293,8 +3595,9 @@ function applyRole(role, animate) {
   // Remove any stale change-role link (no longer shown)
   const staleLink = document.getElementById('changeRoleLink');
   if (staleLink) staleLink.remove();
-  // Refresh ACIA™ panels with role-aware tips
+  // Refresh ACIA™ panels with role-aware tips and wire all ACIA hooks
   initAciaPanels();
+  aciaInitHooks();
 }
 // ── End role onboarding ─────────────────────────────────────────
 
