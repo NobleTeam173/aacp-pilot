@@ -14968,6 +14968,9 @@ async function handleNavigatorSubscription(request, user, env) {
      FROM navigator_subscriptions WHERE user_id = ?`
   ).bind(user.id).first();
   if (!sub) return json({ plan: 'free', status: 'active', invites_remaining: 0 });
+  if (sub.plan !== 'free' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) {
+    return json({ ...sub, plan: 'expired' });
+  }
   return json(sub);
 }
 
@@ -15113,13 +15116,15 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
 async function handleNavigatorProfileGet(request, user, env) {
   const [profile, sub, userRow] = await Promise.all([
     env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
-    env.DB.prepare(`SELECT plan, status FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT plan, status, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
     env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first(),
   ]);
+  let plan = sub?.plan ?? 'free';
+  if (plan !== 'free' && sub?.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) plan = 'expired';
   return json({
     navigatorRole: profile?.navigator_role ?? null,
     pathwayData: profile?.pathway_data ? JSON.parse(profile.pathway_data) : null,
-    plan: sub?.plan ?? 'free',
+    plan,
     email: user.email,
     name: userRow?.name ?? null,
   });
@@ -15456,7 +15461,7 @@ async function handleNavigatorPilotRedeem(request, env) {
 
   // Upsert navigator subscription (pilot tier — no Stripe IDs)
   const plan = pc.plan || 'premium_student';
-  const pilotExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 yr
+  const pilotExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day trial
   await env.DB.prepare(`
     INSERT INTO navigator_subscriptions
       (id, user_id, plan, status, invites_remaining, trial_ends_at, created_at, updated_at)
