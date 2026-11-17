@@ -6117,7 +6117,7 @@ function buildEarningsData(span) {
 
 function renderEarningsView() {
   var careers = activeCareers();
-  var isPremium = false;
+  var isPremium = (navigatorPlan === 'premium_student' || navigatorPlan === 'career_advisor' || navigatorPlan === 'advisor_invited');
   document.getElementById('cmpPremiumGate').style.display = isPremium ? 'none' : 'block';
 
   // chart
