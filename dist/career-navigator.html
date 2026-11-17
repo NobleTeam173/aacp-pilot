@@ -1372,15 +1372,15 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <label style="font-size:14px;font-weight:600;color:var(--fg);display:block;margin-bottom:8px;line-height:1.5">What did you notice? Which of these careers sparked your interest, and why?</label>
           <textarea id="s1Refl0" class="scene-resp" placeholder="Share your thoughts here..." rows="4"></textarea>
         </div>
-        <button class="scene-next-btn" onclick="s1Finish()" style="background:var(--crimson)">See What Fits Me </button>
+        <button class="scene-next-btn" onclick="s1Finish()" style="background:var(--crimson)">Map My Interests </button>
       </div>
       <div class="st-stage" id="s1Stage2" style="display:none">
         <div style="text-align:center;padding:16px 0 12px">
           <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px">
             <div style="width:32px;height:32px;background:var(--crimson);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px">AC</div>
-            <span style="font-size:15px;font-weight:800;color:var(--fg)">ACIA&#8482; Suggests</span>
+            <span style="font-size:15px;font-weight:800;color:var(--fg)">ACIA&#8482; Career Map</span>
           </div>
-          <p style="margin:0;font-size:13px;color:var(--fg2)">Career pathways that match your interests</p>
+          <p style="margin:0;font-size:13px;color:var(--fg2)">Careers connected to your reflection — explore the ones that interest you</p>
         </div>
         <div id="s1MatchCards" style="display:flex;flex-direction:column;gap:12px;margin:8px 0 20px"></div>
         <button onclick="s1Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">Explore Again</button>
@@ -1444,15 +1444,15 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <label style="font-size:14px;font-weight:600;color:var(--fg);display:block;margin-bottom:8px;line-height:1.5">What stood out to you? Which of these careers caught your eye, and why?</label>
           <textarea id="s2Refl0" class="scene-resp" placeholder="Share your thoughts here..." rows="4"></textarea>
         </div>
-        <button class="scene-next-btn" onclick="s2Finish()" style="background:var(--crimson)">See What Fits Me </button>
+        <button class="scene-next-btn" onclick="s2Finish()" style="background:var(--crimson)">Map My Interests </button>
       </div>
       <div class="st-stage" id="s2Stage2" style="display:none">
         <div style="text-align:center;padding:16px 0 12px">
           <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px">
             <div style="width:32px;height:32px;background:var(--crimson);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px">AC</div>
-            <span style="font-size:15px;font-weight:800;color:var(--fg)">ACIA&#8482; Suggests</span>
+            <span style="font-size:15px;font-weight:800;color:var(--fg)">ACIA&#8482; Career Map</span>
           </div>
-          <p style="margin:0;font-size:13px;color:var(--fg2)">Career pathways that match your interests</p>
+          <p style="margin:0;font-size:13px;color:var(--fg2)">Careers connected to your reflection — explore the ones that interest you</p>
         </div>
         <div id="s2MatchCards" style="display:flex;flex-direction:column;gap:12px;margin:8px 0 20px"></div>
         <button onclick="s2Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">Explore Again</button>
@@ -4923,130 +4923,219 @@ function s1GoTo(stage) {
     }
   }
 }
-function aciaScore(text, storyBaseline) {
-  var scores = {}, reasons = {};
-  var t = text.toLowerCase();
-  var words = t.split(/\s+/);
-  // Interest signal multiplier — positive enthusiasm lifts all matched scores
-  var enthusiasm = 0;
-  ['love','loved','fascinated','excited','amazing','interested','interest','cool','awesome','wow','definitely','really','want','would','like','enjoy','enjoyed','passionate','inspired','caught','sparked','noticed','drew','stood out','appealed'].forEach(function(w){ if(t.includes(w)) enthusiasm++; });
-  var mult = 1 + Math.min(enthusiasm, 3) * 0.3;
+// ── ACIA™ Career Index ────────────────────────────────────────────────────────
+// Replaces numeric scoring with an interest-signal index.
+// Returns { index: { careerID: [signalTag, ...] }, baseline: [ids] }
+// — no ranks, no pass/fail — every career with any connection is included.
 
-  // Per-career signal maps — keyword → [careers scored]
-  var signals = [
-    { w:['pilot','fly','flying','cockpit','captain','first officer','flight deck','airways','airline','charter','bush pilot','hours','log','solo'], c:['pilot'], pts:4 },
-    { w:['drone','uav','rpas','unmanned','aerial','remotely piloted'], c:['uav'], pts:4 },
-    { w:['mainten','mechanic','airworth','certif','sign-off','release','hands-on','hands on','fix','repair','inspect','inspection','tools','wrench','aircraft systems'], c:['ame'], pts:3 },
-    { w:['avion','electronics','circuit','sensor','nav system','navigation system','display','instrument','diagnostic','fault','wiring','avionics'], c:['avionics'], pts:4 },
-    { w:['structure','structur','fuselage','wing','composite','airframe','metal','fabricat','body','panel'], c:['structures'], pts:4 },
-    { w:['control','atc','radar','airspace','sequenc','traffic','tower','approach','clearance','coordinate aircraft','direct flights'], c:['atc'], pts:4 },
-    { w:['flight service','weather brief','notam','fss','briefing','information service'], c:['fss'], pts:4 },
-    { w:['airport','terminal','airside','runway','safety officer','aerodrome','emergency response','wildlife'], c:['airport_ops'], pts:3 },
-    { w:['ramp','ground crew','refuel','deice','marshalling','tow','baggage','fbo'], c:['ground_ops'], pts:4 },
-    { w:['cargo','freight','logistics','supply chain','shipment','import','export'], c:['cargo'], pts:4 },
-    { w:['passenger','customer','boarding','check-in','service','hospitality','gate'], c:['customer_ops'], pts:3 },
-    { w:['engineer','engineering','design','aerodynamic','cfd','stress','loads','systems engineer','build aircraft','develop','research','wind tunnel','thermodynamic'], c:['aerospace_eng'], pts:4 },
-    { w:['manufactur','factory','assembly','production','machinist','cnc','fabricat','build','quality control','qa','lean','jig'], c:['aerospace_mfg'], pts:3 },
-    { w:['technolog','aviation tech','systems integrat','test','testing','trial','data','software','digital','automation','sensor integration'], c:['aviation_tech'], pts:3 },
-    { w:['turbine','gas turbine','jet engine','engine','power plant','thrust','combustion','overhaul'], c:['gas_turbine'], pts:4 },
-    // Broad interest themes
-    { w:['communicat','talk','people','team','work with people','helping'], c:['atc','fss','customer_ops','airport_ops'], pts:1 },
-    { w:['problem','solve','logical','analytic','figur','diagnos','troubleshoot'], c:['avionics','ame','aerospace_eng','aviation_tech'], pts:2 },
-    { w:['outdoor','outside','weather','nature','freedom','travel','adventure'], c:['pilot','uav','fss'], pts:2 },
-    { w:['precision','detail','careful','exact','safety','safe','critical'], c:['ame','avionics','atc','structures'], pts:2 },
-    { w:['creat','innovat','design','build something','make','construct'], c:['aerospace_eng','aerospace_mfg','aviation_tech'], pts:2 },
-    { w:['fast-paced','pressure','intense','quick','decision','urgent','action'], c:['atc','pilot','airport_ops'], pts:2 },
-    { w:['physical','hands','tool','workshop','practical','tangible'], c:['ame','structures','ground_ops','gas_turbine'], pts:2 },
-    { w:['tech','technology','digital','computer','software','data','system'], c:['avionics','aviation_tech','aerospace_eng','uav'], pts:2 }
+function aciaIndex(text, storyBaseline) {
+  var index = {};   // careerID → Set of signal-tag strings
+  var t = text.toLowerCase();
+
+  function tag(id, label) {
+    if (!index[id]) index[id] = [];
+    if (index[id].indexOf(label) === -1) index[id].push(label);
+  }
+
+  // Named interest-signal groups — each group has a human-readable label,
+  // the keywords that trigger it, and the career IDs it connects to.
+  var SIGNALS = [
+    // ── Flight & Piloting ──────────────────────────────────────────
+    { label:'flying & flight operations',
+      w:['pilot','fly','flying','cockpit','captain','first officer','flight deck','airways','airline','charter','bush pilot','hours','log','solo'],
+      c:['pilot','uav','fss'] },
+    { label:'drones & unmanned systems',
+      w:['drone','uav','rpas','unmanned','aerial','remotely piloted'],
+      c:['uav','aviation_tech'] },
+    // ── Maintenance & Structures ───────────────────────────────────
+    { label:'hands-on maintenance',
+      w:['mainten','mechanic','airworth','certif','sign-off','release','fix','repair','inspect','inspection','tools','wrench','aircraft systems'],
+      c:['ame','gas_turbine','structures'] },
+    { label:'electronics & diagnostics',
+      w:['avion','electronics','circuit','sensor','instrument','diagnostic','fault','wiring','avionics','display'],
+      c:['avionics','aviation_tech'] },
+    { label:'aircraft structures & fabrication',
+      w:['structure','structur','fuselage','wing','composite','airframe','metal','fabricat','body','panel'],
+      c:['structures','aerospace_mfg'] },
+    { label:'engines & power systems',
+      w:['turbine','gas turbine','jet engine','engine','power plant','thrust','combustion','overhaul'],
+      c:['gas_turbine','ame','aerospace_eng'] },
+    // ── Air Traffic & Navigation ───────────────────────────────────
+    { label:'air traffic & coordination',
+      w:['control','atc','radar','airspace','sequenc','traffic','tower','approach','clearance','coordinate aircraft','direct flights'],
+      c:['atc','fss'] },
+    { label:'weather & flight information',
+      w:['flight service','weather brief','notam','fss','briefing','information service','weather','forecast'],
+      c:['fss','atc'] },
+    // ── Airport & Ground ──────────────────────────────────────────
+    { label:'airport & aerodrome operations',
+      w:['airport','terminal','airside','runway','safety officer','aerodrome','emergency response','wildlife'],
+      c:['airport_ops','ground_ops'] },
+    { label:'ramp & ground handling',
+      w:['ramp','ground crew','refuel','deice','marshalling','tow','baggage','fbo'],
+      c:['ground_ops','airport_ops'] },
+    // ── Cargo & Passengers ────────────────────────────────────────
+    { label:'cargo & logistics',
+      w:['cargo','freight','logistics','supply chain','shipment','import','export'],
+      c:['cargo','ground_ops'] },
+    { label:'customer & passenger experience',
+      w:['passenger','customer','boarding','check-in','service','hospitality','gate'],
+      c:['customer_ops','airport_ops'] },
+    // ── Engineering & Technology ──────────────────────────────────
+    { label:'engineering & design',
+      w:['engineer','engineering','design','aerodynamic','cfd','stress','loads','systems engineer','develop','research','wind tunnel','thermodynamic'],
+      c:['aerospace_eng','aviation_tech'] },
+    { label:'manufacturing & production',
+      w:['manufactur','factory','assembly','production','machinist','cnc','quality control','qa','lean','jig'],
+      c:['aerospace_mfg','structures'] },
+    { label:'technology & systems',
+      w:['technolog','aviation tech','systems integrat','test','testing','data','software','digital','automation','sensor integration'],
+      c:['aviation_tech','aerospace_eng','avionics','uav'] },
+    // ── Broad interest themes ─────────────────────────────────────
+    { label:'working with people',
+      w:['communicat','talk','people','team','work with people','helping','collaborate'],
+      c:['atc','fss','customer_ops','airport_ops'] },
+    { label:'problem-solving',
+      w:['problem','solve','logical','analytic','figur','diagnos','troubleshoot','investigate'],
+      c:['avionics','ame','aerospace_eng','aviation_tech','atc'] },
+    { label:'travel & the outdoors',
+      w:['outdoor','outside','weather','nature','freedom','travel','adventure','explore'],
+      c:['pilot','uav','fss','cargo'] },
+    { label:'precision & safety',
+      w:['precision','detail','careful','exact','safety','safe','critical','accurate'],
+      c:['ame','avionics','atc','structures','gas_turbine'] },
+    { label:'creativity & building',
+      w:['creat','innovat','make','construct','build something','invent','prototype'],
+      c:['aerospace_eng','aerospace_mfg','aviation_tech','structures'] },
+    { label:'fast-paced environments',
+      w:['fast-paced','pressure','intense','quick','decision','urgent','action','dynamic'],
+      c:['atc','pilot','airport_ops','ground_ops'] },
+    { label:'hands-on & practical work',
+      w:['physical','hands','tool','workshop','practical','tangible','tactile'],
+      c:['ame','structures','ground_ops','gas_turbine','aerospace_mfg'] },
+    { label:'science & technology',
+      w:['tech','technology','digital','computer','software','data','system','science','math'],
+      c:['avionics','aviation_tech','aerospace_eng','uav'] }
   ];
 
-  signals.forEach(function(sig){
-    var hits = sig.w.filter(function(w){ return t.includes(w); });
-    if (hits.length > 0) {
-      var pts = sig.pts * mult * (1 + (hits.length - 1) * 0.4);
-      sig.c.forEach(function(id){
-        scores[id] = (scores[id]||0) + pts;
-        if (!reasons[id]) reasons[id] = hits[0];
-      });
-    }
+  SIGNALS.forEach(function(sig){
+    var hit = sig.w.some(function(w){ return t.includes(w); });
+    if (hit) sig.c.forEach(function(id){ tag(id, sig.label); });
   });
 
-  // Boost from PATHWAYS own text — title/tagline/whatTheyDo words appearing in reflection
+  // Index from each PATHWAY's own vocabulary — title / tagline / whatTheyDo words
   PATHWAYS.forEach(function(p){
     var corpus = ((p.title||'')+' '+(p.tagline||'')+' '+(p.whatTheyDo||'')).toLowerCase();
     var corpusWords = corpus.split(/[\s,.\-()\/]+/).filter(function(w){ return w.length > 4; });
     var unique = corpusWords.filter(function(w,i,a){ return a.indexOf(w)===i; });
-    var matchedWords = unique.filter(function(w){ return t.includes(w); });
-    if (matchedWords.length > 0) {
-      var boost = matchedWords.length * 2 * mult;
-      scores[p.id] = (scores[p.id]||0) + boost;
-      if (!reasons[p.id] && matchedWords[0]) reasons[p.id] = matchedWords[0];
-    }
-    // Also check journey tags
+    var matched = unique.filter(function(w){ return t.includes(w); });
+    if (matched.length) tag(p.id, 'career vocabulary match');
+    // Journey tags
     if (p.journey) p.journey.forEach(function(j){
-      (j.tags||[]).forEach(function(tag){
-        var tl = tag.toLowerCase();
-        if (tl.length > 3 && t.includes(tl.split(/[\s\/]/)[0])) {
-          scores[p.id] = (scores[p.id]||0) + 1.5 * mult;
-        }
+      (j.tags||[]).forEach(function(tagStr){
+        var tl = tagStr.toLowerCase().split(/[\s\/]/)[0];
+        if (tl.length > 3 && t.includes(tl)) tag(p.id, tagStr.toLowerCase());
       });
     });
   });
 
-  // Story-aware baseline — small prior so blank/thin responses still make sense
-  storyBaseline.forEach(function(item, idx){
-    scores[item] = (scores[item]||0) + (3 - idx);
-  });
+  return { index: index, baseline: storyBaseline };
+}
 
+// Keep aciaScore as a thin compatibility shim (used by aciaProfile internals)
+function aciaScore(text, storyBaseline) {
+  var result = aciaIndex(text, storyBaseline);
+  var scores = {}, reasons = {};
+  Object.keys(result.index).forEach(function(id){
+    scores[id] = result.index[id].length;
+    reasons[id] = result.index[id][0] || '';
+  });
+  result.baseline.forEach(function(id, i){ scores[id] = (scores[id]||0) + (3-i); });
   return { scores: scores, reasons: reasons };
 }
 
-function aciaReasonText(cid, reasons, text) {
-  var r = reasons[cid];
+// Render a career index card — tags shown as chips, no rank language
+function aciaIndexCard(cid, tags, isBaseline) {
   var p = PATHWAYS.find(function(x){ return x.id===cid; });
-  if (!p) return '';
-  if (!text || text.trim().length < 8) return 'Based on what you explored in this story, '+p.tagline+'.';
-  var phrases = {
-    'pilot': 'Your interest in flying and the cockpit points toward a career as a Pilot.',
-    'uav': 'Your curiosity about drones and aerial technology aligns with UAV Operations.',
-    'ame': 'Your focus on hands-on maintenance and keeping aircraft airworthy fits the AME path.',
-    'avionics': 'Your interest in electronics, diagnostics, and aircraft systems matches Avionics.',
-    'structures': 'Your attention to the physical build of aircraft points to Aircraft Structures.',
-    'atc': 'Your interest in coordination, communication, and directing traffic aligns with ATC.',
-    'fss': 'Your interest in weather, information, and helping pilots fits Flight Service Specialist.',
-    'airport_ops': 'Your interest in how airports run day-to-day points to Airport Operations.',
-    'ground_ops': 'Your interest in ramp activity and aircraft on the ground fits Ground & FBO Ops.',
-    'cargo': 'Your interest in logistics and moving goods through the air fits Air Cargo.',
-    'customer_ops': 'Your people-first interest aligns with Aviation Customer Operations.',
-    'aerospace_eng': 'Your analytical and design thinking points toward Aerospace Engineering.',
-    'aerospace_mfg': 'Your interest in building and manufacturing fits Aerospace Manufacturing.',
-    'aviation_tech': 'Your interest in technology and systems integration aligns with Aviation Technology.',
-    'gas_turbine': 'Your interest in engines and power systems points to Gas Turbine Maintenance.'
-  };
-  return phrases[cid] || ('Your reflection suggests a strong fit with '+p.tagline+'.');
+  if (!p) return null;
+  var tagHtml = tags.slice(0,4).map(function(t){
+    return '<span style="display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--fg2);white-space:nowrap">'+t+'</span>';
+  }).join('');
+  var baselineNote = isBaseline
+    ? '<div style="font-size:11px;color:var(--fg3);margin-bottom:6px">From this story\'s context</div>'
+    : '';
+  var el = document.createElement('div');
+  el.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px';
+  el.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:4px">'+(p.title||cid)+'</div>'
+    + baselineNote
+    + (tagHtml ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">'+tagHtml+'</div>' : '')
+    + '<div style="font-size:13px;color:var(--fg2);margin-bottom:10px;line-height:1.5">'+(p.tagline||'')+'</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<button onclick="showPathwayDetail(\''+cid+'\')" style="background:transparent;border:1px solid var(--crimson);color:var(--crimson);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">View Career Profile</button>'
+    + '<button onclick="addToPathway(\''+cid+'\')" style="background:var(--crimson);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">+ Save to My Pathway</button>'
+    + '</div>';
+  return el;
 }
+
+// Render the full index into a container element
+// — careers with 2+ signal tags shown first ("Connections found"),
+//   then careers with 1 tag ("Also worth exploring"),
+//   then baseline careers not yet shown.
+function aciaRenderIndex(result, container) {
+  var idx = result.index;
+  var baseline = result.baseline || [];
+  container.innerHTML = '';
+
+  var strong = [], weak = [], seen = {};
+  // Sort by number of signal tags descending
+  Object.keys(idx).sort(function(a,b){ return idx[b].length - idx[a].length; }).forEach(function(id){
+    seen[id] = true;
+    if (idx[id].length >= 2) strong.push(id);
+    else weak.push(id);
+  });
+  // Baseline careers not already indexed
+  var baselineOnly = baseline.filter(function(id){ return !seen[id]; });
+
+  function section(title, ids, isBase) {
+    if (!ids.length) return;
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--fg3);text-transform:uppercase;margin:16px 0 8px';
+    hdr.textContent = title;
+    container.appendChild(hdr);
+    ids.forEach(function(id){
+      var card = aciaIndexCard(id, idx[id] || [], isBase);
+      if (card) container.appendChild(card);
+    });
+  }
+
+  // Show a note when nothing was found
+  if (!strong.length && !weak.length && !baselineOnly.length) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--fg3);padding:12px 0">Write a few sentences about what interested you in the story — ACIA™ will map your reflection to careers in the index.</div>';
+    return;
+  }
+
+  if (strong.length) section('Connections found', strong, false);
+  if (weak.length)   section('Also worth exploring', weak, false);
+  if (baselineOnly.length) section('From this story', baselineOnly, true);
+
+  // Count note at bottom
+  var total = strong.length + weak.length + baselineOnly.length;
+  var note = document.createElement('div');
+  note.style.cssText = 'font-size:12px;color:var(--fg3);margin-top:14px;padding-top:12px;border-top:1px solid var(--border)';
+  note.textContent = total + ' career' + (total!==1?'s':'') + ' mapped from your reflection. Save the ones that interest you to build your pathway.';
+  container.appendChild(note);
+}
+// ── End ACIA™ Career Index ────────────────────────────────────────────────────
 
 function s1Finish() {
   var text = (document.getElementById('s1Refl0')||{}).value||'';
-  var result = aciaScore(text, ['atc','pilot','fss']);
-  var scores = result.scores, reasons = result.reasons;
-  var top = Object.keys(scores).sort(function(a,b){ return scores[b]-scores[a]; }).slice(0,3);
+  var result = aciaIndex(text, ['atc','pilot','fss']);
   s1GoTo(2);
   var cards = document.getElementById('s1MatchCards');
   if (!cards) return;
-  cards.innerHTML = '';
-  top.forEach(function(cid){
-    var p = PATHWAYS.find(function(x){return x.id===cid;});
-    if (!p) return;
-    var reason = aciaReasonText(cid, reasons, text);
-    var c = document.createElement('div');
-    c.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px';
-    c.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:4px">'+(p.title||cid)+'</div>'
-      +'<div style="font-size:12px;color:var(--crimson);font-weight:600;margin-bottom:6px;line-height:1.4">'+reason+'</div>'
-      +'<div style="font-size:13px;color:var(--fg2);margin-bottom:10px;line-height:1.5">'+(p.tagline||'')+'</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="showPathwayDetail(\''+cid+'\')" style="background:transparent;border:1px solid var(--crimson);color:var(--crimson);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">View Career Profile</button><button onclick="addToPathway(\''+cid+'\')" style="background:var(--crimson);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">+ Save to My Pathway</button></div>';
-    cards.appendChild(c);
-  });
+  aciaRenderIndex(result, cards);
+  var top = Object.keys(result.index).sort(function(a,b){ return result.index[b].length - result.index[a].length; }).slice(0,5);
+  if (!top.length) top = result.baseline.slice(0,3);
   try { var d=loadPathway(); d.story1Responses=[text.toLowerCase()]; d.story1Matches=top; savePathway(d); } catch(e){}
 }
 function s1Reset() {
@@ -5101,25 +5190,13 @@ function s2GoTo(stage) {
 }
 function s2Finish() {
   var text = (document.getElementById('s2Refl0')||{}).value||'';
-  var result = aciaScore(text, ['ame','avionics','structures']);
-  var scores = result.scores, reasons = result.reasons;
-  var top = Object.keys(scores).sort(function(a,b){ return scores[b]-scores[a]; }).slice(0,3);
+  var result = aciaIndex(text, ['ame','avionics','structures']);
   s2GoTo(2);
   var cards = document.getElementById('s2MatchCards');
   if (!cards) return;
-  cards.innerHTML = '';
-  top.forEach(function(cid){
-    var p = PATHWAYS.find(function(x){return x.id===cid;});
-    if (!p) return;
-    var reason = aciaReasonText(cid, reasons, text);
-    var c = document.createElement('div');
-    c.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px';
-    c.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:4px">'+(p.title||cid)+'</div>'
-      +'<div style="font-size:12px;color:var(--crimson);font-weight:600;margin-bottom:6px;line-height:1.4">'+reason+'</div>'
-      +'<div style="font-size:13px;color:var(--fg2);margin-bottom:10px;line-height:1.5">'+(p.tagline||'')+'</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="showPathwayDetail(\''+cid+'\')" style="background:transparent;border:1px solid var(--crimson);color:var(--crimson);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">View Career Profile</button><button onclick="addToPathway(\''+cid+'\')" style="background:var(--crimson);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">+ Save to My Pathway</button></div>';
-    cards.appendChild(c);
-  });
+  aciaRenderIndex(result, cards);
+  var top = Object.keys(result.index).sort(function(a,b){ return result.index[b].length - result.index[a].length; }).slice(0,5);
+  if (!top.length) top = result.baseline.slice(0,3);
   try { var d=loadPathway(); d.story2Responses=[text.toLowerCase()]; d.story2Matches=top; savePathway(d); } catch(e){}
 }
 function s2Reset() {
