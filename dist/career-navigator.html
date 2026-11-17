@@ -1351,12 +1351,8 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <div class="s1-dot" id="s1Dot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
           <div class="s1-dot" id="s1Dot3" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <button id="s1PrevBtn" onclick="s1SlideNav(-1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer;display:none">&#8592; Prev</button>
-          <span id="s1SlideCount" style="font-size:12px;color:var(--fg2);flex:1;text-align:center">1 of 4</span>
-          <button id="s1NextBtn" onclick="s1SlideNav(1)" class="scene-next-btn" style="padding:8px 18px">Next &#8594;</button>
-        </div>
-        <button id="s1ToReflect" onclick="s1GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? &#8594;</button>
+        
+        <button id="s1ToReflect" onclick="s1GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? </button>
       </div>
       <div class="st-stage" id="s1Stage1" style="display:none">
         <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface2);border-radius:var(--radius);margin-bottom:18px">
@@ -1370,7 +1366,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <label style="font-size:14px;font-weight:600;color:var(--fg);display:block;margin-bottom:8px;line-height:1.5">What did you notice? Which of these careers sparked your interest, and why?</label>
           <textarea id="s1Refl0" class="scene-resp" placeholder="Share your thoughts here..." rows="4"></textarea>
         </div>
-        <button class="scene-next-btn" onclick="s1Finish()" style="background:var(--crimson)">See What Fits Me &#8594;</button>
+        <button class="scene-next-btn" onclick="s1Finish()" style="background:var(--crimson)">See What Fits Me </button>
       </div>
       <div class="st-stage" id="s1Stage2" style="display:none">
         <div style="text-align:center;padding:16px 0 12px">
@@ -1381,7 +1377,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <p style="margin:0;font-size:13px;color:var(--fg2)">Career pathways that match your interests</p>
         </div>
         <div id="s1MatchCards" style="display:flex;flex-direction:column;gap:12px;margin:8px 0 20px"></div>
-        <button onclick="s1Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">&#8592; Explore Again</button>
+        <button onclick="s1Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">Explore Again</button>
       </div>
     </div><!-- end s1Wrapper -->
 
@@ -1423,12 +1419,8 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <div class="s2-dot" id="s2Dot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
           <div class="s2-dot" id="s2Dot3" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <button id="s2PrevBtn" onclick="s2SlideNav(-1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer;display:none">&#8592; Prev</button>
-          <span id="s2SlideCount" style="font-size:12px;color:var(--fg2);flex:1;text-align:center">1 of 4</span>
-          <button id="s2NextBtn" onclick="s2SlideNav(1)" class="scene-next-btn" style="padding:8px 18px">Next &#8594;</button>
-        </div>
-        <button id="s2ToReflect" onclick="s2GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? &#8594;</button>
+        
+        <button id="s2ToReflect" onclick="s2GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? </button>
       </div>
       <div class="st-stage" id="s2Stage1" style="display:none">
         <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface2);border-radius:var(--radius);margin-bottom:18px">
@@ -1442,7 +1434,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <label style="font-size:14px;font-weight:600;color:var(--fg);display:block;margin-bottom:8px;line-height:1.5">What stood out to you? Which of these careers caught your eye, and why?</label>
           <textarea id="s2Refl0" class="scene-resp" placeholder="Share your thoughts here..." rows="4"></textarea>
         </div>
-        <button class="scene-next-btn" onclick="s2Finish()" style="background:var(--crimson)">See What Fits Me &#8594;</button>
+        <button class="scene-next-btn" onclick="s2Finish()" style="background:var(--crimson)">See What Fits Me </button>
       </div>
       <div class="st-stage" id="s2Stage2" style="display:none">
         <div style="text-align:center;padding:16px 0 12px">
@@ -1453,7 +1445,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <p style="margin:0;font-size:13px;color:var(--fg2)">Career pathways that match your interests</p>
         </div>
         <div id="s2MatchCards" style="display:flex;flex-direction:column;gap:12px;margin:8px 0 20px"></div>
-        <button onclick="s2Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">&#8592; Explore Again</button>
+        <button onclick="s2Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">Explore Again</button>
       </div>
     </div><!-- end s2Wrapper -->
 
