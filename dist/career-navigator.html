@@ -2864,7 +2864,10 @@ function initAciaPanels() {
 var _origOpenPathway = typeof openPathway === 'function' ? openPathway : null;
 // (patched below after openPathway is defined — see aciaInitHooks)
 
+var _aciaHooksInited = false;
 function aciaInitHooks() {
+  if (_aciaHooksInited) return;
+  _aciaHooksInited = true;
   // Patch openPathway to track views
   if (typeof openPathway === 'function') {
     var _orig = openPathway;
@@ -5066,13 +5069,15 @@ function aciaIndexCard(cid, tags, isBaseline) {
     : '';
   var el = document.createElement('div');
   el.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px';
+  var sector = p.sector || '';
+  var ptitle = (p.title||cid).replace(/'/g,"&#39;");
   el.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:4px">'+(p.title||cid)+'</div>'
     + baselineNote
     + (tagHtml ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">'+tagHtml+'</div>' : '')
     + '<div style="font-size:13px;color:var(--fg2);margin-bottom:10px;line-height:1.5">'+(p.tagline||'')+'</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    + '<button onclick="showPathwayDetail(\''+cid+'\')" style="background:transparent;border:1px solid var(--crimson);color:var(--crimson);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">View Career Profile</button>'
-    + '<button onclick="addToPathway(\''+cid+'\')" style="background:var(--crimson);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">+ Save to My Pathway</button>'
+    + '<button onclick="openPathway(\''+cid+'\');showTab(\'explore\')" style="background:transparent;border:1px solid var(--crimson);color:var(--crimson);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">View Career Profile</button>'
+    + '<button onclick="toggleSavePathway(\''+cid+'\',\''+ptitle+'\',\''+sector+'\')" style="background:var(--crimson);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600">+ Save to My Pathway</button>'
     + '</div>';
   return el;
 }
