@@ -173,6 +173,7 @@ header{
 }
 .pathway-item:hover{border-color:var(--border2);background:var(--surface3)}
 .pathway-item.active{border-color:var(--crimson);background:var(--crimson-soft)}
+.pathway-item.pathway-locked{opacity:0.65}
 .pathway-sector-badge{
   flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.06em;
   padding:3px 7px;border-radius:5px;border:1px solid var(--border2);
@@ -1389,6 +1390,14 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 
     <!-- ── STORY 2 ─────────────────────────────────────────────── -->
     <div id="s2Wrapper" style="display:none">
+      <div id="s2PremiumOverlay" style="display:none;padding:32px 16px;text-align:center;border:1px solid var(--border);border-radius:var(--radius);margin:20px 0">
+        <div style="font-size:22px;margin-bottom:8px">✈️</div>
+        <div style="font-weight:700;font-size:17px;margin-bottom:8px;color:var(--fg)">Story 2: The Aircraft That Couldn't Depart</div>
+        <div style="color:var(--fg2);font-size:14px;margin-bottom:16px;max-width:360px;margin-left:auto;margin-right:auto">Follow the AME and avionics team as they race to clear an aircraft for departure. This story unlocks careers in aircraft maintenance, avionics, and structures.</div>
+        <div style="font-size:12px;color:var(--fg3);margin-bottom:20px">Premium subscribers get access to all stories and all 15 career profiles.</div>
+        <button class="btn-primary" style="justify-content:center" onclick="showTab('subscribe')">Unlock Premium — $9.99/mo</button>
+      </div>
+      <div id="s2StoryContent">
       <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--border);margin-bottom:20px" id="s2Progress">
         <div class="st-step active" id="s2Step0" style="flex:1;text-align:center;font-size:11px;font-weight:700;padding:8px 2px;cursor:pointer;border-bottom:3px solid var(--crimson);color:var(--crimson)">Images</div>
         <div class="st-step" id="s2Step1" style="flex:1;text-align:center;font-size:11px;font-weight:700;padding:8px 2px;cursor:pointer;border-bottom:3px solid transparent;color:var(--fg2)">Reflect</div>
@@ -1457,6 +1466,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
         <div id="s2MatchCards" style="display:flex;flex-direction:column;gap:12px;margin:8px 0 20px"></div>
         <button onclick="s2Reset()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer">Explore Again</button>
       </div>
+      </div><!-- end s2StoryContent -->
     </div><!-- end s2Wrapper -->
 
   </div><!-- end discScenes -->
@@ -1769,7 +1779,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
     </div>
   </div>
 
-  <div class="resource-grid">
+  <div id="eduResourceGrid" class="resource-grid">
 
     <div class="resource-card">
       <div class="resource-card-top">
@@ -2161,6 +2171,11 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 
       <!-- VIEW: Job Demand -->
       <div class="compare-view" id="cmpView-demand">
+        <div id="cmpFreeGate" style="display:none;padding:28px 16px;text-align:center;border:1px solid var(--border);border-radius:var(--radius)">
+          <div style="font-weight:700;font-size:16px;margin-bottom:8px;color:var(--fg)">Upgrade for Advanced Comparisons</div>
+          <div style="color:var(--fg2);font-size:13px;margin-bottom:16px">Job demand data, regional breakdowns, and unlimited career comparisons are available on Premium.</div>
+          <button class="btn-primary" style="justify-content:center" onclick="showTab('subscribe')">View Premium Plans</button>
+        </div>
         <div id="cmpDemandCards"></div>
       </div>
 
@@ -2936,6 +2951,33 @@ function showTab(id) {
   if (id === 'subscribe' && navigatorPlan === 'career_advisor') loadAdvisorDashboard();
   if (id === 'subscribe') { renderPathwayDashboard(); renderAccountPlans(); }
   if (id === 'dashboard' && navigatorRole === 'student') renderStudentDashboard();
+  applyFreemiumGates();
+}
+
+function applyFreemiumGates() {
+  var isFreeUser = navigatorPlan === 'free';
+  var eduGate = document.getElementById('eduGate');
+  var scholGate = document.getElementById('scholGate');
+  if (eduGate) eduGate.style.display = isFreeUser ? '' : 'none';
+  if (scholGate) scholGate.style.display = isFreeUser ? '' : 'none';
+  // Blur education cards beyond first 3 for free users
+  var eduGrid = document.getElementById('eduResourceGrid');
+  if (eduGrid) {
+    var cards = eduGrid.querySelectorAll('.resource-card');
+    cards.forEach(function(c, i) {
+      if (isFreeUser && i >= 3) { c.style.opacity='0.35'; c.style.pointerEvents='none'; c.style.filter='blur(1px)'; }
+      else { c.style.opacity=''; c.style.pointerEvents=''; c.style.filter=''; }
+    });
+  }
+  // Blur scholarship cards beyond first 3 for free users
+  var scholGrid = document.querySelector('#tab-scholarships .resource-grid');
+  if (scholGrid) {
+    var scards = scholGrid.querySelectorAll('.resource-card');
+    scards.forEach(function(c, i) {
+      if (isFreeUser && i >= 3) { c.style.opacity='0.35'; c.style.pointerEvents='none'; c.style.filter='blur(1px)'; }
+      else { c.style.opacity=''; c.style.pointerEvents=''; c.style.filter=''; }
+    });
+  }
 }
 
 function renderAccountPlans() {
@@ -3476,6 +3518,7 @@ async function loadNavigatorProfile(token) {
     if (data.pathwayData) {
       try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data.pathwayData)); } catch(e) {}
     }
+    applyFreemiumGates();
     // Set role
     var role = data.navigatorRole;
     if (role) {
@@ -3601,6 +3644,7 @@ function applyRole(role, animate) {
   // Refresh ACIA™ panels with role-aware tips and wire all ACIA hooks
   initAciaPanels();
   aciaInitHooks();
+  applyFreemiumGates();
 }
 // ── End role onboarding ─────────────────────────────────────────
 
@@ -3822,30 +3866,52 @@ function renderPathwayList() {
   const list = document.getElementById('pathwayList');
   const label = document.getElementById('pathwayListLabel');
   const filtered = activeSector === 'all' ? PATHWAYS : PATHWAYS.filter(p => p.sector === activeSector);
+  const isFreeUser = navigatorPlan === 'free';
   label.textContent = activeSector === 'all'
     ? 'All 15 Pathways'
     : (SECTORS[activeSector]?.name || '') + ' — ' + filtered.length + (filtered.length === 1 ? ' pathway' : ' pathways');
   list.innerHTML = filtered.map(p => {
     const code = SECTORS[p.sector]?.code || '';
+    const isLocked = isFreeUser && !p.free;
     return `
-    <div class="pathway-item${activePathway === p.id ? ' active' : ''}" onclick="openPathway('${p.id}')">
+    <div class="pathway-item${activePathway === p.id ? ' active' : ''}${isLocked ? ' pathway-locked' : ''}" onclick="openPathway('${p.id}')">
       <span class="pathway-sector-badge">${code}</span>
       <div class="pathway-info">
-        <div class="pathway-title">${p.title}</div>
+        <div class="pathway-title">${p.title}${isLocked ? ' <span style="font-size:10px;opacity:0.6;font-weight:400">Premium</span>' : ''}</div>
         <div class="pathway-desc">${p.tagline}</div>
       </div>
-      <span class="pathway-arrow">&#8250;</span>
+      <span class="pathway-arrow">${isLocked ? '🔒' : '&#8250;'}</span>
     </div>`;
   }).join('');
 }
 
 function openPathway(id) {
   activePathway = id;
-  renderPathwayList();
   const p = PATHWAYS.find(x => x.id === id);
   if (!p) return;
+  if (navigatorPlan === 'free' && !p.free) {
+    renderPathwayList();
+    const sector = SECTORS[p.sector];
+    const detail = document.getElementById('pathwayDetail');
+    detail.style.display = 'block';
+    detail.innerHTML = `<div class="gate"><div class="gate-card">
+      <div class="gate-title">${p.title} — Premium</div>
+      <p class="gate-body">This career profile is available to Premium subscribers. Upgrade to explore all 15 aviation and aerospace careers with full pathway maps, salary data, and education directories.</p>
+      <div class="gate-price"><span class="gate-price-amount">$9.99</span><span class="gate-price-period">/month CAD</span></div>
+      <div class="gate-features">
+        <div class="gate-feature">All 15 complete career profiles</div>
+        <div class="gate-feature">Full step-by-step pathway maps</div>
+        <div class="gate-feature">LMI-sourced salary data</div>
+        <div class="gate-feature">Unlimited ACIA™ career chat</div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="showTab('subscribe')">Unlock Premium Access</button>
+    </div></div>`;
+    return;
+  }
+  renderPathwayList();
   const sector = SECTORS[p.sector];
-  const isFree = p.free;
+  const isPremiumUser = (navigatorPlan === 'premium_student' || navigatorPlan === 'career_advisor' || navigatorPlan === 'advisor_invited');
+  const isFree = isPremiumUser || p.free;
   const journeyHtml = p.journey.map((s, i) => `
     <div class="journey-step">
       <div class="step-node">${i + 1}</div>
@@ -4879,6 +4945,24 @@ function showDiscoveryEntry() {
 var activeStory = 1;
 
 function switchStory(n) {
+  if (n === 2 && navigatorPlan === 'free') {
+    var ov = document.getElementById('s2PremiumOverlay');
+    if (ov) {
+      activeStory = 2;
+      var s1 = document.getElementById('s1Wrapper');
+      var s2 = document.getElementById('s2Wrapper');
+      var t1 = document.getElementById('storyTab1');
+      var t2 = document.getElementById('storyTab2');
+      if (s1) s1.style.display = 'none';
+      if (s2) s2.style.display = '';
+      ov.style.display = '';
+      var sc = document.getElementById('s2StoryContent');
+      if (sc) sc.style.display = 'none';
+      if (t1) { t1.style.borderBottomColor='transparent'; t1.style.color='var(--fg2)'; t1.style.fontWeight='600'; }
+      if (t2) { t2.style.borderBottomColor='var(--crimson)'; t2.style.color='var(--crimson)'; t2.style.fontWeight='700'; }
+    }
+    return;
+  }
   activeStory = n;
   var s1 = document.getElementById('s1Wrapper');
   var s2 = document.getElementById('s2Wrapper');
@@ -4886,6 +4970,7 @@ function switchStory(n) {
   var t2 = document.getElementById('storyTab2');
   if (s1) s1.style.display = (n === 1) ? '' : 'none';
   if (s2) s2.style.display = (n === 2) ? '' : 'none';
+  if (n === 2) { var sc = document.getElementById('s2StoryContent'); if (sc) sc.style.display = ''; var ov = document.getElementById('s2PremiumOverlay'); if (ov) ov.style.display = 'none'; }
   if (t1) { t1.style.borderBottomColor = (n===1)?'var(--crimson)':'transparent'; t1.style.color=(n===1)?'var(--crimson)':'var(--fg2)'; t1.style.fontWeight=(n===1)?'700':'600'; }
   if (t2) { t2.style.borderBottomColor = (n===2)?'var(--crimson)':'transparent'; t2.style.color=(n===2)?'var(--crimson)':'var(--fg2)'; t2.style.fontWeight=(n===2)?'700':'600'; }
 }
@@ -5986,7 +6071,11 @@ function buildCmpToggles() {
 function toggleCmpCareer(id) {
   var idx = cmpSelected.indexOf(id);
   if (idx === -1) {
-    if (cmpSelected.length >= 5) { alert('Select up to 5 careers to compare.'); buildCmpToggles(); return; }
+    var maxAllowed = navigatorPlan === 'free' ? 2 : 5;
+    if (cmpSelected.length >= maxAllowed) {
+      if (navigatorPlan === 'free') { showToast('Free plan: compare up to 2 careers. Upgrade for unlimited.'); showTab('subscribe'); }
+      buildCmpToggles(); return;
+    }
     cmpSelected.push(id);
   } else {
     if (cmpSelected.length <= 1) { buildCmpToggles(); return; }
@@ -6006,10 +6095,17 @@ function demandStars(level) {
 }
 
 function renderCompare() {
+  var isFreeUser = navigatorPlan === 'free';
+  var cmpFreeGate = document.getElementById('cmpFreeGate');
+  if (isFreeUser && cmpSelected.length > 2) {
+    cmpSelected = cmpSelected.slice(0, 2);
+    buildCmpToggles();
+  }
+  if (cmpFreeGate) cmpFreeGate.style.display = (isFreeUser && (cmpView === 'demand' || cmpView === 'earnings')) ? '' : 'none';
   if (cmpView === 'pathway') renderPathwayView();
   else if (cmpView === 'entry') renderEntryView();
   else if (cmpView === 'earnings') renderEarningsView();
-  else if (cmpView === 'demand') renderDemandView();
+  else if (cmpView === 'demand') { if (!isFreeUser) renderDemandView(); }
 }
 
 function renderPathwayView() {
@@ -6288,6 +6384,11 @@ function toggleSavePathway(id, title, sector) {
     if (d.primaryGoal && d.primaryGoal.id === id) d.primaryGoal = null;
     d.saved.splice(idx, 1);
   } else {
+    if (navigatorPlan === 'free' && d.saved.length >= 1) {
+      showToast('Free plan: save 1 career. Upgrade for unlimited saves.');
+      showTab('subscribe');
+      return;
+    }
     d.saved.push({ id: id, title: title, sector: sector, savedAt: Date.now(), status: 'Exploring' });
     // auto-mark explore step done
     d.roadmap.explore = true;
