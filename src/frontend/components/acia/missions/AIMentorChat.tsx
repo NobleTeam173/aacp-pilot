@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage, MissionId } from '../types';
-import { evidenceFromChatMessages } from '../behaviourEngine';
+import { evidenceFromChatMessages_DEPRECATED as evidenceFromChatMessages } from '../behaviourEngine';
 import type { EvidenceItem } from '../types';
 
 const C = {
@@ -18,10 +18,26 @@ interface Props {
   systemPrompt: string;
   welcomeMessage: string;
   minMessages: number;
+  chatEndpoint?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory: ChatMessage[]) => void;
 }
 
-export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessages, onComplete }: Props) {
+function renderMarkdown(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  for (const line of lines) {
+    const processed = line
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    elements.push(<span key={key++} dangerouslySetInnerHTML={{ __html: processed }} />);
+    elements.push(<br key={key++} />);
+  }
+  if (elements.length > 1) elements.pop(); // remove trailing <br>
+  return elements;
+}
+
+export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessages, chatEndpoint = '/acia/chat', onComplete }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: welcomeMessage },
   ]);
@@ -53,7 +69,7 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
 
     try {
       const token = localStorage.getItem('aacp_access_token');
-      const res = await fetch('/acia/chat', {
+      const res = await fetch(chatEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,9 +122,8 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
               color: C.white,
               fontSize: 14,
               lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
             }}>
-              {msg.content}
+              {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
             </div>
           </div>
         ))}
@@ -199,10 +214,14 @@ export function AIMentorChat({ missionId, systemPrompt, welcomeMessage, minMessa
             Complete Mission →
           </button>
         ) : (
-          <p style={{ color: C.grey, fontSize: 12, textAlign: 'center', margin: 0 }}>
-            Exchange at least {minMessages} message{minMessages !== 1 ? 's' : ''} to complete this mission
-            ({userMessages.length}/{minMessages})
-          </p>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+            <p style={{ color: C.grey, fontSize: 12, margin: '0 0 4px' }}>
+              Keep the conversation going — send {minMessages - userMessages.length} more message{minMessages - userMessages.length !== 1 ? 's' : ''} to unlock completion.
+            </p>
+            <p style={{ color: '#4d4255', fontSize: 11, margin: 0 }}>
+              {userMessages.length}/{minMessages} messages sent · Just share your honest thoughts — there are no wrong answers
+            </p>
+          </div>
         )}
       </div>
     </div>

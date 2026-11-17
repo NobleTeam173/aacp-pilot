@@ -56,7 +56,7 @@ export interface CompetencyObservation {
   rawScore: number; // internal, never shown to participant
 }
 
-// ── Career Pathways (13) ─────────────────────────────────────────────────────
+// ── Career Pathways (60) ─────────────────────────────────────────────────────
 export type PathwayId =
   | 'pilot'
   | 'first_officer'
@@ -70,7 +70,57 @@ export type PathwayId =
   | 'atc'
   | 'fss'
   | 'uav'
-  | 'aerospace';
+  | 'aerospace'
+  | 'flight_instructor'
+  | 'helicopter_pilot'
+  | 'bush_pilot'
+  | 'float_plane_pilot'
+  | 'medevac_pilot'
+  | 'cargo_pilot'
+  | 'check_pilot'
+  | 'sim_instructor'
+  | 'composite_tech'
+  | 'ndt_technician'
+  | 'sheet_metal_tech'
+  | 'power_plant_tech'
+  | 'airframe_tech'
+  | 'quality_inspector'
+  | 'qa_engineer'
+  | 'safety_investigator'
+  | 'aviation_safety_officer'
+  | 'sms_coordinator'
+  | 'operations_controller'
+  | 'flight_dispatcher'
+  | 'cns_atm_specialist'
+  | 'load_planner'
+  | 'fueling_tech'
+  | 'airside_safety'
+  | 'airport_security'
+  | 'wildlife_control'
+  | 'cargo_ops'
+  | 'rpas_instructor'
+  | 'rpas_operations_mgr'
+  | 'rpas_inspector'
+  | 'satellite_technician'
+  | 'propulsion_engineer'
+  | 'spacecraft_assembler'
+  | 'systems_test_tech'
+  | 'aerospace_systems_eng'
+  | 'aerospace_quality_eng'
+  | 'defense_avionics'
+  | 'nav_systems_tech'
+  | 'sim_engineer'
+  | 'aerospace_instructor'
+  | 'aviation_meteorologist'
+  | 'airline_ops_manager'
+  | 'airport_ops_manager'
+  | 'mro_manager'
+  | 'aerospace_project_mgr'
+  | 'human_factors_specialist'
+  | 'passenger_services'
+  | 'methods_engineer'
+  | 'manufacturing_engineer'
+  | 'aircraft_structural_engineer';
 
 export type AlignmentLevel =
   | 'strong'
@@ -174,7 +224,9 @@ export type EvidenceKey =
   | 'spatial_reasoning'
   | 'analytical_reasoning'
   | 'procedural_compliance'
-  | 'multitasking_ability';
+  | 'multitasking_ability'
+  | 'working_memory'
+  | 'aviation_knowledge';
 
 // Maps legacy EvidenceKey → CompetencyKey
 export const EVIDENCE_KEY_TO_COMPETENCY: Record<EvidenceKey, CompetencyKey> = {
@@ -192,6 +244,8 @@ export const EVIDENCE_KEY_TO_COMPETENCY: Record<EvidenceKey, CompetencyKey> = {
   analytical_reasoning: 'PS',
   procedural_compliance: 'PR',
   multitasking_ability: 'MT',
+  working_memory: 'WM',
+  aviation_knowledge: 'AK',
 };
 
 export interface EvidenceItem {
@@ -215,7 +269,7 @@ export interface Mission {
   id: MissionId;
   title: string;
   subtitle: string;
-  type: 'ai_chat' | 'inspection' | 'diagnosis' | 'puzzle' | 'graph' | 'decision' | 'atc' | 'workload' | 'reflection';
+  type: 'ai_chat' | 'inspection' | 'diagnosis' | 'puzzle' | 'graph' | 'decision' | 'flight_ops' | 'atc' | 'workload' | 'reflection';
   estimatedMinutes: number;
   completed: boolean;
   oneSitting?: boolean;         // mission must be completed without interruption once started
@@ -234,10 +288,37 @@ export interface SessionRecord {
   missionIndexAtStart: number; // which mission the participant was on when this session began
 }
 
+// ── M1 Context (extracted from discovery chat, NOT used in live scoring) ─────
+export interface M1Context {
+  interests: string[];                     // stated career interests
+  educationSignal?: string;                // education background signal (e.g. 'aviation', 'stem', 'other')
+  motivationType?: string;                 // intrinsic/extrinsic/exploratory
+  transferableBackground?: string;         // relevant prior domain (e.g. 'military', 'trades', 'healthcare')
+}
+
+// ── Shadow Evidence (AI-classified, NOT in live scoring pipeline) ─────────────
+export interface ShadowEvidenceRecord {
+  id: string;                              // unique record id
+  missionId: MissionId;
+  sourceType: 'chat' | 'reasoning_response' | 'atc_transmission';
+  interactionRef?: string;                 // question id or scenario id
+  detectedIndicators: string[];            // rubric indicator ids fired
+  observedPerformance?: string;            // brief descriptor of what was observed
+  explainedReasoning?: string;             // participant's stated reasoning if available
+  contradictoryEvidence?: boolean;         // true if indicators conflict with prior observations
+  classifiedAt: string;                    // ISO timestamp
+  evidenceScoringVersion: 'shadow_v1';     // versioning flag — activating in live scoring requires product owner approval
+}
+
+// 'keyword_v1' — original keyword-proxy scoring (historical sessions)
+// 'ai_v2'      — evidence-based AI classification (new sessions from Phase C)
+export type EvidenceScoringVersion = 'keyword_v1' | 'ai_v2';
+
 export interface ACIASession {
   sessionId: string;
   startedAt: string;
   completedAt?: string;
+  evidenceScoringVersion: EvidenceScoringVersion;
   evidence: EvidenceItem[];                // legacy visual mission evidence
   responses: QuestionResponse[];           // question bank responses
   askedQuestionIds: string[];              // repeat protection
@@ -246,7 +327,10 @@ export interface ACIASession {
   currentMissionIndex: number;
   chatHistory: Record<string, ChatMessage[]>;
   discoveredInterests?: string[];          // career interests from discovery phase
+  m1Context?: M1Context;                   // structured context from M1
+  shadowEvidence?: ShadowEvidenceRecord[]; // audit trail for AI-classified evidence
   // Internal session analytics
   sessionRecords: SessionRecord[];
   interruptionCount: number;
+  backNavigationCount: number; // usability analytics only — never affects scoring
 }

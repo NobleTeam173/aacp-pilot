@@ -1,148 +1,1717 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+import { ATCBriefing, type WMEvidence } from './ATCBriefing';
+import { interpretWMEvidence } from '../wmInterpreter';
 
+// ── Color palette — aviation workstation ──────────────────────────────────────
 const C = {
-  crimson: '#8F0909',
-  crimsonD: '#721010',
-  bgCard: '#1a0d10',
-  bg: '#0f0a0b',
-  border: '#3d1020',
-  white: '#f1f5f9',
-  grey: '#94a3b8',
-  green: '#22c55e',
-  red: '#ef4444',
+  bg: '#05080f',
+  panel: '#0a1120',
+  card: '#0d1626',
+  border: '#162340',
+  borderL: '#1e3a5f',
+  text: '#d8e4f0',
+  dim: '#526070',
+  dimM: '#7a8fa0',
+  blue: '#2563eb',
+  blueL: '#60a5fa',
+  blueXL: '#bfdbfe',
+  green: '#16a34a',
+  greenL: '#4ade80',
+  amber: '#d97706',
+  amberL: '#fbbf24',
+  red: '#dc2626',
+  action: '#8F0909',
+  actionH: '#721010',
+  radarBg: '#020a04',
+  radarGreen: 'rgba(74,222,128,',
 };
 
-interface ScenarioFact {
-  label: string;
-  value: string;
+// ── Reduced-motion helper ─────────────────────────────────────────────────────
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-interface CommunicationExercise {
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Phase = 'welcome' | 'setup' | 's1' | 'wm' | 's3' | 's4' | 's5' | 'reflection' | 'done';
+
+interface Aircraft {
   id: string;
-  title: string;
-  guide: string; // plain-English instruction for first-timers
-  scenarioBriefing?: ScenarioFact[];
-  atcTransmission: string;
   callsign: string;
-  template: string;
-  blanks: string[];
-  hints: string[];          // field labels
-  sourceHints: string[];    // WHERE to find the answer (shown before submission)
-  explanation: string;
+  x: number; y: number;
+  status: string;
+  visible: boolean;
+  alert?: boolean;
 }
 
-const EXERCISES: CommunicationExercise[] = [
+// ── RPAS exercises (RPAS path only — unchanged) ───────────────────────────────
+interface ScenarioFact { label: string; value: string; }
+interface CommunicationExercise {
+  id: string; title: string; guide: string;
+  scenarioBriefing?: ScenarioFact[];
+  atcTransmission: string; callsign: string;
+  template: string; blanks: string[]; hints: string[]; sourceHints: string[]; explanation: string;
+}
+
+const RPAS_EXERCISES: CommunicationExercise[] = [
   {
-    id: 'e1',
-    title: 'Clearance Readback',
-    guide: 'ATC just gave you a clearance. A readback means you repeat the key details back to confirm you heard correctly. Find each piece of information in the ATC transmission above and copy it into the matching field.',
-    atcTransmission: 'Air Canada 421, cleared to Vancouver International via DOVER3 departure, flight planned route. Climb and maintain FL280. Squawk 3471.',
-    callsign: 'Air Canada 421',
-    template: 'Cleared to [DEST] via [DEP], flight planned route, climb maintain [ALT], squawk [CODE], Air Canada 421.',
-    blanks: ['Vancouver International', 'DOVER3 departure', 'FL280', '3471'],
-    hints: ['Destination airport', 'Departure procedure', 'Assigned altitude', 'Squawk (transponder) code'],
-    sourceHints: [
-      'ATC said "cleared to ___" — what\'s the airport?',
-      'ATC said "via ___ departure" — what\'s the procedure name?',
-      'ATC said "climb and maintain ___" — what level?',
-      'ATC said "squawk ___" — what four-digit code?',
+    id: 're1', title: 'Flight Authorization Request',
+    guide: 'Before flying your RPAS near a controlled airport in Canada, you must obtain authorization using Nav Canada\'s digital tools or file an RPAS NOTAM. A flight authorization request must include specific details so ATC can assess it. Find each piece of information in the scenario briefing and fill in the request.',
+    scenarioBriefing: [
+      { label: 'Operator', value: 'TechVision Aerial Inc. (Transport Canada RPAS Pilot Certificate, Advanced)' },
+      { label: 'Operation Area', value: '250 m radius, Richmond Road & Baseline Road, Ottawa (CYOW 9 NM northwest)' },
+      { label: 'Altitude', value: '60 m AGL maximum' },
+      { label: 'Date / Time', value: '2025-08-14, 09:00–12:00 local (1300–1600Z)' },
+      { label: 'Aircraft', value: 'DJI Matrice 350 RTK, 9.2 kg MTOW' },
     ],
-    explanation: 'Correct readbacks must include all four elements: destination, departure procedure, cleared altitude, and squawk code — in order. In ICAO standard, the aircraft callsign goes at the END of the readback, confirming who is transmitting. Omitting any element is a partial readback and requires correction from ATC.',
+    atcTransmission: 'Nav Canada RPAS authorization request form: complete the required fields.',
+    callsign: 'TechVision Aerial Inc.',
+    template: 'RPAS authorization request: [OPERATOR_CERT], operating within [AREA_RADIUS] of [LOCATION], max [ALT] AGL, [DATE_TIME], aircraft [AIRCRAFT_DESC].',
+    blanks: ['Advanced certificate', '250 m radius', 'Richmond & Baseline, Ottawa', '60 m', '2025-08-14 1300–1600Z', 'DJI Matrice 350 RTK 9.2 kg'],
+    hints: ['Pilot certification level', 'Operation radius', 'Operation location', 'Maximum altitude', 'Date and UTC time window', 'Aircraft type and MTOW'],
+    sourceHints: ['Scenario: "Operator" — what certificate level?', 'Scenario: "Operation Area" — what radius?', 'Scenario: "Operation Area" — what intersection?', 'Scenario: "Altitude" — what AGL limit?', 'Scenario: "Date / Time" — convert to UTC (Zulu)', 'Scenario: "Aircraft" — type and MTOW'],
+    explanation: 'RPAS authorization requests near controlled airspace must include the pilot\'s certification level, exact location, maximum altitude, operational window (in UTC/Zulu), and aircraft MTOW.',
   },
   {
-    id: 'e2',
-    title: 'Position Report',
-    guide: 'ATC is asking you where you are. A position report gives your callsign, the fix (waypoint) you\'re passing, your altitude, and your next waypoint. All four pieces of information are in the ATC message or the scenario briefing above.',
+    id: 're2', title: 'Lost-Link Incident Report',
+    guide: 'After a lost-link event, you are required to submit an occurrence report to Transport Canada. Use the scenario briefing to compose the incident notification.',
     scenarioBriefing: [
-      { label: 'Your flight', value: 'WestJet 576, en route Calgary → Toronto' },
-      { label: 'Next reporting fix', value: 'OLENA waypoint (after BUMPO)' },
+      { label: 'Operator', value: 'Clearview Surveys Ltd.' },
+      { label: 'Date / Location', value: '2025-06-03, Pemberton, BC (CYPB 4 NM south)' },
+      { label: 'Aircraft', value: 'DJI Phantom 4 RTK, registration C-XXCL' },
+      { label: 'What Happened', value: 'Complete C2 link loss at 1.4 km from operator, duration 42 seconds. Aircraft executed pre-programmed RTH. No damage, no injuries.' },
+      { label: 'Probable Cause', value: 'Suspected interference from a temporary cellular relay installed near the launch site' },
     ],
-    atcTransmission: 'WestJet 576, report passing BUMPO at FL350.',
-    callsign: 'WestJet 576',
-    template: '[CALLSIGN], passing [FIX] at [ALT], estimating [NEXT_FIX].',
-    blanks: ['WestJet 576', 'BUMPO', 'FL350', 'OLENA'],
-    hints: ['Your callsign', 'Reporting fix (waypoint you\'re passing)', 'Current altitude', 'Next fix after this one'],
-    sourceHints: [
-      'ATC addressed you by your callsign — what is it?',
-      'ATC asked you to "report passing ___" — which fix?',
-      'ATC said "at ___" — what altitude?',
-      'Your next fix is in the scenario briefing above.',
-    ],
-    explanation: 'Position reports confirm: callsign, fix being reported, current altitude, and the next reporting point. This gives ATC the information needed to maintain an accurate traffic picture and plan separation between aircraft.',
+    atcTransmission: 'Compose a Transport Canada RPAS occurrence notification.',
+    callsign: 'Clearview Surveys Ltd.',
+    template: '[OPERATOR] reports RPAS occurrence: [DATE_LOCATION], aircraft [REG], [INCIDENT_DESC], duration [DURATION], outcome [OUTCOME], probable cause [CAUSE].',
+    blanks: ['Clearview Surveys Ltd.', '2025-06-03 Pemberton BC', 'C-XXCL', 'complete C2 link loss at 1.4 km', '42 seconds', 'RTH executed, no damage or injuries', 'suspected cellular interference'],
+    hints: ['Operator name', 'Date and location', 'Aircraft registration', 'Incident description', 'Duration', 'Outcome', 'Probable cause'],
+    sourceHints: ['Scenario: "Operator"', 'Scenario: "Date / Location"', 'Scenario: "Aircraft" — registration code only', 'Scenario: "What Happened" — brief description', 'Scenario: "What Happened" — how long?', 'Scenario: "What Happened" — result?', 'Scenario: "Probable Cause"'],
+    explanation: 'RPAS operators in Canada are required to report occurrences including lost link, unintended landings, airspace incursions, and aircraft damage.',
   },
   {
-    id: 'e3',
-    title: 'Emergency Transmission',
-    guide: 'This is a simulated emergency. You don\'t need aviation experience — everything you need to say is in the scenario briefing above. Match each field label to the corresponding fact in the briefing.',
+    id: 're3', title: 'Pre-Flight Airspace Communication',
+    guide: 'Before flying near an aerodrome, you may need to contact the mandatory frequency or UNICOM to advise manned aircraft of your presence.',
     scenarioBriefing: [
-      { label: 'Aircraft', value: 'Golf Quebec Golf (Cessna 172, single-engine)' },
-      { label: 'ATC Facility', value: 'Toronto Centre' },
-      { label: 'Persons on Board', value: '4 (including pilot)' },
-      { label: 'Fuel Remaining', value: '2 hours' },
-      { label: 'Situation', value: 'Engine failure — rough running, partial power loss. You are unable to maintain altitude.' },
-      { label: 'Departure Airport', value: 'Toronto / Lester B. Pearson (CYYZ)' },
+      { label: 'Aerodrome', value: 'Springbank Airport (CYBW) mandatory frequency 122.8 MHz' },
+      { label: 'Your Operation', value: 'RPAS pipeline inspection, 800 m northwest of threshold, 50 m AGL' },
+      { label: 'Duration', value: '09:30–11:00 local' },
+      { label: 'Aircraft in area', value: 'Cessna training circuit is active' },
     ],
-    atcTransmission: 'Using the scenario information provided above, compose a MAYDAY call.',
-    callsign: 'Golf Quebec Golf',
-    template: 'MAYDAY MAYDAY MAYDAY, [ATC_UNIT], [CALLSIGN], [EMERGENCY_TYPE], [SOULS_ON_BOARD] POB, [FUEL_REMAINING] fuel remaining, [INTENTIONS].',
-    blanks: ['Toronto Centre', 'Golf Quebec Golf', 'Engine failure', '4', '2 hours', 'Requesting immediate return to Toronto'],
-    hints: ['ATC facility to contact', 'Your aircraft callsign', 'Nature of emergency', 'Number of people on board', 'Fuel remaining', 'Your immediate intentions'],
-    sourceHints: [
-      'Scenario: "ATC Facility"',
-      'Scenario: "Aircraft" (callsign only)',
-      'Scenario: "Situation" (brief phrase)',
-      'Scenario: "Persons on Board" (number only)',
-      'Scenario: "Fuel Remaining"',
-      'What do you need ATC to help you do? (your words)',
-    ],
-    explanation: 'MAYDAY must be spoken three times. The full call includes: ATC unit, callsign, nature of emergency, souls on board, fuel remaining, and intentions — in that order. This gives ATC everything they need to coordinate emergency services. Missing any element forces a follow-up exchange that costs time.',
+    atcTransmission: 'Compose your RPAS presence advisory on Springbank mandatory frequency.',
+    callsign: 'RPAS Operator',
+    template: '[AERODROME] traffic, RPAS operations [LOCATION], [ALT] AGL, [TIME_WINDOW], [OPERATOR_ID], [AERODROME] traffic.',
+    blanks: ['Springbank', '800 m northwest of runway threshold', '50 m', '09:30 to 11:00 local', 'RPAS operator', 'Springbank'],
+    hints: ['Aerodrome name (start)', 'Operation location description', 'Maximum altitude AGL', 'Time window', 'Who you are', 'Aerodrome name (end)'],
+    sourceHints: ['Scenario: "Aerodrome" — name only', 'Scenario: "Your Operation" — location', 'Scenario: "Your Operation" — altitude', 'Scenario: "Duration"', 'Identify yourself generically', 'Standard advisory ends with aerodrome name again'],
+    explanation: 'On a mandatory frequency or UNICOM, RPAS operators advise manned aircraft of their presence, location, altitude, and operational window.',
   },
   {
-    id: 'e4',
-    title: 'Sector Handover',
-    guide: 'You\'re handing control of your airspace to an incoming controller. They know nothing yet — give them a complete picture. Every answer comes from the scenario briefing above.',
+    id: 're4', title: 'RPAS Operations Handover',
+    guide: 'Your replacement operator is arriving to take over mid-mission. Give them a complete situation awareness transfer.',
     scenarioBriefing: [
-      { label: 'Your Role', value: 'Outgoing controller, Sector 3' },
-      { label: 'Traffic Count', value: '4 aircraft in sector' },
-      { label: 'Highest Traffic', value: 'WJA822 at FL390 — no special requirements' },
-      { label: 'Special Condition', value: 'WJA630 inbound, squawking 7700 — medical priority declared' },
-      { label: 'Next Coordination', value: 'Handoff to Montreal Centre in 8 minutes' },
-      { label: 'Sector Weather', value: 'Clear in sector' },
+      { label: 'Current Aircraft Status', value: 'Airborne, 55 m AGL, 620 m northeast of GCS, battery 54%' },
+      { label: 'Active Mission', value: 'Linear infrastructure inspection, segment 3 of 5 complete' },
+      { label: 'Known Hazard', value: 'Power line crossing 300 m north of current position — marked on flight plan' },
+      { label: 'Weather', value: 'Wind 12 km/h southwest, cloud base 800 m, deteriorating — recheck in 30 min' },
+      { label: 'Next Action', value: 'Complete segment 4, then RTH to recharge before segment 5' },
     ],
-    atcTransmission: 'Incoming controller: "I\'m ready to accept Sector 3. Give me the picture."',
-    callsign: 'Sector 3 — Outgoing Controller',
-    template: 'Sector 3, [TRAFFIC_COUNT] aircraft. [SIGNIFICANT_TRAFFIC]. Special: [SPECIAL_CONDITION]. Next coordination: [NEXT_EVENT]. Weather: [WX_STATUS].',
-    blanks: ['4', 'WJA822 at FL390, highest traffic', 'WJA630 inbound with medical priority', 'handoff to Montreal Centre in 8 minutes', 'clear in sector'],
-    hints: ['Total aircraft count', 'Most significant aircraft', 'Special condition or emergency', 'Next coordination event', 'Sector weather'],
-    sourceHints: [
-      'Scenario: "Traffic Count" (number only)',
-      'Scenario: "Highest Traffic"',
-      'Scenario: "Special Condition" (brief summary)',
-      'Scenario: "Next Coordination"',
-      'Scenario: "Sector Weather"',
-    ],
-    explanation: 'Sector handovers must be complete — the incoming controller has zero context. A full handover covers: traffic count, significant aircraft, active emergencies, the next coordination event, and sector weather. An incomplete handover creates a gap and is a safety failure.',
+    atcTransmission: 'Incoming operator: "I\'m here to take over. What\'s the situation?"',
+    callsign: 'Outgoing RPAS Operator',
+    template: 'Aircraft [STATUS]. Mission [MISSION_PROGRESS]. Hazard: [HAZARD]. Weather: [WX]. Next: [NEXT_ACTION].',
+    blanks: ['airborne 55 m 620 m northeast battery 54%', 'segment 3 of 5 complete', 'power line 300 m north marked on plan', 'wind 12 km/h SW cloud 800 m deteriorating recheck 30 min', 'complete segment 4 then RTH to recharge'],
+    hints: ['Aircraft current status', 'Mission progress', 'Known hazard', 'Weather and trend', 'Next planned action'],
+    sourceHints: ['Scenario: "Current Aircraft Status"', 'Scenario: "Active Mission"', 'Scenario: "Known Hazard"', 'Scenario: "Weather"', 'Scenario: "Next Action"'],
+    explanation: 'RPAS operator handovers must transfer: aircraft status, mission progress, known hazards, weather trend, and next planned action.',
   },
 ];
 
+const M7_RPAS_QUESTIONS: ReasoningQuestion[] = [
+  { id: 'clarity', label: 'Communication Clarity', prompt: 'In the communication exercises you just completed, what made some transmissions harder to compose than others? What did you find yourself paying attention to?', placeholder: 'Describe what you noticed about how information needs to be communicated clearly…', minLength: 60 },
+  { id: 'verification', label: 'Handling Uncertainty', prompt: 'If something in a transmission was unclear or you weren\'t sure you heard correctly, what would you do? What\'s your instinct?', placeholder: 'Describe how you would handle uncertainty in a communication exchange…', minLength: 60 },
+  { id: 'teamwork', label: 'Team Coordination', prompt: 'These exercises involved passing information between people in time-pressured situations. What did that make you think about how teams need to communicate?', placeholder: 'Reflect on what you noticed about information transfer and coordination…', minLength: 60 },
+];
+
+const M7_QUESTIONS: ReasoningQuestion[] = [
+  { id: 'communication', label: 'Communication in Context', prompt: 'What did you notice about how information was exchanged in these scenarios? What made some communications clearer or more difficult than others?', placeholder: 'Reflect on what made the communications effective or challenging…', minLength: 60 },
+  { id: 'uncertainty', label: 'Handling Uncertainty', prompt: 'At some points, information seemed unclear, incomplete or conflicting. What was your instinct when that happened? How did you decide whether to ask for clarification?', placeholder: 'Describe how you responded when something was unclear or didn\'t seem right…', minLength: 60 },
+  { id: 'priorities', label: 'Setting Priorities', prompt: 'In the later scenarios, several things were happening at the same time. How did you decide what to respond to first or focus on most?', placeholder: 'Reflect on how you approached competing priorities in the situations…', minLength: 60 },
+];
+
+// ── Voice utilities ───────────────────────────────────────────────────────────
+function speak(text: string, onEnd?: () => void): () => void {
+  if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return () => {}; }
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.pitch = 0.86; utt.rate = 0.90;
+  if (onEnd) utt.onend = () => onEnd();
+  window.speechSynthesis.speak(utt);
+  return () => window.speechSynthesis?.cancel();
+}
+
+function hasSTT(): boolean {
+  return typeof window !== 'undefined' &&
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+}
+
+
+// ── Audio waveform indicator ──────────────────────────────────────────────────
+function Waveform({ active }: { active: boolean }) {
+  const bars = [3, 5, 8, 6, 9, 7, 4, 8, 5, 3, 7, 9, 6, 4, 8];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 14 }}>
+      {bars.map((h, i) => (
+        <div key={i} style={{
+          width: 2, borderRadius: 1,
+          height: active ? h : 3,
+          background: active ? C.blueL : C.dim,
+          transition: prefersReducedMotion() ? 'none' : `height 0.${(i % 3) + 2}s ease-in-out`,
+          animationDelay: `${i * 60}ms`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Radar display ─────────────────────────────────────────────────────────────
+function RadarDisplay({ aircraft, selectedId, onSelect }: {
+  aircraft: Aircraft[];
+  selectedId?: string;
+  onSelect?: (id: string) => void;
+}) {
+  const [angle, setAngle] = useState(0);
+  const frameRef = useRef<number>(0);
+  const prevRef = useRef(0);
+  const reduced = prefersReducedMotion();
+
+  useEffect(() => {
+    if (reduced) return;
+    function tick(ts: number) {
+      if (ts - prevRef.current > 60) {
+        setAngle(a => (a + 2) % 360);
+        prevRef.current = ts;
+      }
+      frameRef.current = requestAnimationFrame(tick);
+    }
+    frameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [reduced]);
+
+  const cx = 100; const cy = 100; const r = 84;
+  const rad = (angle * Math.PI) / 180;
+  const sx = cx + r * Math.sin(rad);
+  const sy = cy - r * Math.cos(rad);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', maxWidth: 220, margin: '0 auto' }}>
+      <svg viewBox="0 0 200 200" style={{ width: '100%', height: 'auto', display: 'block' }}>
+        {/* Frame */}
+        <circle cx={cx} cy={cy} r={r + 4} fill={C.radarBg} stroke={`${C.radarGreen}0.12)`} strokeWidth="1.5" />
+        <circle cx={cx} cy={cy} r={r} fill={C.radarBg} />
+        {/* Rings */}
+        {[0.33, 0.66, 1].map(f => (
+          <circle key={f} cx={cx} cy={cy} r={r * f} fill="none" stroke={`${C.radarGreen}0.07)`} strokeWidth="0.7" />
+        ))}
+        {/* Cross */}
+        <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke={`${C.radarGreen}0.06)`} strokeWidth="0.5" />
+        <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke={`${C.radarGreen}0.06)`} strokeWidth="0.5" />
+        {/* Sweep */}
+        {!reduced && (
+          <>
+            <defs>
+              <radialGradient id="sweepGrad" cx="0%" cy="0%" r="100%">
+                <stop offset="0%" stopColor={`${C.radarGreen}0.4)`} />
+                <stop offset="100%" stopColor={`${C.radarGreen}0)`} />
+              </radialGradient>
+            </defs>
+            <line x1={cx} y1={cy} x2={sx} y2={sy} stroke={`${C.radarGreen}0.55)`} strokeWidth="1.8" />
+          </>
+        )}
+        {/* Airport */}
+        <circle cx={cx} cy={cy} r={3} fill={C.greenL} opacity={0.9} />
+        <text x={cx + 6} y={cy + 4} fill={`${C.radarGreen}0.5)`} fontSize="6" fontFamily="monospace">APT</text>
+        {/* Aircraft blips */}
+        {aircraft.filter(a => a.visible).map(a => {
+          const sel = selectedId === a.id;
+          const color = a.alert ? C.amberL : C.greenL;
+          return (
+            <g key={a.id} style={{ cursor: onSelect ? 'pointer' : 'default' }}
+              onClick={() => onSelect?.(a.id)}>
+              {sel && <circle cx={a.x} cy={a.y} r={12} fill="none" stroke={color} strokeWidth="0.8" opacity={0.5} />}
+              {a.alert && <circle cx={a.x} cy={a.y} r={9} fill="none" stroke="rgba(220,38,38,0.6)" strokeWidth="1" />}
+              <polygon
+                points={`${a.x},${a.y - 5} ${a.x + 4},${a.y + 1} ${a.x},${a.y + 3} ${a.x - 4},${a.y + 1}`}
+                fill={color}
+                opacity={0.95}
+              />
+              {sel ? (
+                <rect x={a.x + 6} y={a.y - 8} width={a.callsign.length * 5.5 + 8} height={14}
+                  fill="rgba(5,8,15,0.85)" rx="2" />
+              ) : null}
+              <text x={a.x + 10} y={a.y + 2} fill={sel ? color : `${C.radarGreen}0.7)`}
+                fontSize="6" fontFamily="monospace" fontWeight={sel ? 'bold' : 'normal'}>
+                {a.callsign}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {/* Compass labels */}
+      {[
+        { lbl: 'N', s: { top: '1%', left: '50%', transform: 'translateX(-50%)' } },
+        { lbl: 'S', s: { bottom: '1%', left: '50%', transform: 'translateX(-50%)' } },
+        { lbl: 'E', s: { right: '3%', top: '50%', transform: 'translateY(-50%)' } },
+        { lbl: 'W', s: { left: '3%', top: '50%', transform: 'translateY(-50%)' } },
+      ].map(({ lbl, s }) => (
+        <div key={lbl} style={{
+          position: 'absolute', ...s,
+          color: `${C.radarGreen}0.3)`, fontSize: 7, fontFamily: 'monospace', lineHeight: 1,
+        }}>{lbl}</div>
+      ))}
+    </div>
+  );
+}
+
+// ── M7 AI rubric classification ────────────────────────────────────────────────
+interface M7Indicator { id: string; label: string; positive: boolean; }
+
+function buildM7Prompt(scenarioContext: string, transmission: string, response: string, indicators: M7Indicator[]): string {
+  const list = indicators.map(i => `- ${i.id}: ${i.label}`).join('\n');
+  return `You are an aviation competency evidence classifier for a structured assessment scenario.
+
+SCENARIO: ${scenarioContext}
+INCOMING TRANSMISSION: "${transmission}"
+PARTICIPANT RESPONSE: "${response}"
+
+BEHAVIOURAL INDICATORS TO CHECK:
+${list}
+
+Determine which indicators are evidenced in the participant's response. Be generous — partial or implicit evidence counts. Look for meaning and intent, not exact keywords.
+
+Reply with ONLY a JSON object:
+{ "detected": ["indicator_id_1", "indicator_id_2"] }`;
+}
+
+async function classifyM7Response(
+  scenarioContext: string,
+  transmission: string,
+  response: string,
+  indicators: M7Indicator[],
+  chatEndpoint: string,
+  token: string | null,
+): Promise<string[]> {
+  try {
+    const prompt = buildM7Prompt(scenarioContext, transmission, response, indicators);
+    const res = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        systemPrompt: prompt,
+        messages: [{ role: 'user', content: 'Classify this response.' }],
+      }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { reply?: string };
+    if (!data.reply) return [];
+    const match = data.reply.match(/\{[\s\S]*\}/);
+    if (!match) return [];
+    const parsed = JSON.parse(match[0]) as { detected?: string[] };
+    return parsed.detected ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Convert detected indicator IDs → evidence deltas using rubric
+function indicatorsToDeltas(
+  detected: string[],
+  indicators: M7Indicator[],
+  competencyKeys: { id: string; competency: string }[],
+): Record<string, number> {
+  const scores: Record<string, { sum: number; count: number }> = {};
+  for (const ind of indicators) {
+    const mapping = competencyKeys.find(c => c.id === ind.id);
+    if (!mapping) continue;
+    const key = mapping.competency;
+    if (!scores[key]) scores[key] = { sum: 0, count: 0 };
+    const delta = ind.positive
+      ? (detected.includes(ind.id) ? 0.8 : 0.0)
+      : (detected.includes(ind.id) ? -0.3 : 0.0);
+    if (delta !== 0) { scores[key].sum += delta; scores[key].count += 1; }
+  }
+  const result: Record<string, number> = {};
+  for (const [key, data] of Object.entries(scores)) {
+    result[key] = data.count > 0 ? data.sum / data.count : 0;
+  }
+  return result;
+}
+
+// ── Response input ─────────────────────────────────────────────────────────────
+function ResponseInput({ onSubmit, context, label = 'Transmit' }: {
+  onSubmit: (text: string) => Promise<void>;
+  context: string;
+  label?: string;
+}) {
+  const [text, setText] = useState('');
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [tooShort, setTooShort] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [voiceSupported] = useState(hasSTT);
+  const recogRef = useRef<any>(null);
+
+  function startListening() {
+    if (!voiceSupported) return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recog = new SR();
+    recog.lang = 'en'; recog.interimResults = false; recog.maxAlternatives = 1;
+    recog.onresult = (e: any) => { setTranscript(e.results[0][0].transcript); setListening(false); };
+    recog.onerror = () => setListening(false);
+    recog.onend = () => setListening(false);
+    recogRef.current = recog;
+    recog.start();
+    setListening(true);
+  }
+  function stopListening() { recogRef.current?.stop(); setListening(false); }
+
+  const currentText = transcript || text;
+
+  async function handleSubmit() {
+    if (currentText.trim().length < 5) { setTooShort(true); return; }
+    setTooShort(false);
+    setSubmitting(true);
+    try { await onSubmit(currentText.trim()); } finally { setSubmitting(false); }
+  }
+
+  if (submitting) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '20px 0', color: C.blueL, fontSize: 12, fontFamily: 'monospace' }}>
+      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: C.blueL, animation: 'pulse 1s ease-in-out infinite' }} />
+      PROCESSING TRANSMISSION…
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5 }}>{context}</div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        {voiceSupported && (
+          <button
+            onPointerDown={startListening}
+            onPointerUp={stopListening}
+            style={{
+              flex: '0 0 auto',
+              background: listening ? 'rgba(220,38,38,0.15)' : C.card,
+              border: `1px solid ${listening ? C.red : C.border}`,
+              borderRadius: 8, padding: '10px 16px',
+              color: listening ? C.red : C.dimM,
+              cursor: 'pointer', fontWeight: 700, fontSize: 11,
+              fontFamily: 'monospace', letterSpacing: 1,
+              touchAction: 'none', userSelect: 'none',
+              display: 'flex', alignItems: 'center', gap: 8,
+              transition: 'all 0.15s',
+            }}
+          >
+            <span style={{ fontSize: 8, lineHeight: 1 }}>
+              {listening ? '◉' : '◎'}
+            </span>
+            PTT
+            <Waveform active={listening} />
+          </button>
+        )}
+        <textarea
+          value={currentText}
+          onChange={e => {
+            if (transcript) setTranscript(e.target.value);
+            else setText(e.target.value);
+          }}
+          rows={2}
+          placeholder={transcript ? 'Review and edit before transmitting…' : 'Type your response…'}
+          style={{
+            flex: 1, background: C.panel, border: `1px solid ${C.border}`,
+            borderRadius: 8, color: C.text, padding: '10px 12px',
+            fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+      </div>
+
+      {tooShort && (
+        <div style={{ color: C.amberL, fontSize: 11, fontFamily: 'monospace' }}>
+          ADD MORE DETAIL BEFORE TRANSMITTING
+        </div>
+      )}
+
+      <button
+        onClick={handleSubmit}
+        style={{
+          background: currentText.trim().length < 5
+            ? C.card
+            : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: currentText.trim().length < 5 ? C.dim : '#fff',
+          border: `1px solid ${currentText.trim().length < 5 ? C.border : C.action}`,
+          borderRadius: 8, padding: '11px 16px',
+          fontWeight: 700, fontSize: 13, letterSpacing: 0.5,
+          cursor: currentText.trim().length < 5 ? 'not-allowed' : 'pointer',
+          touchAction: 'manipulation', fontFamily: 'monospace',
+        }}
+      >
+        {label.toUpperCase()} TRANSMISSION
+      </button>
+    </div>
+  );
+}
+
+// ── ATC Console wrapper ───────────────────────────────────────────────────────
+function ATCConsole({
+  aircraft, aircraftInfoRows, incomingMsg, pilotCallsign, pilotSpeaking,
+  scenarioNum, scenarioLabel, selectedId, onSelectAircraft, children,
+}: {
+  aircraft: Aircraft[];
+  aircraftInfoRows: { callsign: string; status: string; alert?: boolean }[];
+  incomingMsg?: string;
+  pilotCallsign?: string;
+  pilotSpeaking?: boolean;
+  scenarioNum: number;
+  scenarioLabel: string;
+  selectedId?: string;
+  onSelectAircraft?: (id: string) => void;
+  children?: React.ReactNode;
+}) {
+  const selected = aircraftInfoRows.find(a => aircraft.find(b => b.id === selectedId)?.callsign === a.callsign);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Header bar */}
+      <div style={{
+        background: C.panel, borderBottom: `1px solid ${C.border}`,
+        padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span style={{ color: C.blueXL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+          ACIA
+        </span>
+        <div style={{ width: 1, height: 10, background: C.border }} />
+        <span style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1 }}>
+          MISSION 07
+        </span>
+        <div style={{ width: 1, height: 10, background: C.border }} />
+        <span style={{ color: C.dim, fontSize: 9, fontFamily: 'monospace' }}>
+          {String(scenarioNum).padStart(2, '0')}/05 {scenarioLabel.toUpperCase()}
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: C.greenL, boxShadow: `0 0 5px ${C.greenL}`,
+          }} />
+          <span style={{ color: C.greenL, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1 }}>
+            COMMS LIVE
+          </span>
+        </div>
+      </div>
+
+      {/* Radar + aircraft info */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ background: C.radarBg, borderRight: `1px solid ${C.border}`, padding: 10 }}>
+          <div style={{ color: `${C.radarGreen}0.35)`, fontSize: 7, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 5 }}>
+            AIR TRAFFIC DISPLAY
+          </div>
+          <RadarDisplay aircraft={aircraft} selectedId={selectedId} onSelect={onSelectAircraft} />
+          {onSelectAircraft && (
+            <div style={{ color: C.dim, fontSize: 9, textAlign: 'center', marginTop: 4, fontFamily: 'monospace' }}>
+              SELECT AIRCRAFT FOR DETAILS
+            </div>
+          )}
+        </div>
+        <div style={{ background: C.panel, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ color: C.dim, fontSize: 7, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 2 }}>
+            AIRCRAFT STATUS
+          </div>
+          {aircraftInfoRows.map(a => (
+            <div key={a.callsign} style={{
+              background: a.alert ? 'rgba(120,53,15,0.2)' : C.card,
+              border: `1px solid ${a.alert ? 'rgba(217,119,6,0.4)' : C.border}`,
+              borderRadius: 5, padding: '6px 9px',
+            }}>
+              <div style={{
+                color: a.alert ? C.amberL : C.blueL,
+                fontSize: 10, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 0.5,
+              }}>
+                {a.callsign}
+              </div>
+              <div style={{ color: C.dimM, fontSize: 10, marginTop: 2 }}>{a.status}</div>
+            </div>
+          ))}
+          {/* Selected aircraft detail */}
+          {selected && (
+            <div style={{
+              marginTop: 4, background: 'rgba(37,99,235,0.08)',
+              border: `1px solid rgba(37,99,235,0.25)`, borderRadius: 5, padding: '6px 9px',
+            }}>
+              <div style={{ color: C.blueL, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 3 }}>
+                SELECTED
+              </div>
+              <div style={{ color: C.blueXL, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}>
+                {selected.callsign}
+              </div>
+              <div style={{ color: C.dimM, fontSize: 10, marginTop: 2 }}>{selected.status}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Incoming transmission */}
+      {incomingMsg && (
+        <div style={{
+          background: 'rgba(8,14,28,0.9)', borderBottom: `1px solid ${C.border}`,
+          padding: '10px 14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{
+              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+              background: C.blue, boxShadow: `0 0 6px ${C.blue}`,
+            }} />
+            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              INCOMING — {pilotCallsign}
+            </span>
+            <Waveform active={!!pilotSpeaking} />
+          </div>
+          <div style={{ color: C.text, fontSize: 13, fontStyle: 'italic', lineHeight: 1.6 }}>
+            "{incomingMsg}"
+          </div>
+        </div>
+      )}
+
+      {/* Scenario content */}
+      {children && (
+        <div style={{ background: C.bg, padding: 14 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Situation card ────────────────────────────────────────────────────────────
+function SituationCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(13,22,38,0.9)', border: `1px solid ${C.borderL}`,
+      borderRadius: 8, padding: '12px 14px', marginBottom: 12,
+    }}>
+      <div style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 6 }}>
+        SITUATION BRIEF
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Status notice (amber, no emoji) ──────────────────────────────────────────
+function StatusNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(120,53,15,0.12)', border: `1px solid rgba(217,119,6,0.3)`,
+      borderRadius: 6, padding: '8px 12px', marginBottom: 10,
+      display: 'flex', gap: 8, alignItems: 'flex-start',
+    }}>
+      <span style={{ color: C.amberL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, flexShrink: 0, paddingTop: 2 }}>
+        STATUS
+      </span>
+      <div style={{ color: C.amberL, fontSize: 12, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── Alert notice (red, no emoji) ─────────────────────────────────────────────
+function AlertNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'rgba(127,29,29,0.12)', border: `1px solid rgba(220,38,38,0.3)`,
+      borderRadius: 6, padding: '8px 12px', marginBottom: 10,
+      display: 'flex', gap: 8, alignItems: 'flex-start',
+    }}>
+      <span style={{ color: C.red, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1, flexShrink: 0, paddingTop: 2 }}>
+        ALERT
+      </span>
+      <div style={{ color: '#fca5a5', fontSize: 12, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── Action button (aviation style) ────────────────────────────────────────────
+function ActionBtn({ onClick, children, secondary }: { onClick: () => void; children: React.ReactNode; secondary?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: secondary ? C.card : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+        color: secondary ? C.dimM : '#fff',
+        border: `1px solid ${secondary ? C.border : C.action}`,
+        borderRadius: 8, padding: '12px 16px',
+        fontWeight: 700, fontSize: 12, letterSpacing: 0.5,
+        cursor: 'pointer', touchAction: 'manipulation',
+        fontFamily: 'monospace', width: '100%',
+      }}
+    >
+      {(children as string).toUpperCase ? (children as string).toUpperCase() : children}
+    </button>
+  );
+}
+
+// ── Welcome screen ────────────────────────────────────────────────────────────
+function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
+  return (
+    <div style={{ position: 'relative', minHeight: 480, overflow: 'hidden' }}>
+      {/* Full-bleed ATC environment photo */}
+      <img
+        src="/images/atc-tower-interior.webp"
+        alt=""
+        aria-hidden
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: 'cover', objectPosition: 'center top',
+        }}
+      />
+      {/* Gradient overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(to bottom, rgba(5,8,15,0.45) 0%, rgba(5,8,15,0.72) 45%, rgba(5,8,15,0.97) 100%)',
+      }} />
+      {/* Content */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+        minHeight: 480, padding: '32px 24px 36px', gap: 18, textAlign: 'center',
+      }}>
+        <div style={{
+          background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.35)',
+          borderRadius: 6, padding: '4px 14px',
+          color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2.5, fontWeight: 700,
+        }}>
+          ACIA — MISSION 07 — AVIATION OPERATIONS
+        </div>
+
+        <div>
+          <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: '0 0 6px', lineHeight: 1.2, textShadow: '0 2px 16px rgba(0,0,0,0.9)' }}>
+            Air Traffic Communication
+          </h1>
+          <p style={{ color: C.blueL, fontSize: 13, margin: 0, fontStyle: 'italic', letterSpacing: 0.5 }}>
+            Listen. Interpret. Communicate. Adapt.
+          </p>
+        </div>
+
+        <div style={{
+          background: 'rgba(5,8,15,0.85)', border: `1px solid rgba(22,35,64,0.95)`,
+          borderRadius: 10, padding: '16px 20px', maxWidth: 440,
+          display: 'flex', flexDirection: 'column', gap: 10,
+          backdropFilter: 'blur(8px)',
+        }}>
+          <div style={{ color: C.blueL, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, fontFamily: 'monospace' }}>
+            ACIA™ — YOUR CAREER INTELLIGENCE ADVISOR
+          </div>
+          <p style={{ color: '#f1f5f9', fontSize: 14, lineHeight: 1.7, margin: 0, fontWeight: 500 }}>Welcome to Mission 7.</p>
+          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            Air traffic services keep aircraft moving safely — whether from an aerodrome control
+            tower, an approach control facility, or a flight service station. In this mission you
+            will experience how aviation professionals listen, interpret and communicate across
+            different operational situations.
+          </p>
+          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            No aviation experience or specialized terminology required. Listen carefully,
+            communicate clearly and ask questions whenever something doesn't make sense.
+          </p>
+        </div>
+
+        <button
+          onClick={onEnter}
+          style={{
+            background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+            color: '#fff', border: 'none', borderRadius: 10, padding: '14px 32px',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
+            letterSpacing: 0.5, fontFamily: 'monospace',
+            boxShadow: `0 4px 20px rgba(143,9,9,0.4)`,
+          }}
+        >
+          ENTER COMMUNICATIONS CENTRE
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Setup screen ──────────────────────────────────────────────────────────────
+function SetupScreen({ onReady }: { onReady: () => void }) {
+  const [audioTested, setAudioTested] = useState(false);
+  const [micStatus, setMicStatus] = useState<'idle' | 'granted' | 'denied' | 'unavailable'>('idle');
+
+  function testAudio() {
+    speak('Communications centre ready. Maple 214, this is Clearfield Tower. Message received.');
+    setAudioTested(true);
+  }
+  async function testMic() {
+    if (!hasSTT()) { setMicStatus('unavailable'); return; }
+    try { await navigator.mediaDevices.getUserMedia({ audio: true }); setMicStatus('granted'); }
+    catch { setMicStatus('denied'); }
+  }
+
+  return (
+    <div style={{
+      background: C.bg, position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Subtle controller photo as background panel accent */}
+      <div style={{ position: 'relative' }}>
+        <img src="/images/atc-controller.webp" alt="" aria-hidden
+          style={{ width: '100%', height: 140, objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(5,8,15,0.3) 0%, rgba(5,8,15,0.96) 100%)',
+        }} />
+        <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+          <div style={{ color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
+            COMMUNICATION SETUP
+          </div>
+          <p style={{ color: C.dimM, fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.5 }}>
+            For the best experience, use headphones or a headset. Voice is optional — you can type all responses.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14 }}>
+          <div style={{ color: C.dimM, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 8 }}>
+            STEP 01 — AUDIO CHECK
+          </div>
+          <button onClick={testAudio} style={{
+            background: audioTested ? 'rgba(22,163,74,0.1)' : C.panel,
+            border: `1px solid ${audioTested ? 'rgba(22,163,74,0.4)' : C.border}`,
+            borderRadius: 7, padding: '9px 16px',
+            color: audioTested ? C.greenL : C.text,
+            cursor: 'pointer', fontSize: 13, touchAction: 'manipulation',
+            fontFamily: 'monospace', fontWeight: 600, letterSpacing: 0.5,
+          }}>
+            {audioTested ? 'AUDIO CONFIRMED' : 'PLAY SAMPLE TRANSMISSION'}
+          </button>
+          {!audioTested && (
+            <p style={{ color: C.dim, fontSize: 11, marginTop: 6, marginBottom: 0, fontFamily: 'monospace' }}>
+              If audio is unavailable, pilot transmissions will appear as text.
+            </p>
+          )}
+        </div>
+
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14 }}>
+          <div style={{ color: C.dimM, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 8 }}>
+            STEP 02 — MICROPHONE (OPTIONAL)
+          </div>
+          {micStatus === 'idle' && (
+            <button onClick={testMic} style={{
+              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 7,
+              padding: '9px 16px', color: C.text, cursor: 'pointer', fontSize: 13,
+              touchAction: 'manipulation', fontFamily: 'monospace', fontWeight: 600,
+            }}>
+              CHECK MICROPHONE
+            </button>
+          )}
+          {micStatus === 'granted' && <div style={{ color: C.greenL, fontSize: 12, fontFamily: 'monospace' }}>MICROPHONE READY — VOICE MODE AVAILABLE</div>}
+          {micStatus === 'denied' && <div style={{ color: C.amberL, fontSize: 12, fontFamily: 'monospace' }}>MICROPHONE DENIED — TEXT MODE ONLY</div>}
+          {micStatus === 'unavailable' && <div style={{ color: C.dim, fontSize: 12, fontFamily: 'monospace' }}>VOICE NOT SUPPORTED — TEXT MODE ONLY</div>}
+        </div>
+
+        <button onClick={onReady} style={{
+          background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: '#fff', border: 'none', borderRadius: 8, padding: '13px 24px',
+          fontWeight: 700, fontSize: 13, cursor: 'pointer', touchAction: 'manipulation',
+          fontFamily: 'monospace', letterSpacing: 1,
+        }}>
+          BEGIN MISSION
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Pilot message card ────────────────────────────────────────────────────────
+function PilotMessage({ message, callsign, onReady, autoSpeak = true }: {
+  message: string; callsign: string; onReady: () => void; autoSpeak?: boolean;
+}) {
+  const [spoken, setSpoken] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  useEffect(() => {
+    if (!autoSpeak) { setSpoken(true); return; }
+    setSpeaking(true);
+    const cancel = speak(message, () => { setSpeaking(false); setSpoken(true); });
+    return cancel;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{
+        background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`,
+        borderRadius: 8, padding: '12px 14px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
+            background: speaking ? C.blue : C.dim,
+            boxShadow: speaking ? `0 0 6px ${C.blue}` : 'none',
+            transition: 'all 0.3s',
+          }} />
+          <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+            INCOMING — {callsign}
+          </span>
+          <Waveform active={speaking} />
+        </div>
+        <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+          "{message}"
+        </div>
+        {!spoken && (
+          <div style={{ color: C.dim, fontSize: 10, marginTop: 6, fontFamily: 'monospace' }}>
+            PLAYING TRANSMISSION…
+          </div>
+        )}
+      </div>
+      <button onClick={onReady} style={{
+        background: C.card, border: `1px solid ${C.border}`,
+        borderRadius: 8, padding: '11px 16px',
+        color: C.dimM, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+        touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
+      }}>
+        MESSAGE RECEIVED — CONTINUE
+      </button>
+    </div>
+  );
+}
+
+// ── Feedback card ─────────────────────────────────────────────────────────────
+function FeedbackCard({ message, onNext, nextLabel = 'CONTINUE' }: {
+  message: string; onNext: () => void; nextLabel?: string;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{
+        background: 'rgba(22,163,74,0.07)', border: `1px solid rgba(22,163,74,0.2)`,
+        borderRadius: 8, padding: '12px 14px',
+        color: C.dimM, fontSize: 13, lineHeight: 1.6,
+      }}>
+        {message}
+      </div>
+      <button onClick={onNext} style={{
+        background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+        color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px',
+        fontWeight: 700, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation',
+        fontFamily: 'monospace', letterSpacing: 1,
+      }}>
+        {nextLabel}
+      </button>
+    </div>
+  );
+}
+
+// ── Scenario 1 — Attention to detail (display vs. pilot position discrepancy) ──
+function Scenario1({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [step, setStep] = useState<'intro' | 'pilot' | 'respond'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
+
+  // Display shows MAPLE 214 WEST — pilot will report EAST (discrepancy to catch)
+  const aircraft: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 40, y: 90, status: 'Display: West of airport', visible: true },
+  ];
+  const info = [{ callsign: 'MAPLE 214', status: 'Display: west of airport' }];
+
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          You've just taken your position at the communications console. Your display shows
+          <strong style={{ color: C.blueL }}> MAPLE 214</strong> west of the airport.
+          An incoming transmission is arriving.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          Listen carefully to what the pilot reports and compare it to what you see on your display.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('pilot')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'pilot') return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <PilotMessage
+        callsign="MAPLE 214"
+        // Pilot reports EAST — display shows WEST. Participant must notice.
+        message="Tower, Maple 214. We're currently approximately five miles east of the airport. Just checking in and confirming our position."
+        onReady={() => setStep('respond')}
+      />
+    </ATCConsole>
+  );
+
+  return (
+    <ATCConsole aircraft={aircraft} aircraftInfoRows={info}
+      incomingMsg="Tower, Maple 214. We're currently approximately five miles east of the airport. Just checking in and confirming our position."
+      pilotCallsign="MAPLE 214" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={1} scenarioLabel="Initial Radio Contact">
+      <ResponseInput
+        context="Respond to MAPLE 214. Your display shows their current position and reported flight level."
+        onSubmit={async text => {
+          const token = localStorage.getItem('aacp_access_token');
+          const s1Indicators: M7Indicator[] = [
+            { id: 'notices_discrepancy', label: 'Notices the position discrepancy (pilot says east, display shows west)', positive: true },
+            { id: 'seeks_clarification', label: 'Asks the pilot to confirm or clarify their reported position', positive: true },
+            { id: 'references_display', label: 'References own display, radar, or system data when noting the conflict', positive: true },
+            { id: 'acknowledges_aircraft', label: 'Acknowledges the aircraft by callsign and confirms receipt of transmission', positive: true },
+            { id: 'accepts_unchecked', label: 'Accepts the pilot report without any verification or cross-check', positive: false },
+          ];
+          const s1Keys = [
+            { id: 'notices_discrepancy', competency: 'attention_to_detail' },
+            { id: 'seeks_clarification', competency: 'attention_to_detail' },
+            { id: 'references_display', competency: 'attention_to_detail' },
+            { id: 'acknowledges_aircraft', competency: 'communication_quality' },
+            { id: 'accepts_unchecked', competency: 'attention_to_detail' },
+          ];
+          const detected = await classifyM7Response(
+            'ATC Initial Contact: pilot MAPLE 214 reports position five miles east; controller\'s display shows the aircraft west of the airport.',
+            'Tower, Maple 214. We\'re currently approximately five miles east of the airport. Just checking in and confirming our position.',
+            text, s1Indicators, '/acia/chat', token,
+          );
+          const deltas = indicatorsToDeltas(detected, s1Indicators, s1Keys);
+          onComplete([
+            { key: 'attention_to_detail', delta: Math.min(0.80, deltas['attention_to_detail'] ?? 0.2) },
+            { key: 'communication_quality', delta: Math.min(0.70, deltas['communication_quality'] ?? 0.2) },
+          ]);
+        }}
+      />
+    </ATCConsole>
+  );
+}
+
+// ── Scenario 3 — SA conflict + stress_response (dual demand) ──────────────────
+function Scenario3({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [step, setStep] = useState<'intro' | 'pilot' | 'respond' | 'correction' | 'pressure' | 'respond2'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
+  const responseRef = useRef('');
+  const clarifyRef = useRef(false);
+  const pressureRef = useRef('');
+  const saDetectedRef = useRef<{ detected: string[]; saIndicators: M7Indicator[]; saKeys: { id: string; competency: string }[] } | null>(null);
+
+  const aircraftEast: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position: East', visible: true },
+  ];
+  const aircraftBoth: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position unresolved', visible: true },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, status: 'Fuel — Urgent', visible: true, alert: true },
+  ];
+  const infoConflict = [{ callsign: 'MAPLE 214', status: 'Display shows east — pilot reports west' }];
+  const infoPressure = [
+    { callsign: 'MAPLE 214', status: 'Position unresolved' },
+    { callsign: 'NORTHERN 305', status: 'Fuel status — urgent', alert: true },
+  ];
+  const infoResolved = [{ callsign: 'MAPLE 214', status: 'Position confirmed: East of airport' }];
+
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={[{ callsign: 'MAPLE 214', status: 'Position: East of airport' }]}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          Your display shows <strong style={{ color: C.blueL }}>MAPLE 214</strong> positioned east of
+          the airport. An incoming transmission is arriving from MAPLE 214 with position information.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          Pay attention to what the pilot reports and compare it to your display.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('pilot')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'pilot') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={infoConflict}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. We're approximately five miles west of the airport."
+        onReady={() => setStep('respond')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'respond') return (
+    <ATCConsole aircraft={aircraftEast} aircraftInfoRows={infoConflict}
+      incomingMsg="Tower, Maple 214. We're approximately five miles west of the airport."
+      pilotCallsign="MAPLE 214" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <ResponseInput
+        context="Respond to MAPLE 214. Your display and the pilot's report are not consistent."
+        onSubmit={async text => {
+          responseRef.current = text;
+          // Store whether the participant sought clarification — assessed by AI at scenario end
+          const token = localStorage.getItem('aacp_access_token');
+          const saIndicators: M7Indicator[] = [
+            { id: 'notes_conflict', label: 'Notes the conflict between pilot report and display data', positive: true },
+            { id: 'seeks_clarification', label: 'Asks the pilot to clarify or confirm their position', positive: true },
+            { id: 'cites_own_data', label: 'References own radar or display as the conflicting source', positive: true },
+          ];
+          const saKeys = [
+            { id: 'notes_conflict', competency: 'situational_awareness' },
+            { id: 'seeks_clarification', competency: 'situational_awareness' },
+            { id: 'cites_own_data', competency: 'situational_awareness' },
+          ];
+          const detected = await classifyM7Response(
+            'ATC Conflict: controller\'s display shows MAPLE 214 east of the airport, but pilot reports a different position.',
+            'Tower, Maple 214, we are west of the airport, approximately five miles.',
+            text, saIndicators, '/acia/chat', token,
+          );
+          clarifyRef.current = detected.includes('seeks_clarification') || detected.includes('notes_conflict');
+          saDetectedRef.current = { detected, saIndicators, saKeys };
+          setStep('correction');
+        }}
+      />
+    </ATCConsole>
+  );
+
+  // After participant's first response, NORTHERN 305 breaks in with fuel urgency
+  if (step === 'correction') {
+    const resolved: Aircraft[] = [{ id: 'maple', callsign: 'MAPLE 214', x: 158, y: 90, status: 'Position confirmed: East', visible: true }];
+    return (
+      <ATCConsole aircraft={resolved} aircraftInfoRows={infoResolved}
+        selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
+              <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>MAPLE 214 — CORRECTION</span>
+            </div>
+            <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+              "Maple 214. Correction — we are east of the airport. Apologies for the confusion."
+            </div>
+          </div>
+          <FeedbackCard
+            message="MAPLE 214 has confirmed their correct position. A new transmission is now arriving."
+            onNext={() => setStep('pressure')}
+            nextLabel="OPEN CHANNEL"
+          />
+        </div>
+      </ATCConsole>
+    );
+  }
+
+  // NORTHERN 305 breaks in simultaneously — dual demand scenario
+  if (step === 'pressure') return (
+    <ATCConsole aircraft={aircraftBoth} aircraftInfoRows={infoPressure}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <PilotMessage
+        callsign="NORTHERN 305"
+        message="Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive."
+        onReady={() => setStep('respond2')}
+      />
+    </ATCConsole>
+  );
+
+  return (
+    <ATCConsole aircraft={aircraftBoth} aircraftInfoRows={infoPressure}
+      incomingMsg="Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive."
+      pilotCallsign="NORTHERN 305" pilotSpeaking={false}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={3} scenarioLabel="Conflicting Information">
+      <ResponseInput
+        context="NORTHERN 305 has a time-sensitive fuel concern. MAPLE 214's position issue was just resolved. Respond to the current situation."
+        onSubmit={async text => {
+          pressureRef.current = text;
+          const token = localStorage.getItem('aacp_access_token');
+          // Classify stress_response from the pressure response
+          const srIndicators: M7Indicator[] = [
+            { id: 'acknowledges_urgency', label: 'Acknowledges the urgency or time-sensitive nature of the fuel concern', positive: true },
+            { id: 'provides_departure_info', label: 'Provides or commits to provide departure window information', positive: true },
+            { id: 'stays_composed', label: 'Response is structured and professional under dual-demand pressure', positive: true },
+            { id: 'ignores_urgency', label: 'Fails to acknowledge or dismisses the fuel urgency', positive: false },
+          ];
+          const srKeys = [
+            { id: 'acknowledges_urgency', competency: 'stress_response' },
+            { id: 'provides_departure_info', competency: 'stress_response' },
+            { id: 'stays_composed', competency: 'stress_response' },
+            { id: 'ignores_urgency', competency: 'stress_response' },
+          ];
+          const srDetected = await classifyM7Response(
+            'Dual demand: NORTHERN 305 has just declared a time-sensitive fuel concern while MAPLE 214\'s position issue was recently resolved.',
+            'Tower, Northern 305. We have a fuel status concern. We need to know our departure window soon — this is time-sensitive.',
+            text, srIndicators, '/acia/chat', token,
+          );
+          const srDeltas = indicatorsToDeltas(srDetected, srIndicators, srKeys);
+          // SA delta from the earlier first-response classification
+          const saResult = saDetectedRef.current;
+          const saDeltas = saResult
+            ? indicatorsToDeltas(saResult.detected, saResult.saIndicators, saResult.saKeys)
+            : { situational_awareness: 0.2 };
+          onComplete([
+            { key: 'situational_awareness', delta: Math.min(0.80, saDeltas['situational_awareness'] ?? 0.2) },
+            { key: 'stress_response', delta: Math.min(0.80, srDeltas['stress_response'] ?? 0.2) },
+          ]);
+        }}
+      />
+    </ATCConsole>
+  );
+}
+
+// ── Scenario 4 — Weather Deviation: Traffic Flow Decision ────────────────────
+// Nav Canada TRACON. Convective cell blocking standard arrival. Five aircraft
+// inbound with competing priorities. Participant assigns each an action, then
+// writes a sector coordination message to the adjacent ACC.
+// Targets: multitasking_ability + communication_quality.
+// Scoring rewards defensible priority reasoning, not procedural correctness.
+function Scenario4({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  type FlowAction = 'direct' | 'hold' | 'alternate' | '';
+  const [step, setStep] = useState<'intro' | 'wx' | 'assign' | 'coordinate'>('intro');
+  const [assignments, setAssignments] = useState<Record<string, FlowAction>>({});
+
+  const FLIGHT_LIST = [
+    { id: 'mpl401',  callsign: 'MAPLE 401',   detail: 'Fuel reserve 45 min — no priority',    x: 162, y: 55,  alert: false },
+    { id: 'spr22',   callsign: 'SPRUCE 22',    detail: 'Fuel reserve 28 min — low fuel',       x: 145, y: 112, alert: true  },
+    { id: 'cdr7',    callsign: 'CEDAR 7',      detail: 'Medical passenger on board',           x: 130, y: 68,  alert: true  },
+    { id: 'brch55',  callsign: 'BIRCH 55',     detail: 'Fuel adequate — no special status',    x: 172, y: 138, alert: false },
+    { id: 'lrch19',  callsign: 'LARCH 19',     detail: 'Fuel adequate — no special status',    x: 155, y: 170, alert: false },
+  ];
+
+  const radarAircraft: Aircraft[] = FLIGHT_LIST.map(a => ({
+    id: a.id,
+    callsign: a.callsign.replace('MAPLE', 'MPL').replace('SPRUCE', 'SPR').replace('CEDAR', 'CDR').replace('BIRCH', 'BRH').replace('LARCH', 'LRH'),
+    x: a.x, y: a.y, status: a.detail, visible: true, alert: a.alert,
+  }));
+
+  const infoRows = FLIGHT_LIST.map(a => ({ callsign: a.callsign, status: a.detail, alert: a.alert }));
+
+  const allAssigned = FLIGHT_LIST.every(a => assignments[a.id] && assignments[a.id] !== '');
+
+  if (step === 'intro') return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          A fast-developing storm cell has moved over the standard arrival route into
+          {' '}<strong style={{ color: C.blueL }}>Calgary (CYYC)</strong>. Five aircraft are
+          inbound and need new routing — the normal approach path is no longer safe.
+        </p>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, marginTop: 8, marginBottom: 0 }}>
+          You'll review the weather situation, then decide how to handle each aircraft.
+          Afterwards you'll write a short message to the area controller who is currently
+          managing these flights before passing them to you.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+          No aviation experience required — the information you need is provided.
+          Focus on the situation and think through your priorities.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('wx')}>Review Situation</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'wx') return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Weather summary */}
+        <div style={{ background: 'rgba(120,53,15,0.1)', border: `1px solid rgba(217,119,6,0.3)`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ color: C.amberL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 10 }}>
+            NAV CANADA — ACTIVE WEATHER ADVISORY
+          </div>
+          {[
+            { label: 'Storm location',  value: 'Over the standard arrival fix — cannot be flown through' },
+            { label: 'Storm tops',      value: 'Above 32,000 ft — aircraft cannot fly over it' },
+            { label: 'Storm movement',  value: 'Drifting slowly west — situation will not improve in the next 30 minutes' },
+          ].map(r => (
+            <div key={r.label} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8, marginBottom: 5 }}>
+              <span style={{ color: C.dim, fontSize: 11, fontFamily: 'monospace' }}>{r.label}</span>
+              <span style={{ color: C.text, fontSize: 11, lineHeight: 1.5 }}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+        {/* Options explanation */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ color: C.blueL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 10 }}>
+            YOUR THREE OPTIONS FOR EACH AIRCRAFT
+          </div>
+          {[
+            { opt: 'DIRECT',    desc: 'A clear path into Calgary that avoids the storm — currently available but limited. Use for the highest-priority aircraft.' },
+            { opt: 'HOLD',      desc: 'The aircraft circles at a fixed point nearby while waiting for conditions to improve or for space to open up. Maximum 2 aircraft can hold at once.' },
+            { opt: 'ALTERNATE', desc: 'A longer routing around the storm — adds fuel burn and time, but gets the aircraft in eventually. Not suitable for aircraft with very limited fuel.' },
+          ].map(r => (
+            <div key={r.opt} style={{ marginBottom: 10 }}>
+              <span style={{ color: C.amberL, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}>{r.opt} — </span>
+              <span style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5 }}>{r.desc}</span>
+            </div>
+          ))}
+        </div>
+        <ActionBtn onClick={() => setStep('assign')}>Assign Aircraft</ActionBtn>
+      </div>
+    </ATCConsole>
+  );
+
+  if (step === 'assign') return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ color: C.blueL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 2 }}>
+          ASSIGN AN ACTION TO EACH AIRCRAFT
+        </div>
+        <div style={{ background: 'rgba(120,53,15,0.08)', border: `1px solid rgba(217,119,6,0.2)`, borderRadius: 6, padding: '8px 12px', marginBottom: 4 }}>
+          <span style={{ color: C.amberL, fontSize: 10, fontFamily: 'monospace', letterSpacing: 1 }}>REMINDER — </span>
+          <span style={{ color: C.amberL, fontSize: 11 }}>Holding is limited to 2 aircraft at a time. Alternate routing adds significant fuel burn.</span>
+        </div>
+        {FLIGHT_LIST.map(a => (
+          <div key={a.id} style={{
+            background: a.alert ? 'rgba(120,53,15,0.12)' : C.card,
+            border: `1px solid ${a.alert ? 'rgba(217,119,6,0.35)' : C.border}`,
+            borderRadius: 8, padding: '10px 13px',
+          }}>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: a.alert ? C.amberL : C.blueL, fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>
+                {a.callsign}
+              </span>
+              <span style={{ color: C.dimM, fontSize: 11, marginLeft: 10 }}>{a.detail}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              {(['direct', 'hold', 'alternate'] as const).map(opt => (
+                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name={a.id}
+                    value={opt}
+                    checked={assignments[a.id] === opt}
+                    onChange={() => setAssignments(prev => ({ ...prev, [a.id]: opt }))}
+                    style={{ accentColor: C.blueL, cursor: 'pointer' }}
+                  />
+                  <span style={{ color: C.text, fontSize: 12, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                    {opt === 'direct' ? 'Direct' : opt === 'hold' ? 'Hold' : 'Alternate'}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        {allAssigned && (
+          <ActionBtn onClick={() => setStep('coordinate')}>Confirm Assignments — Write Coordination Message</ActionBtn>
+        )}
+      </div>
+    </ATCConsole>
+  );
+
+  // Step: write sector coordination message to Edmonton Area Control Centre
+  return (
+    <ATCConsole aircraft={radarAircraft} aircraftInfoRows={infoRows}
+      scenarioNum={4} scenarioLabel="Weather Deviation">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SituationCard>
+          <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+            The Edmonton Area Control Centre (ACC) is currently managing these five aircraft
+            before handing them to you. They need a brief message from you so they can start
+            sequencing aircraft based on your plan.
+          </p>
+          <p style={{ color: C.dimM, fontSize: 12, lineHeight: 1.5, marginTop: 8, marginBottom: 0 }}>
+            Write a short coordination message covering the situation and your plan.
+            You don't need aviation jargon — focus on being clear about what's happening
+            and what you're doing with each aircraft.
+          </p>
+        </SituationCard>
+        {/* Assignment summary for reference */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 13px' }}>
+          <div style={{ color: C.dim, fontSize: 9, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 7 }}>
+            YOUR ASSIGNMENTS — FOR REFERENCE
+          </div>
+          {FLIGHT_LIST.map(a => (
+            <div key={a.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ color: C.dimM, fontSize: 11, fontFamily: 'monospace', minWidth: 100 }}>{a.callsign}</span>
+              <span style={{
+                color: assignments[a.id] === 'direct' ? C.greenL : assignments[a.id] === 'hold' ? C.amberL : C.blueL,
+                fontSize: 11, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 0.5,
+              }}>
+                {assignments[a.id] === 'direct' ? 'Direct' : assignments[a.id] === 'hold' ? 'Hold' : 'Alternate Route'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <ResponseInput
+          context="Write your coordination message to Edmonton ACC. Cover the weather situation, which aircraft have priority, and what your plan is."
+          label="Send coordination message"
+          onSubmit={async text => {
+            const token = localStorage.getItem('aacp_access_token');
+
+            // ── Multitasking score ─────────────────────────────────────────────
+            // Behavioural: did they engage with all five aircraft under constraints?
+            // Rewards defensible priority reasoning, not a single correct sequence.
+            const holdCount = Object.values(assignments).filter(v => v === 'hold').length;
+            const cdr7Action  = assignments['cdr7'];   // medical — hold is clearly problematic
+            const spr22Action = assignments['spr22'];  // low fuel — alternate adds burn risk
+
+            let mtScore = 0.35; // base: assigned all 5 (demonstrated multitasking)
+            if (holdCount <= 2) mtScore += 0.20;       // respected capacity constraint
+            if (cdr7Action !== 'hold') mtScore += 0.15; // medical not held (defensible: direct or alternate)
+            if (spr22Action !== 'alternate') mtScore += 0.10; // low-fuel not sent on longer route
+            mtScore = Math.min(0.80, mtScore);
+
+            // ── Communication quality score ────────────────────────────────────
+            // AI classification of coordination message.
+            // Rewards clear situational framing, priority flagging, and action clarity.
+            const coordIndicators: M7Indicator[] = [
+              { id: 'names_wx',       label: 'Describes the weather situation or why the normal route is blocked',                               positive: true  },
+              { id: 'states_plan',    label: 'States planned actions (direct / hold / alternate) for at least some of the aircraft',             positive: true  },
+              { id: 'flags_priority', label: 'Explicitly flags one or both priority aircraft (medical or low fuel) as needing attention',        positive: true  },
+              { id: 'clear_message',  label: 'Message is organised and easy to understand — another controller could act on it without guessing', positive: true  },
+              { id: 'vague_missing',  label: 'Message is vague, incomplete, or omits the weather context entirely',                              positive: false },
+            ];
+            const coordKeys = [
+              { id: 'names_wx',       competency: 'communication_quality' },
+              { id: 'states_plan',    competency: 'communication_quality' },
+              { id: 'flags_priority', competency: 'communication_quality' },
+              { id: 'clear_message',  competency: 'communication_quality' },
+              { id: 'vague_missing',  competency: 'communication_quality' },
+            ];
+            const detected = await classifyM7Response(
+              'Nav Canada TRACON — Calgary (CYYC). Storm cell blocking standard arrival. Five inbound aircraft: MAPLE 401 (fuel adequate), SPRUCE 22 (low fuel — priority), CEDAR 7 (medical on board — priority), BIRCH 55 and LARCH 19 (no special status). Holding limited to 2 aircraft. Alternate route available but adds fuel burn. Participant has assigned each aircraft an action and is writing a coordination message to Edmonton Area Control Centre.',
+              'Edmonton ACC: requesting coordination for CYYC arrivals — weather deviation in effect.',
+              text, coordIndicators, '/acia/chat', token,
+            );
+            const cqDeltas = indicatorsToDeltas(detected, coordIndicators, coordKeys);
+            onComplete([
+              { key: 'multitasking_ability',  delta: mtScore },
+              { key: 'communication_quality', delta: Math.min(0.80, cqDeltas['communication_quality'] ?? 0.2) },
+            ]);
+          }}
+        />
+      </div>
+    </ATCConsole>
+  );
+}
+
+// ── Scenario 5 — DM/AL (dual transmission) + AL adaptability + curiosity ──────
+function Scenario5({ onComplete }: { onComplete: (ev: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [step, setStep] = useState<'intro' | 'maple' | 'northern' | 'respond' | 'ack' | 'update' | 'respond2'>('intro');
+  const [sel, setSel] = useState<string | undefined>(undefined);
+  const responseRef = useRef('');
+  const s5ClarifiedRef = useRef(false);
+
+  const aircraftAlert: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 140, y: 98, visible: true, status: 'Technical Issue', alert: true },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, visible: true, status: 'Ground — Standby' },
+  ];
+  const info = [
+    { callsign: 'MAPLE 214', status: 'Technical issue reported', alert: true },
+    { callsign: 'NORTHERN 305', status: 'Ground — standing by' },
+  ];
+
+  if (step === 'intro') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <SituationCard>
+        <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          Two transmissions are arriving at the same time. Both aircraft are on your display.
+          Listen to both messages and decide how to respond.
+        </p>
+        <p style={{ color: C.dimM, fontSize: 12, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+          Respond clearly and ask questions if you need more information.
+        </p>
+      </SituationCard>
+      <ActionBtn onClick={() => setStep('maple')}>Open Channel</ActionBtn>
+    </ATCConsole>
+  );
+
+  if (step === 'maple') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. We've experienced a technical issue and need assistance. Our arrival plans may change."
+        onReady={() => setStep('northern')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'northern') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ background: 'rgba(127,29,29,0.1)', border: `1px solid rgba(220,38,38,0.25)`, borderRadius: 7, padding: '8px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.red, display: 'inline-block' }} />
+            <span style={{ color: C.red, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>MAPLE 214 — PRIORITY</span>
+          </div>
+          <div style={{ color: '#fca5a5', fontSize: 12, fontStyle: 'italic' }}>
+            "We've experienced a technical issue and need assistance. Our arrival plans may change."
+          </div>
+        </div>
+        <PilotMessage
+          callsign="NORTHERN 305"
+          message="Tower, Northern 305. Still preparing on the ground, no changes on our end."
+          onReady={() => setStep('respond')}
+        />
+      </div>
+    </ATCConsole>
+  );
+
+  if (step === 'respond') return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 4 }}>
+          <div style={{ background: 'rgba(127,29,29,0.1)', border: `1px solid rgba(220,38,38,0.25)`, borderRadius: 6, padding: '7px 10px' }}>
+            <div style={{ color: C.red, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 3 }}>MAPLE 214</div>
+            <div style={{ color: '#fca5a5', fontSize: 12, fontStyle: 'italic' }}>
+              "We've experienced a technical issue and need assistance."
+            </div>
+          </div>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 10px' }}>
+            <div style={{ color: C.dim, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5, marginBottom: 3 }}>NORTHERN 305</div>
+            <div style={{ color: C.dimM, fontSize: 12, fontStyle: 'italic' }}>
+              "Still preparing on the ground, no changes on our end."
+            </div>
+          </div>
+        </div>
+        <ResponseInput
+          context="Respond to the transmissions you just heard. You can address both aircraft in one response."
+          onSubmit={async text => {
+            responseRef.current = text;
+            // Route to 'ack' if participant sought clarification about the technical issue
+            const token = localStorage.getItem('aacp_access_token');
+            const clarifyCheck: M7Indicator[] = [
+              { id: 'asks_followup', label: 'Asks for more information about the nature or severity of the technical issue', positive: true },
+            ];
+            const clarifyKeys = [{ id: 'asks_followup', competency: 'decision_quality' }];
+            const detected = await classifyM7Response(
+              'MAPLE 214 reported a vague technical issue. Controller decides how to respond.',
+              'We\'ve experienced a technical issue and need assistance. Our arrival plans may change.',
+              text, clarifyCheck, '/acia/chat', token,
+            );
+            s5ClarifiedRef.current = detected.includes('asks_followup');
+            if (s5ClarifiedRef.current) setStep('ack');
+            else setStep('update');
+          }}
+        />
+      </div>
+    </ATCConsole>
+  );
+
+  return (
+    <ATCConsole aircraft={aircraftAlert} aircraftInfoRows={info} selectedId={sel} onSelectAircraft={setSel}
+      scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'rgba(8,14,28,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: C.blue }} />
+            <span style={{ color: C.blue, fontSize: 8, fontFamily: 'monospace', letterSpacing: 1.5 }}>
+              MAPLE 214 — RESPONSE
+            </span>
+          </div>
+          <div style={{ color: C.text, fontSize: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+            "Maple 214. We have an issue with our navigation system — minor, we believe. Monitoring the situation. Will keep you updated."
+          </div>
+        </div>
+        <FeedbackCard
+          message="You sought additional information from MAPLE 214. That kind of follow-up communication is a key part of managing uncertainty in operational environments."
+          onNext={() => setStep('update')}
+          nextLabel="CONTINUE"
+        />
+      </div>
+    </ATCConsole>
+  );
+
+  // Phase 2: MAPLE 214 updates — issue may be resolved, but uncertain
+  const aircraftUpdate: Aircraft[] = [
+    { id: 'maple', callsign: 'MAPLE 214', x: 140, y: 98, visible: true, status: 'Status Updating' },
+    { id: 'northern', callsign: 'NTH 305', x: 106, y: 145, visible: true, status: 'Ground — Standby' },
+  ];
+  const infoUpdate = [
+    { callsign: 'MAPLE 214', status: 'Technical issue — possibly resolved' },
+    { callsign: 'NORTHERN 305', status: 'Ground — standing by' },
+  ];
+
+  if (step === 'update') return (
+    <ATCConsole aircraft={aircraftUpdate} aircraftInfoRows={infoUpdate}
+      selectedId={sel} onSelectAircraft={setSel} scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+      <PilotMessage
+        callsign="MAPLE 214"
+        message="Tower, Maple 214. The technical issue may have cleared — our instruments are reading normally now. We believe we can proceed with our original approach. However, we're not entirely certain the issue is fully resolved."
+        onReady={() => setStep('respond2')}
+      />
+    </ATCConsole>
+  );
+
+  if (step === 'respond2') {
+    return (
+      <ATCConsole aircraft={aircraftUpdate} aircraftInfoRows={infoUpdate}
+        incomingMsg="Tower, Maple 214. The technical issue may have cleared. We believe we can proceed, but we're not entirely certain the issue is fully resolved."
+        pilotCallsign="MAPLE 214" pilotSpeaking={false}
+        selectedId={sel} onSelectAircraft={setSel} scenarioNum={5} scenarioLabel="Unexpected Operational Event">
+        <ResponseInput
+          context="MAPLE 214 says the issue may be resolved but they are not certain. How do you respond to this update?"
+          onSubmit={async text => {
+            const token = localStorage.getItem('aacp_access_token');
+            const s5Indicators: M7Indicator[] = [
+              { id: 'probes_uncertainty', label: 'Asks a follow-up question about whether the issue is fully resolved before proceeding', positive: true },
+              { id: 'requests_confirmation', label: 'Requests the pilot confirm system status before continuing the approach', positive: true },
+              { id: 'acknowledges_update', label: 'Acknowledges the status update from the pilot', positive: true },
+              { id: 'proceeds_without_check', label: 'Clears the aircraft to proceed without addressing the stated uncertainty', positive: false },
+            ];
+            const s5Keys = [
+              { id: 'probes_uncertainty', competency: 'curiosity' },
+              { id: 'requests_confirmation', competency: 'decision_quality' },
+              { id: 'acknowledges_update', competency: 'learning_agility' },
+              { id: 'proceeds_without_check', competency: 'decision_quality' },
+            ];
+            const detected = await classifyM7Response(
+              'MAPLE 214 reports a technical issue may have cleared but pilot is not fully certain. Controller must decide how to respond to this uncertain update.',
+              'The technical issue may have cleared — our instruments are reading normally now. We believe we can proceed with our original approach. However, we\'re not entirely certain the issue is fully resolved.',
+              text, s5Indicators, '/acia/chat', token,
+            );
+            const deltas = indicatorsToDeltas(detected, s5Indicators, s5Keys);
+            // Bonus for clarifying in the first response
+            const clarityBonus = s5ClarifiedRef.current ? 0.10 : 0;
+            onComplete([
+              { key: 'decision_quality', delta: Math.min(0.80, (deltas['decision_quality'] ?? 0.2) + clarityBonus) },
+              { key: 'learning_agility', delta: Math.min(0.70, deltas['learning_agility'] ?? 0.2) },
+              { key: 'curiosity', delta: Math.min(0.80, deltas['curiosity'] ?? 0.2) },
+            ]);
+          }}
+        />
+      </ATCConsole>
+    );
+  }
+
+  return null;
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 interface Props {
+  isRpas?: boolean;
+  sessionId?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function ATCCommunication({ onComplete }: Props) {
+// ── Main export ───────────────────────────────────────────────────────────────
+export function ATCCommunication({ isRpas, sessionId, onComplete }: Props) {
+  if (isRpas) {
+    return <ATCCommunicationCore exercises={RPAS_EXERCISES} questions={M7_RPAS_QUESTIONS} onComplete={onComplete} />;
+  }
+  return <ATCMission7 sessionId={sessionId} onComplete={onComplete} />;
+}
+
+// ── New immersive orchestrator (non-RPAS) ─────────────────────────────────────
+function ATCMission7({ sessionId, onComplete }: { sessionId?: string; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
+  const [phase, setPhase] = useState<Phase>('welcome');
+  const wmEvidenceRef = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
+  const evidenceRef = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
+  const pendingRef = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
+
+  function addEvidence(ev: Omit<EvidenceItem, 'mission'>[]) {
+    evidenceRef.current = [...evidenceRef.current, ...ev];
+  }
+
+  if (phase === 'welcome') return <WelcomeScreen onEnter={() => setPhase('setup')} />;
+  if (phase === 'setup') return <SetupScreen onReady={() => setPhase('s1')} />;
+
+  if (phase === 's1') return (
+    <Scenario1 onComplete={ev => { addEvidence(ev); setPhase('wm'); }} />
+  );
+
+  if (phase === 'wm') {
+    return (
+      <ATCBriefing
+        sessionId={sessionId}
+        onComplete={(wmEv: WMEvidence) => {
+          // ── Preserved exactly ──────────────────────────────────────────────
+          const submissionId = crypto.randomUUID();
+          const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
+          if (token) {
+            fetch('/acia/wm-evidence', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ submissionId, sessionId, wmEvidence: wmEv }),
+            }).catch(() => {});
+          }
+          const interp = interpretWMEvidence(wmEv);
+          try { localStorage.setItem(`acia_wm_interpretation_${sessionId ?? 'local'}`, JSON.stringify(interp)); } catch { /* ignore */ }
+          let wmDelta = 0;
+          if (interp.state === 'observed') {
+            const d = interp.dimensions;
+            wmDelta += d.retention === 'accurate' ? 0.25 : d.retention === 'partial' ? 0.12 : 0;
+            wmDelta += d.updateTracking === 'accurate' ? 0.25 : d.updateTracking === 'partial' ? 0.10 : 0;
+            wmDelta += d.interferenceManagement === 'clean' ? 0.10 : 0;
+            wmDelta = Math.min(0.60, wmDelta);
+          }
+          wmEvidenceRef.current = [{ key: 'working_memory', delta: wmDelta }];
+          // ── End preserved block ────────────────────────────────────────────
+          setPhase('s3');
+        }}
+      />
+    );
+  }
+
+  if (phase === 's3') return <Scenario3 onComplete={ev => { addEvidence(ev); setPhase('s4'); }} />;
+  if (phase === 's4') return <Scenario4 onComplete={ev => { addEvidence(ev); setPhase('s5'); }} />;
+
+  if (phase === 's5') return (
+    <Scenario5 onComplete={ev => {
+      addEvidence(ev);
+      pendingRef.current = [...wmEvidenceRef.current, ...evidenceRef.current, ...ev];
+      setPhase('reflection');
+    }} />
+  );
+
+  if (phase === 'reflection') {
+    return (
+      <div style={{ background: C.bg, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative' }}>
+          <img src="/images/atc-tower-night.webp" alt="" aria-hidden
+            style={{ width: '100%', height: 120, objectFit: 'cover', objectPosition: 'center 40%', display: 'block' }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(5,8,15,0.4) 0%, rgba(5,8,15,0.95) 100%)',
+          }} />
+          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16 }}>
+            <div style={{ color: C.blueXL, fontSize: 9, fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
+              MISSION COMPLETE — REFLECTION
+            </div>
+            <p style={{ color: C.dimM, fontSize: 12, marginTop: 4, marginBottom: 0, lineHeight: 1.5 }}>
+              Before we close, take a moment to reflect on what you experienced.
+            </p>
+          </div>
+        </div>
+        <div style={{ padding: 16 }}>
+          <MissionReasoningResponse
+            questions={M7_QUESTIONS}
+            storageKey="acia_m7_reasoning"
+            onComplete={() => onComplete(pendingRef.current)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ── ATCCommunicationCore — RPAS path (unchanged logic) ────────────────────────
+function ATCCommunicationCore({ exercises, questions, onComplete }: {
+  exercises: CommunicationExercise[];
+  questions: ReasoningQuestion[];
+  onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
+}) {
   const [exIdx, setExIdx] = useState(0);
   const [inputs, setInputs] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [showSourceHints, setShowSourceHints] = useState(false);
   const [allScores, setAllScores] = useState<number[]>([]);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
 
-  const ex = EXERCISES[exIdx];
-  const isLast = exIdx === EXERCISES.length - 1;
+  const ex = exercises[exIdx];
+  const isLast = exIdx === exercises.length - 1;
 
-  function init() {
-    setInputs(new Array(ex.blanks.length).fill(''));
-  }
+  function init() { setInputs(new Array(ex.blanks.length).fill('')); }
   if (inputs.length !== ex.blanks.length) init();
 
   function setInput(idx: number, val: string) {
@@ -169,18 +1738,14 @@ export function ATCCommunication({ onComplete }: Props) {
     if (isLast) {
       const allFinal = [...allScores];
       const avg = allFinal.reduce((a, b) => a + b, 0) / allFinal.length;
-      const emergencyScore = allScores[2] ?? 0;
-      const handoverScore = allScores[3] ?? 0;
-
-      const evidence: Omit<EvidenceItem, 'mission'>[] = [
+      pendingEvidence.current = [
         { key: 'communication_quality', delta: avg * 0.9 },
         { key: 'procedural_compliance', delta: avg * 0.85 },
         { key: 'attention_to_detail', delta: avg * 0.8 },
-        { key: 'situational_awareness', delta: emergencyScore > 0.6 ? 0.75 : 0.35 },
-        { key: 'stress_response', delta: emergencyScore > 0.7 ? 0.7 : 0.35 },
-        { key: 'systematic_reasoning', delta: handoverScore > 0.7 ? 0.65 : 0.3 },
+        { key: 'situational_awareness', delta: (allScores[0] ?? 0) > 0.6 ? 0.75 : 0.35 },
+        { key: 'systematic_reasoning', delta: (allScores[3] ?? 0) > 0.7 ? 0.65 : 0.3 },
       ];
-      onComplete(evidence);
+      setShowReasoning(true);
     } else {
       setExIdx(i => i + 1);
       setInputs([]);
@@ -189,104 +1754,100 @@ export function ATCCommunication({ onComplete }: Props) {
     }
   }
 
-  const transmissionColor = ex.id === 'e3' ? '#ef4444' : ex.id === 'e4' ? '#a855f7' : '#60a5fa';
-  const transmissionBg = ex.id === 'e3' ? '#1a0505' : ex.id === 'e4' ? '#1a0d2a' : '#0f1520';
-  const transmissionBorder = ex.id === 'e3' ? '#3a0505' : ex.id === 'e4' ? '#2a1a4a' : '#1e3a5f';
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 16px' }}>
+          <div style={{ color: C.blueL, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Air Navigation Communication — Reflection</div>
+          <div style={{ color: C.dimM, fontSize: 13 }}>You've completed all communication exercises. Reflect on how information moves between people in operational environments.</div>
+        </div>
+        <MissionReasoningResponse questions={questions} storageKey="acia_m7_reasoning" onComplete={() => onComplete(pendingEvidence.current)} />
+      </div>
+    );
+  }
+
+  const txColor = ex.id === 're3' ? C.red : ex.id === 're4' ? '#a855f7' : C.blueL;
+  const txBg = ex.id === 're3' ? 'rgba(127,29,29,0.12)' : ex.id === 're4' ? 'rgba(88,28,135,0.12)' : 'rgba(8,14,28,0.9)';
+  const txBorder = ex.id === 're3' ? 'rgba(220,38,38,0.25)' : ex.id === 're4' ? 'rgba(168,85,247,0.25)' : C.borderL;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Progress dots */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {EXERCISES.map((_, i) => (
+        {exercises.map((_, i) => (
           <div key={i} style={{
             width: i === exIdx ? 24 : 8, height: 8, borderRadius: 4,
-            background: i < exIdx ? C.green : i === exIdx ? C.crimson : C.border,
+            background: i < exIdx ? C.green : i === exIdx ? C.action : C.border,
             transition: 'all 0.2s',
           }} />
         ))}
-        <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>
-          Exercise {exIdx + 1}/{EXERCISES.length} — {ex.title}
+        <span style={{ color: C.dim, fontSize: 11, marginLeft: 8, fontFamily: 'monospace' }}>
+          {String(exIdx + 1).padStart(2, '0')}/{exercises.length} — {ex.title.toUpperCase()}
         </span>
       </div>
 
-      {/* First-timer guide */}
-      <div style={{
-        background: '#1a1505', border: '1px solid #3d2e05',
-        borderRadius: 10, padding: '10px 14px',
-      }}>
-        <div style={{ color: '#fbbf24', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-          How to complete this exercise
+      <div style={{ background: 'rgba(120,85,10,0.12)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 8, padding: '10px 14px' }}>
+        <div style={{ color: C.amberL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 4 }}>
+          EXERCISE GUIDE
         </div>
         <div style={{ color: '#e2c77a', fontSize: 13, lineHeight: 1.6 }}>{ex.guide}</div>
       </div>
 
-      {/* Scenario briefing */}
       {ex.scenarioBriefing && (
-        <div style={{ background: '#0f1a2e', border: '1px solid #1e3a5f', borderRadius: 12, padding: 16 }}>
-          <div style={{ color: '#60a5fa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Scenario Briefing — your answers come from here
+        <div style={{ background: 'rgba(8,17,32,0.9)', border: `1px solid ${C.borderL}`, borderRadius: 10, padding: 16 }}>
+          <div style={{ color: C.blueL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 10 }}>
+            SCENARIO BRIEFING
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {ex.scenarioBriefing.map(fact => (
               <div key={fact.label} style={{ display: 'flex', gap: 10, fontSize: 13, lineHeight: 1.5 }}>
-                <span style={{ color: '#93c5fd', fontWeight: 600, minWidth: 160, flexShrink: 0 }}>{fact.label}:</span>
-                <span style={{ color: C.white }}>{fact.value}</span>
+                <span style={{ color: C.blueXL, fontWeight: 600, minWidth: 160, flexShrink: 0 }}>{fact.label}:</span>
+                <span style={{ color: C.text }}>{fact.value}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ATC transmission */}
-      <div style={{ background: transmissionBg, border: `1px solid ${transmissionBorder}`, borderRadius: 12, padding: 16 }}>
-        <div style={{ color: transmissionColor, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-          {ex.id === 'e4' ? 'Incoming Controller' : 'ATC Transmission'} — {ex.title}
+      <div style={{ background: txBg, border: `1px solid ${txBorder}`, borderRadius: 10, padding: 14 }}>
+        <div style={{ color: txColor, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
+          {ex.id === 're4' ? 'INCOMING OPERATOR' : 'INCOMING TRANSMISSION'} — {ex.title.toUpperCase()}
         </div>
-        <div style={{ color: C.white, fontSize: 14, lineHeight: 1.65, fontStyle: 'italic' }}>
+        <div style={{ color: C.text, fontSize: 14, lineHeight: 1.65, fontStyle: 'italic' }}>
           "{ex.atcTransmission}"
         </div>
       </div>
 
-      {/* Response template */}
-      <div style={{ background: '#0d120d', border: '1px solid #1a2e1a', borderRadius: 10, padding: '10px 14px' }}>
-        <div style={{ color: '#4ade80', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-          Response template — fill in the blanks below
+      <div style={{ background: 'rgba(10,18,12,0.9)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+        <div style={{ color: C.greenL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 4 }}>
+          RESPONSE TEMPLATE
         </div>
         <div style={{ color: '#86efac', fontSize: 12, lineHeight: 1.7, fontFamily: 'monospace' }}>{ex.template}</div>
       </div>
 
-      {/* Fill-in form */}
-      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ color: C.grey, fontSize: 12 }}>
-            Compose your <strong style={{ color: C.white }}>
-              {ex.id === 'e3' ? 'MAYDAY transmission' : ex.id === 'e4' ? 'sector handover' : 'readback'}
-            </strong> as <strong style={{ color: C.white }}>{ex.callsign}</strong>:
+          <div style={{ color: C.dimM, fontSize: 12 }}>
+            Compose as <strong style={{ color: C.text }}>{ex.callsign}</strong>:
           </div>
           {!revealed && (
-            <button
-              onClick={() => setShowSourceHints(v => !v)}
-              style={{
-                background: 'transparent', border: '1px solid #3d2e05',
-                borderRadius: 6, padding: '4px 10px',
-                color: '#fbbf24', fontSize: 11, cursor: 'pointer',
-                touchAction: 'manipulation', flexShrink: 0, marginLeft: 12,
-              }}
-            >
-              {showSourceHints ? 'Hide hints' : 'Where do I find this?'}
+            <button onClick={() => setShowSourceHints(v => !v)} style={{
+              background: 'transparent', border: `1px solid rgba(217,119,6,0.3)`, borderRadius: 6,
+              padding: '4px 10px', color: C.amberL, fontSize: 10, cursor: 'pointer',
+              touchAction: 'manipulation', flexShrink: 0, marginLeft: 12, fontFamily: 'monospace',
+            }}>
+              {showSourceHints ? 'HIDE HINTS' : 'WHERE DO I FIND THIS?'}
             </button>
           )}
         </div>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {ex.blanks.map((blank, i) => (
             <div key={i}>
-              <label style={{ color: C.grey, fontSize: 11, display: 'block', marginBottom: 3 }}>
-                {ex.hints[i]}
+              <label style={{ color: C.dim, fontSize: 11, display: 'block', marginBottom: 3, fontFamily: 'monospace' }}>
+                {ex.hints[i].toUpperCase()}
               </label>
               {showSourceHints && !revealed && (
-                <div style={{ color: '#fbbf24', fontSize: 11, marginBottom: 4, fontStyle: 'italic' }}>
-                  → {ex.sourceHints[i]}
+                <div style={{ color: C.amberL, fontSize: 11, marginBottom: 4, fontStyle: 'italic' }}>
+                  — {ex.sourceHints[i]}
                 </div>
               )}
               <input
@@ -297,27 +1858,18 @@ export function ATCCommunication({ onComplete }: Props) {
                 style={{
                   width: '100%',
                   background: revealed
-                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0])
-                      ? '#0f1a0f'
-                      : '#1a0505'
+                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? 'rgba(22,163,74,0.1)' : 'rgba(127,29,29,0.1)'
                     : C.bg,
                   border: `1px solid ${revealed
-                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0])
-                      ? '#1a3a1a'
-                      : '#3a0505'
+                    ? inputs[i]?.trim().toLowerCase().includes(blank.toLowerCase().split(' ')[0]) ? 'rgba(22,163,74,0.4)' : 'rgba(220,38,38,0.3)'
                     : C.border}`,
-                  borderRadius: 8,
-                  color: C.white,
-                  padding: '10px 12px',
-                  fontSize: 14,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  touchAction: 'manipulation',
+                  borderRadius: 7, color: C.text, padding: '10px 12px',
+                  fontSize: 14, outline: 'none', boxSizing: 'border-box', touchAction: 'manipulation',
                 }}
               />
               {revealed && (
-                <div style={{ color: C.grey, fontSize: 11, marginTop: 3 }}>
-                  Expected: <span style={{ color: C.green }}>{blank}</span>
+                <div style={{ color: C.dim, fontSize: 11, marginTop: 3, fontFamily: 'monospace' }}>
+                  EXPECTED: <span style={{ color: C.greenL }}>{blank}</span>
                 </div>
               )}
             </div>
@@ -326,36 +1878,31 @@ export function ATCCommunication({ onComplete }: Props) {
       </div>
 
       {revealed && (
-        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: 14 }}>
-          <div style={{ color: C.green, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>BRIEFING</div>
-          <div style={{ color: C.grey, fontSize: 13, lineHeight: 1.6 }}>{ex.explanation}</div>
+        <div style={{ background: 'rgba(10,18,12,0.9)', border: `1px solid rgba(22,163,74,0.2)`, borderRadius: 10, padding: 14 }}>
+          <div style={{ color: C.greenL, fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>BRIEFING</div>
+          <div style={{ color: C.dimM, fontSize: 13, lineHeight: 1.6 }}>{ex.explanation}</div>
         </div>
       )}
 
       {!revealed ? (
-        <button
-          onClick={confirm}
-          disabled={inputs.some(v => !v?.trim())}
-          style={{
-            background: inputs.some(v => !v?.trim()) ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: inputs.some(v => !v?.trim()) ? C.grey : 'white',
-            border: 'none', borderRadius: 12, padding: '14px',
-            cursor: inputs.some(v => !v?.trim()) ? 'not-allowed' : 'pointer',
-            fontWeight: 700, fontSize: 14, touchAction: 'manipulation',
-          }}
-        >
-          {ex.id === 'e3' ? 'Transmit MAYDAY' : ex.id === 'e4' ? 'Complete Handover' : 'Transmit Readback'}
+        <button onClick={confirm} disabled={inputs.some(v => !v?.trim())} style={{
+          background: inputs.some(v => !v?.trim()) ? C.card : `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: inputs.some(v => !v?.trim()) ? C.dim : 'white',
+          border: `1px solid ${inputs.some(v => !v?.trim()) ? C.border : C.action}`,
+          borderRadius: 10, padding: '13px',
+          cursor: inputs.some(v => !v?.trim()) ? 'not-allowed' : 'pointer',
+          fontWeight: 700, fontSize: 13, touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
+        }}>
+          SUBMIT RESPONSE
         </button>
       ) : (
-        <button
-          onClick={next}
-          style={{
-            background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-            color: 'white', border: 'none', borderRadius: 12, padding: '14px',
-            cursor: 'pointer', fontWeight: 700, fontSize: 14, touchAction: 'manipulation',
-          }}
-        >
-          {isLast ? 'Complete Mission →' : 'Next Exercise →'}
+        <button onClick={next} style={{
+          background: `linear-gradient(135deg, ${C.action}, ${C.actionH})`,
+          color: 'white', border: 'none', borderRadius: 10, padding: '13px',
+          cursor: 'pointer', fontWeight: 700, fontSize: 13,
+          touchAction: 'manipulation', fontFamily: 'monospace', letterSpacing: 1,
+        }}>
+          {isLast ? 'COMPLETE MISSION' : 'NEXT EXERCISE'}
         </button>
       )}
     </div>

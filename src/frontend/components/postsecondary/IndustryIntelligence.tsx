@@ -138,7 +138,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
             <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Top Industry Demand</div>
-            <button onClick={() => onNavigate('signals')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
+            <button onClick={() => onNavigate('signals')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all</button>
           </div>
           {signals.length === 0 ? (
             <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>Insufficient evidence</div>
@@ -166,7 +166,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
             <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Emerging Competencies</div>
-            <button onClick={() => onNavigate('emerging')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
+            <button onClick={() => onNavigate('emerging')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all</button>
           </div>
           {emergingActive.length === 0 ? (
             <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>Insufficient evidence</div>
@@ -195,7 +195,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
             <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Potential Programme Gaps</div>
-            <button onClick={() => onNavigate('gap')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all →</button>
+            <button onClick={() => onNavigate('gap')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>View all</button>
           </div>
           {gapWarnings.length === 0 ? (
             <div style={{ color: C.greyD, fontSize: 13, padding: '24px', textAlign: 'center' }}>
@@ -226,7 +226,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: PSTab) => void }) {
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ color: C.greyD, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>Programme Alignment</div>
-            <button onClick={() => onNavigate('curriculum')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Manage →</button>
+            <button onClick={() => onNavigate('curriculum')} style={{ background: 'none', border: 'none', color: C.crimson, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Manage</button>
           </div>
           {maps.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>

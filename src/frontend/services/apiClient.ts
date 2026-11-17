@@ -112,8 +112,9 @@ export async function request<T>(path: string, options: ApiRequestOptions = {}):
     throw new NetworkError('Unable to reach the server. Please check your connection and try again.');
   }
 
-  // On 401, attempt a single token refresh then retry
-  if (response.status === 401) {
+  // On 401, attempt a single token refresh then retry (skip for auth endpoints — they don't use Bearer tokens)
+  const isAuthEndpoint = path.startsWith('/auth/');
+  if (response.status === 401 && !isAuthEndpoint) {
     const refreshed = await tryRefresh();
     if (refreshed) {
       try {

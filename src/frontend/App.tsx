@@ -3,14 +3,14 @@ import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
 import { RpasHubDashboard } from './components/rpas/RpasHubDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
-import { AdminDashboard } from './components/dashboard/AdminDashboard';
+import { AdminDashboard, RpasHubAdminPanel, NetworkAdminPanel } from './components/dashboard/AdminDashboard';
 import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
 import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken, NetworkError, ServerError, ApiError } from './services/apiClient';
 import { PilotRegistrationForm } from './components/pilot/PilotRegistrationForm';
 import { ValidatorExperience } from './components/validator/ValidatorExperience';
 
-type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach';
+type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin' | 'coach' | 'network_member' | 'organization_admin' | 'aacp_industry_partner';
 
 interface AuthState {
   role: Role;
@@ -26,7 +26,7 @@ const CANADIAN_PROVINCES = [
 
 // ── Registration form ─────────────────────────────────────────────────────────
 
-type RegisterRole = Exclude<Role, 'admin'>;
+type RegisterRole = 'youth' | 'employer' | 'postsecondary';
 
 function RegisterForm({ onBack }: { onBack: () => void }) {
   const [role, setRole] = useState<RegisterRole>('youth');
@@ -448,7 +448,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
     try {
       await request('/auth/first-password-change', {
         method: 'POST',
-        body: { userId, email, currentPassword, newPassword: password },
+        body: { email, currentPassword, newPassword: password },
       });
       onDone();
     } catch (e: unknown) {
@@ -488,7 +488,7 @@ function ForcePasswordChangeForm({ userId, email, currentPassword, onDone }: {
   );
 }
 
-// ── MFA setup (first time for admin/super_admin) ──────────────────────────────
+// ── MFA setup (first time for MFA-enforced roles: admin, super_admin, employer, postsecondary) ──
 
 function MfaSetupForm({ email, password, otp, onSetupComplete }: {
   email: string;
@@ -536,7 +536,7 @@ function MfaSetupForm({ email, password, otp, onSetupComplete }: {
           Set Up Two-Factor Authentication
         </div>
         <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
-          MFA is required for administrator accounts. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter the key below.
+          Two-factor authentication is required for your account. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter the key below.
         </p>
         {setupMsg && <p className="login-msg" style={{ color: '#f87171' }}>{setupMsg}</p>}
         {secret ? (
@@ -777,25 +777,21 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
         localStorage.setItem('aacp_email_verified', res.emailVerified ? '1' : '0');
         if (res.participantType === 'rpas_direct') {
           localStorage.setItem('aacp_participant_type', 'rpas_direct');
-          setIsRpasHub(true);
         } else {
           localStorage.removeItem('aacp_participant_type');
-          setIsRpasHub(false);
         }
         onLogin({ role: res.role, userId: res.userId });
       }
     } catch (e: unknown) {
-      if (e instanceof NetworkError || e instanceof ServerError) {
-        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
-      } else if (e instanceof ApiError) {
-        const msg = e.message.toLowerCase();
-        if (msg.includes('mfa') || msg.includes('token') || msg.includes('authenticator') || msg.includes('invalid') || msg.includes('credentials')) {
-          setErrorMsg('Unable to sign in. Please verify your credentials and authentication code.');
-        } else {
-          setErrorMsg(e.message);
-        }
+      if (e instanceof NetworkError) {
+        setErrorMsg("We’re unable to connect to the authentication service. Please try again shortly.");
+      } else if (e instanceof ApiError && e.status === 401) {
+        setErrorMsg('Unable to sign in. Please verify your credentials and authentication code.');
+      } else if (e instanceof ApiError || e instanceof ServerError) {
+        const msg = (e as ApiError).message;
+        setErrorMsg(msg || 'Sign in failed. Please try again.');
       } else {
-        setErrorMsg('We’re unable to connect to the authentication service. Please try again shortly.');
+        setErrorMsg("We’re unable to connect to the authentication service. Please try again shortly.");
       }
     } finally {
       setLoading(false);
@@ -847,13 +843,14 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
 
 // ── Role → dashboard views ────────────────────────────────────────────────────
 
-type DashboardView = 'admin' | 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector' | 'industry';
+type DashboardView = 'admin' | 'youth' | 'rpas_hub' | 'coach' | 'employer' | 'postsecondary' | 'connector' | 'industry';
 
 function viewsForRole(role: Role): DashboardView[] {
-  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'coach', 'employer', 'postsecondary', 'industry'];
+  if (role === 'admin' || role === 'super_admin') return ['admin', 'connector', 'youth', 'rpas_hub', 'coach', 'employer', 'postsecondary', 'industry'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   if (role === 'coach') return ['coach'];
+  if (role === 'network_member' || role === 'organization_admin' || role === 'aacp_industry_partner') return ['industry'];
   return ['youth'];
 }
 
@@ -861,6 +858,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
   admin: 'Approvals',
   connector: 'AACP Connector',
   youth: 'Participant',
+  rpas_hub: 'RPAS Hub',
   coach: 'Career Advisor',
   employer: 'Employer',
   postsecondary: 'Post-Secondary',
@@ -918,6 +916,393 @@ function NetworkComingSoon() {
   );
 }
 
+// ── FAWN — Network Dashboard (Phase 2 will implement the full shell) ──────────
+
+// ── FAWN — Network Dashboard ──────────────────────────────────────────────────
+
+const NETWORK_TOPICS_LIST = [
+  'Workforce Supply','Workforce Demand','Skills & Competency','Training & Education',
+  'Regulatory Environment','Technology & Innovation','RPAS & Autonomous Aviation',
+  'Diversity & Inclusion','Industry Outlook','AACP Program News',
+];
+
+type NetworkTab = 'feed' | 'opportunities' | 'events' | 'profile';
+
+interface NetProfile { user: { firstName: string; lastName: string; email: string; role: string }; org: { id: number; name: string; orgType: string; memberRole: string } | null }
+interface FeedItem { type: string; id: number; title: string; body: string; topic: string; org_name: string; created_at: string }
+interface Opportunity { id: number; title: string; description: string; opportunity_type: string; created_at: string; org_name: string; expressed_interest: number }
+interface NetworkEvent { id: number; title: string; description: string; event_date: string; location: string | null; is_virtual: number; org_name: string; registered: number }
+
+function netFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
+  return fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers as Record<string,string> ?? {}) },
+  }).then(async r => {
+    const d = await r.json();
+    if (!r.ok) throw new Error((d as { error?: string }).error ?? 'Request failed');
+    return d as T;
+  });
+}
+
+function TopicBadge({ topic }: { topic: string }) {
+  return (
+    <span style={{ background: '#2a0d14', border: '1px solid #3d1020', color: '#c4b5c0', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      {topic}
+    </span>
+  );
+}
+
+function EmptyState({ msg }: { msg: string }) {
+  return <div style={{ color: '#94a3b8', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>{msg}</div>;
+}
+
+function NetCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '16px 20px', marginBottom: 12 }}>
+      {children}
+    </div>
+  );
+}
+
+function NetworkDashboard() {
+  const [tab, setTab] = useState<NetworkTab>('feed');
+  const [profile, setProfile] = useState<NetProfile | null>(null);
+  const [feed, setFeed] = useState<FeedItem[] | null>(null);
+  const [opps, setOpps] = useState<Opportunity[] | null>(null);
+  const [events, setEvents] = useState<NetworkEvent[] | null>(null);
+  const [subTopics, setSubTopics] = useState<string[]>([]);
+  const [loadedTabs, setLoadedTabs] = useState<Set<NetworkTab>>(new Set());
+  const [tabLoading, setTabLoading] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+  const [interestDone, setInterestDone] = useState<Set<number>>(new Set());
+  const [registeredEvts, setRegisteredEvts] = useState<Set<number>>(new Set());
+  const [subSaving, setSubSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  useEffect(() => {
+    netFetch<NetProfile>('/network/profile').then(p => {
+      setProfile(p);
+    }).catch(() => {});
+    netFetch<{ notifications: { is_read: number }[] }>('/network/notifications').then(d => {
+      setNotifCount(d.notifications.filter(n => !n.is_read).length);
+    }).catch(() => {});
+  }, []);
+
+  async function loadTab(t: NetworkTab) {
+    if (loadedTabs.has(t)) return;
+    setTabLoading(true);
+    try {
+      if (t === 'feed') {
+        const d = await netFetch<{ items: FeedItem[] }>('/network/feed');
+        setFeed(d.items);
+      } else if (t === 'opportunities') {
+        const d = await netFetch<{ opportunities: Opportunity[] }>('/network/opportunities');
+        setOpps(d.opportunities);
+        setInterestDone(new Set(d.opportunities.filter(o => o.expressed_interest).map(o => o.id)));
+      } else if (t === 'events') {
+        const d = await netFetch<{ events: NetworkEvent[] }>('/network/events');
+        setEvents(d.events);
+        setRegisteredEvts(new Set(d.events.filter(e => e.registered).map(e => e.id)));
+      } else if (t === 'profile') {
+        const d = await netFetch<{ subscriptions?: string[] }>('/network/notifications').catch(() => ({ subscriptions: [] }));
+        // load current subscriptions via feed endpoint side-effect: use dedicated fetch
+        const subs = await netFetch<{ topics?: string[] }>('/network/subscriptions').catch(() => ({ topics: [] }));
+        setSubTopics(subs.topics ?? []);
+      }
+      setLoadedTabs(prev => new Set([...prev, t]));
+    } catch { /* silent */ } finally { setTabLoading(false); }
+  }
+
+  useEffect(() => { loadTab('feed'); }, []);
+
+  function switchTab(t: NetworkTab) {
+    setTab(t);
+    loadTab(t);
+  }
+
+  async function expressInterest(id: number) {
+    setInterestDone(prev => new Set([...prev, id]));
+    try {
+      await netFetch(`/network/opportunities/${id}/express-interest`, { method: 'POST', body: JSON.stringify({}) });
+      showToast('Interest expressed');
+    } catch (e) {
+      setInterestDone(prev => { const n = new Set(prev); n.delete(id); return n; });
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    }
+  }
+
+  async function registerEvent(id: number) {
+    setRegisteredEvts(prev => new Set([...prev, id]));
+    try {
+      await netFetch(`/network/events/${id}/register`, { method: 'POST', body: JSON.stringify({}) });
+      showToast('Registered for event');
+    } catch (e) {
+      setRegisteredEvts(prev => { const n = new Set(prev); n.delete(id); return n; });
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    }
+  }
+
+  async function saveSubscriptions() {
+    setSubSaving(true);
+    try {
+      await netFetch('/network/subscriptions', { method: 'PUT', body: JSON.stringify({ topics: subTopics }) });
+      showToast('Subscriptions saved');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed', false);
+    } finally { setSubSaving(false); }
+  }
+
+  const TABS: { key: NetworkTab; label: string }[] = [
+    { key: 'feed', label: 'Feed' },
+    { key: 'opportunities', label: 'Opportunities' },
+    { key: 'events', label: 'Events' },
+    { key: 'profile', label: 'Profile' },
+  ];
+
+  const tabBtn = (t: NetworkTab, label: string) => (
+    <button key={t} onClick={() => switchTab(t)} style={{
+      background: 'none', border: 'none', cursor: 'pointer',
+      padding: '10px 16px', fontSize: 13, fontWeight: 600,
+      color: tab === t ? '#f1f5f9' : '#94a3b8',
+      borderBottom: `2px solid ${tab === t ? '#8F0909' : 'transparent'}`,
+      transition: 'color 0.15s, border-color 0.15s',
+    }}>{label}</button>
+  );
+
+  return (
+    <div style={{ background: '#0f0a0b', minHeight: '100%', fontFamily: 'DM Sans, sans-serif', color: '#f1f5f9' }}>
+      <style>{`.nd-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s; } .nd-btn:disabled { opacity: 0.45; cursor: default; }`}</style>
+
+      {/* Header */}
+      <div style={{ padding: '24px 24px 0', borderBottom: '1px solid #3d1020' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 6 }}>
+          Industry Network
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
+            AACP™ Future Aviation Workforce Network — Canada
+          </h1>
+          {profile && (
+            <span style={{ fontSize: 13, color: '#94a3b8' }}>
+              {profile.user.firstName} {profile.user.lastName}{profile.org ? ` · ${profile.org.name}` : ''}
+            </span>
+          )}
+          {notifCount > 0 && (
+            <span style={{ background: '#8F0909', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 12, padding: '2px 8px' }}>
+              {notifCount} new
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
+          {TABS.map(t => tabBtn(t.key, t.label))}
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: toast.ok ? '#166534' : '#7f1d1d', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>
+          {toast.msg}
+        </div>
+      )}
+
+      <div style={{ padding: '24px', maxWidth: 760, marginInline: 'auto' }}>
+        {tabLoading && <div style={{ color: '#94a3b8', fontSize: 14, padding: '20px 0' }}>Loading…</div>}
+
+        {/* Feed tab */}
+        {tab === 'feed' && !tabLoading && (
+          <div>
+            {!feed || feed.length === 0
+              ? <EmptyState msg="No updates yet — check back soon." />
+              : feed.map(item => (
+                <NetCard key={`${item.type}-${item.id}`}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <TopicBadge topic={item.topic} />
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{item.org_name}</span>
+                    <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                      {new Date(item.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{item.title}</div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7 }}>{item.body}</div>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Opportunities tab */}
+        {tab === 'opportunities' && !tabLoading && (
+          <div>
+            {!opps || opps.length === 0
+              ? <EmptyState msg="No opportunities posted yet — check back soon." />
+              : opps.map(o => (
+                <NetCard key={o.id}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ background: '#1e1029', border: '1px solid #4c1d95', color: '#a78bfa', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{o.opportunity_type}</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{o.org_name}</span>
+                    <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                      {new Date(o.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{o.title}</div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7, marginBottom: 12 }}>{o.description}</div>
+                  <button
+                    className="nd-btn"
+                    disabled={interestDone.has(o.id)}
+                    onClick={() => expressInterest(o.id)}
+                    style={{ background: interestDone.has(o.id) ? '#2d1f2b' : '#8F0909', color: '#fff' }}
+                  >
+                    {interestDone.has(o.id) ? 'Interest Expressed' : 'Express Interest'}
+                  </button>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Events tab */}
+        {tab === 'events' && !tabLoading && (
+          <div>
+            {!events || events.length === 0
+              ? <EmptyState msg="No upcoming events — check back soon." />
+              : events.map(e => (
+                <NetCard key={e.id}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ background: e.is_virtual ? '#0c2a1e' : '#0c1a2a', border: `1px solid ${e.is_virtual ? '#064e3b' : '#1e3a5f'}`, color: e.is_virtual ? '#34d399' : '#60a5fa', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      {e.is_virtual ? 'Virtual' : 'In-Person'}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{e.org_name}</span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{e.title}</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>
+                    {new Date(e.event_date).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                    {e.location ? ` · ${e.location}` : ''}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#c4b5c0', lineHeight: 1.7, marginBottom: 12 }}>{e.description}</div>
+                  <button
+                    className="nd-btn"
+                    disabled={registeredEvts.has(e.id)}
+                    onClick={() => registerEvent(e.id)}
+                    style={{ background: registeredEvts.has(e.id) ? '#2d1f2b' : '#8F0909', color: '#fff' }}
+                  >
+                    {registeredEvts.has(e.id) ? 'Registered' : 'Register'}
+                  </button>
+                </NetCard>
+              ))
+            }
+          </div>
+        )}
+
+        {/* Profile tab */}
+        {tab === 'profile' && !tabLoading && profile && (
+          <div>
+            <NetCard>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Account</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{profile.user.firstName} {profile.user.lastName}</div>
+              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: profile.org ? 16 : 0 }}>{profile.user.email}</div>
+              {profile.org && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Organization</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{profile.org.name}</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8' }}>{profile.org.orgType} · {profile.org.memberRole}</div>
+                </>
+              )}
+            </NetCard>
+            <NetCard>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Topic Subscriptions</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8, marginBottom: 16 }}>
+                {NETWORK_TOPICS_LIST.map(t => (
+                  <label key={t} style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontSize: 13, color: '#c4b5c0' }}>
+                    <input
+                      type="checkbox"
+                      checked={subTopics.includes(t)}
+                      onChange={ev => setSubTopics(prev => ev.target.checked ? [...prev, t] : prev.filter(x => x !== t))}
+                      style={{ accentColor: '#8F0909' }}
+                    />
+                    {t}
+                  </label>
+                ))}
+              </div>
+              <button className="nd-btn" disabled={subSaving} onClick={saveSubscriptions} style={{ background: '#8F0909', color: '#fff' }}>
+                {subSaving ? 'Saving…' : 'Save Subscriptions'}
+              </button>
+            </NetCard>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── FAWN — Network invite acceptance form (Phase 2 will implement full UI) ────
+
+function NetworkInviteAcceptForm({ token }: { token: string }) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [invite, setInvite] = useState<{ email: string; role: string; orgName: string | null } | null>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    fetch(`/network/invite/${token}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then((d: { email: string; role: string; orgName: string | null }) => { setInvite(d); setStatus('ready'); })
+      .catch(() => setStatus('error'));
+  }, [token]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true); setErrorMsg('');
+    try {
+      const r = await fetch(`/network/invite/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, password }),
+      });
+      const d = await r.json() as { success?: boolean; error?: string };
+      if (!r.ok) { setErrorMsg(d.error ?? 'Something went wrong'); setSubmitting(false); return; }
+      setDone(true);
+    } catch { setErrorMsg('Network error. Please try again.'); setSubmitting(false); }
+  }
+
+  if (status === 'loading') return <div style={{ padding: 48, color: '#94a3b8', fontSize: 14 }}>Loading invitation…</div>;
+  if (status === 'error') return <div style={{ padding: 48, color: '#f87171', fontSize: 14 }}>This invitation is invalid or has expired.</div>;
+  if (done) return (
+    <div style={{ padding: 48, maxWidth: 480 }}>
+      <div style={{ color: '#22c55e', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Account created</div>
+      <p style={{ color: '#94a3b8', fontSize: 14 }}>Your Industry Network account is ready. <a href="/" style={{ color: '#8F0909' }}>Sign in</a></p>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 48, maxWidth: 440 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: '#8F0909', marginBottom: 10 }}>Industry Network</div>
+      <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Accept Invitation</h2>
+      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24 }}>
+        {invite?.email}{invite?.orgName ? ` · ${invite.orgName}` : ''}
+      </p>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" required style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" required style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required minLength={8} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #3d1020', background: '#1a0d10', color: '#f1f5f9', fontSize: 14 }} />
+        {errorMsg && <div style={{ color: '#f87171', fontSize: 13 }}>{errorMsg}</div>}
+        <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg,#8F0909,#721010)', color: 'white', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+          {submitting ? 'Creating account…' : 'Create Account'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ── Main app shell ────────────────────────────────────────────────────────────
 
 export function App() {
@@ -926,10 +1311,13 @@ export function App() {
   const [adminPendingCount, setAdminPendingCount] = useState(0);
   const [isRpasHub, setIsRpasHub] = useState(() => localStorage.getItem('aacp_participant_type') === 'rpas_direct');
 
-  // Validator experience — path-based routing /validate/:token
-  const validateMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
-  if (validateMatch) {
-    return <ValidatorExperience token={validateMatch[1]} />;
+  // Validator experience — token arrives as ?validate=<token> (redirect from /validate/:token)
+  // or directly via path /validate/:token (kept for backwards compatibility)
+  const validateQueryToken = new URL(window.location.href).searchParams.get('validate');
+  const validatePathMatch = window.location.pathname.match(/^\/validate\/([a-f0-9]{64})$/);
+  const validateToken = validateQueryToken || (validatePathMatch ? validatePathMatch[1] : null);
+  if (validateToken) {
+    return <ValidatorExperience token={validateToken} />;
   }
 
   // Password reset — token arrives as ?reset=<token> in the URL
@@ -972,11 +1360,17 @@ export function App() {
     return <CoachInviteAcceptForm token={coachInviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
   }
 
+  // Industry Network invitation — token arrives as ?network_invite=<token>
+  const networkInviteToken = new URL(window.location.href).searchParams.get('network_invite');
+  if (networkInviteToken) {
+    return <NetworkInviteAcceptForm token={networkInviteToken} />;
+  }
+
   useEffect(() => {
     const token = getStoredToken();
     const role = localStorage.getItem('aacp_role') as Role | null;
-    const userId = localStorage.getItem('aacp_user_id') ?? 'restored';
-    if (token && role) {
+    const userId = localStorage.getItem('aacp_user_id');
+    if (token && role && userId) {
       setAuth({ role, userId });
       const views = viewsForRole(role);
       const hash = window.location.hash.replace('#', '') as DashboardView;
@@ -1009,6 +1403,7 @@ export function App() {
 
   function handleLogin(a: AuthState) {
     localStorage.setItem('aacp_user_id', a.userId);
+    setIsRpasHub(localStorage.getItem('aacp_participant_type') === 'rpas_direct');
     setAuth(a);
     setCurrentView(viewsForRole(a.role)[0]);
   }
@@ -1081,10 +1476,13 @@ export function App() {
         {currentView === 'admin'          && <AdminDashboard />}
         {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && (isRpasHub ? <RpasHubDashboard /> : <YouthDashboard />)}
+        {currentView === 'rpas_hub'       && (auth.role === 'admin' || auth.role === 'super_admin'
+          ? <><RpasHubAdminPanel /><RpasHubDashboard /></>
+          : <RpasHubDashboard />)}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
         {currentView === 'postsecondary'  && <IndustryIntelligence />}
-        {currentView === 'industry'       && <NetworkComingSoon />}
+        {currentView === 'industry'       && <NetworkDashboard />}
       </main>
     </div>
   );

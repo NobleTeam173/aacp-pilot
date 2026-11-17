@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACIA™ Workforce Intelligence — AACP™</title>
+  <meta name="description" content="ACIA™ Career Intelligence helps participants better understand their transferable strengths, potential career direction and next steps across aviation and aerospace." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#08020a; --surface:#100614; --border:#2e1035; --crimson:#80011f; --crimson-dim:#5c0116; --crimson-text:#e05575; --text:#f0eef2; --muted:#9490a0; --dim:#7a7582; --grey:#6B7074; }
+    html { scroll-behavior:smooth; }
+    body { font-family:'DM Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+
+    /* NAV */
+    nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0 6vw; height:68px; background:rgba(8,2,10,0.92); backdrop-filter:blur(20px); border-bottom:1px solid rgba(46,16,53,0.5); }
+    .nav-logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+    .nav-logo-mark { width:36px; height:36px; border-radius:9px; background:linear-gradient(135deg,#80011f,#a8022a); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:900; font-size:11px; color:#fff; }
+    .nav-logo-text { font-family:'Fraunces',serif; font-weight:700; font-size:15px; color:var(--text); letter-spacing:-0.3px; }
+    .nav-logo-sub { font-size:9px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-top:1px; }
+    .nav-links { display:flex; align-items:center; gap:28px; }
+    .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; font-weight:500; transition:color .2s; }
+    .nav-links a:hover, .nav-links a.active { color:var(--text); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .nav-join { color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; border:1.5px solid rgba(255,255,255,0.28); transition:all .2s; }
+    .nav-join:hover { background:rgba(255,255,255,0.08); }
+    .nav-signin { background:var(--crimson); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; transition:background .2s; }
+    .nav-signin:hover { background:var(--crimson-dim); }
+    .nav-burger { display:none; background:none; border:none; cursor:pointer; padding:6px; color:var(--text); }
+    .nav-burger svg { display:block; }
+    .nav-mobile-menu { display:none; position:fixed; top:68px; left:0; right:0; z-index:99; background:rgba(8,2,10,0.97); backdrop-filter:blur(20px); border-bottom:1px solid rgba(46,16,53,0.5); padding:16px 6vw 20px; flex-direction:column; gap:0; }
+    .nav-mobile-menu a { color:var(--muted); text-decoration:none; font-size:15px; font-weight:500; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.06); display:block; transition:color .2s; }
+    .nav-mobile-menu a:last-child { border-bottom:none; }
+    .nav-mobile-menu a:hover { color:var(--text); }
+    .nav-mobile-menu .mob-join { color:#fff; font-weight:700; margin-top:12px; border-bottom:none; }
+    .nav-mobile-menu .mob-signin { color:var(--crimson-text); font-weight:700; border-bottom:none; }
+    @media (max-width:960px) { .nav-links { display:none; } .nav-right .nav-join, .nav-right .nav-signin { display:none; } .nav-burger { display:block; } }
+    .nav-mobile-menu.open { display:flex; }
+
+    /* PAGE HEADER */
+    .page-header { padding:140px 6vw 80px; text-align:center; position:relative; overflow:hidden; background:var(--surface); }
+    .page-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 70% 60% at 50% 0%, rgba(128,1,31,0.15) 0%, transparent 70%); }
+    .page-header-content { position:relative; z-index:1; max-width:720px; margin:0 auto; }
+    .eyebrow { display:inline-block; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--crimson-text); margin-bottom:16px; border:1px solid rgba(224,85,117,0.35); background:rgba(224,85,117,0.08); border-radius:20px; padding:5px 14px; }
+    .page-header h1 { font-family:'Fraunces',serif; font-size:clamp(2.4rem,5vw,4rem); font-weight:900; letter-spacing:-2px; line-height:1.08; margin-bottom:20px; }
+    .page-header h1 em { font-style:italic; background:linear-gradient(130deg,#c0374f,#80011f,#6B7074); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-header p { font-size:1.05rem; color:var(--muted); line-height:1.8; max-width:580px; margin:0 auto; }
+
+    /* SECTIONS */
+    section { padding:88px 6vw; }
+    .section-eyebrow { font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--crimson-text); margin-bottom:14px; display:block; }
+    .section-title { font-family:'Fraunces',serif; font-size:clamp(1.8rem,3vw,2.6rem); font-weight:800; letter-spacing:-1.2px; line-height:1.1; margin-bottom:14px; }
+    .section-sub { font-size:1rem; color:var(--muted); line-height:1.8; max-width:580px; }
+    .divider { width:40px; height:2px; background:var(--crimson); border-radius:2px; margin:16px 0; }
+    .grid-max { max-width:1200px; margin:0 auto; }
+    .center { text-align:center; }
+    .center .section-sub { margin:0 auto; }
+    .center .divider { margin:16px auto; }
+
+    /* WHAT ACIA DOES */
+    .what-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:44px; }
+    .what-card { padding:24px 22px; border-radius:14px; background:var(--surface); border:1px solid rgba(46,16,53,0.5); position:relative; overflow:hidden; transition:border-color .2s; }
+    .what-card:hover { border-color:rgba(128,1,31,0.35); }
+    .what-card::before { content:''; position:absolute; top:0; left:0; bottom:0; width:2px; background:linear-gradient(180deg,var(--crimson),var(--crimson-dim)); }
+    .what-card h4 { font-size:0.95rem; font-weight:700; margin-bottom:8px; }
+    .what-card p { font-size:0.84rem; color:var(--muted); line-height:1.72; }
+
+    /* ACIA COMPARISON */
+    .compare-section { background:var(--surface); }
+    .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:52px; }
+    .compare-card { border-radius:18px; padding:36px 32px; border:1px solid rgba(46,16,53,0.4); position:relative; overflow:hidden; }
+    .compare-card.general { background:var(--bg); }
+    .compare-card.rpas { background:rgba(128,1,31,0.06); border-color:rgba(128,1,31,0.25); }
+    .compare-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .compare-card.general::before { background:linear-gradient(90deg,#6B7074,#9ca3a8); }
+    .compare-card.rpas::before { background:linear-gradient(90deg,var(--crimson),var(--crimson-dim)); }
+    .compare-badge { display:inline-block; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:20px; margin-bottom:18px; }
+    .compare-badge.general { background:rgba(107,112,116,0.15); color:#c4c8cc; border:1px solid rgba(107,112,116,0.3); }
+    .compare-badge.rpas { background:rgba(128,1,31,0.15); color:#dea8b2; border:1px solid rgba(128,1,31,0.3); }
+    .compare-card h3 { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:800; margin-bottom:12px; letter-spacing:-0.3px; }
+    .compare-card p { font-size:0.85rem; color:var(--muted); line-height:1.75; margin-bottom:18px; }
+    .compare-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    .compare-list li { font-size:0.82rem; color:var(--muted); padding-left:18px; position:relative; line-height:1.6; }
+    .compare-list li::before { content:''; position:absolute; left:0; top:8px; width:6px; height:6px; border-radius:50%; background:var(--crimson); opacity:0.6; }
+
+    /* WHAT ACIA IS NOT */
+    .not-section { background:var(--bg); }
+    .not-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:48px; }
+    .not-card { padding:24px 22px; border-radius:12px; background:var(--surface); border:1px solid rgba(46,16,53,0.4); }
+    .not-card-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); margin-bottom:10px; }
+    .not-card h4 { font-size:0.88rem; font-weight:700; margin-bottom:8px; }
+    .not-card p { font-size:0.8rem; color:var(--muted); line-height:1.7; }
+
+    /* WORKFORCE PROFILE */
+    .profile-section { background:var(--surface); }
+    .profile-layout { display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:center; }
+    .profile-visual { background:var(--bg); border:1px solid rgba(46,16,53,0.5); border-radius:18px; padding:32px; position:relative; overflow:hidden; }
+    .profile-visual::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(128,1,31,0.4),transparent); }
+    .pv-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .pv-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+    .pv-badge { background:rgba(128,1,31,0.12); color:#dea8b2; border:1px solid rgba(128,1,31,0.25); border-radius:20px; padding:3px 12px; font-size:11px; font-weight:600; }
+    .pv-bars { display:flex; flex-direction:column; gap:10px; }
+    .pv-row { display:flex; align-items:center; gap:10px; }
+    .pv-lbl { font-size:11px; color:var(--muted); width:130px; flex-shrink:0; font-weight:500; }
+    .pv-track { flex:1; height:5px; background:rgba(46,16,53,0.6); border-radius:3px; }
+    .pv-fill { height:5px; border-radius:3px; background:var(--crimson); transform-origin:left; animation:bar-scale 1.4s cubic-bezier(.4,0,.2,1) both; }
+    .pv-val { font-size:11px; color:var(--dim); width:36px; text-align:right; }
+    @keyframes bar-scale { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+
+    /* CTA */
+    .cta-band { border-top:1px solid rgba(46,16,53,0.4); }
+    .cta-band-inner { max-width:1200px; margin:0 auto; padding:72px 6vw; text-align:center; }
+    .cta-band h2 { font-family:'Fraunces',serif; font-size:clamp(1.5rem,2.5vw,2.1rem); font-weight:800; letter-spacing:-0.8px; margin-bottom:14px; }
+    .cta-band p { font-size:0.95rem; color:var(--muted); margin-bottom:32px; max-width:520px; margin-left:auto; margin-right:auto; line-height:1.75; }
+    .btn-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .btn-primary { display:inline-flex; align-items:center; background:var(--crimson); color:#fff; text-decoration:none; padding:14px 32px; border-radius:10px; font-size:14px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; transition:all .2s; box-shadow:0 0 32px rgba(128,1,31,0.3); }
+    .btn-primary:hover { background:var(--crimson-dim); transform:translateY(-1px); }
+    .btn-secondary { display:inline-flex; align-items:center; background:transparent; color:var(--text); text-decoration:none; padding:14px 32px; border-radius:10px; font-size:14px; font-weight:600; border:1px solid rgba(255,255,255,0.14); transition:all .2s; }
+    .btn-secondary:hover { border-color:rgba(255,255,255,0.28); background:rgba(255,255,255,0.05); }
+
+    /* FOOTER */
+    footer { border-top:1px solid rgba(46,16,53,0.4); padding:48px 6vw; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:28px; }
+    .footer-logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+    .footer-logo-mark { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#80011f,#a8022a); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:900; font-size:11px; color:#fff; }
+    .footer-name { font-family:'Fraunces',serif; font-size:14px; font-weight:700; color:var(--text); }
+    .footer-sub { font-size:11px; color:var(--dim); margin-top:1px; }
+    .footer-links { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+    .footer-links a { font-size:13px; color:var(--dim); text-decoration:none; transition:color .2s; }
+    .footer-links a:hover { color:var(--muted); }
+    .footer-copy { font-size:11px; color:var(--dim); margin-top:8px; text-align:center; }
+    .footer-contact { text-align:right; }
+    .footer-contact-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--crimson); margin-bottom:6px; }
+    .footer-contact a { font-size:13px; color:var(--muted); text-decoration:none; }
+    .footer-contact a:hover { color:var(--text); }
+    @media (max-width:960px) { footer { flex-direction:column; text-align:center; } .footer-contact { text-align:center; } }
+
+    /* RESPONSIVE */
+    @media (max-width:900px) { .what-grid,.compare-grid,.profile-layout { grid-template-columns:1fr; } .not-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:580px) { .not-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">AACP</div>
+    <div>
+      <div class="nav-logo-text">AACP</div>
+      <div class="nav-logo-sub">Workforce Intelligence</div>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a href="/aviation.html">Aviation &amp; Aerospace</a>
+    <a href="/awtp.html">AWTP</a>
+    <a href="/rpas.html">RPAS Workforce Hub</a>
+    <a href="/acia.html" class="active">ACIA™</a>
+    <a href="/industry.html">Industry &amp; Partners</a>
+  </div>
+  <div class="nav-right">
+    <a href="eoi.html?path=individual" class="nav-join">Express Interest</a>
+    <a href="/app.html" class="nav-signin">Sign In</a>
+    <button class="nav-burger" aria-label="Open menu" aria-expanded="false" onclick="var m=document.getElementById('navMob');var open=m.classList.toggle('open');this.setAttribute('aria-expanded',open);">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect y="4" width="22" height="2" rx="1" fill="currentColor"/><rect y="10" width="22" height="2" rx="1" fill="currentColor"/><rect y="16" width="22" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile-menu" id="navMob">
+  <a href="/aviation.html">Aviation &amp; Aerospace</a>
+  <a href="/awtp.html">AWTP</a>
+  <a href="/rpas.html">RPAS Workforce Hub</a>
+  <a href="/acia.html" class="active">ACIA™</a>
+  <a href="/industry.html">Industry &amp; Partners</a>
+  <a href="eoi.html?path=individual" class="mob-join">Express Interest</a>
+  <a href="/app.html" class="mob-signin">Sign In</a>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-content">
+    <div class="eyebrow">ACIA™ Workforce Intelligence</div>
+    <h1>Know Your Strengths.<br/><em>Own Your Direction.</em></h1>
+    <p>ACIA™ delivers a personalized Career Intelligence experience — giving you a clearer picture of your strengths, your direction across aviation and aerospace, and a Workforce Profile you can act on.</p>
+  </div>
+</div>
+
+<!-- WHAT ACIA DOES -->
+<section>
+  <div class="grid-max">
+    <div class="center">
+      <span class="section-eyebrow">What ACIA™ Provides</span>
+      <h2 class="section-title">Career Intelligence That<br/>Drives Real Decisions</h2>
+      <div class="divider"></div>
+      <p class="section-sub">ACIA™ gives you the career intelligence to understand your strengths, explore your direction, and take your next step with confidence.</p>
+    </div>
+    <div class="what-grid">
+      <div class="what-card">
+        <h4>Understand Your Strengths</h4>
+        <p>Gain personalized insight into the strengths and experience you bring to your career journey.</p>
+      </div>
+      <div class="what-card">
+        <h4>Explore Your Direction</h4>
+        <p>Consider opportunities across aviation and aerospace with greater clarity.</p>
+      </div>
+      <div class="what-card">
+        <h4>Plan Your Next Step</h4>
+        <p>Receive a personalized Workforce Profile and practical guidance for your career development.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GENERAL vs RPAS -->
+<section class="compare-section">
+  <div class="grid-max">
+    <div class="center">
+      <span class="section-eyebrow">Two Distinct Experiences</span>
+      <h2 class="section-title">General ACIA™ and RPAS ACIA™<br/>Are Separate Assessments</h2>
+      <div class="divider"></div>
+      <p class="section-sub">ACIA™ is tailored to the participant's pathway. The General ACIA™ experience and the RPAS ACIA™ experience are not interchangeable — each is designed for its specific workforce context.</p>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-card general">
+        <div class="compare-badge general">General ACIA™</div>
+        <h3>Aviation &amp; Aerospace Career Intelligence</h3>
+        <p>Designed for participants exploring aviation and aerospace careers broadly — including ATC, AME, Pilot and Aerospace STEM pathways. Available as a standalone individual experience, independent of the RPAS Workforce Hub.</p>
+        <ul class="compare-list">
+          <li>Covers aviation and aerospace career pathways</li>
+          <li>Structured career intelligence experience</li>
+          <li>Personalized Career Intelligence Report</li>
+          <li>Pathway alignment across aviation and aerospace</li>
+          <li>Available as individual purchase ($199–$399 CAD)</li>
+        </ul>
+      </div>
+      <div class="compare-card rpas">
+        <div class="compare-badge rpas">RPAS ACIA™</div>
+        <h3>RPAS Workforce Intelligence</h3>
+        <p>Designed specifically for the RPAS Workforce Hub. RPAS ACIA™ is a distinct career intelligence experience grounded in remotely piloted aviation — with dedicated content, sector focus and deliverables built for the RPAS workforce.</p>
+        <ul class="compare-list">
+          <li>Dedicated RPAS sector content and context</li>
+          <li>RPAS-specific career intelligence throughout</li>
+          <li>Workforce Profile focused on RPAS-relevant capabilities</li>
+          <li>RPAS career and application alignment</li>
+          <li>Included in the RPAS Workforce Hub ($1,200 CAD)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT YOU RECEIVE -->
+<section class="not-section">
+  <div class="grid-max">
+    <div class="center">
+      <span class="section-eyebrow">Deliverables</span>
+      <h2 class="section-title">What You Walk Away With</h2>
+      <div class="divider"></div>
+      <p class="section-sub">Every ACIA™ participant receives a structured set of career intelligence deliverables — ready to use for planning, applications and professional development.</p>
+    </div>
+    <div class="not-grid">
+      <div class="not-card">
+        <div class="not-card-label">Personalized report</div>
+        <h4>Career Intelligence Report</h4>
+        <p>A written Career Intelligence Report translating your ACIA™ experience into career direction insights, capability strengths and practical next-step guidance — yours to keep.</p>
+      </div>
+      <div class="not-card">
+        <div class="not-card-label">Your profile</div>
+        <h4>Workforce Profile</h4>
+        <p>A structured Workforce Profile identifying your strengths, development areas and pathway alignment — grounded in your ACIA™ experience and ready to use for career planning.</p>
+      </div>
+      <div class="not-card">
+        <div class="not-card-label">Proof of completion</div>
+        <h4>Digital Credential</h4>
+        <p>A shareable digital credential recognizing your completion of ACIA™ Career Intelligence — demonstrating your investment in informed career planning.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFORCE PROFILE VISUAL -->
+<section class="profile-section">
+  <div class="grid-max">
+    <div class="profile-layout">
+      <div>
+        <span class="section-eyebrow">Your Workforce Profile</span>
+        <h2 class="section-title">Know Where You Stand.<br/>Know Where to Go.</h2>
+        <div class="divider"></div>
+        <p class="section-sub">Your Workforce Profile gives you a clear, personalized picture of your career-relevant strengths — and what to do with them.</p>
+        <p style="margin-top:20px;font-size:0.85rem;color:var(--dim);line-height:1.75;">Whether you're exploring aviation for the first time or confirming a direction, your profile provides a structured foundation for career planning, training decisions and employer conversations.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="background:var(--bg);border:1px solid rgba(46,16,53,0.5);border-radius:16px;padding:24px 28px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:8px;">Career Clarity</div>
+          <div style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:6px;">See which pathways fit your profile</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.65;">Your profile maps to ATC, AME, Pilot, RPAS and Aerospace STEM — showing where your strengths align most strongly.</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid rgba(46,16,53,0.5);border-radius:16px;padding:24px 28px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:8px;">Development Priorities</div>
+          <div style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:6px;">Understand what to build next</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.65;">Your report highlights where focused development would have the most impact for your target career — giving you a clear starting point.</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid rgba(46,16,53,0.5);border-radius:16px;padding:24px 28px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--crimson),var(--crimson-dim));"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--crimson-text);margin-bottom:8px;">Next-Step Planning</div>
+          <div style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:6px;">Walk away with a concrete direction</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.65;">Your Career Intelligence Report includes actionable next steps — training paths, program recommendations and what employers in your target field actually look for.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-band">
+  <div class="cta-band-inner">
+    <h2>Ready to Discover Your Career Intelligence?</h2>
+    <p>General ACIA™ is available at $199 CAD. The enhanced package — ACIA™ Career Intelligence + Career Strategy, including a one-on-one Career Strategy Session — is $399 CAD. After registration, your application is reviewed and you receive payment instructions by email. Access is granted once payment is confirmed, typically within 1–2 business days. All prices are in CAD and do not include applicable taxes. Contact us for cancellation and refund terms before purchasing.</p>
+    <div class="btn-row">
+      <a href="acia-register.html?package=acia_solo" class="btn-primary">ACIA™ Career Intelligence — $199</a>
+      <a href="acia-register.html?package=acia_plus_coaching" class="btn-secondary">+ Career Strategy Session — $399</a>
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:var(--dim);">Interested in the RPAS Workforce Hub? <a href="/rpas.html" style="color:var(--muted);text-decoration:none;">Learn about RPAS ACIA™</a></p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a href="/" class="footer-logo">
+    <div class="footer-logo-mark">AACP</div>
+    <div>
+      <div class="footer-name">AACP™ Workforce Intelligence</div>
+      <div class="footer-sub">Aviation &amp; Aerospace Workforce Intelligence, Canada</div>
+    </div>
+  </a>
+  <div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/aviation.html">Aviation &amp; Aerospace</a>
+      <a href="/rpas.html">RPAS Workforce Hub</a>
+      <a href="/acia.html">ACIA™</a>
+      <a href="/industry.html">Industry &amp; Partners</a>
+      <a href="/app.html">Sign In</a>
+      <a href="privacy.html">Privacy</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 Noble Consulting. All rights reserved. AACP™ Workforce Intelligence.</div>
+  </div>
+  <div class="footer-contact">
+    <div class="footer-contact-label">Contact AACP™</div>
+    <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a>
+  </div>
+</footer>
+
+</body>
+</html>

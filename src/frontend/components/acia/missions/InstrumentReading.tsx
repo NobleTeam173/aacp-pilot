@@ -1,5 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M5_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'interpretation',
+    label: 'Reading the Data',
+    prompt: 'When you looked at the instrument readings, how did you decide what was normal and what wasn\'t? What were you looking for?',
+    placeholder: 'Describe how you interpreted what you saw…',
+    minLength: 60,
+  },
+  {
+    id: 'ambiguity',
+    label: 'Handling Uncertainty',
+    prompt: 'Were any readings unclear or harder to interpret than others? How did you approach that uncertainty?',
+    placeholder: 'Describe a reading you found less clear and how you reasoned through it…',
+    minLength: 60,
+  },
+  {
+    id: 'priority',
+    label: 'What Matters Most',
+    prompt: 'Looking at those four readings — some required immediate action, others required working through the numbers first. What made the difference between acting straight away and stopping to calculate? And if you were responsible for designing how these readings are displayed, what would you change to make the right response more obvious?',
+    placeholder: 'Describe what separated the readings needing immediate action from those needing calculation — and what you would change about how they are displayed…',
+    minLength: 60,
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -101,19 +126,117 @@ const QUESTIONS: Question[] = [
   },
 ];
 
+const RPAS_QUESTIONS: Question[] = [
+  {
+    id: 'rq1',
+    instrument: 'Battery Level',
+    reading: 22,
+    unit: '%',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Your RPAS shows 22% battery remaining. You are 400 m from your launch point at 60 m altitude. Your flight controller estimates 4 minutes of flight remaining. What is the correct action?',
+    options: [
+      'Continue — 22% is above the 20% warning threshold so there is still a safety margin',
+      'Begin returning to home immediately — 4 minutes may not be enough to return and land safely with reserve',
+      'Land immediately wherever you are — battery is critically low',
+      'Continue and monitor — land when the low battery alarm sounds at 15%',
+    ],
+    correctIndex: 1,
+    explanation: 'At 22% with 4 minutes estimated remaining and 400 m to travel, initiating RTH now is the correct call. RPAS battery consumption increases with wind, cold temperatures, and climb. Waiting for the 15% alarm at this distance risks loss of the aircraft. The safety margin for RPAS battery management is always the worst-case return, not the best-case.',
+    dangerBelow: 25,
+  },
+  {
+    id: 'rq2',
+    instrument: 'GNSS Satellites',
+    reading: 4,
+    unit: 'sats',
+    normalMin: 0,
+    normalMax: 25,
+    question: 'Your RPAS telemetry shows GPS lock on 4 satellites. Normal position hold requires a minimum of 6. Your flight controller has switched from GPS mode to ATTI (attitude) mode — the drone will no longer hold position automatically. What does this mean for your flight?',
+    options: [
+      'Nothing significant — ATTI mode is equally safe; the aircraft will maintain heading automatically',
+      'Return to home is now unavailable; you must fly manually without position hold — land at the nearest safe area if you cannot manage manual flight',
+      'Cut power and land immediately — 4 satellites means navigation is completely unreliable',
+      'Increase altitude — GPS signal improves significantly above 100 m AGL',
+    ],
+    correctIndex: 1,
+    explanation: 'ATTI mode removes position hold, meaning the aircraft will drift with any wind. RTH is unavailable without GPS. If you are not proficient in manual flight, land at the nearest safe area without delay. Increasing altitude does not reliably improve GPS acquisition and may reduce your recovery options.',
+    dangerBelow: 6,
+  },
+  {
+    id: 'rq3',
+    instrument: 'Signal Strength',
+    reading: 35,
+    unit: '%',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Your RC link signal strength has dropped to 35%. Normal operational range is above 60%. You are 1.8 km from your ground station flying a linear infrastructure inspection. What is the appropriate response?',
+    options: [
+      'Continue — 35% still provides a data connection; only act if signal drops to 0%',
+      'Turn the aircraft to reduce distance, move the ground station if possible, and begin returning if signal continues to drop',
+      'Immediately activate RTH — the aircraft will navigate back safely on autopilot',
+      'Switch to FPV camera only and continue with visual reference',
+    ],
+    correctIndex: 1,
+    explanation: 'A 35% signal at 1.8 km is a warning sign of impending link loss. RTH requires adequate signal to initiate — do not wait until 0%. The correct response is to reduce the geometry (turn the aircraft toward you, reposition the controller antenna) and begin a controlled return while you still have reliable link. Never rely on RTH if signal is already marginal.',
+    dangerBelow: 60,
+  },
+  {
+    id: 'rq4',
+    instrument: 'Motor Temperature',
+    reading: 88,
+    unit: '°C',
+    normalMin: 0,
+    normalMax: 100,
+    question: 'Mid-mission, Motor 3 temperature reads 88°C. Your manufacturer\'s maximum operating temperature is 85°C. The other three motors read 62–68°C. You have 6 minutes of mission remaining. What is the correct action?',
+    options: [
+      'Continue — 88°C is only 3°C over limit; one motor will not cause an immediate failure',
+      'Land immediately — continuing above manufacturer maximum risks winding insulation failure and motor seizure in-flight',
+      'Reduce throttle to 70% and monitor — lower power should bring the motor temperature down',
+      'Switch to three-motor flight mode to remove load from Motor 3',
+    ],
+    correctIndex: 1,
+    explanation: 'Operating above the manufacturer\'s maximum motor temperature risks winding failure, which can be catastrophic in flight. The 3-degree margin may seem small, but motor temperatures can spike rapidly under load. Reducing throttle may not bring it under limit in time, and three-motor mode on a quadcopter is uncontrollable. Land immediately, inspect Motor 3, and investigate the cause (bearing failure, prop imbalance, blocked cooling) before redeployment.',
+    dangerBelow: 85,
+  },
+];
+
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function InstrumentReading({ onComplete }: Props) {
+export function InstrumentReading({ isRpas, onComplete }: Props) {
+  return <InstrumentReadingCore questions={isRpas ? RPAS_QUESTIONS : QUESTIONS} onComplete={onComplete} />;
+}
+
+function InstrumentReadingCore({ questions, onComplete }: { questions: Question[]; onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const pendingEvidence = useRef<Omit<EvidenceItem, 'mission'>[]>([]);
   const [startTime] = useState(Date.now());
 
-  const q = QUESTIONS[current];
-  const isLast = current === QUESTIONS.length - 1;
+  const q = questions[current];
+  const isLast = current === questions.length - 1;
+
+  if (showReasoning) {
+    return (
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Instrument Reading — Reflection</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>You've worked through the instrument readings. Reflect on how you interpreted what you saw.</div>
+        </div>
+        <MissionReasoningResponse
+          questions={M5_REASONING_QUESTIONS}
+          storageKey="acia_m5_reasoning"
+          onComplete={() => onComplete(pendingEvidence.current)}
+        />
+      </div>
+    );
+  }
 
   function selectAnswer(idx: number) {
     if (revealed) return;
@@ -128,14 +251,15 @@ export function InstrumentReading({ onComplete }: Props) {
   function next() {
     const newAnswers = [...answers, selected!];
     if (isLast) {
-      const correct = newAnswers.filter((a, i) => a === QUESTIONS[i].correctIndex).length;
-      const accuracy = correct / QUESTIONS.length;
+      const correct = newAnswers.filter((a, i) => a === questions[i].correctIndex).length;
+      const accuracy = correct / questions.length;
       const elapsed = (Date.now() - startTime) / 1000;
 
-      // Q2 (oil pressure) and Q4 (hydraulic) are the safety-critical reads
-      const oilCorrect = newAnswers[1] === QUESTIONS[1].correctIndex;
-      const hydCorrect = newAnswers[3] === QUESTIONS[3].correctIndex;
-      const safetyScore = ((oilCorrect ? 1 : 0) + (hydCorrect ? 1 : 0)) / 2;
+      // Q2 (oil), Q3 (fuel), Q4 (hydraulic) are the safety-critical reads
+      const oilCorrect = newAnswers[1] === questions[1]?.correctIndex;
+      const fuelCorrect = newAnswers[2] === questions[2]?.correctIndex;
+      const hydCorrect = newAnswers[3] === questions[3]?.correctIndex;
+      const safetyScore = ((oilCorrect ? 1 : 0) + (fuelCorrect ? 1 : 0) + (hydCorrect ? 1 : 0)) / 3;
 
       const evidence: Omit<EvidenceItem, 'mission'>[] = [
         { key: 'analytical_reasoning', delta: accuracy * 0.9 },
@@ -143,9 +267,13 @@ export function InstrumentReading({ onComplete }: Props) {
         { key: 'situational_awareness', delta: accuracy * 0.8 },
         { key: 'decision_quality', delta: accuracy > 0.7 ? 0.75 : accuracy > 0.4 ? 0.4 : 0.1 },
         { key: 'safety_mindset', delta: safetyScore * 0.9 },
+        { key: 'systematic_reasoning', delta: accuracy > 0.8 ? 0.75 : accuracy > 0.5 ? 0.45 : 0.2 },
+        { key: 'aviation_knowledge', delta: safetyScore > 0.65 ? 0.7 : safetyScore > 0.3 ? 0.4 : 0.2 },
       ];
-      if (elapsed < 240) evidence.push({ key: 'systematic_reasoning', delta: 0.55 });
-      onComplete(evidence);
+      pendingEvidence.current = evidence;
+      setAnswers(newAnswers);
+      setShowReasoning(true);
+      return;
     } else {
       setAnswers(newAnswers);
       setCurrent(c => c + 1);
@@ -255,14 +383,14 @@ export function InstrumentReading({ onComplete }: Props) {
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        {QUESTIONS.map((_, i) => (
+        {questions.map((_, i) => (
           <div key={i} style={{
             width: i === current ? 24 : 8, height: 8, borderRadius: 4,
             background: i < current ? C.green : i === current ? C.crimson : C.border,
             transition: 'all 0.2s',
           }} />
         ))}
-        <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>Instrument {current + 1}/{QUESTIONS.length}</span>
+        <span style={{ color: C.grey, fontSize: 12, marginLeft: 8 }}>Instrument {current + 1}/{questions.length}</span>
       </div>
 
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
@@ -337,7 +465,7 @@ export function InstrumentReading({ onComplete }: Props) {
             cursor: 'pointer', fontWeight: 700, fontSize: 14,
           }}
         >
-          {isLast ? 'Complete Mission →' : 'Next Instrument →'}
+          {isLast ? 'Complete Mission' : 'Next Instrument'}
         </button>
       )}
     </div>

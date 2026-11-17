@@ -1,19 +1,22 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { savePendingCompletion, deletePendingCompletion, getAllPendingCompletions, type PendingCompletion } from '../../utils/aciaStorage';
 import type { ACIASession, EvidenceItem, ChatMessage, MissionId, QuestionRecord, QuestionResponse } from './types';
-import { recordEvidence } from './behaviourEngine';
-import { computeAlignments } from './careerEngine';
+import { recordEvidence, classifyMissionChatForShadow, extractM1Context, appendShadowEvidence, shadowRecordToLiveEvidence } from './behaviourEngine';
+import { computeAlignments, SCORING_VERSION } from './careerEngine';
 import { selectNextQuestion, isAssessmentComplete } from './adaptiveEngine';
+import { QUESTION_BANK } from './questionBank';
 import { ACIAJourneyPanel } from './ACIAJourneyPanel';
 import { ACIACareerProfile } from './ACIACareerProfile';
 import { AIMentorChat } from './missions/AIMentorChat';
 import { AircraftInspection } from './missions/AircraftInspection';
+import { MaintenanceInvestigation } from './missions/MaintenanceInvestigation';
 import { SystemDiagnosis } from './missions/SystemDiagnosis';
 import { SystemsPuzzle } from './missions/SystemsPuzzle';
 import { InstrumentReading } from './missions/InstrumentReading';
 import { OperationalDecision } from './missions/OperationalDecision';
 import { ATCCommunication } from './missions/ATCCommunication';
 import { WorkloadPriority } from './missions/WorkloadPriority';
+import { FlightOpsAssessment } from './missions/FlightOpsAssessment';
 import { AdaptiveQuestion } from './missions/AdaptiveQuestion';
 
 const C = {
@@ -26,12 +29,34 @@ const C = {
   grey: '#94a3b8',
 };
 
-function makeInitialSession(): ACIASession {
+function makeInitialSession(isRpas = false): ACIASession {
   const now = new Date().toISOString();
-  const newSessionId = Math.random().toString(36).slice(2);
+  const newSessionId = crypto.randomUUID();
+  const missions = isRpas ? [
+    { id: 'm1', title: 'RPAS Background Interview', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
+    { id: 'm2', title: 'RPAS Pre-flight Inspection', subtitle: 'Drone systems walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
+    { id: 'm3', title: 'RPAS Fault Diagnosis', subtitle: 'Drone system fault scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
+    { id: 'm4', title: 'RPAS Systems Classification', subtitle: 'Identify RPAS components', type: 'puzzle', estimatedMinutes: 3, completed: false },
+    { id: 'm5', title: 'Telemetry & Data Reading', subtitle: 'Interpret RPAS flight data', type: 'graph', estimatedMinutes: 4, completed: false },
+    { id: 'm6', title: 'RPAS Operational Decision', subtitle: 'High-stakes RPAS scenario', type: 'decision', estimatedMinutes: 4, completed: false },
+    { id: 'm7', title: 'Airspace & Regulatory', subtitle: 'RPAS communication and compliance', type: 'atc', estimatedMinutes: 4, completed: false },
+    { id: 'm8', title: 'Mission Workload Management', subtitle: 'RPAS priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
+    { id: 'm9', title: 'RPAS Assessment Debrief', subtitle: 'Reflect on your RPAS career intelligence', type: 'reflection', estimatedMinutes: 4, completed: false },
+  ] : [
+    { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
+    { id: 'm2', title: 'Aircraft Maintenance Investigation', subtitle: 'AME inspection & records review', type: 'inspection', estimatedMinutes: 8, completed: false },
+    { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
+    { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
+    { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
+    { id: 'm6', title: 'Pilot & Flight Operations', subtitle: 'Interactive flight preparation simulation', type: 'flight_ops', estimatedMinutes: 12, completed: false },
+    { id: 'm7', title: 'ATC Communication', subtitle: 'Communication, coordination and operational response', type: 'atc', estimatedMinutes: 4, completed: false },
+    { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
+    { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
+  ];
   return {
     sessionId: newSessionId,
     startedAt: now,
+    evidenceScoringVersion: 'ai_v2',
     evidence: [],
     responses: [],
     askedQuestionIds: [],
@@ -45,24 +70,15 @@ function makeInitialSession(): ACIASession {
       missionIndexAtStart: 0,
     }],
     interruptionCount: 0,
-    missions: [
-      { id: 'm1', title: 'Career Discovery Flight', subtitle: 'Conversation with Captain ACIA', type: 'ai_chat', estimatedMinutes: 5, completed: false },
-      { id: 'm2', title: 'Aircraft Inspection', subtitle: 'Pre-flight walkaround', type: 'inspection', estimatedMinutes: 4, completed: false },
-      { id: 'm3', title: 'Fault Investigation', subtitle: 'AME diagnostic scenario', type: 'diagnosis', estimatedMinutes: 4, completed: false },
-      { id: 'm4', title: 'Systems Intelligence', subtitle: 'Classify aircraft components', type: 'puzzle', estimatedMinutes: 3, completed: false },
-      { id: 'm5', title: 'Instrument Reading', subtitle: 'Interpret cockpit data', type: 'graph', estimatedMinutes: 4, completed: false },
-      { id: 'm6', title: 'Operational Decision', subtitle: 'High-stakes scenario choices', type: 'decision', estimatedMinutes: 4, completed: false },
-      { id: 'm7', title: 'ATC Communication', subtitle: 'Compose radio transmissions', type: 'atc', estimatedMinutes: 4, completed: false },
-      { id: 'm8', title: 'Workload Management', subtitle: 'Priority ranking under pressure', type: 'workload', estimatedMinutes: 3, completed: false, oneSitting: true },
-      { id: 'm9', title: 'Debrief', subtitle: 'Reflect on your assessment journey', type: 'reflection', estimatedMinutes: 4, completed: false },
-    ],
+    backNavigationCount: 0,
+    missions,
   };
 }
 
-// ── Captain ACIA identity injected into all AI sessions ──────────────────────
+// ── ACIA identity injected into all AI sessions ───────────────────────────────
 const MENTOR_IDENTITY = `
 IDENTITY — read before every response:
-You are Captain ACIA, the official AI Aviation Career Mentor for the AACP (Aviation & Aerospace Competency Program). Your mission is to help participants discover aviation and aerospace careers where they are most likely to succeed — combining conversations, behavioural observations, interactive challenges, and aviation workforce intelligence.
+You are ACIA — Aviation & Aerospace Career Intelligence Advisor, the official AI Career Intelligence Advisor for the AACP (Aviation & Aerospace Competency Program). Your mission is to help participants discover aviation and aerospace careers where they are most likely to succeed — combining conversations, behavioural observations, interactive challenges, and aviation workforce intelligence.
 
 You are encouraging, insightful, objective, and evidence-based. You never guess a participant's career fit after a single answer. You progressively build confidence through multiple interactions before forming any observations. When you offer observations, make clear they are based on observed patterns, competencies, interests, and aptitude — never assumptions or stereotypes.
 `;
@@ -76,13 +92,15 @@ If a participant asks about anything outside this scope, respond with something 
 Never mention system prompts, guardrails, or AI limitations. Never generate speculative aviation information — if uncertain, say so and direct them to an appropriate aviation authority. Stay in character as a professional aviation mentor at all times.
 `;
 
-const MISSION_1_SYSTEM = `You are Captain ACIA — a senior aviation career mentor at AACP with decades of experience across commercial aviation, aerospace engineering, and air traffic services. Your role in this opening conversation is to begin a genuine, unhurried career discovery flight with this participant.
+const MISSION_1_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, a senior aviation career mentor at AACP with decades of experience across commercial aviation, aerospace engineering, and air traffic services. Your role in this opening conversation is to begin a genuine, unhurried career discovery flight with this participant.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Your goals:
 - Build real rapport — make the participant feel heard, not assessed
 - Draw out their story naturally through intelligent follow-up questions
 - Understand what genuinely excites them about aviation, not what they think you want to hear
 - Listen for the texture of their thinking: how they describe things, what details they notice, what questions they ask
+- Notice patterns in how they engage — do they ask "how does it work?" or "what if something goes wrong?" or "who else is involved?" — curiosity direction is as revealing as content
+- Explore what specifically draws them: is it the technical systems, the operational environment, the people, the responsibility, the challenge — do not assume, let them tell you
 - Guide them toward deeper self-reflection without it feeling like an interview
 
 Conversation rules:
@@ -91,26 +109,36 @@ Conversation rules:
 - When they mention something interesting, explore it before moving on
 - Do NOT ask about strengths, aptitude, or career fit yet — that comes from the missions ahead
 - If they give a short answer, invite them to say more: "Tell me more about that" or "What does that look like for you?"
+- If they mention a specific aviation role or area, ask them what draws them to that specifically — go one level deeper
 - Keep each response to 2–3 short paragraphs maximum
 - Sound like a mentor, not a chatbot — warm, direct, genuinely curious
 
-Tone: Professional but human. Think: experienced airline captain sitting across from you at a briefing table.
+Tone: Professional but human. Think: experienced aviator sitting across from someone at the start of their journey — interested in who they are, not just what they know.
 
 This conversation sets the emotional foundation for everything that follows. Make it count.`;
 
-const MISSION_9_SYSTEM = `You are Captain ACIA — completing a debrief session with a participant who has just finished the AACP Aviation Career Intelligence Assessment.
+const MISSION_9_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, completing a debrief session with a participant who has just finished the AACP Aviation Career Intelligence Assessment. They worked through nine missions covering aircraft inspection, fault diagnosis, systems classification, instrument reading, operational decision-making, radio communication, and workload management.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Help them reflect on:
-- What surprised them most during the assessment
-- Which missions felt natural versus challenging
-- What they learned about themselves and aviation careers
-- How they might use these insights going forward
+- Which missions felt surprisingly natural — and what that might tell them about where they fit in aviation
+- Which missions pushed them hardest — and whether that felt like a gap or just unfamiliar territory
+- What patterns they noticed in themselves: were they most engaged when the work was technical, operational, relational, or high-stakes?
+- Whether any mission shifted how they think about a particular aviation career path
+- How they might use these insights to make a more informed decision about their next step
 
-Be thoughtful and draw out genuine reflection. This is about helping them understand their own patterns and curiosities — not evaluating them. Keep responses warm, insightful, and encouraging. 2–3 paragraphs max per response. Do not reveal specific competency scores or rankings.`;
+Conversation rules:
+- Ask only ONE question at a time — never stack questions
+- Reference the specific mission types (inspection, fault diagnosis, instrument reading, etc.) to make the reflection concrete
+- Do not evaluate or score their performance — this is about self-awareness, not results
+- If they seem uncertain, help them see patterns in what they described without projecting conclusions onto them
+- Keep responses warm, insightful, and forward-looking. 2–3 paragraphs max per response.
+- Do not reveal specific competency scores or rankings.
+- If the participant mentioned manufacturing, design, engineering, or building and testing systems (rather than operating them), explore that specifically — ask what aspect of that work appeals to them and whether they have considered aerospace engineering, quality, or manufacturing roles
+- Distinguish interest in how aviation systems work from interest in how they are built or improved — both are valid career directions and worth naming if the participant has not already drawn that distinction themselves`;
 
 // ── 90-Day Follow-Up stage prompts ───────────────────────────────────────────
 
-const MISSION_1_FOLLOWUP_SYSTEM = `You are Captain ACIA — conducting the 90-Day Employment Follow-Up conversation with a participant who has now completed the 8-week AACP and had real workplace exposure through employment, placements, work-integrated learning, or mentorship with aviation employer partners.
+const MISSION_1_FOLLOWUP_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, conducting the 90-Day Employment Follow-Up conversation with a participant who has now completed the 8-week AACP and had real workplace exposure through employment, placements, work-integrated learning, or mentorship with aviation employer partners.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Your goals in this conversation:
 - Understand what workplace experience the participant has had since the AACP (employment, placement, mentorship, work-integrated learning)
@@ -129,7 +157,7 @@ Conversation rules:
 
 This conversation should feel meaningfully different from their initial career discovery — they now have real experience to draw from.`;
 
-const MISSION_9_FOLLOWUP_SYSTEM = `You are Captain ACIA — completing the 90-Day Employment Follow-Up debrief with a participant who has completed both the 8-week AACP and now has real workplace experience.
+const MISSION_9_FOLLOWUP_SYSTEM = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, completing the 90-Day Employment Follow-Up debrief with a participant who has completed both the 8-week AACP and now has real workplace experience.
 ${MENTOR_IDENTITY}${GUARDRAILS}
 Help them reflect on:
 - How their competencies are showing up in real workplace situations
@@ -140,7 +168,7 @@ Help them reflect on:
 
 Be thoughtful, draw out genuine reflection, and acknowledge the real growth represented by completing this journey. Keep responses warm, grounded in their experience, and forward-looking. 2–3 paragraphs max per response. Do not reveal specific competency scores or rankings.`;
 
-export type AssessmentStage = 'baseline' | 'completion' | 'followup';
+export type AssessmentStage = 'baseline' | 'completion' | 'followup' | 'rpas_intake';
 
 type ViewState = 'welcome' | 'preamble' | 'mission' | 'adaptive' | 'transition' | 'saving' | 'profile';
 
@@ -156,7 +184,12 @@ function loadSessionFromStorage(): { session: ACIASession; stage: AssessmentStag
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as { session: ACIASession; stage: AssessmentStage };
+    const parsed = JSON.parse(raw) as { session: ACIASession; stage: AssessmentStage };
+    // Backfill version on sessions saved before Phase C
+    if (!parsed.session.evidenceScoringVersion) {
+      parsed.session.evidenceScoringVersion = 'keyword_v1';
+    }
+    return parsed;
   } catch { return null; }
 }
 
@@ -164,19 +197,38 @@ function clearSessionStorage() {
   try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
 }
 
+// ── Aviation Ecosystem Context ────────────────────────────────────────────────
+// Short connector lines shown in the mission preamble. These are purely
+// narrative — they generate no competency evidence and do not affect scoring.
+// ── Continuous ecosystem storyline ───────────────────────────────────────────
+// The nine messages follow one fictional operation: a Canadian regional aviation
+// project preparing its first aircraft for revenue service. Each mission is one
+// step in that operation. Messages are narrative only — no evidence is generated.
+const ECOSYSTEM_CONTEXT: Record<string, string> = {
+  'm1': 'A new Canadian regional aviation project is getting ready to launch. The team includes aircraft maintenance engineers, flight crew, air traffic services, aerospace manufacturing partners, and operations staff — all working toward the same first departure. You are here to see how it all fits together.',
+  'm2': 'Before the aircraft can fly, the maintenance team needs to confirm it is airworthy. Visit the maintenance facility where technicians are investigating the aircraft\'s condition, reviewing records, and working through the checks that keep every flight safe.',
+  'm3': 'During the maintenance investigation, a discrepancy has been flagged. The maintenance team needs to work through the diagnostic process to identify the fault, understand its cause, and determine the correct course of action before the aircraft can be cleared.',
+  'm4': 'To make sound maintenance and engineering decisions, everyone on the team — from technicians to aerospace engineers — needs to understand how aircraft systems are organized and how they relate to each other. Work through a systems classification exercise using components from the aircraft in service.',
+  'm5': 'The aircraft has been cleared by maintenance. Before flight operations begin, the flight crew needs to verify that the cockpit instruments are reading correctly. Interpret the instrument data and identify what each reading tells you about the aircraft\'s readiness.',
+  'm6': 'With the aircraft confirmed airworthy, the flight crew is preparing for the first departure. Work through the pre-flight review, crew communication, and the operational decisions that determine whether the flight proceeds — the same process that plays out before every commercial flight.',
+  'm7': 'As the aircraft prepares to taxi, air traffic services take over coordination of its movement through the airspace. Controllers and flight service specialists manage the flow of information between the aircraft, the crew, and the ground — responding clearly, tracking changes, and keeping everyone informed.',
+  'm8': 'The operation is now running — maintenance, flight crew, ATC, and ground services are all active at the same time. Operations staff must continuously prioritize competing tasks to keep everything moving safely. Rank the tasks in front of you in the order they need to be handled.',
+  'm9': 'The aircraft has departed. You have moved through the maintenance facility, the engineering systems, the cockpit, the flight deck, the control tower, and the operations centre — nine parts of one Canadian aviation operation. Take a moment to reflect on what you noticed about yourself along the way.',
+};
+
 // Neutral mission preamble text — describes what the participant will do without naming competencies
 const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
   'm1': {
-    what: 'You will have a conversation with Captain ACIA — an aviation career mentor. Share your background and what draws you to aviation.',
+    what: 'You will have a conversation with ACIA™ — your career intelligence advisor. Share your background and what draws you to aviation and aerospace.',
     interactions: '3 or more exchanges',
     time: '~ 5 minutes',
     note: 'There are no right or wrong answers. Respond naturally.',
   },
   'm2': {
-    what: 'You will conduct a visual walkaround inspection of a parked aircraft by tapping zones on a diagram. Document any findings you observe.',
-    interactions: 'Up to 15 zones to inspect',
-    time: '~ 4 minutes',
-    note: 'Once submitted, your inspection report cannot be changed.',
+    what: 'You will conduct a five-scenario aircraft maintenance investigation — exterior inspection, maintenance record review, mechanical system analysis, a handover briefing, and a priorities decision under operational pressure.',
+    interactions: '5 connected scenarios',
+    time: '~ 8 minutes',
+    note: 'Observations from early scenarios carry forward. Take your time.',
   },
   'm3': {
     what: 'You will work through a diagnostic scenario involving an aircraft discrepancy. You will review information and answer a series of questions.',
@@ -197,16 +249,16 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'Each answer is locked once confirmed. All information needed is provided with each question.',
   },
   'm6': {
-    what: 'You will work through a series of aviation-related situations and make decisions using the information provided.',
-    interactions: '3 scenarios',
-    time: '~ 4 minutes',
-    note: 'Each decision is locked once confirmed.',
+    what: 'You will work through five connected flight operations scenarios for a simulated regional flight. Review the information provided, identify discrepancies, communicate with your crew, and make operational decisions.',
+    interactions: '5 connected scenarios',
+    time: '~ 10–12 minutes',
+    note: 'All information needed is provided within the simulation. Each scenario builds on the previous one.',
   },
   'm7': {
-    what: 'You will compose radio transmissions and handover messages using scenario information provided to you.',
+    what: 'You will work through four air traffic services scenarios — responding to aircraft, managing information updates, and coordinating with flight crew. All information needed is provided in each scenario.',
     interactions: '4 exercises',
     time: '~ 4 minutes',
-    note: 'Each exercise is locked once submitted. All information needed is provided in the scenario briefing.',
+    note: 'Each exercise is locked once submitted.',
   },
   'm8': {
     what: 'You will rank a set of operational tasks in order of priority based on the situation described.',
@@ -215,7 +267,7 @@ const MISSION_PREAMBLES: Record<string, { what: string; interactions: string; ti
     note: 'Rankings are locked once submitted.',
   },
   'm9': {
-    what: 'You will have a closing conversation with Captain ACIA to reflect on your assessment experience.',
+    what: 'You will have a closing conversation with ACIA™ to reflect on what you noticed across the nine missions.',
     interactions: '3 or more exchanges',
     time: '~ 4 minutes',
     note: 'This is a reflective conversation — there are no correct or incorrect answers.',
@@ -232,6 +284,9 @@ function generateSubmissionId(): string {
 }
 
 export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete }: { stage?: AssessmentStage; pathwayType?: string; onComplete?: () => void }) {
+  const isRpas = pathwayType === 'rpas';
+  const chatEndpoint = isRpas ? '/acia/rpas/chat' : '/acia/chat';
+  const saveEndpoint = isRpas ? '/acia/rpas/assessment/complete' : '/acia/assessment/complete';
   const [view, setView] = useState<ViewState>('welcome');
   const [session, setSession] = useState<ACIASession | null>(null);
   const [transitionMsg, setTransitionMsg] = useState('');
@@ -279,7 +334,48 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
 
   // Build completion payload from current session (memoized to avoid stale closure issues)
   const buildPayload = useCallback((sess: ACIASession) => {
-    const alignments = computeAlignments(sess.evidence, sess.responses);
+    const participantName = sess.participantName ?? localStorage.getItem('aacp_name') ?? undefined;
+
+    if (isRpas) {
+      // RPAS handler: server interprets evidence from session log + interaction results.
+      // Flatten all chat turns across all missions into a single chronological log.
+      const sessionLog: { role: string; content: string; mission?: string }[] = [];
+      for (const mission of sess.missions) {
+        const history = sess.chatHistory[mission.id] ?? [];
+        for (const msg of history) {
+          sessionLog.push({ role: msg.role, content: msg.content, mission: mission.id });
+        }
+      }
+      // Adaptive question responses as interaction results
+      const interactionResults: Record<string, unknown> = {};
+      sess.responses.forEach((r, i) => {
+        interactionResults[`q${i + 1}_${r.questionId}`] = {
+          questionId: r.questionId,
+          response: r.responseText,
+          classified: r.observedIndicators,
+          indicators: r.observedIndicators,
+          responseTimeMs: r.responseTimeMs,
+        };
+      });
+      // Evidence summary from visual missions
+      const missionEvidence: Record<string, unknown[]> = {};
+      for (const ev of sess.evidence) {
+        if (!missionEvidence[ev.mission]) missionEvidence[ev.mission] = [];
+        missionEvidence[ev.mission].push({ key: ev.key, delta: ev.delta, note: ev.note });
+      }
+      return {
+        submissionId: submissionId.current,
+        startedAt: sess.startedAt,
+        participantName,
+        sessionLog,
+        interactionResults: { ...interactionResults, missionEvidence },
+        participantContext: { pathwayType: 'rpas', assessmentStage: 'rpas_intake' },
+      };
+    }
+
+    // General ACIA payload
+    const srScoringActive = (() => { try { return localStorage.getItem('aacp_sr_scoring_active') === 'true'; } catch { return false; } })();
+    const alignments = computeAlignments(sess.evidence, sess.responses, srScoringActive);
     const competencyProfile: Record<string, { state: string; evidenceLevel: string; confidence: string }> = {};
     for (const [compId, obs] of Object.entries(sess.competencies)) {
       if (obs) competencyProfile[compId] = { state: obs.state, evidenceLevel: obs.state, confidence: obs.confidence };
@@ -293,22 +389,46 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       careerAlignment: alignments.map(a => ({ pathway: a.pathwayId, alignment: a.alignment, label: a.label ?? a.pathwayId })),
       recommendedPathways: alignments.slice(0, 3).map(a => a.pathwayId),
       startedAt: sess.startedAt,
-      participantName: sess.participantName ?? localStorage.getItem('aacp_name') ?? undefined,
+      participantName,
+      scoringVersion: SCORING_VERSION,
     };
-  }, [stage]);
+  }, [stage, isRpas]);
 
   // Core save function — returns true on success, false on failure
   const performSave = useCallback(async (payload: Record<string, unknown>, attemptNum: number): Promise<boolean> => {
-    const token = localStorage.getItem('aacp_access_token');
+    let token = localStorage.getItem('aacp_access_token');
     if (!token) { console.error('[ACIA] No auth token'); return false; }
+    // Attempt token refresh before save to avoid 401 on long sessions
+    if (attemptNum > 1) {
+      const refreshToken = localStorage.getItem('aacp_refresh_token');
+      if (refreshToken) {
+        try {
+          const rr = await fetch('/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (rr.ok) {
+            const rd = await rr.json() as { accessToken?: string };
+            if (rd.accessToken) {
+              token = rd.accessToken;
+              localStorage.setItem('aacp_access_token', token);
+            }
+          }
+        } catch { /* non-fatal — proceed with existing token */ }
+      }
+    }
     try {
-      const r = await fetch('/acia/assessment/complete', {
+      const r = await fetch(saveEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
       if (!r.ok && r.status !== 200 && r.status !== 201) throw new Error(`HTTP ${r.status}`);
-      const d: { assessmentId?: string; badgeId?: string; completedAt?: string } = await r.json();
+      const d: { assessmentId?: string; badgeId?: string; completedAt?: string; srScoringActive?: boolean } = await r.json();
+      if (typeof d.srScoringActive === 'boolean') {
+        try { localStorage.setItem('aacp_sr_scoring_active', String(d.srScoringActive)); } catch { /* ignore */ }
+      }
       if (d.assessmentId) {
         setSavedData({ assessmentId: d.assessmentId, badgeId: d.badgeId ?? '', completedAt: d.completedAt ?? new Date().toISOString() });
         setSaveError(false);
@@ -368,7 +488,10 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       for (const entry of pending) {
         // First verify the server doesn't already have this (idempotent check)
         try {
-          const r = await fetch('/acia/assessment/complete', {
+          const endpoint = (entry.payload as Record<string, unknown>)?.participantContext
+            ? '/acia/rpas/assessment/complete'
+            : '/acia/assessment/complete';
+          const r = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify(entry.payload),
@@ -396,6 +519,65 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     setTimeout(() => setView('saving'), 50);
   }, [session]);
 
+  // AI evidence classification after M1/M9 chat missions
+  useEffect(() => {
+    if (!session) return;
+    const token = localStorage.getItem('aacp_access_token');
+    const isAiV2 = session.evidenceScoringVersion === 'ai_v2';
+
+    // Run classification after M1 completes
+    const m1Mission = session.missions.find(m => m.id === 'm1');
+    if (m1Mission?.completed && session.chatHistory['m1'] && !session.shadowEvidence?.some(e => e.missionId === 'm1')) {
+      const messages = session.chatHistory['m1'];
+      Promise.all([
+        extractM1Context(messages, chatEndpoint, token),
+        classifyMissionChatForShadow(messages, 'm1', chatEndpoint, token, 'm1_chat'),
+      ]).then(([m1Ctx, shadowRec]) => {
+        setSession(prev => {
+          if (!prev) return prev;
+          let updated = { ...prev };
+          if (m1Ctx) {
+            updated = { ...updated, m1Context: m1Ctx, discoveredInterests: m1Ctx.interests.length > 0 ? m1Ctx.interests : updated.discoveredInterests };
+          }
+          if (shadowRec) {
+            updated = appendShadowEvidence(updated, shadowRec);
+            // For ai_v2 sessions: activate live evidence from the AI classification
+            if (isAiV2) {
+              const liveItems = shadowRecordToLiveEvidence(shadowRec);
+              updated = recordEvidence(updated, liveItems, 'm1');
+            }
+          }
+          saveSessionToStorage(updated, stage);
+          return updated;
+        });
+      }).catch(() => {});
+    }
+
+    // Run classification after M9 completes
+    const m9Mission = session.missions.find(m => m.id === 'm9');
+    if (m9Mission?.completed && session.chatHistory['m9'] && !session.shadowEvidence?.some(e => e.missionId === 'm9')) {
+      const messages = session.chatHistory['m9'];
+      classifyMissionChatForShadow(messages, 'm9', chatEndpoint, token, 'm9_chat').then(shadowRec => {
+        if (!shadowRec) return;
+        setSession(prev => {
+          if (!prev) return prev;
+          let updated = appendShadowEvidence(prev, shadowRec);
+          // For ai_v2 sessions: activate live evidence — only indicators NOT already
+          // observed in M1 to prevent double-counting across the session
+          if (isAiV2) {
+            const m1Indicators = prev.shadowEvidence?.filter(e => e.missionId === 'm1').flatMap(e => e.detectedIndicators) ?? [];
+            const newRecord = { ...shadowRec, detectedIndicators: shadowRec.detectedIndicators.filter(i => !m1Indicators.includes(i)) };
+            const liveItems = shadowRecordToLiveEvidence(newRecord);
+            updated = recordEvidence(updated, liveItems, 'm9');
+          }
+          saveSessionToStorage(updated, stage);
+          return updated;
+        });
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.missions]);
+
   // Current adaptive question selected for this slot
   const adaptiveQuestionRef = useRef<{ question: QuestionRecord; variant: string; expectedCorrect?: string } | null>(null);
 
@@ -407,9 +589,20 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const saved = loadSessionFromStorage();
       if (saved && saved.stage === stage) {
         const now = new Date().toISOString();
-        const newBrowserSessionId = Math.random().toString(36).slice(2);
+        const newBrowserSessionId = crypto.randomUUID();
+        // Version-aware recovery: update uncompleted mission definitions without
+        // touching completed missions, evidence, or scores
+        const freshMissions = makeInitialSession(isRpas).missions;
+        const recoveredMissions = saved.session.missions.map((m, i) => {
+          if (m.completed) return m; // never touch a completed mission
+          const fresh = freshMissions[i];
+          if (!fresh) return m;
+          return { ...m, title: fresh.title, subtitle: fresh.subtitle, type: fresh.type, estimatedMinutes: fresh.estimatedMinutes };
+        });
         const resumedSession: ACIASession = {
           ...saved.session,
+          missions: recoveredMissions,
+          backNavigationCount: saved.session.backNavigationCount ?? 0,
           sessionRecords: [
             ...(saved.session.sessionRecords ?? []),
             {
@@ -427,7 +620,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       }
     }
     clearSessionStorage();
-    const newSession = makeInitialSession();
+    const newSession = makeInitialSession(isRpas);
     setSession(newSession);
     saveSessionToStorage(newSession, stage);
     // Mission 1 starts immediately — the welcome screen already briefed the participant.
@@ -473,12 +666,22 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const nextIdx = idx + 1;
       const isLast = nextIdx >= updated.missions.length;
 
+      // After M1 completes, seed all family-01 question IDs into askedQuestionIds
+      // so the adaptive engine never re-serves Discovery questions already asked in chat
+      const family01Ids = mission.id === 'm1'
+        ? QUESTION_BANK.filter(q => q.familyCode === '01').map(q => q.questionId)
+        : [];
+      const seededAskedIds = family01Ids.length > 0
+        ? [...new Set([...updated.askedQuestionIds, ...family01Ids])]
+        : updated.askedQuestionIds;
+
       const nextSession = {
         ...updated,
         missions: updatedMissions,
         chatHistory: updatedHistory,
         currentMissionIndex: isLast ? idx : nextIdx,
         completedAt: isLast ? new Date().toISOString() : undefined,
+        askedQuestionIds: seededAskedIds,
       };
 
       // Auto-save progress after each mission
@@ -526,7 +729,12 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       const currentIdx = prev.currentMissionIndex;
 
       if (adaptiveAfterIdx.includes(currentIdx)) {
-        const selected = selectNextQuestion(prev);
+        const careerStage = localStorage.getItem('aacp_career_stage') ?? undefined;
+        // Inject m1Context interests into the session for adaptive selection
+        const sessionWithInterests = prev.m1Context?.interests?.length
+          ? { ...prev, discoveredInterests: prev.m1Context.interests }
+          : prev;
+        const selected = selectNextQuestion(sessionWithInterests, undefined, careerStage);
         if (selected) {
           adaptiveQuestionRef.current = selected;
           const newSession = {
@@ -559,6 +767,27 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       return next;
     });
 
+    // For ai_v2 sessions: run shadow classification on the reasoning response
+    if (adaptiveQuestionRef.current && session?.evidenceScoringVersion === 'ai_v2') {
+      const { question, variant } = adaptiveQuestionRef.current;
+      const token = localStorage.getItem('aacp_access_token');
+      const currentMissionId = session.missions[session.currentMissionIndex]?.id as MissionId ?? 'm2';
+      import('./behaviourEngine').then(({ classifyReasoningResponseForShadow, appendShadowEvidence: appendSE }) => {
+        classifyReasoningResponseForShadow(
+          question.questionId, variant, qResponse.responseText,
+          currentMissionId, chatEndpoint, token,
+        ).then(shadowRec => {
+          if (!shadowRec) return;
+          setSession(prev => {
+            if (!prev) return prev;
+            const updated = appendSE(prev, shadowRec);
+            saveSessionToStorage(updated, stage);
+            return updated;
+          });
+        }).catch(() => {});
+      });
+    }
+
     setSession(prev => {
       if (!prev) return prev;
       const nextIdx = prev.currentMissionIndex;
@@ -571,8 +800,23 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
     });
   }, [stage]);
 
+  // useMemo must be called unconditionally before any early returns (React hooks rule)
+  const currentMissionForMemo = session?.missions[session?.currentMissionIndex ?? 0];
+  const m9SystemPrompt = useMemo(() => {
+    if (!session || currentMissionForMemo?.id !== 'm9') return undefined;
+    const completedMissionTitles = session.missions.filter(m => m.completed && m.id !== 'm9').map(m => m.title);
+    const interestContext = session.m1Context?.interests?.length
+      ? `\n\nCareer interests noted from the opening conversation: ${session.m1Context.interests.join(', ')}.`
+      : '';
+    const performanceSummary = completedMissionTitles.length > 0
+      ? `\n\nThis participant has completed the following missions in this assessment: ${completedMissionTitles.join(', ')}.${interestContext}`
+      : interestContext;
+    if (!performanceSummary) return undefined;
+    return `${MISSION_9_SYSTEM}${performanceSummary}`;
+  }, [session, currentMissionForMemo?.id]);
+
   if (view === 'welcome') {
-    return <WelcomeScreen stage={stage} onStart={startAssessment} savedSessionData={savedSessionData} />;
+    return <WelcomeScreen stage={stage} pathwayType={pathwayType} onStart={startAssessment} savedSessionData={savedSessionData} />;
   }
 
   if (view === 'preamble' && session) {
@@ -580,6 +824,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       <MissionPreamble
         session={session}
         stage={stage}
+        isRpas={isRpas}
         onBegin={() => {
           setSession(prev => {
             if (!prev) return prev;
@@ -596,6 +841,16 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
           });
           setView('mission');
         }}
+        onGoBack={session.currentMissionIndex > 0 ? () => {
+          // Record back-navigation for usability analytics — never affects scoring
+          setSession(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, backNavigationCount: (prev.backNavigationCount ?? 0) + 1 };
+            saveSessionToStorage(updated, stage);
+            return updated;
+          });
+          setView('welcome');
+        } : undefined}
       />
     );
   }
@@ -668,7 +923,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         <ACIAJourneyPanel
           missions={session.missions}
           currentIndex={session.currentMissionIndex}
-          startedAt={session.startedAt}
+          sessionRecords={session.sessionRecords}
           adaptiveCount={session.responses.length}
         />
         <div style={{
@@ -690,6 +945,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
               question={question}
               variantText={variant}
               expectedCorrect={expectedCorrect}
+              chatEndpoint={chatEndpoint}
               onComplete={completeAdaptiveQuestion}
             />
           </div>
@@ -746,7 +1002,7 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
       <ACIAJourneyPanel
         missions={session.missions}
         currentIndex={session.currentMissionIndex}
-        startedAt={session.startedAt}
+        sessionRecords={session.sessionRecords}
         adaptiveCount={session.responses.length}
       />
       <div style={{
@@ -754,19 +1010,50 @@ export function ACIA({ stage = 'baseline', pathwayType = 'standard', onComplete 
         borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, background: '#12080d' }}>
-          <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Mission {session.currentMissionIndex + 1} of {session.missions.length}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.crimson, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Mission {session.currentMissionIndex + 1} of {session.missions.length}
+              </div>
+              <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
+                {currentMission.title}
+              </h3>
+              <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
+            </div>
+            <button
+              onClick={() => {
+                setSession(prev => {
+                  if (!prev) return prev;
+                  const now = new Date().toISOString();
+                  const updatedRecords = prev.sessionRecords.map((r, i) =>
+                    i === prev.sessionRecords.length - 1 && !r.endedAt ? { ...r, endedAt: now } : r,
+                  );
+                  const snapshot = { ...prev, sessionRecords: updatedRecords };
+                  saveSessionToStorage(snapshot, stage);
+                  return snapshot;
+                });
+                setView('welcome');
+              }}
+              style={{
+                background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.grey, fontSize: 11, fontWeight: 600, padding: '6px 12px',
+                cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase',
+                flexShrink: 0, marginLeft: 12,
+              }}
+            >
+              Save &amp; Exit
+            </button>
           </div>
-          <h3 style={{ color: C.white, margin: '4px 0 2px', fontSize: '1rem', fontFamily: 'Fraunces, serif', fontWeight: 700 }}>
-            {currentMission.title}
-          </h3>
-          <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <MissionRenderer
             mission={currentMission}
             chatHistory={session.chatHistory}
             stage={stage}
+            chatEndpoint={chatEndpoint}
+            isRpas={isRpas}
+            sessionId={session.sessionId}
+            m9SystemPrompt={m9SystemPrompt}
             onComplete={completeMission}
           />
         </div>
@@ -779,10 +1066,14 @@ interface MissionRendererProps {
   mission: ACIASession['missions'][0];
   chatHistory: ACIASession['chatHistory'];
   stage: AssessmentStage;
+  chatEndpoint: string;
+  isRpas?: boolean;
+  sessionId?: string;
+  m9SystemPrompt?: string;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[], chatHistory?: ChatMessage[]) => void;
 }
 
-function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
+function MissionRenderer({ mission, stage, chatEndpoint, isRpas, sessionId, m9SystemPrompt, onComplete }: MissionRendererProps) {
   const isFollowup = stage === 'followup';
   switch (mission.type) {
     case 'ai_chat':
@@ -790,38 +1081,45 @@ function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
         <AIMentorChat
           missionId={mission.id as MissionId}
           systemPrompt={isFollowup ? MISSION_1_FOLLOWUP_SYSTEM : MISSION_1_SYSTEM}
-          welcomeMessage={isFollowup
+          welcomeMessage={isRpas
+            ? "Good to have you with us. I'm ACIA — your Aviation & Aerospace Career Intelligence Advisor, and I'll be guiding you through the RPAS Career Intelligence Assessment. Before we move into the scenario-based missions, I'd like to start with a brief conversation about your background in RPAS and drone operations. Please go ahead and introduce yourself."
+            : isFollowup
             ? "Welcome back. It's good to reconnect with you at this stage of your journey. You've completed the 8-week AACP, and now you've had real exposure to the workplace — whether through employment, a placement, mentorship, or work-integrated learning. Before we run through today's assessment, I want to hear directly from you: what has your experience looked like since the program? What have you actually been doing out there?"
-            : "Good to have you with us. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: When did aviation first get its hooks into you? It could be a memory, a moment, something you saw — or even something you still can't quite explain. Take your time."
+            : "Good to have you with us. I'm ACIA — your Aviation & Aerospace Career Intelligence Advisor. Before we get into the missions, I want to start with a real conversation — not a form, not a checklist. Just you and me. Here's my first question: What actually drew you to aviation? Not the polished answer — the honest one. Could be something you saw, something you read, someone you met, or something you still can't quite put into words. Take your time."
           }
           minMessages={3}
+          chatEndpoint={chatEndpoint}
           onComplete={(evidence, chat) => onComplete(evidence, chat)}
         />
       );
     case 'inspection':
-      return <AircraftInspection onComplete={evidence => onComplete(evidence)} />;
+      if (isRpas) return <AircraftInspection isRpas={true} sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
+      return <MaintenanceInvestigation sessionId={sessionId} onComplete={evidence => onComplete(evidence)} />;
     case 'diagnosis':
-      return <SystemDiagnosis onComplete={evidence => onComplete(evidence)} />;
+      return <SystemDiagnosis isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'puzzle':
-      return <SystemsPuzzle onComplete={evidence => onComplete(evidence)} />;
+      return <SystemsPuzzle isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'graph':
-      return <InstrumentReading onComplete={evidence => onComplete(evidence)} />;
+      return <InstrumentReading isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'decision':
-      return <OperationalDecision onComplete={evidence => onComplete(evidence)} />;
+      return <OperationalDecision isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
+    case 'flight_ops':
+      return <FlightOpsAssessment isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'atc':
-      return <ATCCommunication onComplete={evidence => onComplete(evidence)} />;
+      return <ATCCommunication isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'workload':
-      return <WorkloadPriority onComplete={evidence => onComplete(evidence)} />;
+      return <WorkloadPriority isRpas={isRpas} onComplete={evidence => onComplete(evidence)} />;
     case 'reflection':
       return (
         <AIMentorChat
           missionId={mission.id as MissionId}
-          systemPrompt={isFollowup ? MISSION_9_FOLLOWUP_SYSTEM : MISSION_9_SYSTEM}
+          systemPrompt={isFollowup ? MISSION_9_FOLLOWUP_SYSTEM : (m9SystemPrompt ?? MISSION_9_SYSTEM)}
           welcomeMessage={isFollowup
             ? "You've completed the 90-Day Follow-Up assessment — this is a significant milestone. You started with the Baseline ACIA, completed the 8-week program, gained real workplace experience, and now you've reassessed. I'd like to close this out with some genuine reflection. Looking back across this whole journey — where do you feel you've grown the most? And what are you still working on?"
-            : "You've completed the full assessment — that takes commitment. Before we reveal your Career Intelligence Profile, I'd like to debrief with you for a moment. What stood out most during the assessment? Were there any challenges that felt surprisingly natural, or any that pushed you in unexpected ways?"
+            : "You've completed the full assessment — nine missions across inspection, fault diagnosis, systems, instruments, decisions, communication, and workload. That takes real commitment. Before we bring up your Career Intelligence Profile, I want to have one more genuine conversation. Here's my first question: was there a mission that felt surprisingly natural — where you found yourself thinking 'I get this' or even 'I could see myself doing this kind of work'?"
           }
           minMessages={3}
+          chatEndpoint={chatEndpoint}
           onComplete={(evidence, chat) => onComplete(evidence, chat)}
         />
       );
@@ -830,19 +1128,80 @@ function MissionRenderer({ mission, stage, onComplete }: MissionRendererProps) {
   }
 }
 
+const RPAS_MISSION_PREAMBLES: Record<string, { what: string; interactions: string; time: string; note?: string }> = {
+  'm1': {
+    what: 'You will have a conversation with Captain ACIA — an RPAS career mentor. Share your background and what draws you to remotely piloted aviation.',
+    interactions: '3 or more exchanges',
+    time: '~ 5 minutes',
+    note: 'There are no right or wrong answers. Respond naturally.',
+  },
+  'm2': {
+    what: 'You will conduct a pre-flight walkaround inspection of a remotely piloted aircraft (RPA) by tapping zones on a diagram. Document any findings you observe.',
+    interactions: 'Up to 15 zones to inspect',
+    time: '~ 4 minutes',
+    note: 'Once submitted, your inspection report cannot be changed.',
+  },
+  'm3': {
+    what: 'You will work through a diagnostic scenario involving an in-flight RPAS anomaly. You will review telemetry and answer a series of decision questions.',
+    interactions: '4 – 6 decision points',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed.',
+  },
+  'm4': {
+    what: 'You will classify a set of RPAS components by dragging them into the correct system categories.',
+    interactions: '16 components to classify',
+    time: '~ 3 minutes',
+    note: 'Hover over any component to see a description.',
+  },
+  'm5': {
+    what: 'You will interpret four telemetry readings from an RPAS ground-control station and answer questions about each reading.',
+    interactions: '4 telemetry readings',
+    time: '~ 4 minutes',
+    note: 'Each answer is locked once confirmed. All information needed is provided with each question.',
+  },
+  'm6': {
+    what: 'You will work through a series of RPAS operational situations and make decisions using the information provided.',
+    interactions: '3 scenarios',
+    time: '~ 4 minutes',
+    note: 'Each decision is locked once confirmed.',
+  },
+  'm7': {
+    what: 'You will compose flight-authorization requests, lost-link reports, and operator handover messages using scenario information provided to you.',
+    interactions: '4 exercises',
+    time: '~ 4 minutes',
+    note: 'Each exercise is locked once submitted. All information needed is provided in the scenario briefing.',
+  },
+  'm8': {
+    what: 'You will rank a set of RPAS operational tasks in order of priority based on the situation described.',
+    interactions: '2 rounds',
+    time: '~ 3 minutes',
+    note: 'Rankings are locked once submitted.',
+  },
+  'm9': {
+    what: 'You will have a closing conversation with Captain ACIA to reflect on your RPAS assessment experience.',
+    interactions: '3 or more exchanges',
+    time: '~ 4 minutes',
+    note: 'This is a reflective conversation — there are no correct or incorrect answers.',
+  },
+};
+
 // ── Mission Preamble Screen ───────────────────────────────────────────────────
 function MissionPreamble({
   session,
   stage,
+  isRpas,
   onBegin,
+  onGoBack,
 }: {
   session: ACIASession;
   stage: AssessmentStage;
+  isRpas: boolean;
   onBegin: () => void;
+  onGoBack?: () => void;
 }) {
   const [oneSittingConfirmed, setOneSittingConfirmed] = useState(false);
   const currentMission = session.missions[session.currentMissionIndex];
-  const preamble = MISSION_PREAMBLES[currentMission.id];
+  const preamble = (isRpas ? RPAS_MISSION_PREAMBLES : MISSION_PREAMBLES)[currentMission.id];
   const needsConfirmation = currentMission.oneSitting && !oneSittingConfirmed;
 
   return (
@@ -850,7 +1209,7 @@ function MissionPreamble({
       <ACIAJourneyPanel
         missions={session.missions}
         currentIndex={session.currentMissionIndex}
-        startedAt={session.startedAt}
+        sessionRecords={session.sessionRecords}
         adaptiveCount={session.responses.length}
       />
       <div style={{
@@ -867,6 +1226,14 @@ function MissionPreamble({
           <div style={{ color: C.grey, fontSize: 13 }}>{currentMission.subtitle}</div>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 28, gap: 20 }}>
+          {/* Ecosystem connector — narrative context only, no evidence generated */}
+          {!isRpas && ECOSYSTEM_CONTEXT[currentMission.id] && (
+            <div style={{ background: '#0d1a0f', border: '1px solid #1a3a20', borderRadius: 14, padding: '14px 18px' }}>
+              <p style={{ color: '#86efac', fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+                {ECOSYSTEM_CONTEXT[currentMission.id]}
+              </p>
+            </div>
+          )}
           {/* Standard briefing card */}
           <div style={{ background: '#0f1520', border: '1px solid #1e3a5f', borderRadius: 14, padding: '18px 22px' }}>
             <div style={{ color: '#60a5fa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
@@ -920,21 +1287,30 @@ function MissionPreamble({
             </div>
           )}
 
-          <button
-            onClick={onBegin}
-            disabled={needsConfirmation}
-            style={{
-              background: needsConfirmation ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
-              color: needsConfirmation ? C.grey : 'white',
-              border: 'none', borderRadius: 12,
-              padding: '14px 32px', fontSize: 15, fontWeight: 700,
-              cursor: needsConfirmation ? 'not-allowed' : 'pointer',
-              alignSelf: 'flex-start',
-              transition: 'background 0.2s',
-            }}
-          >
-            {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission →'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              onClick={onBegin}
+              disabled={needsConfirmation}
+              style={{
+                background: needsConfirmation ? '#2d1118' : `linear-gradient(135deg, ${C.crimson}, ${C.crimsonD})`,
+                color: needsConfirmation ? C.grey : 'white',
+                border: 'none', borderRadius: 12,
+                padding: '14px 32px', fontSize: 15, fontWeight: 700,
+                cursor: needsConfirmation ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+              }}
+            >
+              {needsConfirmation ? 'Confirm readiness above to continue' : 'Begin Mission'}
+            </button>
+            {onGoBack && (
+              <button
+                onClick={onGoBack}
+                style={{ background: 'none', border: 'none', color: C.grey, fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                Go back
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -946,34 +1322,41 @@ const STAGE_LABELS: Record<AssessmentStage, string> = {
   baseline: 'Baseline ACIA',
   completion: 'AACP Completion ACIA',
   followup: '90-Day Employment Follow-Up ACIA',
+  rpas_intake: 'RPAS Career Intelligence',
 };
 
 function WelcomeScreen({
   stage,
+  pathwayType,
   onStart,
   savedSessionData,
 }: {
   stage: AssessmentStage;
+  pathwayType?: string;
   onStart: (resume?: boolean) => void;
   savedSessionData: { session: ACIASession; stage: AssessmentStage } | null;
 }) {
-  const isFirstCareer = (() => {
-    const cs = localStorage.getItem('aacp_career_stage') ?? '';
-    return cs !== 'student' && cs !== 'transition' &&
-      cs !== 'aviation_professional' && cs !== 'intl_aviation_professional';
-  })();
-
+  const isRpas = pathwayType === 'rpas' || stage === 'rpas_intake';
   const hasProgress = savedSessionData !== null;
   const savedMissions = savedSessionData?.session.missions ?? [];
   const completedMissions = savedMissions.filter(m => m.completed);
   const nextMission = savedMissions.find(m => !m.completed);
-  const lastCompleted = completedMissions.at(-1);
   const totalMissions = savedMissions.length || 9;
   const completedCount = completedMissions.length;
   const progressPct = hasProgress ? Math.round((completedCount / totalMissions) * 100) : 0;
-
   const isFollowup = stage === 'followup';
-  const isCompletion = stage === 'completion';
+
+  const CAREER_AREAS = isRpas ? [
+    { icon: '🛸', label: 'RPAS Operations', desc: 'Drone piloting and mission coordination' },
+    { icon: '🔬', label: 'Inspection & Quality', desc: 'Regulatory compliance and safety checks' },
+    { icon: '📡', label: 'Geomatics & Data', desc: 'Mapping, surveying and data analysis' },
+    { icon: '⚙️', label: 'Engineering & Design', desc: 'Systems development and integration' },
+  ] : [
+    { icon: '🔧', label: 'Aircraft Maintenance', desc: 'AME / AMT — keep aircraft airworthy' },
+    { icon: '✈️', label: 'Pilot & Flight Ops', desc: 'Flight crew and operations management' },
+    { icon: '📡', label: 'Air Traffic Services', desc: 'ATC / FSS — safe separation and flow' },
+    { icon: '🛸', label: 'RPAS & Aerospace', desc: 'Drones, manufacturing and engineering' },
+  ];
 
   return (
     <div style={{ fontFamily: 'DM Sans, sans-serif', maxWidth: 720, marginInline: 'auto' }}>
@@ -990,84 +1373,110 @@ function WelcomeScreen({
           .acia-journey-panel { display: none; }
         }
         .acia-cta:hover { background: #721010 !important; box-shadow: 0 4px 16px rgba(143,9,9,0.25) !important; }
+        .acia-career-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 600px) { .acia-career-grid { grid-template-columns: repeat(2, 1fr); } }
       `}</style>
 
-      {/* Single Mission Control card */}
       <div className="acia-card" style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 16,
-        overflow: 'hidden',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+        background: '#ffffff', border: '1px solid #e2e8f0',
+        borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
       }}>
-        {/* Card header */}
-        <div style={{
-          padding: '20px 28px',
-          borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
-        }}>
-          <div>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-              textTransform: 'uppercase', color: '#8F0909', marginBottom: 6,
-            }}>
-              AACP™ · {STAGE_LABELS[stage]}
-            </div>
-            <h2 style={{
-              fontFamily: 'Fraunces, serif', fontSize: '1.2rem',
-              fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3,
-            }}>
-              ACIA™ — Career Discovery Flight
-            </h2>
-          </div>
-          {hasProgress && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{
-                fontSize: 26, fontWeight: 800, color: '#1e293b',
-                fontFamily: 'Fraunces, serif', lineHeight: 1,
-              }}>
-                {completedCount}/{totalMissions}
+
+        {/* Header — progress state changes layout */}
+        {hasProgress ? (
+          /* ── RESUME STATE ── */
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F0909', marginBottom: 6 }}>
+                  AACP™ · Career Intelligence
+                </div>
+                <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1.3 }}>
+                  Welcome back
+                </h2>
               </div>
-              <div style={{
-                fontSize: 10, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: '#94a3b8', marginTop: 3,
-              }}>
-                Missions Complete
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#1e293b', fontFamily: 'Fraunces, serif', lineHeight: 1 }}>
+                  {completedCount}/{totalMissions}
+                </div>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginTop: 3 }}>
+                  Missions Complete
+                </div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 6, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg,#8F0909,#c0032e)', borderRadius: 4, transition: 'width 0.5s ease' }} />
+            </div>
+
+            {/* Next mission spotlight */}
+            {nextMission && (
+              <div style={{ background: '#fff7f7', border: '1px solid #fecaca', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8F0909', marginBottom: 4 }}>Up Next</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{nextMission.title}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{nextMission.subtitle}</div>
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>≈ {nextMission.estimatedMinutes} min</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── FRESH START STATE ── */
+          <div style={{ padding: '24px 28px 0', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F0909', marginBottom: 6 }}>
+                AACP™ · Career Intelligence Assessment
+              </div>
+              <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: '0 0 10px', lineHeight: 1.3 }}>
+                {isRpas ? 'Discover your place in RPAS and drone operations.' : 'Discover which aviation and aerospace careers match how you think.'}
+              </h2>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: '0 0 18px' }}>
+                {isFollowup
+                  ? 'Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving career intelligence profile.'
+                  : 'Nine short missions. No experience required. Your responses build a personalised career intelligence report — not a pass/fail exam.'}
+              </p>
+            </div>
+
+            {/* Canadian ecosystem strip — fresh start only, standard pathway */}
+            {!isRpas && !isFollowup && (
+              <div style={{ background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '14px 0 16px', marginInline: -28 /* bleed to card edge */, paddingInline: 28 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#15803d' }}>The scenario </span>
+                <span style={{ fontSize: 13, color: '#166534', lineHeight: 1.65 }}>
+                  A Canadian regional aviation operation is preparing for its first departure — you're joining the team. Over nine missions you'll work alongside AMEs, flight crew, ATC, and aerospace partners. No aviation background needed.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Card body */}
+        <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Career areas — fresh start only */}
+          {!hasProgress && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#94a3b8', marginBottom: 12 }}>
+                {isRpas ? 'RPAS career areas you may explore' : 'Aviation career areas you may explore'}
+              </div>
+              <div className="acia-career-grid">
+                {CAREER_AREAS.map(({ label, desc }) => (
+                  <div key={label} style={{
+                    background: '#f8fafc', border: '1px solid #e2e8f0',
+                    borderRadius: 12, padding: '14px 12px', textAlign: 'center',
+                  }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{desc}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
-        </div>
-
-        {/* Card body */}
-        <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
-
-          {/* Purpose statement */}
-          <div>
-            <p style={{ fontSize: 15, color: '#1e293b', fontWeight: 500, lineHeight: 1.65, margin: '0 0 10px' }}>
-              Explore how you naturally approach aviation and aerospace situations.
-            </p>
-            {isFirstCareer ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                No previous aviation or aerospace experience is required. Your responses will help AACP build evidence around your strengths and identify career pathways that may align with how you approach different situations. There are no pass or fail results.
-              </p>
-            ) : isFollowup ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                This assessment uses the same competency framework as your Baseline ACIA. Respond based on who you are now, drawing on your real workplace experience. Your responses contribute to your evolving competency and career intelligence profile.
-              </p>
-            ) : (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                Your responses contribute to your evolving competency and career intelligence profile.
-              </p>
-            )}
-          </div>
 
           {/* Policy chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {[
-              'Progress Automatically Saved',
-              'Submitted Responses Locked',
-              'No Pass or Fail',
-            ].map(label => (
+            {['Progress Automatically Saved', 'Submitted Responses Locked', 'No Pass or Fail'].map(label => (
               <div key={label} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: '#f8fafc', border: '1px solid #e2e8f0',
@@ -1082,111 +1491,23 @@ function WelcomeScreen({
             ))}
           </div>
 
-          {/* Progress panel — in-progress only */}
-          {hasProgress && (
-            <div style={{
-              background: '#f8fafc', border: '1px solid #e2e8f0',
-              borderRadius: 12, padding: '18px 20px',
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.09em', color: '#8F0909', marginBottom: 14,
-              }}>
-                Assessment in Progress
-              </div>
-              {/* Progress bar */}
-              <div style={{ height: 4, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{
-                  height: '100%', width: `${progressPct}%`,
-                  background: '#8F0909', borderRadius: 4, transition: 'width 0.5s ease',
-                }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {lastCompleted && (
-                  <div>
-                    <div style={{
-                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: '#94a3b8', marginBottom: 5,
-                    }}>
-                      Last Completed
-                    </div>
-                    <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
-                      {lastCompleted.title}
-                    </div>
-                  </div>
-                )}
-                {nextMission && (
-                  <div>
-                    <div style={{
-                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: '#94a3b8', marginBottom: 5,
-                    }}>
-                      Up Next
-                    </div>
-                    <div style={{ fontSize: 13, color: '#8F0909', fontWeight: 600 }}>
-                      {nextMission.title}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* What you'll receive — fresh start only */}
-          {!hasProgress && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.09em', color: '#94a3b8',
-              }}>
-                Your Career Intelligence Report will include
-              </div>
-              {[
-                { label: 'Aviation Career Alignment', sub: 'Your alignment across 13 aviation and aerospace pathways' },
-                { label: 'Competency Evidence Profile', sub: 'Evidence-based observations across 13 competency dimensions' },
-                { label: 'Observed Strengths and Emerging Capabilities', sub: 'Built from multiple interactions across the assessment' },
-                { label: 'Recommended Next Steps', sub: 'Personalised guidance for your strongest career pathways' },
-              ].map(({ label, sub }) => (
-                <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 3, flexShrink: 0, alignSelf: 'stretch',
-                    background: '#8F0909', borderRadius: 2, marginTop: 3,
-                  }} />
-                  <div>
-                    <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{label}</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{sub}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Save notice + CTA */}
-          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.65, margin: 0 }}>
-              Your progress is saved automatically. You may leave and return later. Once you submit a response, it cannot be changed. Some short missions may need to be completed in one sitting — we will let you know before they begin.
-            </p>
+          {/* CTA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 4 }}>
             <button
               onClick={() => onStart(hasProgress)}
               className="acia-cta"
               style={{
-                display: 'inline-block',
-                background: '#8F0909',
-                color: 'white',
-                border: 'none',
-                borderRadius: 10,
-                padding: '14px 32px',
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: 'pointer',
-                letterSpacing: '0.02em',
-                alignSelf: 'flex-start',
-                fontFamily: 'DM Sans, sans-serif',
+                background: '#8F0909', color: 'white', border: 'none', borderRadius: 10,
+                padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                letterSpacing: '0.02em', fontFamily: 'DM Sans, sans-serif',
                 boxShadow: '0 2px 8px rgba(143,9,9,0.18)',
               }}
             >
-              {hasProgress ? 'Resume Assessment' : 'Begin Career Discovery Flight'}
+              {hasProgress ? 'Continue Your Journey' : isRpas ? 'Begin RPAS Assessment' : 'Begin Your Journey'}
             </button>
+            {!hasProgress && (
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>≈ 35 – 45 min total · save and resume any time</span>
+            )}
           </div>
         </div>
       </div>

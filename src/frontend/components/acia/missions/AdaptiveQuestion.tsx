@@ -19,10 +19,11 @@ interface Props {
   question: QuestionRecord;
   variantText: string;
   expectedCorrect?: string;
+  chatEndpoint?: string;
   onComplete: (response: QuestionResponse) => void;
 }
 
-export function AdaptiveQuestion({ question, variantText, expectedCorrect, onComplete }: Props) {
+export function AdaptiveQuestion({ question, variantText, expectedCorrect, chatEndpoint = '/acia/chat', onComplete }: Props) {
   const [response, setResponse] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -46,7 +47,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
 
       // Step 1: Classify response against rubric using AI
       const classifyPrompt = buildClassificationPrompt(question, variantText, response.trim(), expectedCorrect);
-      const classifyRes = await fetch('/acia/chat', {
+      const classifyRes = await fetch(chatEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
           borderRadius: 14, padding: '18px 20px',
         }}>
           <div style={{ color: C.grey, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Captain ACIA
+            ACIA™ — Your Career Intelligence Advisor
           </div>
           <p style={{ color: C.white, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{mentorAck}</p>
         </div>
@@ -215,11 +216,16 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSubmit();
           }}
         />
+        {response.trim().length < minLength && response.trim().length > 0 && (
+          <div style={{ background: 'rgba(128,1,31,0.08)', border: '1px solid rgba(128,1,31,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 12, color: '#d4506a', marginBottom: 4 }}>
+            Keep going — add {minLength - response.trim().length} more character{minLength - response.trim().length !== 1 ? 's' : ''} to continue
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ color: C.greyD, fontSize: 11 }}>
+          <span style={{ color: response.trim().length >= minLength ? '#4ade80' : C.greyD, fontSize: 11 }}>
             {response.trim().length < minLength
-              ? `${minLength - response.trim().length} more characters to continue`
-              : 'Ready to submit'}
+              ? `${response.trim().length} / ${minLength} characters`
+              : '✓ Ready to submit'}
           </span>
           {error && <span style={{ color: '#f87171', fontSize: 12 }}>{error}</span>}
           <button
@@ -239,7 +245,7 @@ export function AdaptiveQuestion({ question, variantText, expectedCorrect, onCom
               whiteSpace: 'nowrap',
             }}
           >
-            {submitting ? 'Processing…' : 'Continue'}
+            {submitting ? 'Processing…' : canSubmit ? 'Continue' : `Continue (${Math.max(0, minLength - response.trim().length)} left)`}
           </button>
         </div>
       </div>

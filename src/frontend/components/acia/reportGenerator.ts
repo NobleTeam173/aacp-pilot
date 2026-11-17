@@ -75,11 +75,19 @@ export function openACIAReport(data: ReportData): void {
   };
   const stageLabel = data.assessmentStage ? stageLabels[data.assessmentStage] ?? '' : '';
 
-  // Data integrity — only show alignments that have actual evidence behind them
+  // Data integrity — split alignments into supported and limited-evidence
   const supportedAlignments = data.careerAlignments.filter(a =>
     a.alignment !== 'insufficient' && a.evidenceConfidence !== 'low'
   );
+  const limitedEvidenceAlignments = data.careerAlignments.filter(a =>
+    a.alignment !== 'insufficient' && a.evidenceConfidence === 'low'
+  );
   const hasReliableData = supportedAlignments.length > 0;
+
+  // G7: identify single-observation competencies for disclosure
+  const singleObsCompetencies = data.competencies.filter(c => parseInt(c.confidence ?? '0') === 1);
+  const hasSingleObs = singleObsCompetencies.length > 0;
+  const hasLimitedPathways = limitedEvidenceAlignments.length > 0;
 
   // Pathway snapshot: only name a top pathway when evidence supports it
   const topPathwayDisplay = hasReliableData && data.topPathway ? data.topPathway : null;
@@ -115,12 +123,18 @@ export function openACIAReport(data: ReportData): void {
     </div>
   `).join('');
 
-  const competenciesHtml = data.competencies.filter(c => c.state !== 'insufficient').map(c => `
+  const competenciesHtml = data.competencies.filter(c => c.state !== 'insufficient').map(c => {
+    const isSingle = parseInt(c.confidence ?? '0') === 1;
+    return `
     <div class="competency-row">
-      <div class="competency-name">${esc(c.label)}</div>
+      <div class="competency-name">
+        ${esc(c.label)}
+        ${isSingle ? `<span class="single-obs-marker" title="Based on a single observed instance">*</span>` : ''}
+      </div>
       <div class="evidence-badge ${c.state}">${STATE_LABEL[c.state] ?? c.state}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const observedStrengthsHtml = data.observedStrengths.length ? `
     <h2>What We Observed</h2>
@@ -224,6 +238,10 @@ export function openACIAReport(data: ReportData): void {
   .disclaimer { background: #f9f5f6; border: 1px solid #e0c8cc; border-radius: 6px; padding: 16px 18px; margin-top: 28px; font-size: 9pt; color: #666; line-height: 1.7; }
 
   .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e0c8cc; text-align: center; font-size: 8.5pt; color: #999; }
+  .single-obs-marker { color: #8F0909; font-weight: 700; margin-left: 2px; font-size: 9pt; }
+  .evidence-disclosure { background: #fef9f0; border: 1px solid #f0d9b0; border-radius: 5px; padding: 10px 14px; font-size: 9pt; color: #7a5c1a; margin-top: 10px; line-height: 1.6; }
+  .limited-pathway-card { border: 1px solid #e8e0cc; border-radius: 6px; padding: 14px 18px; margin-bottom: 10px; opacity: 0.8; }
+  .limited-pathway-note { font-size: 8.5pt; color: #888; font-style: italic; margin-top: 6px; }
 
   @media print {
     body { font-size: 10pt; }
@@ -273,12 +291,28 @@ export function openACIAReport(data: ReportData): void {
 
   <h2>${isTransition ? 'Career Pathway Intelligence' : 'Career Pathway Alignment'}</h2>
   ${alignmentsHtml || `<p class="no-data-note">Insufficient evidence was gathered during this assessment to produce a supported pathway alignment. A complete assessment engagement is required before pathway recommendations can be made.</p>`}
+  ${hasLimitedPathways ? `
+  <h3 style="font-size:10pt;color:#888;margin:16px 0 8px;font-weight:600">Pathways with Limited Evidence</h3>
+  <p style="font-size:9pt;color:#888;font-style:italic;margin-bottom:10px">The following pathways showed some interest indicators but did not accumulate sufficient assessment evidence to support a reliable alignment. Further engagement with AACP resources is recommended before drawing conclusions.</p>
+  ${limitedEvidenceAlignments.map(a => `
+    <div class="limited-pathway-card">
+      <div class="pathway-header">
+        <span class="pathway-name" style="font-size:10.5pt;color:#555">${esc(a.label)}</span>
+        <span class="alignment-badge exploratory">Limited Evidence</span>
+      </div>
+      <div class="limited-pathway-note">Insufficient observations were collected to confirm alignment with this pathway during this assessment.</div>
+    </div>
+  `).join('')}` : ''}
 
   ${observedStrengthsHtml}
 
   <h2>Competency Evidence Profile</h2>
   <p style="font-size:9.5pt;color:#666;margin-bottom:12px">The following competencies were observed across ACIA assessment missions. Evidence states reflect the quality and consistency of observed behaviour — not a numeric score.</p>
   ${competenciesHtml || `<p class="no-data-note">Insufficient competency evidence was observed during this assessment. A complete engagement across all nine missions is required to generate a competency profile.</p>`}
+  ${hasSingleObs ? `
+  <div class="evidence-disclosure">
+    * ${singleObsCompetencies.map(c => esc(c.label)).join(', ')} ${singleObsCompetencies.length === 1 ? 'was' : 'were'} observed in a single assessment interaction. Additional assessment engagement is needed to confirm these findings.
+  </div>` : ''}
 
   ${data.emergingCapabilities.length ? `
   <h2>Areas of Growing Strength</h2>

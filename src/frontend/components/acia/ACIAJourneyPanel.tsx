@@ -1,4 +1,4 @@
-import type { Mission } from './types';
+import type { Mission, SessionRecord } from './types';
 
 const C = {
   crimson: '#8F0909',
@@ -12,19 +12,36 @@ const C = {
 interface Props {
   missions: Mission[];
   currentIndex: number;
-  startedAt: string;
+  sessionRecords: SessionRecord[];
   adaptiveCount?: number;
 }
 
-export function ACIAJourneyPanel({ missions, currentIndex, startedAt, adaptiveCount = 0 }: Props) {
+// Groups: Discovery (M1), Core Assessment (M2–M7), Completion (M8–M9)
+const MISSION_GROUPS = [
+  { label: 'Discovery', indices: [0] },
+  { label: 'Core Assessment', indices: [1, 2, 3, 4, 5, 6] },
+  { label: 'Completion', indices: [7, 8] },
+];
+
+function computeActiveMinutes(sessionRecords: SessionRecord[]): number {
+  let totalMs = 0;
+  const now = Date.now();
+  for (const rec of sessionRecords) {
+    const start = new Date(rec.startedAt).getTime();
+    const end = rec.endedAt ? new Date(rec.endedAt).getTime() : now;
+    if (end > start) totalMs += end - start;
+  }
+  return Math.min(Math.floor(totalMs / 60000), 999); // cap at 999m
+}
+
+export function ACIAJourneyPanel({ missions, currentIndex, sessionRecords, adaptiveCount = 0 }: Props) {
   const completed = missions.filter(m => m.completed).length;
   const total = missions.length;
   // Progress considers both fixed missions and adaptive questions
   const totalInteractions = total + 5; // 5 adaptive slots expected
   const completedInteractions = completed + adaptiveCount;
   const pct = Math.min(100, Math.round((completedInteractions / totalInteractions) * 100));
-  const elapsedMs = Date.now() - new Date(startedAt).getTime();
-  const elapsedMin = Math.floor(elapsedMs / 60000);
+  const elapsedMin = computeActiveMinutes(sessionRecords);
   const currentMission = missions[currentIndex];
 
   return (
@@ -67,34 +84,44 @@ export function ACIAJourneyPanel({ missions, currentIndex, startedAt, adaptiveCo
         <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
           Missions
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {missions.map((m, i) => {
-            const isCurrent = i === currentIndex;
-            const isCompleted = m.completed;
-            const isFuture = i > currentIndex && !isCompleted;
-            return (
-              <div key={m.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px', borderRadius: 10,
-                background: isCurrent ? '#2d0f1a' : 'transparent',
-                border: `1px solid ${isCurrent ? C.crimson : 'transparent'}`,
-                opacity: isFuture ? 0.5 : 1,
-              }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: isCompleted ? '#16a34a' : isCurrent ? C.crimson : '#2d1020',
-                  border: `2px solid ${isCompleted ? '#16a34a' : isCurrent ? C.crimson : C.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontSize: 10, color: 'white', fontWeight: 700,
-                }}>
-                  {isCompleted ? '✓' : i + 1}
-                </div>
-                <div style={{ color: isCurrent ? C.white : C.grey, fontSize: 12, fontWeight: isCurrent ? 600 : 400 }}>
-                  {m.title}
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {MISSION_GROUPS.map(group => (
+            <div key={group.label}>
+              <div style={{ color: C.grey, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, padding: '8px 4px 4px', opacity: 0.6 }}>
+                {group.label}
               </div>
-            );
-          })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6 }}>
+                {group.indices.filter(i => i < missions.length).map(i => {
+                  const m = missions[i];
+                  const isCurrent = i === currentIndex;
+                  const isCompleted = m.completed;
+                  const isFuture = i > currentIndex && !isCompleted;
+                  return (
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 10px', borderRadius: 10,
+                      background: isCurrent ? '#2d0f1a' : 'transparent',
+                      border: `1px solid ${isCurrent ? C.crimson : 'transparent'}`,
+                      opacity: isFuture ? 0.5 : 1,
+                    }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: isCompleted ? '#16a34a' : isCurrent ? C.crimson : '#2d1020',
+                        border: `2px solid ${isCompleted ? '#16a34a' : isCurrent ? C.crimson : C.border}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, fontSize: 10, color: 'white', fontWeight: 700,
+                      }}>
+                        {isCompleted ? '✓' : i + 1}
+                      </div>
+                      <div style={{ color: isCurrent ? C.white : C.grey, fontSize: 12, fontWeight: isCurrent ? 600 : 400 }}>
+                        {m.title}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -114,10 +141,6 @@ export function ACIAJourneyPanel({ missions, currentIndex, startedAt, adaptiveCo
 
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ color: C.grey, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Time</div>
-            <div style={{ color: C.white, fontSize: 16, fontWeight: 700 }}>{elapsedMin}m</div>
-          </div>
           <div>
             <div style={{ color: C.grey, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Progress</div>
             <div style={{ color: C.white, fontSize: 16, fontWeight: 700 }}>{pct}%</div>

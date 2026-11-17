@@ -70,14 +70,114 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+// ── Program Recommendation Card ───────────────────────────────────────────────
+
+const PROG_LABELS: Record<string, string> = {
+  cdr: 'Aviation Career Pathways & Workforce Readiness',
+  awtp: 'Aviation Workforce Transition Program',
+  rpas_hub: 'RPAS Workforce Hub',
+  human_review: 'Pending Advisor Review',
+};
+const PROG_DURATION: Record<string, string> = {
+  cdr: '8 weeks', awtp: '2 weeks', rpas_hub: '1 week', human_review: '',
+};
+const SPEC_LABELS: Record<string, string> = {
+  engine_maintenance: 'Aircraft Engine Maintenance & Gas Turbine Technology',
+  ame: 'Aircraft Maintenance Engineering (AME)',
+  pilot: 'Pilot / Flight Operations',
+  rpas: 'RPAS / Autonomous Systems',
+};
+
+interface Recommendation {
+  recommendedProgram: string | null;
+  recommendedSpecialization: string | null;
+  rationale: string | null;
+  reviewStatus: 'not_computed' | 'pending_review' | 'reviewed';
+}
+
+function ProgramRecommendationCard() {
+  const [rec, setRec] = useState<Recommendation | null>(null);
+
+  useEffect(() => {
+    request<Recommendation>('/participant/recommendation')
+      .then(setRec)
+      .catch(() => {});
+  }, []);
+
+  if (!rec || !rec.recommendedProgram) return null;
+
+  const prog = rec.recommendedProgram;
+  const spec = rec.recommendedSpecialization;
+  const isConfirmed = rec.reviewStatus === 'reviewed';
+  const isHumanReview = prog === 'human_review';
+
+  if (isHumanReview) {
+    return (
+      <div style={{
+        background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)',
+        borderLeft: '4px solid rgba(245,158,11,0.6)',
+        borderRadius: 14, padding: '18px 22px', marginBottom: 24,
+      }}>
+        <div style={{ color: '#fcd34d', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 6 }}>Program Pathway</div>
+        <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Advisor Review Pending</div>
+        <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.6 }}>
+          An AACP advisor will review your registration and confirm your program pathway. You will be notified when your pathway is confirmed.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.25)',
+      borderLeft: '4px solid rgba(59,130,246,0.6)',
+      borderRadius: 14, padding: '18px 22px', marginBottom: 24,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' as const }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: '#93c5fd', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 6 }}>
+            {isConfirmed ? 'Confirmed Program Pathway' : 'Recommended Program Pathway'}
+          </div>
+          <div style={{ color: C.white, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: 'Fraunces, serif' }}>
+            {PROG_LABELS[prog] ?? prog}
+            {PROG_DURATION[prog] && (
+              <span style={{ color: C.greyD, fontSize: 13, fontWeight: 400, fontFamily: 'DM Sans, sans-serif', marginLeft: 8 }}>({PROG_DURATION[prog]})</span>
+            )}
+          </div>
+          {spec && (
+            <div style={{ color: '#93c5fd', fontSize: 13, marginBottom: 4 }}>Specialization: {SPEC_LABELS[spec] ?? spec}</div>
+          )}
+          {rec.rationale && (
+            <div style={{ color: C.greyD, fontSize: 13, lineHeight: 1.6, marginTop: 8 }}>{rec.rationale}</div>
+          )}
+        </div>
+        <div style={{
+          background: isConfirmed ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+          border: `1px solid ${isConfirmed ? 'rgba(34,197,94,0.3)' : 'rgba(59,130,246,0.3)'}`,
+          borderRadius: 8, padding: '4px 12px', fontSize: 11, fontWeight: 700,
+          color: isConfirmed ? C.green : '#93c5fd',
+          whiteSpace: 'nowrap' as const, flexShrink: 0, alignSelf: 'flex-start',
+        }}>
+          {isConfirmed ? 'Confirmed' : 'Pending confirmation'}
+        </div>
+      </div>
+      {!isConfirmed && (
+        <div style={{ color: C.grey, fontSize: 11, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10 }}>
+          This recommendation is advisory. An AACP advisor will confirm your pathway before program commencement.
+        </div>
+      )}
+    </div>
+  );
+}
+
 const STAGE_TITLES: Record<AssessmentStage, string> = {
-  baseline: 'Baseline ACIA™',
+  baseline: 'ACIA™ Career Intelligence Assessment',
   completion: 'AACP™ Completion ACIA™',
   followup: '90-Day Employment Follow-Up ACIA™',
 };
 
 const STAGE_PURPOSES: Record<AssessmentStage, string> = {
-  baseline: 'Establish your initial competency profile and workforce readiness baseline before the AACP.',
+  baseline: 'Explore your strengths, interests and potential aviation and aerospace career pathways.',
   completion: 'Measure competency development and workforce readiness change after completing the 8-week AACP.',
   followup: 'Measure how your competencies are transferring into the workplace after employer exposure.',
 };
@@ -403,7 +503,7 @@ function AssessmentStep({
             cursor: 'pointer',
           }}
         >
-          Begin {STAGE_TITLES[stage]} →
+          Begin {STAGE_TITLES[stage]}
         </button>
       )}
       {isAvail && active && <ACIA stage={stage} onComplete={onComplete} />}
@@ -1674,7 +1774,7 @@ function ParticipantHandoffSection() {
           </div>
           {h.handoff_status === 'awaiting_consent' && (
             <button onClick={() => openConsentDetail(h)} style={{ marginTop: 10, background: C.amber + '22', border: `1px solid ${C.amber}`, color: C.amber, borderRadius: 6, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              Review & Authorize →
+              Review & Authorize
             </button>
           )}
           {h.handoff_status === 'authorized' && (
@@ -1727,6 +1827,7 @@ export function YouthDashboard() {
   return (
     <DashboardLayout title="Participant Dashboard">
       {!emailVerified && <EmailVerificationBanner />}
+      <ProgramRecommendationCard />
 
       {error && (
         <p role="alert" style={{ color: C.red, fontSize: 13, marginBottom: 8 }}>

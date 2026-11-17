@@ -16,7 +16,26 @@ const PBKDF2_ITERATIONS        = 100000;
 const PBKDF2_LEGACY_THRESHOLD  = 10000;
 
 // Captain ACIA — server-controlled system prompt; client-supplied systemPrompt is NEVER accepted.
-const CAPTAIN_ACIA_SYSTEM_PROMPT = `You are Captain ACIA, AACP's aviation and aerospace career mentor. You guide participants through aviation career exploration, helping them understand pathways, competencies, and opportunities in Canada's aviation and aerospace industry. You draw on knowledge of pilot licensing, ATC, aircraft maintenance, aerospace engineering, airport operations, and adjacent careers. You are encouraging, knowledgeable, and focused on helping participants discover their best-fit career path within aviation and aerospace. You do not provide legal, financial, or medical advice. Keep all responses focused on aviation and aerospace career guidance.`;
+const CAPTAIN_ACIA_SYSTEM_PROMPT = `You are ACIA — Aviation & Aerospace Career Intelligence Advisor, AACP's senior career mentor. Your role in this opening conversation is to begin a genuine career discovery flight with this participant — not an interview, not a checklist.
+
+Your goals:
+- Build real rapport and make the participant feel heard
+- Draw out their story naturally through intelligent follow-up questions
+- Understand what genuinely excites them about aviation or aerospace — do not assume
+- Explore what specifically draws them: technical systems, operational environment, people, responsibility, challenge
+- Keep the conversation broad and exploratory — the missions ahead will reveal specific strengths
+
+Conversation rules:
+- Ask only ONE question per response — never stack multiple questions
+- Acknowledge what they said specifically before asking a follow-up
+- Keep each response to 2–3 short paragraphs maximum
+- Do NOT ask about age, school grade, or personal details — stay focused on interests and motivations
+- Do NOT assume or suggest a specific career (e.g. pilot) based on a single answer — aviation has 50+ career pathways; always explore broadly before narrowing
+- If they mention one role, acknowledge it and explore other areas too: "That's one pathway — there's also AME, ATC, aerospace engineering, flight service, and more. What else catches your eye?"
+- Do NOT ask about strengths, aptitude, or career fit yet — that comes from the missions ahead
+- Sound like a mentor, not a chatbot — warm, direct, genuinely curious
+
+You draw on deep knowledge of Canadian aviation careers: pilots, AMEs, ATCOs, flight service specialists, aerospace engineers, RPAS operators, airport operations, and adjacent roles. You do not provide legal, financial, or medical advice. Keep all responses focused on aviation and aerospace career guidance.`;
 
 // RPAS Workforce Intelligence — server-controlled system prompt for Bank 16 intake assessment.
 // Client-supplied systemPrompt is NEVER accepted. Do not expose this prompt to participants.
@@ -105,6 +124,7 @@ CONDUCT — both phases
 const ALLOWED_ORIGINS = new Set([
   'https://aviationaerospacecompetency.com',
   'https://www.aviationaerospacecompetency.com',
+  'https://careers.aviationaerospacecompetency.com',
   'http://localhost:3000',
   'http://localhost:8787',
 ]);
@@ -126,6 +146,13 @@ const SECURITY_HEADERS = {
 const MFA_ENFORCED_ROLES  = new Set(['super_admin', 'admin', 'employer', 'postsecondary']);
 const VALID_ROLES = new Set(['youth', 'employer', 'postsecondary', 'admin', 'super_admin']);
 const ADMIN_ROLES = new Set(['admin', 'super_admin']); // roles with dashboard access
+
+// ── FAWN — Future Aviation Workforce Network ──────────────────────────────────
+const NETWORK_ROLES = new Set(['network_member', 'organization_admin', 'aacp_industry_partner']);
+const NETWORK_INVITE_TTL_DAYS = 14;
+const NETWORK_ORG_TYPES = ['Airline & Operator', 'Airport Authority', 'MRO / Maintenance', 'Flight Training Unit', 'Aviation Academy', 'Aerospace Manufacturer', 'Defence & Space', 'RPAS / Autonomous Aviation', 'Aviation Technology', 'Industry Association', 'Government / Regulatory Authority', 'Post-Secondary Institution', 'Other'];
+const NETWORK_OPPORTUNITY_TYPES = ['Workforce Initiative', 'Talent Pipeline', 'Training Partnership', 'Industry Project', 'Technology Collaboration', 'Research', 'Funding', 'Event', 'Other'];
+const NETWORK_TOPICS = ['Workforce Supply', 'Workforce Demand', 'Skills & Competency', 'Training & Education', 'Regulatory Environment', 'Technology & Innovation', 'RPAS & Autonomous Aviation', 'Diversity & Inclusion', 'Industry Outlook', 'AACP Program News'];
 
 // P0A: Program activity governed vocabularies
 const VALID_ACTIVITY_PURPOSES  = new Set(['learning', 'practice', 'evidence_generating']);
@@ -442,6 +469,24 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE users ADD COLUMN acia_payment_status TEXT DEFAULT NULL`).run().catch(() => {});
   await db.prepare(`ALTER TABLE users ADD COLUMN acia_access_enabled INTEGER DEFAULT 0`).run().catch(() => {});
 
+  // Intelligent program routing
+  await db.prepare(`ALTER TABLE users ADD COLUMN recommended_program TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN recommended_specialization TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE users ADD COLUMN routing_data TEXT DEFAULT NULL`).run().catch(() => {});
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS program_routing_reviews (
+      id                     TEXT PRIMARY KEY,
+      user_id                TEXT NOT NULL REFERENCES users(id),
+      original_program       TEXT NOT NULL,
+      original_specialization TEXT,
+      admin_program          TEXT NOT NULL,
+      admin_specialization   TEXT,
+      admin_id               TEXT NOT NULL REFERENCES users(id),
+      reason                 TEXT,
+      reviewed_at            TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
   // Talent Pipeline Intelligence — professional profiles, talent network, employer connections
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS professional_profiles (
@@ -569,6 +614,9 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE acia_assessments ADD COLUMN submission_id TEXT`).run().catch(() => {});
   await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acia_submission ON acia_assessments(submission_id) WHERE submission_id IS NOT NULL`).run().catch(() => {});
 
+  // scoring_version on acia_assessments — tracks which scoring ruleset produced the record
+  await db.prepare(`ALTER TABLE acia_assessments ADD COLUMN scoring_version TEXT DEFAULT NULL`).run().catch(() => {});
+
   // Save-attempt log — every persistence attempt is recorded for monitoring
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS acia_save_attempts (
@@ -606,6 +654,36 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acia_cp_mission ON acia_checkpoints(participant_id, submission_id, mission_id)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_acia_cp_participant ON acia_checkpoints(participant_id, checkpointed_at)`).run().catch(() => {});
+
+  // Assembly evidence — structured SR evidence from M2 aircraft assembly
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS acia_assembly_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      submission_id TEXT NOT NULL UNIQUE,
+      session_id TEXT,
+      sr_evidence TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_assembly_evidence_user ON acia_assembly_evidence(user_id)`).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS acia_wm_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      submission_id TEXT NOT NULL UNIQUE,
+      session_id TEXT,
+      mission TEXT DEFAULT 'M7',
+      briefing_version TEXT DEFAULT 'v1',
+      presentation_mode TEXT,
+      wm_evidence TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wm_evidence_user ON acia_wm_evidence(user_id)`).run().catch(() => {});
 
   // Coach invitation tokens — invite-only provisioning for career coach accounts
   await db.prepare(`
@@ -1508,8 +1586,22 @@ async function runMigrations(db) {
   await db.prepare(`ALTER TABLE rpas_applications ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+  await db.prepare(`ALTER TABLE eoi_individuals ADD COLUMN cohort_preference TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_key TEXT`).run().catch(() => {});
   await db.prepare(`ALTER TABLE eoi_partners ADD COLUMN referral_source_other TEXT`).run().catch(() => {});
+
+  // ACIA Mission 2 open-ended reflection responses (Stage 2) — stored separately from evidence scoring
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS acia_m2_responses (
+      id               TEXT PRIMARY KEY,
+      session_id       TEXT NOT NULL,
+      user_id          TEXT,
+      observation      TEXT NOT NULL,
+      reasoning        TEXT NOT NULL,
+      transferable     TEXT NOT NULL,
+      saved_at         TEXT NOT NULL
+    )
+  `).run().catch(() => {});
 
   // Rename pilot_invitations → cohort_invitations (idempotent)
   await db.prepare(`ALTER TABLE pilot_invitations RENAME TO cohort_invitations`).run().catch(() => {});
@@ -1535,6 +1627,7 @@ async function runMigrations(db) {
       background           TEXT,
       willingness_to_pay   TEXT,
       funding_dependency   TEXT,
+      cohort_preference    TEXT,
       referral_source      TEXT,
       comment              TEXT,
       utm_source           TEXT,
@@ -1580,14 +1673,304 @@ async function runMigrations(db) {
   `).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_email  ON eoi_partners(email)`).run().catch(() => {});
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_eoi_part_status ON eoi_partners(status)`).run().catch(() => {});
+
+  // cookie_consent_log — append-only audit log for analytics consent decisions.
+  // No PII stored: session_hash is a client-generated random hex value, non-reversible.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS cookie_consent_log (
+      id               TEXT PRIMARY KEY,
+      session_hash     TEXT NOT NULL,
+      decision         TEXT NOT NULL CHECK(decision IN ('accepted','declined')),
+      page             TEXT NOT NULL,
+      consent_version  TEXT NOT NULL DEFAULT '1.0',
+      ts               INTEGER NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_ts       ON cookie_consent_log(ts)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ccl_decision ON cookie_consent_log(decision)`).run().catch(() => {});
+
+  // Clear temporary pilot_account bypass set during emergency admin MFA reset (2026-10-15).
+  await db.prepare(`UPDATE users SET pilot_account = 0 WHERE email = 'admin@aviationaerospacecompetency.com' AND pilot_account = 1`).run().catch(() => {});
+
+  // ── FAWN — Future Aviation Workforce Network tables ───────────────────────
+  await db.prepare(`ALTER TABLE users ADD COLUMN network_status TEXT DEFAULT NULL`).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_organizations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      org_type TEXT NOT NULL,
+      description TEXT,
+      website TEXT,
+      location TEXT,
+      is_founding_member INTEGER DEFAULT 0,
+      is_verified INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_org_memberships (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      role TEXT DEFAULT 'member',
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, org_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_org_industry_segments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      segment TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_invitations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      org_id INTEGER REFERENCES network_organizations(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      invited_by INTEGER REFERENCES users(id),
+      expires_at TEXT NOT NULL,
+      accepted_at TEXT,
+      revoked_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_insights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      author_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_opportunities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      posted_by INTEGER NOT NULL REFERENCES users(id),
+      opportunity_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      is_open INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_expressions_of_interest (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      opportunity_id INTEGER NOT NULL REFERENCES network_opportunities(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      message TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(opportunity_id, user_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      title TEXT NOT NULL,
+      description TEXT,
+      event_date TEXT NOT NULL,
+      location TEXT,
+      is_virtual INTEGER DEFAULT 0,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_event_registrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id INTEGER NOT NULL REFERENCES network_events(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(event_id, user_id)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      org_id INTEGER NOT NULL REFERENCES network_organizations(id),
+      author_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      body TEXT NOT NULL,
+      is_published INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, topic)
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS network_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL,
+      payload TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_invitations_email ON network_invitations(email)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_invitations_token ON network_invitations(token_hash)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_org_memberships_user ON network_org_memberships(user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_network_notifications_user ON network_notifications(user_id, is_read)`).run().catch(() => {});
+
+  // ── Career Navigator Subscriptions ───────────────────────────────────────────
+  // navigator_subscriptions — Stripe subscription record per user.
+  // plan: 'free' | 'premium_student' | 'advisor_invited' | 'career_advisor'
+  // status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete'
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_subscriptions (
+      id                   TEXT PRIMARY KEY,
+      user_id              TEXT NOT NULL UNIQUE REFERENCES users(id),
+      plan                 TEXT NOT NULL DEFAULT 'free',
+      status               TEXT NOT NULL DEFAULT 'active',
+      stripe_customer_id   TEXT,
+      stripe_subscription_id TEXT,
+      stripe_price_id      TEXT,
+      trial_ends_at        TEXT,
+      current_period_start TEXT,
+      current_period_end   TEXT,
+      cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+      invite_code_id       TEXT,
+      invites_remaining    INTEGER NOT NULL DEFAULT 0,
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_user   ON navigator_subscriptions(user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_stripe ON navigator_subscriptions(stripe_subscription_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_sub_plan   ON navigator_subscriptions(plan, status)`).run().catch(() => {});
+
+  // navigator_invite_codes — advisor-generated discount codes redeemed at checkout.
+  // 20% discount applied via Stripe coupon on redemption.
+  // max_redemptions: 5 during trial, unlimited for paid Career Advisor plan (NULL = unlimited).
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_invite_codes (
+      id               TEXT PRIMARY KEY,
+      code             TEXT NOT NULL UNIQUE,
+      advisor_user_id  TEXT NOT NULL REFERENCES users(id),
+      stripe_coupon_id TEXT,
+      max_redemptions  INTEGER,
+      redemptions_used INTEGER NOT NULL DEFAULT 0,
+      discount_percent INTEGER NOT NULL DEFAULT 20,
+      status           TEXT NOT NULL DEFAULT 'active',
+      expires_at       TEXT,
+      created_at       TEXT NOT NULL,
+      updated_at       TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_inv_code    ON navigator_invite_codes(code)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_inv_advisor ON navigator_invite_codes(advisor_user_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_inv_status  ON navigator_invite_codes(status)`).run().catch(() => {});
+
+  // navigator_invite_redemptions — audit log of each code redemption.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_invite_redemptions (
+      id              TEXT PRIMARY KEY,
+      code_id         TEXT NOT NULL REFERENCES navigator_invite_codes(id),
+      redeemed_by     TEXT NOT NULL REFERENCES users(id),
+      subscription_id TEXT REFERENCES navigator_subscriptions(id),
+      redeemed_at     TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_code ON navigator_invite_redemptions(code_id)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_red_user ON navigator_invite_redemptions(redeemed_by)`).run().catch(() => {});
+
+  // navigator_pilot_codes — admin-generated complimentary access codes (OSCA / pilot cohort).
+  // Grants free premium access without Stripe, creates/links a navigator user on redemption.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_pilot_codes (
+      id               TEXT PRIMARY KEY,
+      code             TEXT NOT NULL UNIQUE,
+      label            TEXT NOT NULL,
+      created_by       TEXT REFERENCES users(id),
+      plan             TEXT NOT NULL DEFAULT 'premium_student',
+      max_redemptions  INTEGER,
+      redemptions_used INTEGER NOT NULL DEFAULT 0,
+      expires_at       TEXT,
+      status           TEXT NOT NULL DEFAULT 'active',
+      created_at       TEXT NOT NULL,
+      updated_at       TEXT NOT NULL
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nav_pilot_code   ON navigator_pilot_codes(code)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_label  ON navigator_pilot_codes(label)`).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_pilot_status ON navigator_pilot_codes(status)`).run().catch(() => {});
+
+  // navigator_profiles — navigator-role and pathway data for self-registered users.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_profiles (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL UNIQUE REFERENCES users(id),
+      navigator_role TEXT NOT NULL DEFAULT 'student',
+      pathway_data TEXT,
+      created_at   TEXT NOT NULL,
+      updated_at   TEXT NOT NULL
+    )
+  `).run();
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_profile_user ON navigator_profiles(user_id)`).run().catch(() => {});
+
+  // OAuth provider links — federated identity (Google, Microsoft)
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS oauth_providers (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL REFERENCES users(id),
+      provider      TEXT NOT NULL,
+      provider_id   TEXT NOT NULL,
+      provider_email TEXT,
+      created_at    TEXT NOT NULL,
+      UNIQUE(provider, provider_id)
+    )
+  `).run().catch(() => {});
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_providers(user_id)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
   // Bootstrap the initial Super Admin using Wrangler secrets.
   // Set AACP_SUPER_ADMIN_EMAIL and AACP_SUPER_ADMIN_PASSWORD as wrangler secrets.
-  // Falls back to AACP_ADMIN_EMAIL env var with a placeholder password that forces a reset.
+  // If the password secret is absent, skip seeding rather than creating an account
+  // with a known placeholder credential. The account will be created on the next
+  // cold start once the secrets are configured.
+  const adminPassword = env?.AACP_SUPER_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.error('[seedAdmin] AACP_SUPER_ADMIN_PASSWORD secret is not set — skipping super_admin seed. Configure the secret via: npx wrangler secret put AACP_SUPER_ADMIN_PASSWORD');
+    return;
+  }
   const adminEmail = (env?.AACP_SUPER_ADMIN_EMAIL ?? env?.AACP_ADMIN_EMAIL ?? 'admin@aviationaerospacecompetency.com').toLowerCase().trim();
-  const adminPassword = env?.AACP_SUPER_ADMIN_PASSWORD ?? 'AACP@Admin2024!ChangeMe';
   const passwordHash = await hashPassword(adminPassword);
   const now = new Date().toISOString();
   // password_change_required=1 so admin is forced to set a new password on first login
@@ -2222,15 +2605,115 @@ function rowToUser(row) {
     aciaPackage: row.acia_package ?? null,
     aciaPaymentStatus: row.acia_payment_status ?? null,
     aciaAccessEnabled: !!row.acia_access_enabled,
+    networkStatus: row.network_status ?? null,
   };
 }
 
 // ── Audit helper ─────────────────────────────────────────────────────────────
 
+// ── Cookie / Analytics Consent Audit Log ─────────────────────────────────────
+// Append-only. No IP, no user agent, no cookies stored.
+// session_hash is a client-generated cryptographically random hex value.
+async function handleConsentRecord(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid request' }, 400); }
+
+  const { sessionHash, decision, page } = body ?? {};
+
+  // Strict whitelist validation
+  if (typeof sessionHash !== 'string' || !/^[0-9a-f]{64}$/.test(sessionHash)) {
+    return json({ error: 'Invalid sessionHash' }, 400);
+  }
+  if (decision !== 'accepted' && decision !== 'declined') {
+    return json({ error: 'Invalid decision' }, 400);
+  }
+
+  // page: accept pathname only, strip query/hash, cap length
+  let safePage = '/';
+  try {
+    safePage = new URL(String(page ?? '/').slice(0, 500), 'https://x').pathname.slice(0, 200);
+  } catch { safePage = '/'; }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  // Idempotent: one record per session_hash per hour — prevents duplicate entries
+  const existing = await env.DB.prepare(
+    `SELECT id FROM cookie_consent_log WHERE session_hash = ? AND ts > ? LIMIT 1`
+  ).bind(sessionHash, now - 3600).first();
+  if (existing) return json({ logged: false, reason: 'duplicate' });
+
+  await env.DB.prepare(
+    `INSERT INTO cookie_consent_log (id, session_hash, decision, page, consent_version, ts)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), sessionHash, decision, safePage, '1.0', now).run();
+
+  return json({ logged: true });
+}
+
 async function audit(db, action, userId, entityType, details = {}) {
   await db.prepare(
     `INSERT INTO audit_log (id, action, user_id, entity_type, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
   ).bind(randomHex(8), action, userId ?? null, entityType ?? null, JSON.stringify(details), new Date().toISOString()).run().catch(() => {});
+}
+
+// ── Intelligent Program Routing (server-side) ─────────────────────────────────
+
+function computeRoutingServer(answers) {
+  const { careerStage, aviationBackground, occupationalInterest, rpasObjective } = answers;
+
+  const aviationProfStages = new Set(['aviation_professional', 'intl_aviation_professional']);
+  const hasAviationBg =
+    aviationBackground === 'yes' ||
+    aviationBackground === 'in_progress' ||
+    aviationProfStages.has(careerStage);
+  const rpas = occupationalInterest === 'rpas_drones';
+  const rpasExploring = rpas && (!rpasObjective || rpasObjective === 'exploring');
+  const rpasTransition = rpas && rpasObjective === 'transition';
+  const atcInterest = occupationalInterest === 'atc';
+
+  if (atcInterest) {
+    return { recommendedProgram: 'cdr', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'ATC career exploration is supported through the eight-week Aviation Career Discovery & Readiness Program.',
+      requiresHumanReview: false, alternativePrograms: [] };
+  }
+
+  if (aviationProfStages.has(careerStage)) {
+    if (rpasExploring) return { recommendedProgram: 'rpas_hub', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'Based on your aviation background and interest in exploring RPAS, the one-week RPAS Workforce Hub is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['awtp'] };
+    if (rpasTransition) return { recommendedProgram: 'awtp', recommendedSpecialization: 'rpas', confidence: 'high',
+      rationale: 'Based on your aviation background and RPAS transition goals, the two-week AWTP — RPAS / Autonomous Systems specialization is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['rpas_hub'] };
+    const spec = serverResolveSpec(occupationalInterest);
+    return { recommendedProgram: 'awtp', recommendedSpecialization: spec, confidence: spec ? 'high' : 'medium',
+      rationale: `Based on your aviation background, the two-week Aviation Workforce Transition Program is recommended.`,
+      requiresHumanReview: !spec, alternativePrograms: [] };
+  }
+
+  if (rpas) {
+    if (!rpasTransition || !hasAviationBg) return { recommendedProgram: 'rpas_hub', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'The one-week RPAS Workforce Hub is open to all backgrounds and is recommended for your RPAS interest.',
+      requiresHumanReview: false, alternativePrograms: hasAviationBg ? ['awtp'] : ['cdr'] };
+    return { recommendedProgram: 'awtp', recommendedSpecialization: 'rpas', confidence: 'high',
+      rationale: 'Based on your aviation background and RPAS transition goals, the two-week AWTP — RPAS / Autonomous Systems specialization is recommended.',
+      requiresHumanReview: false, alternativePrograms: ['rpas_hub'] };
+  }
+
+  if (!hasAviationBg) {
+    return { recommendedProgram: 'cdr', recommendedSpecialization: null, confidence: 'high',
+      rationale: 'The eight-week Aviation Career Discovery & Readiness Program is recommended. Relevant aviation education, training, or professional experience is required for the two-week Workforce Transition Program.',
+      requiresHumanReview: false, alternativePrograms: [] };
+  }
+
+  const spec = serverResolveSpec(occupationalInterest);
+  return { recommendedProgram: 'awtp', recommendedSpecialization: spec, confidence: spec ? 'high' : 'medium',
+    rationale: `Based on your aviation background, the two-week Aviation Workforce Transition Program is recommended.`,
+    requiresHumanReview: !spec, alternativePrograms: [] };
+}
+
+function serverResolveSpec(interest) {
+  const map = { engine_maintenance: 'engine_maintenance', ame_airframe: 'ame', pilot_flight_ops: 'pilot', rpas_drones: 'rpas' };
+  return map[interest] ?? null;
 }
 
 // ── Auth handlers ─────────────────────────────────────────────────────────────
@@ -2286,6 +2769,9 @@ async function handleRegister(request, env, ctx) {
 
   // Admin and super_admin accounts cannot be self-registered — they are provisioned by invite only
   if (role === 'admin' || role === 'super_admin') return err('Administrator accounts are provisioned by invitation only. Contact your administrator.', 403);
+
+  // Network roles cannot be self-registered — they are provisioned by network invitation only
+  if (NETWORK_ROLES.has(role)) return err('Industry Network accounts are provisioned by invitation only.', 403);
 
   // Cohort participants must register via their invitation link — direct registration is blocked
   // unless they are selecting a commercial ACIA package (self-directed pathway)
@@ -2347,6 +2833,7 @@ const FROM_ADDRESS = 'noreply@aviationaerospacecompetency.com';
 const FROM_NAME    = 'AACP Platform';
 const PLATFORM_URL = 'https://aviationaerospacecompetency.com/app.html';
 const CONTACT_EMAIL = 'info@aviationaerospacecompetency.com';
+const NAVIGATOR_URL = 'https://careers.aviationaerospacecompetency.com/career-navigator.html';
 
 // Core send — throws on failure so callers can log the actual Resend error.
 async function sendEmail(env, { event, to, subject, text, html }) {
@@ -2516,7 +3003,7 @@ async function emailAciaPaymentInstructions(env, { name, email, aciaPackage }) {
       eP('Once your payment has been received and confirmed by our team, you will receive a follow-up email with instructions to sign in and begin your ACIA™ Career Intelligence assessment.') +
       eBtn(`Contact AACP — ${CONTACT_EMAIL}`, `mailto:${CONTACT_EMAIL}`) +
       eDivider() +
-      eNote('If you have any questions, reply to this email or contact us directly. We look forward to supporting your aviation career journey.'),
+      eNote('If you have any questions, reply to this email or contact us directly. We look forward to supporting your aviation and aerospace career journey.'),
   });
   const text = `Hi ${name},\n\nYour AACP registration has been approved.\n\nPackage: ${packageLabel}\n\nTo complete your enrolment, please contact us at ${CONTACT_EMAIL} to arrange payment. Once payment is confirmed, you will receive instructions to sign in and begin your ACIA™ Career Intelligence assessment.\n\n— The AACP Team`;
   return sendEmail(env, { event: 'acia_payment_instructions', to: email, subject: 'AACP Registration Approved — Payment Instructions', text, html });
@@ -2733,6 +3220,436 @@ async function emailCoachInvite(env, { name, email, token, organizationType, org
     to: email,
     subject: `AACP — Career Coach Invitation for ${name}`,
     text: `Hello ${name},\n\nYou have been invited to create a Career Coach account on the AACP platform.\n\nAccept your invitation here: ${inviteUrl}\n\nThis link expires: ${expiry}\n\nAfter setting your password, you must complete MFA setup before accessing the coaching dashboard.\n\nIf you did not expect this, contact ${CONTACT_EMAIL}.`,
+    html,
+  });
+}
+
+// ── FAWN — Industry Network invite email ──────────────────────────────────────
+async function emailNetworkInvite(env, { email, role, orgName, acceptUrl }) {
+  const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const html = emailLayout({
+    preheader: 'Your invitation to the AACP Industry Network.',
+    body: eH1("You're invited to the AACP Industry Network") +
+      eP(`You have been invited to join the <strong>AACP Aviation &amp; Aerospace Industry Network</strong> as a <strong>${roleLabel}</strong>${orgName ? ` with <strong>${orgName}</strong>` : ''}.`) +
+      eBtn('Accept Invitation', acceptUrl) +
+      eNote(`This invitation expires in ${NETWORK_INVITE_TTL_DAYS} days. If you did not expect this, you can safely ignore it.`),
+  });
+  return sendEmail(env, {
+    event: 'network_invite',
+    to: email,
+    subject: 'AACP — You\'re invited to the Industry Network',
+    text: `You have been invited to the AACP Aviation & Aerospace Industry Network as a ${roleLabel}${orgName ? ` with ${orgName}` : ''}.\n\nAccept your invitation: ${acceptUrl}\n\nThis invitation expires in ${NETWORK_INVITE_TTL_DAYS} days.`,
+    html,
+  });
+}
+
+// ── FAWN — Route handlers ─────────────────────────────────────────────────────
+
+// GET /network/invite/:token — public
+async function handleNetworkInviteGet(request, env) {
+  const token = request.url.match(/\/network\/invite\/([^/?]+)/)?.[1];
+  if (!token) return err('Invalid token', 400);
+  const tokenHash = await sha256hex(token);
+  const row = await env.DB.prepare(`
+    SELECT ni.id, ni.email, ni.role, no.name as org_name
+    FROM network_invitations ni
+    LEFT JOIN network_organizations no ON ni.org_id = no.id
+    WHERE ni.token_hash = ? AND ni.revoked_at IS NULL AND ni.accepted_at IS NULL AND ni.expires_at > datetime('now')
+  `).bind(tokenHash).first();
+  if (!row) return err('Invitation not found or expired', 404);
+  return json({ email: row.email, role: row.role, orgName: row.org_name ?? null });
+}
+
+// POST /network/invite/:token — public — accept invitation and create account
+async function handleNetworkInviteAccept(request, env) {
+  const token = request.url.match(/\/network\/invite\/([^/?]+)/)?.[1];
+  if (!token) return err('Invalid token', 400);
+  const tokenHash = await sha256hex(token);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { firstName, lastName, password } = body ?? {};
+  if (!firstName || !lastName || !password) return err('firstName, lastName and password are required', 400);
+  if (password.length < 8) return err('Password must be at least 8 characters', 400);
+
+  const invite = await env.DB.prepare(`
+    SELECT id, email, role, org_id FROM network_invitations
+    WHERE token_hash = ? AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at > datetime('now')
+  `).bind(tokenHash).first();
+  if (!invite) return err('Invitation not found or expired', 404);
+
+  const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`).bind(invite.email).first();
+  if (existing) return err('An account with this email already exists', 409);
+
+  const passwordHash = await hashPassword(password);
+  const userId = randomHex(16);
+  await env.DB.prepare(`
+    INSERT INTO users (id, email, name, password_hash, role, status, network_status)
+    VALUES (?, ?, ?, ?, ?, 'active', 'active')
+  `).bind(userId, invite.email, `${firstName} ${lastName}`, passwordHash, invite.role).run();
+
+  await env.DB.prepare(`UPDATE network_invitations SET accepted_at = datetime('now') WHERE id = ?`).bind(invite.id).run();
+
+  if (invite.org_id) {
+    await env.DB.prepare(`INSERT OR IGNORE INTO network_org_memberships (user_id, org_id) VALUES (?, ?)`).bind(userId, invite.org_id).run().catch(() => {});
+  }
+
+  await audit(env.DB, 'network_invite_accepted', userId, 'user', userId, { role: invite.role, orgId: invite.org_id ?? null });
+  return json({ success: true, userId }, 201);
+}
+
+// GET /admin/network/invitations
+async function handleAdminNetworkInvitationsList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT ni.id, ni.email, ni.role, ni.expires_at, ni.accepted_at, ni.revoked_at, ni.created_at,
+           no.name as org_name, u.name as invited_by_name
+    FROM network_invitations ni
+    LEFT JOIN network_organizations no ON ni.org_id = no.id
+    LEFT JOIN users u ON ni.invited_by = u.id
+    ORDER BY ni.created_at DESC LIMIT 100
+  `).all();
+  return json({ invitations: rows.results ?? [] });
+}
+
+// POST /admin/network/invitations
+async function handleAdminNetworkInvitationCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { email, role, orgId } = body ?? {};
+  if (!email || !role) return err('email and role are required', 400);
+  if (!NETWORK_ROLES.has(role)) return err('Invalid network role', 400);
+
+  const token = randomHex(32);
+  const tokenHash = await sha256hex(token);
+  const expiresAt = new Date(Date.now() + NETWORK_INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  let orgName = null;
+  if (orgId) {
+    const org = await env.DB.prepare(`SELECT name FROM network_organizations WHERE id = ?`).bind(orgId).first();
+    if (!org) return err('Organization not found', 404);
+    orgName = org.name;
+  }
+
+  const result = await env.DB.prepare(`
+    INSERT INTO network_invitations (email, role, org_id, token_hash, invited_by, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(email, role, orgId ?? null, tokenHash, user.id, expiresAt).run();
+
+  const acceptUrl = `${PLATFORM_URL}?network_invite=${token}`;
+  await emailNetworkInvite(env, { email, role, orgName, acceptUrl }).catch(() => {});
+  await audit(env.DB, 'network_invitation_created', user.id, 'network_invitation', result.meta?.last_row_id, { email, role, orgId: orgId ?? null });
+  return json({ success: true, id: result.meta?.last_row_id }, 201);
+}
+
+// PUT /admin/network/invitations/:id/revoke
+async function handleAdminNetworkInvitationRevoke(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/invitations\/(\d+)\/revoke/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  await env.DB.prepare(`UPDATE network_invitations SET revoked_at = datetime('now') WHERE id = ?`).bind(id).run();
+  return json({ success: true });
+}
+
+// GET /admin/network/organizations
+async function handleAdminNetworkOrgsList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.name, no.org_type, no.status, no.is_founding_member, no.is_verified, no.created_at,
+           COUNT(nom.id) as member_count
+    FROM network_organizations no
+    LEFT JOIN network_org_memberships nom ON nom.org_id = no.id
+    GROUP BY no.id ORDER BY no.name
+  `).all();
+  return json({ organizations: rows.results ?? [] });
+}
+
+// POST /admin/network/organizations
+async function handleAdminNetworkOrgCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { name, orgType, description, website, location, industrySegments } = body ?? {};
+  if (!name || !orgType) return err('name and orgType are required', 400);
+  if (!NETWORK_ORG_TYPES.includes(orgType)) return err('Invalid orgType', 400);
+
+  const result = await env.DB.prepare(`
+    INSERT INTO network_organizations (name, org_type, description, website, location, created_by)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(name, orgType, description ?? null, website ?? null, location ?? null, user.id).run();
+  const orgId = result.meta?.last_row_id;
+
+  if (Array.isArray(industrySegments) && industrySegments.length > 0) {
+    for (const seg of industrySegments) {
+      await env.DB.prepare(`INSERT INTO network_org_industry_segments (org_id, segment) VALUES (?, ?)`).bind(orgId, seg).run().catch(() => {});
+    }
+  }
+  return json({ success: true, id: orgId }, 201);
+}
+
+// GET /admin/network/organizations/:id
+async function handleAdminNetworkOrgGet(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)$/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  const org = await env.DB.prepare(`SELECT * FROM network_organizations WHERE id = ?`).bind(id).first();
+  if (!org) return err('Not found', 404);
+  const segments = await env.DB.prepare(`SELECT segment FROM network_org_industry_segments WHERE org_id = ?`).bind(id).all();
+  const members = await env.DB.prepare(`
+    SELECT u.id, u.name, u.email, nom.role, nom.created_at
+    FROM network_org_memberships nom JOIN users u ON nom.user_id = u.id
+    WHERE nom.org_id = ?
+  `).bind(id).all();
+  return json({ ...org, industrySegments: (segments.results ?? []).map(r => r.segment), members: members.results ?? [] });
+}
+
+// PUT /admin/network/organizations/:id
+async function handleAdminNetworkOrgUpdate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)$/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const fields = [];
+  const vals = [];
+  if (body.name)     { fields.push('name = ?');     vals.push(body.name); }
+  if (body.orgType)  { fields.push('org_type = ?'); vals.push(body.orgType); }
+  if (body.description !== undefined) { fields.push('description = ?'); vals.push(body.description); }
+  if (body.website  !== undefined) { fields.push('website = ?');  vals.push(body.website); }
+  if (body.location !== undefined) { fields.push('location = ?'); vals.push(body.location); }
+  if (body.status)   { fields.push('status = ?');   vals.push(body.status); }
+  if (!fields.length) return err('No fields to update', 400);
+  fields.push("updated_at = datetime('now')");
+  vals.push(id);
+  await env.DB.prepare(`UPDATE network_organizations SET ${fields.join(', ')} WHERE id = ?`).bind(...vals).run();
+  return json({ success: true });
+}
+
+// PUT /admin/network/organizations/:id/founding-member
+async function handleAdminNetworkOrgFoundingMember(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)\/founding-member/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  const org = await env.DB.prepare(`SELECT is_founding_member FROM network_organizations WHERE id = ?`).bind(id).first();
+  if (!org) return err('Not found', 404);
+  await env.DB.prepare(`UPDATE network_organizations SET is_founding_member = ? WHERE id = ?`).bind(org.is_founding_member ? 0 : 1, id).run();
+  return json({ success: true });
+}
+
+// PUT /admin/network/organizations/:id/verify
+async function handleAdminNetworkOrgVerify(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/organizations\/(\d+)\/verify/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  await env.DB.prepare(`UPDATE network_organizations SET is_verified = 1 WHERE id = ?`).bind(id).run();
+  return json({ success: true });
+}
+
+// GET /admin/network/members
+async function handleAdminNetworkMembersList(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT u.id, u.name, u.email, u.role, u.network_status, u.created_at,
+           no.name as org_name
+    FROM users u
+    LEFT JOIN network_org_memberships nom ON nom.user_id = u.id
+    LEFT JOIN network_organizations no ON nom.org_id = no.id
+    WHERE u.role IN ('network_member','organization_admin','aacp_industry_partner')
+    ORDER BY u.created_at DESC
+  `).all();
+  return json({ members: rows.results ?? [] });
+}
+
+// PUT /admin/network/members/:id/status
+async function handleAdminNetworkMemberStatusUpdate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const id = request.url.match(/\/admin\/network\/members\/([^/]+)\/status/)?.[1];
+  if (!id) return err('Invalid id', 400);
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { status } = body ?? {};
+  if (!['active','suspended'].includes(status)) return err('status must be active or suspended', 400);
+  await env.DB.prepare(`UPDATE users SET network_status = ? WHERE id = ?`).bind(status, id).run();
+  await audit(env.DB, 'network_member_status_updated', user.id, 'user', id, { status });
+  return json({ success: true });
+}
+
+// ── FAWN — Member-facing routes ──────────────────────────────────────────────
+
+// GET /network/profile
+async function handleNetworkProfile(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const row = await env.DB.prepare(`
+    SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.network_status,
+           no.id as org_id, no.name as org_name, no.org_type,
+           nom.role as member_role
+    FROM users u
+    LEFT JOIN network_org_memberships nom ON nom.user_id = u.id
+    LEFT JOIN network_organizations no ON no.id = nom.org_id
+    WHERE u.id = ?
+  `).bind(user.id).first();
+  if (!row) return err('User not found', 404);
+  return json({
+    user: { id: row.id, firstName: row.first_name, lastName: row.last_name, email: row.email, role: row.role, networkStatus: row.network_status },
+    org: row.org_id ? { id: row.org_id, name: row.org_name, orgType: row.org_type, memberRole: row.member_role } : null,
+  });
+}
+
+// GET /network/feed
+async function handleNetworkFeed(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const subs = await env.DB.prepare(`SELECT topic FROM network_subscriptions WHERE user_id = ?`).bind(user.id).all();
+  const topics = subs.results?.map(r => r.topic) ?? [];
+  const hasTopics = topics.length > 0;
+  const topicClause = hasTopics ? `AND ni.topic IN (${topics.map(() => '?').join(',')})` : '';
+  const topicClause2 = hasTopics ? `AND nu.topic IN (${topics.map(() => '?').join(',')})` : '';
+  const binds = hasTopics ? [...topics, ...topics] : [];
+  const rows = await env.DB.prepare(`
+    SELECT 'insight' as type, ni.id, ni.title, ni.body, ni.topic, ni.created_at,
+           no.name as org_name
+    FROM network_insights ni
+    JOIN network_organizations no ON no.id = ni.org_id
+    WHERE ni.is_published = 1 ${topicClause}
+    UNION ALL
+    SELECT 'update' as type, nu.id, nu.topic as title, nu.body, nu.topic, nu.created_at,
+           no.name as org_name
+    FROM network_updates nu
+    JOIN network_organizations no ON no.id = nu.org_id
+    WHERE nu.is_published = 1 ${topicClause2}
+    ORDER BY created_at DESC LIMIT 20
+  `).bind(...binds).all();
+  return json({ items: rows.results ?? [] });
+}
+
+// GET /network/organizations
+async function handleNetworkOrganizations(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.name, no.org_type, no.description, no.website, no.location,
+           no.is_founding_member, COUNT(nom.id) as member_count
+    FROM network_organizations no
+    LEFT JOIN network_org_memberships nom ON nom.org_id = no.id
+    WHERE no.is_verified = 1 AND no.status = 'active'
+    GROUP BY no.id ORDER BY no.is_founding_member DESC, no.name ASC
+  `).all();
+  return json({ organizations: rows.results ?? [] });
+}
+
+// GET /network/opportunities
+async function handleNetworkOpportunities(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT no.id, no.title, no.description, no.opportunity_type, no.created_at,
+           norg.name as org_name,
+           EXISTS(SELECT 1 FROM network_expressions_of_interest WHERE opportunity_id = no.id AND user_id = ?) as expressed_interest
+    FROM network_opportunities no
+    JOIN network_organizations norg ON norg.id = no.org_id
+    WHERE no.is_open = 1 ORDER BY no.created_at DESC
+  `).bind(user.id).all();
+  return json({ opportunities: rows.results ?? [] });
+}
+
+// POST /network/opportunities/:id/express-interest
+async function handleNetworkExpressInterest(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/opportunities\/(\d+)\/express-interest/)?.[1];
+  if (!id) return err('Invalid opportunity id', 400);
+  let body; try { body = await request.json(); } catch { body = {}; }
+  const { message } = body ?? {};
+  await env.DB.prepare(`INSERT OR IGNORE INTO network_expressions_of_interest (opportunity_id, user_id, message) VALUES (?, ?, ?)`).bind(id, user.id, message ?? null).run();
+  await audit(env.DB, 'network_interest_expressed', user.id, 'opportunity', id, {});
+  return json({ success: true });
+}
+
+// GET /network/events
+async function handleNetworkEvents(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT ne.id, ne.title, ne.description, ne.event_date, ne.location, ne.is_virtual,
+           norg.name as org_name,
+           EXISTS(SELECT 1 FROM network_event_registrations WHERE event_id = ne.id AND user_id = ?) as registered
+    FROM network_events ne
+    JOIN network_organizations norg ON norg.id = ne.org_id
+    WHERE ne.is_published = 1 AND ne.event_date >= date('now')
+    ORDER BY ne.event_date ASC
+  `).bind(user.id).all();
+  return json({ events: rows.results ?? [] });
+}
+
+// POST /network/events/:id/register
+async function handleNetworkEventRegister(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/events\/(\d+)\/register/)?.[1];
+  if (!id) return err('Invalid event id', 400);
+  await env.DB.prepare(`INSERT OR IGNORE INTO network_event_registrations (event_id, user_id) VALUES (?, ?)`).bind(id, user.id).run();
+  await audit(env.DB, 'network_event_registered', user.id, 'event', id, {});
+  return json({ success: true });
+}
+
+// GET /network/subscriptions
+async function handleNetworkSubscriptionsGet(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`SELECT topic FROM network_subscriptions WHERE user_id = ?`).bind(user.id).all();
+  return json({ topics: (rows.results ?? []).map(r => r.topic) });
+}
+
+// PUT /network/subscriptions
+async function handleNetworkSubscriptions(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  let body; try { body = await request.json(); } catch { return err('Invalid request body', 400); }
+  const { topics } = body ?? {};
+  if (!Array.isArray(topics)) return err('topics must be an array', 400);
+  const validTopics = topics.filter(t => NETWORK_TOPICS.includes(t));
+  await env.DB.prepare(`DELETE FROM network_subscriptions WHERE user_id = ?`).bind(user.id).run();
+  for (const topic of validTopics) {
+    await env.DB.prepare(`INSERT INTO network_subscriptions (user_id, topic) VALUES (?, ?)`).bind(user.id, topic).run();
+  }
+  return json({ success: true });
+}
+
+// GET /network/notifications
+async function handleNetworkNotifications(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const rows = await env.DB.prepare(`
+    SELECT id, type, payload, is_read, created_at
+    FROM network_notifications WHERE user_id = ?
+    ORDER BY created_at DESC LIMIT 50
+  `).bind(user.id).all();
+  return json({ notifications: rows.results ?? [] });
+}
+
+// PUT /network/notifications/:id/read
+async function handleNetworkNotificationRead(request, user, env) {
+  const g = requireRole(user, ...NETWORK_ROLES); if (g) return g;
+  const id = request.url.match(/\/network\/notifications\/(\d+)\/read/)?.[1];
+  if (!id) return err('Invalid notification id', 400);
+  await env.DB.prepare(`UPDATE network_notifications SET is_read = 1 WHERE id = ? AND user_id = ?`).bind(id, user.id).run();
+  return json({ success: true });
+}
+
+// ── RPAS Hub invite email ─────────────────────────────────────────────────────
+async function emailRpasHubInvite(env, { name, email, token, expiresAt }) {
+  const inviteUrl = `${PLATFORM_URL}?rpas_invite=${token}`;
+  const expiry = new Date(expiresAt).toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'short' });
+  const html = emailLayout({
+    preheader: 'Your RPAS Hub invitation from AACP is ready.',
+    body: eH1("You've been invited to the AACP RPAS Hub") +
+      eP(`Hello ${name},`) +
+      eP('You have been accepted into the <strong>AACP RPAS Workforce Hub</strong>. Use the link below to set up your account and begin your RPAS career intelligence journey.') +
+      eBtn('Accept Invitation & Set Up Account', inviteUrl) +
+      eTable(
+        eInfoRow('Invited Email:', email) +
+        eInfoRow('Link expires:', expiry)
+      ) +
+      eDivider() +
+      eNote(`This invitation is single-use and tied to ${email}. If you did not apply for the RPAS Hub, please ignore this email or contact <a href="mailto:${CONTACT_EMAIL}" style="color:#80011f">${CONTACT_EMAIL}</a>.`) +
+      eNote(`If the button above doesn't work, copy and paste this link into your browser:<br><a href="${inviteUrl}" style="color:#80011f">${inviteUrl}</a>`),
+  });
+  return sendEmail(env, {
+    event: 'rpas_hub_invite',
+    to: email,
+    subject: 'AACP — RPAS Hub Invitation',
+    text: `Hello ${name},\n\nYou have been accepted into the AACP RPAS Workforce Hub.\n\nSet up your account here: ${inviteUrl}\n\nThis link expires: ${expiry}\n\nIf you did not apply, contact ${CONTACT_EMAIL}.`,
     html,
   });
 }
@@ -3035,6 +3952,21 @@ async function emailPasswordReset(env, { name, email, token }) {
   return sendEmail(env, { event: 'password_reset', to: email, subject: 'AACP — Reset your password', text: `Hello ${name},\n\nReset your AACP password here: ${resetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`, html });
 }
 
+// ── Navigator: email verification link ────────────────────────────────────────
+async function emailNavigatorVerification(env, { name, email, token }) {
+  const verifyUrl = `${NAVIGATOR_URL}?nav_verify=${token}`;
+  const html = emailLayout({
+    preheader: 'Verify your email to activate your AACP Career Navigator account.',
+    body: eH1('Verify Your Email Address') +
+      eP(`Hi ${name},`) +
+      eP('Thank you for creating an AACP Career Navigator account. Click the button below to verify your email and activate your account.') +
+      eBtn('Verify Email Address', verifyUrl) +
+      eP('This link expires in <strong>24 hours</strong>.') +
+      eNote(`If you did not create an account, you can safely ignore this email.<br>If the button does not work, copy this link: <a href="${verifyUrl}" style="color:#80011f;word-break:break-all">${verifyUrl}</a>`),
+  });
+  return sendEmail(env, { event: 'navigator_verify_email', to: email, subject: 'Verify your email — AACP Career Navigator', text: `Hi ${name},\n\nVerify your AACP Career Navigator email:\n${verifyUrl}\n\nThis link expires in 24 hours.`, html });
+}
+
 // Fire-and-forget wrapper — uses ctx.waitUntil() so the Cloudflare Worker does
 // not terminate before the Resend fetch completes. Never throws to the caller.
 function fireEmail(ctx, promise, event) {
@@ -3098,14 +4030,14 @@ async function handleAdminAllUsers(request, user, env) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status'); // pending | active | rejected | null (all)
-  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at, acia_package, acia_payment_status, acia_access_enabled FROM users`;
+  let query = `SELECT id, name, email, role, phone, organization_name, institution_name, region, status, created_at, updated_at, acia_package, acia_payment_status, acia_access_enabled, career_stage, recommended_program, recommended_specialization, routing_data FROM users`;
   const params = [];
   if (statusFilter && ['pending', 'active', 'rejected'].includes(statusFilter)) {
     query += ` WHERE status = ?`;
     params.push(statusFilter);
   }
   // Exclude admin accounts from participant management list
-  query += statusFilter ? ` AND role != 'admin'` : ` WHERE role != 'admin'`;
+  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin')` : ` WHERE role NOT IN ('admin', 'super_admin')`;
   query += ` ORDER BY created_at DESC`;
   const { results } = params.length
     ? await env.DB.prepare(query).bind(...params).all()
@@ -3117,8 +4049,82 @@ async function handleAdminAllUsers(request, user, env) {
     aciaPackage: r.acia_package ?? null,
     aciaPaymentStatus: r.acia_payment_status ?? null,
     aciaAccessEnabled: !!r.acia_access_enabled,
+    careerStage: r.career_stage ?? null,
+    recommendedProgram: r.recommended_program ?? null,
+    recommendedSpecialization: r.recommended_specialization ?? null,
+    routingRationale: (() => {
+      try { return r.routing_data ? JSON.parse(r.routing_data).result?.rationale ?? null : null; } catch { return null; }
+    })(),
   }));
   return json({ users, total: users.length });
+}
+
+// ── Routing: admin review of recommendation ───────────────────────────────────
+
+async function handleAdminRoutingReview(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const userId = new URL(request.url).pathname.split('/')[4];
+  if (!userId) return err('User ID required', 400);
+  const body = await request.json().catch(() => null);
+  if (!body?.confirmedProgram) return err('confirmedProgram is required', 400);
+  const validPrograms = new Set(['cdr', 'awtp', 'rpas_hub', 'human_review']);
+  if (!validPrograms.has(body.confirmedProgram)) return err('Invalid program value', 400);
+  const validSpecs = new Set(['engine_maintenance', 'ame', 'pilot', 'rpas', null, undefined, '']);
+  const confirmedSpec = body.confirmedSpecialization || null;
+  if (confirmedSpec && !validSpecs.has(confirmedSpec)) return err('Invalid specialization value', 400);
+
+  const target = await env.DB.prepare('SELECT id, recommended_program, recommended_specialization FROM users WHERE id = ?').bind(userId).first();
+  if (!target) return err('User not found', 404);
+
+  const now = new Date().toISOString();
+  const reviewId = randomHex(8);
+  await env.DB.prepare(
+    `INSERT INTO program_routing_reviews (id, user_id, original_program, original_specialization, admin_program, admin_specialization, admin_id, reason, reviewed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    reviewId, userId,
+    target.recommended_program ?? 'human_review',
+    target.recommended_specialization ?? null,
+    body.confirmedProgram, confirmedSpec,
+    user.sub,
+    typeof body.reason === 'string' ? body.reason.trim() : null,
+    now
+  ).run();
+
+  await env.DB.prepare(
+    `UPDATE users SET recommended_program = ?, recommended_specialization = ?, updated_at = ? WHERE id = ?`
+  ).bind(body.confirmedProgram, confirmedSpec, now, userId).run();
+
+  await audit(env.DB, 'routing_recommendation_reviewed', user.sub, 'user', {
+    targetUserId: userId, adminId: user.sub,
+    originalProgram: target.recommended_program, confirmedProgram: body.confirmedProgram,
+  });
+
+  return json({ success: true, reviewId, message: 'Routing recommendation updated.' });
+}
+
+// ── Routing: participant recommendation ───────────────────────────────────────
+
+async function handleParticipantRecommendation(request, user, env) {
+  const guard = requireRole(user, 'youth'); if (guard) return guard;
+  const row = await env.DB.prepare(
+    `SELECT recommended_program, recommended_specialization, routing_data FROM users WHERE id = ?`
+  ).bind(user.sub).first();
+  if (!row) return err('Not found', 404);
+
+  const reviewRow = await env.DB.prepare(
+    `SELECT id FROM program_routing_reviews WHERE user_id = ? ORDER BY reviewed_at DESC LIMIT 1`
+  ).bind(user.sub).first();
+
+  let rationale = null;
+  try { rationale = row.routing_data ? JSON.parse(row.routing_data).result?.rationale ?? null : null; } catch {}
+
+  return json({
+    recommendedProgram: row.recommended_program ?? null,
+    recommendedSpecialization: row.recommended_specialization ?? null,
+    rationale,
+    reviewStatus: reviewRow ? 'reviewed' : (row.recommended_program ? 'pending_review' : 'not_computed'),
+  });
 }
 
 // ── Admin: notification count (pending approvals) ─────────────────────────────
@@ -3205,6 +4211,8 @@ async function handleLogin(request, env) {
   if (user.status === 'pending') return err('Your account is pending administrator approval. You will be notified when access is granted.', 403);
   if (user.status === 'rejected') return err('Your registration was not approved. Please contact AACP for more information.', 403);
   if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Your pilot access has been revoked. Please contact AACP if you have questions.', 403);
+  // M2: Network member suspension guard
+  if (NETWORK_ROLES.has(user.role) && user.networkStatus === 'suspended') return err('Your Industry Network account has been suspended. Please contact AACP for assistance.', 403);
 
   // Password change required before proceeding — return a signal (no tokens yet)
   if (user.passwordChangeRequired) {
@@ -3222,7 +4230,11 @@ async function handleLogin(request, env) {
   _step = 'totp';
   if (user.mfaEnabled && !testMode && !isPilotAccount) {
     if (!body.otp) return json({ userId: user.id, role: user.role, mfaRequired: true, message: 'MFA token required' });
-    if (!(await verifyTotp(user.mfaSecret, body.otp))) return err('Invalid MFA token', 401);
+    if (!(await verifyTotp(user.mfaSecret, body.otp))) {
+      await recordAttempt(env.DB, `login:${email}`, false);
+      await recordAttempt(env.DB, `login_ip:${clientIp}`, false);
+      return err('Invalid MFA token', 401);
+    }
   }
 
   _step = 'jwt-access';
@@ -3276,6 +4288,7 @@ async function handleRefresh(request, env) {
 
   const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(payload.sub).first());
   if (!user) return err('User not found', 401);
+  if (user.status !== 'active') return err('Account is not active', 403);
   if (user.pilotAccount && user.pilotStatus === 'revoked') return err('Pilot access revoked', 403);
 
   const accessSecret   = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
@@ -3314,6 +4327,9 @@ async function handleMfaSetup(request, env) {
     const body = await request.json().catch(() => null);
     if (!body?.email || !body?.password) return err('email and password required');
     const email = body.email.trim().toLowerCase();
+    const setupAttempts = await countRecentAttempts(env.DB, `mfa_setup:${email}`, 60 * 60 * 1000);
+    if (setupAttempts >= 3) return err('Too many MFA setup attempts. Please try again later.', 429);
+    await recordAttempt(env.DB, `mfa_setup:${email}`, false);
     const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
     if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid) return err('Invalid credentials', 401);
     const rawBytes = crypto.getRandomValues(new Uint8Array(20));
@@ -3323,7 +4339,8 @@ async function handleMfaSetup(request, env) {
     await env.DB.prepare('UPDATE users SET mfa_secret = ?, mfa_enabled = 0 WHERE id = ?').bind(secretHex, user.id).run();
     return json({ secret: secretBase32, otpauthUri, message: 'MFA secret generated. Confirm with a TOTP token.' });
   } catch (e) {
-    return err('MFA setup failed: ' + (e?.message ?? String(e)), 500);
+    console.error('[handleMfaSetup]', e?.message ?? String(e));
+    return err('MFA setup failed. Please try again.', 500);
   }
 }
 
@@ -3332,16 +4349,22 @@ async function handleMfaConfirm(request, env) {
     const body = await request.json().catch(() => null);
     if (!body?.email || !body?.password || !body?.token) return err('email, password, and token required');
     const email = body.email.trim().toLowerCase();
+    const confirmAttempts = await countRecentAttempts(env.DB, `mfa_confirm:${email}`, 15 * 60 * 1000);
+    if (confirmAttempts >= 5) return err('Too many verification attempts. Please wait 15 minutes and try again.', 429);
     const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
     if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid || !user.mfaSecret) {
       return err('Invalid credentials or MFA not initiated', 401);
     }
     const token = String(body.token).replace(/\s/g, '');
-    if (!(await verifyTotp(user.mfaSecret, token))) return err('Invalid TOTP token. Check your authenticator app and try again.');
+    if (!(await verifyTotp(user.mfaSecret, token))) {
+      await recordAttempt(env.DB, `mfa_confirm:${email}`, false);
+      return err('Invalid TOTP token. Check your authenticator app and try again.');
+    }
     await env.DB.prepare('UPDATE users SET mfa_enabled = 1 WHERE id = ?').bind(user.id).run();
     return json({ success: true, message: 'MFA enabled' });
   } catch (e) {
-    return err('MFA confirmation failed: ' + (e?.message ?? String(e)), 500);
+    console.error('[handleMfaConfirm]', e?.message ?? String(e));
+    return err('MFA confirmation failed. Please try again.', 500);
   }
 }
 
@@ -3349,9 +4372,17 @@ async function handleMfaDisable(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.email || !body?.password) return err('email and password required');
   const email = body.email.trim().toLowerCase();
+  const disableAttempts = await countRecentAttempts(env.DB, `mfa_disable:${email}`, 60 * 60 * 1000);
+  if (disableAttempts >= 3) return err('Too many MFA disable attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, `mfa_disable:${email}`, false);
   const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
   if (!user || !(await verifyPassword(body.password, user.passwordHash)).valid) return err('Invalid credentials', 401);
+  if (user.mfaEnabled) {
+    if (!body.otp) return err('Current authenticator code required to disable MFA', 400);
+    if (!(await verifyTotp(user.mfaSecret, String(body.otp).replace(/\s/g, '')))) return err('Invalid authenticator code', 401);
+  }
   await env.DB.prepare('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?').bind(user.id).run();
+  await audit(env.DB, 'mfa_disabled', user.id, 'user', {});
   return json({ success: true, message: 'MFA disabled' });
 }
 
@@ -3515,6 +4546,14 @@ async function handleCoachEvidenceSubmit(request, user, env) {
 
   const participantGuard = await requireValidEvidenceParticipant(env.DB, body.participantId);
   if (participantGuard) return participantGuard;
+
+  // Coaches may only submit evidence for participants they have a coaching relationship with
+  if (user.role === 'coach') {
+    const relationship = await env.DB.prepare(
+      `SELECT id FROM coaching_sessions WHERE coach_id = ? AND participant_id = ? LIMIT 1`
+    ).bind(user.sub, body.participantId).first().catch(() => null);
+    if (!relationship) return err('No coaching relationship found with this participant', 403);
+  }
 
   const now = new Date().toISOString();
   const id = randomHex(16);
@@ -6800,7 +7839,7 @@ async function completeProgramActivity({ db, participantId, activityKey, source,
 
 async function handleAciaChat(request, env) {
   const user = await authenticate(request, env);
-  const guard = requireAuth(user);
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
 
   // SEC-010: rate limit Captain ACIA to prevent API cost abuse
@@ -6837,7 +7876,7 @@ async function handleAciaChat(request, env) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-8',
+      model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       system: CAPTAIN_ACIA_SYSTEM_PROMPT,
       messages,
@@ -7172,6 +8211,11 @@ Respond with valid JSON only, no markdown fences, no explanation outside the JSO
       }
     }
 
+    // [E] rpas_profiles — advance hub_status to profile_ready
+    batchStmts.push(env.DB.prepare(
+      `UPDATE rpas_profiles SET hub_status = 'profile_ready', updated_at = ? WHERE user_id = ? AND hub_status = 'assessment'`
+    ).bind(now, user.sub));
+
     await env.DB.batch(batchStmts);
 
     // ── Post-commit: store session log for audit + re-analysis ────────────────
@@ -7267,10 +8311,10 @@ async function handleAciaRpasReport(request, env) {
 
     // Badge
     const badge = await env.DB.prepare(`
-      SELECT id, issued_at, badge_type, status
+      SELECT id, issue_date AS issued_at, pathway_type AS badge_type, status
       FROM acia_badges
-      WHERE participant_id = ? AND badge_type = 'rpas'
-      ORDER BY issued_at DESC LIMIT 1
+      WHERE user_id = ? AND pathway_type = 'rpas'
+      ORDER BY issue_date DESC LIMIT 1
     `).bind(user.sub).first().catch(() => null);
 
     const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -7445,7 +8489,7 @@ async function handleEmployerTalentPipeline(request, user, env) {
 
   const { results: netRows } = await env.DB.prepare(
     `SELECT user_id, opportunity_status, geographic_mobility, preferred_occupations, preferred_regions, enrolled_at
-     FROM talent_network WHERE enrolled = 1`
+     FROM talent_network WHERE enrolled = 1 AND contact_permission = 1`
   ).all();
   if (!netRows?.length) return json({ participants: [], total: 0, summary: { discoverable: 0, openToOpportunities: 0, aciaCompleted: 0 } });
 
@@ -7458,7 +8502,7 @@ async function handleEmployerTalentPipeline(request, user, env) {
     env.DB.prepare(`SELECT id,name,province FROM users WHERE id IN (${ph})`).bind(...uids).all(),
     env.DB.prepare(`SELECT participant_user_id,status FROM talent_connections WHERE employer_user_id=?`).bind(user.sub).all(),
     // Multi-source evidence — only talent_summary-scoped records exposed to employers
-    env.DB.prepare(`SELECT participant_id,competency_id,evidence_source,evidence_state FROM competency_evidence WHERE participant_id IN (${ph}) AND visibility_scope='talent_summary' AND invalidated_at IS NULL`).bind(...uids).all().catch(() => ({ results: [] })),
+    env.DB.prepare(`SELECT participant_id,competency_id,evidence_source,evidence_state FROM competency_evidence WHERE participant_id IN (${ph}) AND visibility_scope='talent_summary' AND verification_status='verified' AND invalidated_at IS NULL`).bind(...uids).all().catch(() => ({ results: [] })),
   ]);
 
   const profMap = Object.fromEntries((profRows??[]).map(r => [r.user_id, r]));
@@ -7580,6 +8624,42 @@ async function handleTalentConnectionRespond(request, user, env) {
   return json({ status: newStatus });
 }
 
+// ── ACIA Mission 2 Reflection Responses ──────────────────────────────────────
+// POST /acia/m2/responses
+// Stores open-ended reflection responses from Mission 2 Stage 2.
+// These are NOT fed into competency scoring or career alignment calculations.
+// Accessible to any authenticated participant; admin can view via audit tools.
+async function handleAciaM2Responses(request, user, env) {
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
+  if (guard) return guard;
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { sessionId, observation, reasoning, transferable } = body ?? {};
+  if (!sessionId || typeof sessionId !== 'string') return json({ error: 'sessionId required' }, 400);
+  if (!observation || !reasoning || !transferable) return json({ error: 'All three responses required' }, 400);
+
+  const MAX = 5000;
+  const sanitize = (v) => typeof v === 'string' ? v.slice(0, MAX).trim() : '';
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`
+    INSERT INTO acia_m2_responses (id, session_id, user_id, observation, reasoning, transferable, saved_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    sanitize(sessionId).slice(0, 64),
+    user?.id ?? null,
+    sanitize(observation),
+    sanitize(reasoning),
+    sanitize(transferable),
+    new Date().toISOString(),
+  ).run();
+
+  return json({ success: true, id });
+}
+
 async function handleAciaAssessmentComplete(request, user, env, ctx) {
   const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
@@ -7627,6 +8707,20 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
     }
   }
 
+  // ── Stage prerequisite enforcement ──
+  if (stage === 'program_completion' || stage === 'followup_90_day') {
+    const baselineExists = await env.DB.prepare(
+      `SELECT id FROM acia_assessments WHERE user_id = ? AND assessment_stage = 'baseline' AND status = 'complete'`
+    ).bind(user.sub).first().catch(() => null);
+    if (!baselineExists) return err('Baseline ACIA must be completed before this stage.', 400);
+  }
+  if (stage === 'followup_90_day') {
+    const programExists = await env.DB.prepare(
+      `SELECT id FROM acia_assessments WHERE user_id = ? AND assessment_stage = 'program_completion' AND status = 'complete'`
+    ).bind(user.sub).first().catch(() => null);
+    if (!programExists) return err('Program completion ACIA must be completed before the 90-day follow-up.', 400);
+  }
+
   // ── Stage locking — each stage can only be completed once (superseded records don't block) ──
   const existing = await env.DB.prepare(
     `SELECT id, badge_id, completed_at FROM acia_assessments WHERE user_id = ? AND status = 'complete' AND (assessment_stage = ? OR (assessment_stage IS NULL AND ? = 'baseline'))`
@@ -7657,7 +8751,8 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
 
   const assessmentId = randomHex(16);
   const badgeId = randomHex(24);
-  const participantName = body.participantName ?? user.email;
+  const nameRow = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(user.sub).first().catch(() => null);
+  const participantName = nameRow?.name ?? user.email;
 
   try {
     // ── Build atomic D1 batch — ALL required ACIA completion writes ──
@@ -7672,8 +8767,8 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
         (id, user_id, pathway_type, acia_version, assessment_stage, started_at, completed_at,
          top_pathway, competency_profile, career_alignment, evidence_confidence,
          development_areas, recommended_pathways, session_summary, badge_id, badge_issued_at,
-         status, created_at, submission_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         status, created_at, submission_id, scoring_version)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).bind(
       assessmentId, user.sub, body.pathwayType ?? 'standard', '1.0', stage,
       body.startedAt ?? null, now,
@@ -7685,6 +8780,7 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
       JSON.stringify(body.recommendedPathways ?? []),
       JSON.stringify(body.sessionSummary ?? {}),
       badgeId, now, 'complete', now, submissionId ?? null,
+      body.scoringVersion ?? null,
     ));
 
     // [B] acia_badges — completion badge (REQUIRED; a badge must not exist without
@@ -7712,7 +8808,7 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
           randomHex(16), user.sub, key, 'acia', 'acia_system',
           assessmentId, 'acia_assessment',
           state, body.evidenceConfidence ?? 'moderate',
-          now, now, 'talent_summary', 'verified',
+          now, now, 'talent_summary', 'unverified',
         ));
       }
     }
@@ -7778,7 +8874,13 @@ async function handleAciaAssessmentComplete(request, user, env, ctx) {
       }), 'acia_completed');
     }
 
-    return json({ assessmentId, badgeId, completedAt: now }, 201);
+    // SR scoring activation: count v2.1.0+ completions; activate at 20
+    const srCount = await env.DB.prepare(
+      `SELECT COUNT(*) as c FROM acia_assessments WHERE scoring_version = '2.1.0' AND status = 'complete'`
+    ).first().catch(() => ({ c: 0 }));
+    const srScoringActive = (srCount?.c ?? 0) >= 20;
+
+    return json({ assessmentId, badgeId, completedAt: now, srScoringActive }, 201);
 
   } catch (e) {
     // Batch failed — D1 rolled back; no partial completion state exists.
@@ -7945,7 +9047,7 @@ async function handleAdminAciaSaveFailures(request, user, env) {
 }
 
 async function handleAciaAssessmentsGet(request, user, env) {
-  const guard = requireRole(user, 'youth', 'admin');
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
   const { results } = await env.DB.prepare(
     `SELECT id, pathway_type, acia_version, assessment_stage, completed_at, top_pathway, career_alignment, evidence_confidence,
@@ -7971,6 +9073,58 @@ async function handleAciaAssessmentsGet(request, user, env) {
     isLatest: i === 0,
   }));
   return json({ assessments });
+}
+
+async function handleAciaAssemblyEvidence(request, user, env) {
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid JSON', 400); }
+
+  const { submissionId, sessionId, srEvidence, reflectionStorageKey } = body ?? {};
+  if (!submissionId || !srEvidence) return err('submissionId and srEvidence are required', 400);
+
+  const now = new Date().toISOString();
+  try {
+    const result = await env.DB.prepare(`
+      INSERT OR IGNORE INTO acia_assembly_evidence (user_id, submission_id, session_id, sr_evidence, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(user.sub, submissionId, sessionId ?? null, JSON.stringify(srEvidence), now).run();
+
+    const duplicate = result.meta?.changes === 0;
+    return json({ success: true, duplicate });
+  } catch (e) {
+    console.error('[handleAciaAssemblyEvidence] DB error:', e);
+    return err('Failed to save assembly evidence', 500);
+  }
+}
+
+async function handleAciaWmEvidence(request, user, env) {
+  const guard = requireAuth(user);
+  if (guard) return guard;
+
+  let body;
+  try { body = await request.json(); } catch { return err('Invalid JSON', 400); }
+
+  const { submissionId, sessionId, wmEvidence } = body ?? {};
+  if (!submissionId || !wmEvidence) return err('submissionId and wmEvidence are required', 400);
+
+  const now = new Date().toISOString();
+  const presentationMode = wmEvidence.presentationMode ?? null;
+  const briefingVersion = wmEvidence.briefingVersion ?? 'v1';
+  try {
+    const result = await env.DB.prepare(`
+      INSERT OR IGNORE INTO acia_wm_evidence (user_id, submission_id, session_id, mission, briefing_version, presentation_mode, wm_evidence, created_at)
+      VALUES (?, ?, ?, 'M7', ?, ?, ?, ?)
+    `).bind(user.sub, submissionId, sessionId ?? null, briefingVersion, presentationMode, JSON.stringify(wmEvidence), now).run();
+
+    const duplicate = result.meta?.changes === 0;
+    return json({ success: true, duplicate });
+  } catch (e) {
+    console.error('[handleAciaWmEvidence] DB error:', e);
+    return err('Failed to save WM evidence', 500);
+  }
 }
 
 async function handleAciaEligibility(request, user, env) {
@@ -8243,16 +9397,20 @@ async function handleConfirmEmailVerification(request, user, env) {
 // ── Password reset ─────────────────────────────────────────────────────────────
 
 async function handleForgotPassword(request, env, ctx) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const body = await request.json().catch(() => null);
   if (!body?.email) return err('email is required');
 
   const email = body.email.trim().toLowerCase();
 
+  const ipAttempts = await countRecentAttempts(env.DB, `pwreset_ip:${clientIp}`, 60 * 60 * 1000);
+  if (ipAttempts >= 10) return err('Too many reset requests from this network. Please try again in 1 hour.', 429);
   const attempts = await countRecentAttempts(env.DB, `pwreset:${email}`, 60 * 60 * 1000);
   if (attempts >= 3) return err('Too many reset requests. Please try again in 1 hour.', 429);
 
   const userRow = await env.DB.prepare(`SELECT id, name, email FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
   await recordAttempt(env.DB, `pwreset:${email}`, false);
+  await recordAttempt(env.DB, `pwreset_ip:${clientIp}`, false);
 
   if (userRow) {
     const token = randomHex(32);
@@ -8294,6 +9452,7 @@ async function handleResetPassword(request, env) {
   return json({ success: true, message: 'Password reset successfully. Please sign in.' });
 }
 
+// ── TEMPORARY: Emergency admin password reset (remove after use) ──────────────
 // ── Organization directory ────────────────────────────────────────────────────
 
 async function handleOrganizationsGet(request, user, env) {
@@ -8436,7 +9595,7 @@ async function handleBadgeVerify(badgeId, env) {
 }
 
 async function handleProgramInterest(request, user, env, ctx) {
-  const guard = requireRole(user, 'youth', 'admin');
+  const guard = requireRole(user, 'youth', 'admin', 'super_admin');
   if (guard) return guard;
   const body = await request.json().catch(() => ({}));
   const id = randomHex(16);
@@ -8462,7 +9621,7 @@ async function handleProgramInterest(request, user, env, ctx) {
 
 const RPAS_APPLICATION_STATUSES = new Set(['new', 'under_review', 'accepted', 'waitlisted', 'not_selected', 'enrolled']);
 const RPAS_PAYMENT_STATUSES     = new Set(['not_requested', 'payment_pending', 'payment_confirmed']);
-const RPAS_COHORTS              = new Set(['nov_16_2026', 'dec_14_2026', 'either', 'not_assigned']);
+const RPAS_COHORTS              = new Set(['nov_23_2026', 'dec_14_2026', 'either', 'not_assigned']);
 
 const RPAS_APPLICATION_DOMAINS = [
   'infrastructure_monitoring', 'search_and_rescue', 'geospatial_mapping',
@@ -8540,10 +9699,14 @@ async function handleRpasApply(request, env, ctx) {
     `SELECT id, status FROM rpas_applications WHERE email = ? AND status NOT IN ('not_selected') ORDER BY created_at DESC LIMIT 1`
   ).bind(email).first().catch(() => null);
   if (existing) {
-    return json({ applied: true, message: 'An expression of interest for this email address already exists.', status: existing.status });
+    return json({ applied: true, message: 'An expression of interest for this email address already exists.' });
   }
 
-  const preferredCohort     = ['nov_16_2026', 'dec_14_2026', 'either'].includes(body.preferredCohort) ? body.preferredCohort : 'either';
+  const VALID_COHORTS = ['nov_23_2026', 'dec_14_2026', 'either'];
+  if (body.preferredCohort && !VALID_COHORTS.includes(body.preferredCohort)) {
+    return json({ error: 'Invalid cohort selection.' }, 400);
+  }
+  const preferredCohort     = VALID_COHORTS.includes(body.preferredCohort) ? body.preferredCohort : 'either';
   const feeAcknowledged     = body.feeAcknowledged === true ? 1 : 0;
   const referralSourceKey   = REFERRAL_SOURCE_KEYS.has(body.referralSourceKey) ? body.referralSourceKey : null;
   const referralSourceOther = referralSourceKey === 'other' ? sanitizeText(body.referralSourceOther, 300) ?? null : null;
@@ -8584,22 +9747,41 @@ async function handleRpasApply(request, env, ctx) {
   return json({ applied: true, applicationId: id, message: 'Your application has been received. We will be in touch shortly.' });
 }
 
-// GET /rpas/apply/status?email=... — public application status check
-async function handleRpasApplicationStatus(request, env) {
+// POST /rpas/apply/status-request — secure: sends status email if record found; always returns neutral response
+async function handleRpasApplicationStatusRequest(request, env) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const ipKey = `rpas_status_ip:${clientIp}`;
   const ipCount = await countAllAttempts(env.DB, ipKey, 60 * 60 * 1000);
-  if (ipCount >= 20) return err('Too many requests. Please try again later.', 429);
+  if (ipCount >= 10) return err('Too many requests. Please try again later.', 429);
   await recordAttempt(env.DB, ipKey, true);
 
-  const url = new URL(request.url);
-  const email = url.searchParams.get('email')?.trim().toLowerCase();
-  if (!email) return err('email query parameter required', 400);
+  const body = await request.json().catch(() => ({}));
+  const email = (body.email ?? '').trim().toLowerCase();
+  if (!email) return err('email is required', 400);
+
+  const STATUS_MESSAGES = {
+    new:          'Your application has been received and is under review. You will hear from us within 5 business days.',
+    under_review: 'Your application is currently under review. You will hear from us shortly.',
+    accepted:     'Your application has been accepted. Please follow the payment instructions sent by AACP™ to confirm your place. Contact info@aviationaerospacecompetency.com if you have not received them.',
+    waitlisted:   'Your application has been placed on our waitlist. We will contact you directly if a place becomes available.',
+    not_selected: 'Thank you for your interest. We were not able to offer you a place in the current cohort. We encourage you to apply for a future cohort.',
+    enrolled:     'You are enrolled in the RPAS Workforce Hub. Check your email for access instructions.',
+  };
+
   const app = await env.DB.prepare(
-    `SELECT status FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`
+    `SELECT first_name, last_name, status FROM rpas_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1`
   ).bind(email).first().catch(() => null);
-  if (!app) return json({ found: false });
-  return json({ found: true, status: app.status });
+
+  if (app) {
+    const name = [app.first_name, app.last_name].filter(Boolean).join(' ') || 'Applicant';
+    const statusMsg = STATUS_MESSAGES[app.status] ?? 'Your application is on file. Contact info@aviationaerospacecompetency.com for details.';
+    const text = `Hi ${name},\n\nYou requested a status update for your AACP™ RPAS Workforce Hub application.\n\n${statusMsg}\n\nIf you have questions, contact: info@aviationaerospacecompetency.com\n\nAACP™ Team`;
+    const html = `<p>Hi ${name},</p><p>You requested a status update for your <strong>AACP™ RPAS Workforce Hub</strong> application.</p><p>${statusMsg}</p><p>Questions? <a href="mailto:info@aviationaerospacecompetency.com">info@aviationaerospacecompetency.com</a></p><p>AACP™ Team</p>`;
+    await sendEmail(env, { event: 'rpas_status_request', to: email, subject: 'AACP™ RPAS Workforce Hub — Application Status', text, html }).catch(() => {});
+  }
+
+  // Always return identical response — never reveal whether a record exists
+  return json({ sent: true, message: 'If we have an application on file for that email address, a status update has been sent.' });
 }
 
 // GET /admin/rpas/applications — admin list
@@ -8741,7 +9923,7 @@ async function handleAdminRpasApplicationAccess(request, user, env) {
 }
 
 // POST /admin/rpas/applications/:id/invite — issue pilot invite from pre-accepted application
-async function handleAdminRpasApplicationInvite(request, user, env) {
+async function handleAdminRpasApplicationInvite(request, user, env, ctx) {
   const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
   const parts = new URL(request.url).pathname.split('/');
   const id = parts[parts.length - 2];
@@ -8750,10 +9932,29 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
   if (!app) return err('Application not found', 404);
   if (app.status !== 'accepted')                  return err('EOI must be accepted before issuing an invite', 400);
   if (app.payment_status !== 'payment_confirmed') return err('Payment must be confirmed before issuing an invite', 400);
-  if (app.invitation_id) return err('An invitation has already been issued for this application', 400);
 
-  // Delegate to existing pilot invitation handler by constructing equivalent request
   const body = await request.json().catch(() => ({}));
+  const now2 = new Date().toISOString();
+
+  // If a previous invitation exists (unused), revoke it so a fresh one can be issued
+  if (app.invitation_id) {
+    await env.DB.prepare(
+      `UPDATE cohort_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ? AND accepted_at IS NULL`
+    ).bind(now2, user.sub, app.invitation_id).run();
+    await env.DB.prepare(
+      `UPDATE rpas_applications SET invitation_id = NULL, invited_at = NULL, updated_at = ? WHERE id = ?`
+    ).bind(now2, id).run();
+  }
+
+  // Also revoke any other active invitation for this email (e.g. issued via the manual cohort panel)
+  const existing = await env.DB.prepare(
+    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
+  ).bind(app.email, now2).first();
+  if (existing) {
+    await env.DB.prepare(`UPDATE cohort_invitations SET revoked_at = ?, revoked_by = ? WHERE id = ?`)
+      .bind(now2, user.sub, existing.id).run();
+  }
+
   const inviteBody = {
     email: app.email,
     firstName: app.first_name,
@@ -8766,16 +9967,10 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
     rpasApplicationId: id,
   };
 
-  // Create invite directly (same logic as handleCreateCohortInvitation)
-  const existing = await env.DB.prepare(
-    `SELECT id FROM cohort_invitations WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?`
-  ).bind(app.email, new Date().toISOString()).first();
-  if (existing) return err('An active invitation already exists for this email address. Revoke it first.', 409);
-
   const rawToken = randomHex(32);
   const tokenHash = await sha256hex(rawToken);
   const invId = randomHex(8);
-  const now = new Date().toISOString();
+  const now = now2;
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 days for RPAS Hub
 
   await env.DB.prepare(
@@ -8792,6 +9987,9 @@ async function handleAdminRpasApplicationInvite(request, user, env) {
   ).bind(invId, now, now, id).run();
 
   await audit(env.DB, 'rpas_hub_invite_issued', user.sub, 'rpas_application', { applicationId: id, invitationId: invId, email: app.email });
+
+  const participantName = `${app.first_name ?? ''} ${app.last_name ?? ''}`.trim() || app.email;
+  fireEmail(ctx, emailRpasHubInvite(env, { name: participantName, email: app.email, token: rawToken, expiresAt }), 'rpas_hub_invite');
 
   return json({ success: true, invitationId: invId, token: rawToken, expiresAt });
 }
@@ -8834,6 +10032,23 @@ async function handleAdminRpasParticipants(request, user, env) {
   return json({ participants });
 }
 
+// PATCH /admin/rpas/participants/:userId/hub-status — admin patch for stuck hub_status
+async function handleAdminRpasParticipantHubStatus(request, user, env) {
+  const guard = requireRole(user, 'admin', 'super_admin'); if (guard) return guard;
+  const userId = new URL(request.url).pathname.split('/')[4];
+  if (!userId) return err('userId required');
+  const body = await request.json().catch(() => null);
+  const allowed = ['intake', 'assessment', 'profile_ready', 'enrolled', 'complete'];
+  if (!body?.hubStatus || !allowed.includes(body.hubStatus)) return err('valid hubStatus required');
+  const now = new Date().toISOString();
+  const r = await env.DB.prepare(
+    `UPDATE rpas_profiles SET hub_status = ?, updated_at = ? WHERE user_id = ? RETURNING user_id, hub_status`
+  ).bind(body.hubStatus, now, userId).first().catch(() => null);
+  if (!r) return err('Profile not found or update failed', 404);
+  await audit(env.DB, 'rpas_hub_status_overridden', user.sub, 'rpas_profile', { targetUserId: userId, hubStatus: body.hubStatus });
+  return json({ userId: r.user_id, hubStatus: r.hub_status });
+}
+
 // GET /rpas/profile — participant gets their RPAS profile
 async function handleRpasProfileGet(request, user, env) {
   const guard = requireRole(user, 'youth', 'admin', 'super_admin'); if (guard) return guard;
@@ -8869,8 +10084,17 @@ async function handleRpasProfileGet(request, user, env) {
 async function handleRpasProfileSave(request, user, env) {
   const guard = requireRole(user, 'youth'); if (guard) return guard;
 
-  const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
-  if (!profile) return err('RPAS profile not found — ensure account was created via RPAS Hub invite', 404);
+  let profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+  if (!profile) {
+    // Profile row missing (e.g. INSERT was silently dropped during registration) — create it now
+    const now = new Date().toISOString();
+    const rpId = randomHex(8);
+    await env.DB.prepare(
+      `INSERT INTO rpas_profiles (id, user_id, hub_status, created_at, updated_at) VALUES (?, ?, 'intake', ?, ?)`
+    ).bind(rpId, user.sub, now, now).run();
+    profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
+    if (!profile) return err('Unable to initialize RPAS profile. Please contact support.', 500);
+  }
 
   const body = await request.json().catch(() => ({}));
   const now = new Date().toISOString();
@@ -8935,7 +10159,7 @@ async function handleRpasEnroll(request, user, env) {
 
   const profile = await env.DB.prepare('SELECT * FROM rpas_profiles WHERE user_id = ?').bind(user.sub).first().catch(() => null);
   if (!profile) return err('RPAS profile not found', 404);
-  if (!['assessment', 'profile_ready'].includes(profile.hub_status)) {
+  if (profile.hub_status !== 'profile_ready') {
     return err('Complete the RPAS intake and ACIA assessment before enrolling', 400);
   }
 
@@ -8968,12 +10192,90 @@ async function handleRpasEnroll(request, user, env) {
   return json({ enrolled: true, message: 'You have been enrolled in the Applied RPAS Workforce Program.' });
 }
 
+// ── EOI email helpers ─────────────────────────────────────────────────────────
+
+const EOI_PARTNERSHIPS_EMAIL = 'partnerships@aviationaerospacecompetency.com';
+const EOI_INFO_EMAIL         = 'info@aviationaerospacecompetency.com';
+
+function emailEoiIndividualReceived(env, { name, email, interests = [], city, province, utmSource }) {
+  const interestLabel = interests.length ? interests.join(', ') : 'not specified';
+  const isPdfLead = interests.includes('pdf_lead');
+  const subjectPrefix = isPdfLead ? 'New AACP PDF Lead' : 'New EOI — Individual';
+  const locationStr = [city, province].filter(Boolean).join(', ') || 'not provided';
+
+  const confirmHtml = emailLayout({
+    heading: isPdfLead ? 'Your Regional Intelligence Brief Is Downloading' : 'Expression of Interest Received',
+    body:
+      eP(`Hi ${name},`) +
+      (isPdfLead
+        ? eP('Thank you for downloading the AACP™ Regional Intelligence Brief. Your PDF download will begin automatically.')
+        : eP('Thank you for your Expression of Interest in AACP™. We’ve received your submission and will be in touch shortly.')) +
+      eDivider() +
+      eNote(`Questions? Contact us at <a href="mailto:${EOI_INFO_EMAIL}" style="color:#80011f">${EOI_INFO_EMAIL}</a>`),
+  });
+  const confirmText = `Hi ${name},\n\n${isPdfLead ? 'Thank you for downloading the AACP™ Regional Intelligence Brief. Your PDF download will begin automatically.' : 'Thank you for your Expression of Interest in AACP™. We’ve received your submission and will be in touch shortly.'}\n\nQuestions? ${EOI_INFO_EMAIL}`;
+
+  const staffHtml = emailLayout({
+    heading: `${subjectPrefix}: ${name}`,
+    body:
+      eP(`<strong>Name:</strong> ${name}`) +
+      eP(`<strong>Email:</strong> ${email}`) +
+      eP(`<strong>Location:</strong> ${locationStr}`) +
+      eP(`<strong>Interests:</strong> ${interestLabel}`) +
+      (utmSource ? eP(`<strong>Source:</strong> ${utmSource}`) : '') +
+      eDivider() +
+      eBtn('Review in Admin Dashboard →', 'https://aviationaerospacecompetency.com/app.html'),
+  });
+  const staffText = `${subjectPrefix}: ${name}\n\nEmail: ${email}\nLocation: ${locationStr}\nInterests: ${interestLabel}${utmSource ? `\nSource: ${utmSource}` : ''}\n\nReview: https://aviationaerospacecompetency.com/app.html`;
+
+  return Promise.all([
+    sendEmail(env, { event: 'eoi_individual_received_confirm', to: email, subject: isPdfLead ? 'Your AACP™ Regional Intelligence Brief' : 'AACP™ — Expression of Interest Received', text: confirmText, html: confirmHtml }),
+    sendEmail(env, { event: 'eoi_individual_received_staff', to: EOI_PARTNERSHIPS_EMAIL, subject: `${subjectPrefix} | ${name}`, text: staffText, html: staffHtml }),
+    sendEmail(env, { event: 'eoi_individual_received_staff', to: EOI_INFO_EMAIL, subject: `${subjectPrefix} | ${name}`, text: staffText, html: staffHtml }),
+  ]);
+}
+
+function emailEoiPartnerReceived(env, { name, email, orgName, city, province, interests = [], utmSource }) {
+  const interestLabel = interests.length ? interests.join(', ') : 'not specified';
+  const locationStr = [city, province].filter(Boolean).join(', ') || 'not provided';
+
+  const confirmHtml = emailLayout({
+    heading: 'Partnership Expression of Interest Received',
+    body:
+      eP(`Hi ${name},`) +
+      eP(`Thank you for your interest in a regional partnership with AACP™. We’ve received your submission and a member of our partnerships team will be in touch shortly.`) +
+      eDivider() +
+      eNote(`Questions? Contact us at <a href="mailto:${EOI_PARTNERSHIPS_EMAIL}" style="color:#80011f">${EOI_PARTNERSHIPS_EMAIL}</a>`),
+  });
+  const confirmText = `Hi ${name},\n\nThank you for your interest in a regional partnership with AACP™. We’ve received your submission and a member of our partnerships team will be in touch shortly.\n\nQuestions? ${EOI_PARTNERSHIPS_EMAIL}`;
+
+  const staffHtml = emailLayout({
+    heading: `New Partner EOI | ${orgName}`,
+    body:
+      eP(`<strong>Name:</strong> ${name}`) +
+      eP(`<strong>Organization:</strong> ${orgName}`) +
+      eP(`<strong>Email:</strong> ${email}`) +
+      eP(`<strong>Location:</strong> ${locationStr}`) +
+      eP(`<strong>Partnership Interests:</strong> ${interestLabel}`) +
+      (utmSource ? eP(`<strong>Source:</strong> ${utmSource}`) : '') +
+      eDivider() +
+      eBtn('Review in Admin Dashboard →', 'https://aviationaerospacecompetency.com/app.html'),
+  });
+  const staffText = `New Partner EOI | ${orgName}\n\nName: ${name}\nOrganization: ${orgName}\nEmail: ${email}\nLocation: ${locationStr}\nInterests: ${interestLabel}${utmSource ? `\nSource: ${utmSource}` : ''}\n\nReview: https://aviationaerospacecompetency.com/app.html`;
+
+  return Promise.all([
+    sendEmail(env, { event: 'eoi_partner_received_confirm', to: email, subject: 'AACP™ — Partnership Expression of Interest Received', text: confirmText, html: confirmHtml }),
+    sendEmail(env, { event: 'eoi_partner_received_staff', to: EOI_PARTNERSHIPS_EMAIL, subject: `New Partner EOI | ${orgName} | ${name}`, text: staffText, html: staffHtml }),
+    sendEmail(env, { event: 'eoi_partner_received_staff', to: EOI_INFO_EMAIL, subject: `New Partner EOI | ${orgName} | ${name}`, text: staffText, html: staffHtml }),
+  ]);
+}
+
 // ── EOI handlers ──────────────────────────────────────────────────────────────
 
 const EOI_STATUSES = new Set(['new', 'contacted', 'follow_up', 'moved_forward', 'closed']);
 
 const EOI_INDIVIDUAL_INTERESTS = new Set([
-  'workforce_readiness', 'rpas_workforce_hub', 'future_aviation_aerospace', 'not_sure',
+  'workforce_readiness', 'rpas_workforce_hub', 'future_aviation_aerospace', 'not_sure', 'pdf_lead',
 ]);
 
 const EOI_PARTNER_INTERESTS = new Set([
@@ -9006,11 +10308,14 @@ const REFERRAL_SOURCE_KEYS = new Set([
   'industry_association',
   'job_board',
   'news_media',
+  'cjwe_fm',
+  'aboriginal_futures',
+  'community_futures_treaty_seven',
   'other',
 ]);
 
 // POST /eoi/individual
-async function handleEoiIndividual(request, env) {
+async function handleEoiIndividual(request, env, ctx) {
   const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const rateKey = `eoi_individual:${ip}`;
   const recent = await countAllAttempts(env.DB, rateKey, 3600000); // 1 hour window
@@ -9041,11 +10346,11 @@ async function handleEoiIndividual(request, env) {
     INSERT INTO eoi_individuals
       (id, first_name, last_name, email, phone, city, province, country,
        career_stage, areas_of_interest, rpas_experience, background,
-       willingness_to_pay, funding_dependency, referral_source,
+       willingness_to_pay, funding_dependency, cohort_preference, referral_source,
        referral_source_key, referral_source_other, comment,
        utm_source, utm_medium, utm_campaign,
        status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'new',?,?)
   `).bind(
     id,
     firstName,
@@ -9061,6 +10366,7 @@ async function handleEoiIndividual(request, env) {
     sanitizeText(body.background, 200) ?? null,
     sanitizeText(body.willingnessToPay, 100) ?? null,
     sanitizeText(body.fundingDependency, 100) ?? null,
+    sanitizeText(body.cohortPreference, 100) ?? null,
     referralSourceKey,
     referralSourceKey,
     referralSourceOther,
@@ -9073,11 +10379,21 @@ async function handleEoiIndividual(request, env) {
 
   await recordAttempt(env.DB, rateKey, true);
 
+  const fullName = `${firstName} ${lastName}`;
+  ctx.waitUntil(
+    emailEoiIndividualReceived(env, {
+      name: fullName, email, interests,
+      city: sanitizeText(body.city, 100) ?? null,
+      province: sanitizeText(body.province, 100) ?? null,
+      utmSource: sanitizeText(body.utmSource, 200) ?? null,
+    }).catch(() => {})
+  );
+
   return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
 }
 
 // POST /eoi/partner
-async function handleEoiPartner(request, env) {
+async function handleEoiPartner(request, env, ctx) {
   const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
   const rateKey = `eoi_partner:${ip}`;
   const recent = await countAllAttempts(env.DB, rateKey, 3600000);
@@ -9140,6 +10456,18 @@ async function handleEoiPartner(request, env) {
 
   await recordAttempt(env.DB, rateKey, true);
 
+  const fullName = `${firstName} ${lastName}`;
+  ctx.waitUntil(
+    emailEoiPartnerReceived(env, {
+      name: fullName, email,
+      orgName: orgName ?? '',
+      city: sanitizeText(body.city, 100) ?? null,
+      province: sanitizeText(body.province, 100) ?? null,
+      interests,
+      utmSource: sanitizeText(body.utmSource, 200) ?? null,
+    }).catch(() => {})
+  );
+
   return json({ success: true, message: 'Thank you for your interest in AACP™. Your Expression of Interest has been received.' });
 }
 
@@ -9163,6 +10491,7 @@ async function handleAdminEoiIndividuals(request, user, env) {
     careerStage: r.career_stage, areasOfInterest: safeJsonParse(r.areas_of_interest, []),
     rpasExperience: r.rpas_experience, background: r.background,
     willingnessToPay: r.willingness_to_pay, fundingDependency: r.funding_dependency,
+    cohortPreference: r.cohort_preference,
     referralSource: r.referral_source,
     referralSourceKey: r.referral_source_key, referralSourceOther: r.referral_source_other,
     comment: r.comment,
@@ -11288,7 +12617,8 @@ async function handleIntelligenceAlignmentRun(request, user, env) {
   try {
     result = await runShadowAlignment(env.DB, body.demand_profile_id, body.participant_id, user.sub);
   } catch (e) {
-    return err(`Shadow alignment failed: ${e.message}`, 500);
+    console.error('[shadow alignment]', e?.message ?? String(e));
+    return err('Alignment processing failed. Please try again.', 500);
   }
 
   await audit(env.DB, 'shadow_alignment_run', user.sub, 'competency_alignment_result', {
@@ -12172,9 +13502,27 @@ async function handleAcceptCohortInvite(request, env) {
   // RPAS Hub invitees: status = 'active' — RPAS flow manages their access separately
   const initialStatus = inv.hub_type === 'rpas' ? 'active' : 'pending';
 
+  // Compute routing recommendation for youth participants
+  let recommendedProgram = null;
+  let recommendedSpecialization = null;
+  let routingData = null;
+  if (inv.pilot_role === 'youth' && body.routingAnswers) {
+    try {
+      const routing = computeRoutingServer({ careerStage, ...body.routingAnswers });
+      recommendedProgram = routing.recommendedProgram;
+      recommendedSpecialization = routing.recommendedSpecialization ?? null;
+      routingData = JSON.stringify({
+        answers: { careerStage, ...body.routingAnswers },
+        result: routing,
+        version: '1.0',
+        computedAt: now,
+      });
+    } catch (_) { /* routing failure is non-fatal */ }
+  }
+
   await env.DB.prepare(
-    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_cohort, invitation_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?, 0, NULL, 1, ?, ?, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, name, role, phone, phone_normalized, organization_name, career_stage, status, mfa_enabled, mfa_secret, email_verified, pilot_cohort, invitation_id, recommended_program, recommended_specialization, routing_data, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?, 0, NULL, 1, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, inv.invited_email, passwordHash, fullName, inv.pilot_role,
     inv.invited_organization ?? '',
@@ -12182,6 +13530,9 @@ async function handleAcceptCohortInvite(request, env) {
     initialStatus,
     inv.cohort_name ?? null,
     inv.id,
+    recommendedProgram,
+    recommendedSpecialization,
+    routingData,
     now, now
   ).run();
 
@@ -12299,12 +13650,13 @@ async function handleListPilotAccounts(request, user, env) {
     LEFT JOIN pilot_feedback pf ON pf.user_id = u.id
     LEFT JOIN acia_assessments aa ON aa.user_id = u.id AND aa.status = 'complete'
     WHERE pi.accepted_at IS NOT NULL
-    GROUP BY u.id, u.name, u.email, u.role, u.status,
-             u.organization_name, u.pilot_account, u.pilot_cohort, u.pilot_status,
-             u.last_activity_at, u.created_at,
-             pi.id, pi.invited_first_name, pi.invited_last_name,
-             pi.invited_organization, pi.pilot_role, pi.cohort_name, pi.accepted_at,
-             pi.created_at
+    GROUP BY
+      u.id, u.name, u.email, u.role, u.status,
+      u.organization_name, u.pilot_account, u.pilot_cohort, u.pilot_status,
+      u.last_activity_at, u.created_at,
+      pi.id, pi.invited_first_name, pi.invited_last_name,
+      pi.invited_organization, pi.pilot_role, pi.cohort_name, pi.accepted_at,
+      pi.created_at
     ORDER BY pi.accepted_at DESC
   `).all();
 
@@ -12608,9 +13960,9 @@ const VALIDATION_INSTRUMENTS = {
       { key: 'F4', type: 'supported_scale', id: 'F-4', label: 'Career Readiness vs. Formal ATC Screening',
         text: 'Does AACP make clear that what it assesses — career-exploration readiness, workforce orientation, and capability tendencies — is distinct from the formal screening, cognitive testing, and simulator-based evaluation that NAV CANADA conducts as part of its selection and training process?',
         scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What blurs this distinction? What would need to change?' },
-      { key: 'F5', type: 'supported_scale', id: 'F-5', label: 'ATC Communication Experience',
-        text: 'AACP includes an ATC communication simulation in which participants compose radio transmissions using standard phraseology in a structured scenario exercise. This is presented as a sector-familiarisation activity — not an assessment of ATC proficiency, aptitude, or selection readiness. Does this framing accurately describe what the exercise can and cannot establish?',
-        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What needs to be corrected or made clearer?' },
+      { key: 'F5', type: 'supported_scale', id: 'F-5', label: 'Captain ACIA — ATC Career Guidance',
+        text: 'Based on your interaction with Captain ACIA and the guidance it provided about Marcus Chen’s ATC direction, does Captain ACIA appropriately support ATC career exploration without overstating what AACP can establish about a person’s suitability for formal ATC work, selection, or training?',
+        scale: SCALE_SUPPORTED, conditional_values: COND_TRIGGER, conditional_text: 'What guidance would you change or remove?' },
       { key: 'F6', type: 'open_text', id: 'F-6', label: 'After Career Awareness', discovery: true,
         text: 'How does NAV CANADA, or the broader ATC sector, currently determine whether people reached through career-awareness activities subsequently progress toward an ATC career — and what outcomes do you currently track or find meaningful?' },
       { key: 'F_final1', type: 'open_text', label: 'Final F-1', final: true,
@@ -13158,7 +14510,8 @@ async function handleAdminValidationSessionCreate(request, user, env) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'INVITED', ?, ?, ?, ?, ?, ?)
     `).bind(id, token, validator_name, validator_org || '', validator_email, instrument, aacp_version || '1.0', scenario_id || null, user.sub, now, expires_at, experience_mode, allow_real_ips ? 1 : 0, allow_real_es ? 1 : 0).run();
   } catch (e) {
-    return err('DB error: ' + (e && e.message ? e.message : String(e)), 500);
+    console.error('[validation_session create]', e && e.message ? e.message : String(e));
+    return err('Could not create validation session. Please try again.', 500);
   }
   return json({ id, token, experience_mode, expires_at }, 201);
 }
@@ -13290,30 +14643,13 @@ async function handleValidationExperience(request, env) {
   if (session.status === 'SUBMITTED') return err('This validation has already been submitted', 409);
   if (new Date(session.expires_at) < new Date()) return err('This invitation has expired', 410);
 
-  // Instrument F uses STATIC experience mode — regulatory content only, no platform experience
   const instrument = session.instrument;
-  if (instrument === 'F') {
-    return json({
-      experience_mode: 'STATIC',
-      validator_name: session.validator_name,
-      instrument,
-      provenance: VALIDATOR_PROVENANCE[instrument] || 'CROSS_PATHWAY',
-      representative_data_label: 'Representative Data — This view uses fictional data to demonstrate how AACP workforce intelligence is presented. No real participant information is displayed.',
-      steps: ['orientation', 'regulatory_content', 'formal_validation'],
-      four_pathways: [
-        { code: 'ATC',     label: 'Air Traffic Control',                 description: 'Roles in the management and safety of aircraft movement. Regulatory requirements, specific aptitude profile, and structured licensing pathway.' },
-        { code: 'PILOT',   label: 'Flight & Pilot Pathways',             description: 'Commercial and private flight pathways. Licensing tiers, medical requirements, training programme entry.' },
-        { code: 'AME_AMT', label: 'Aircraft Maintenance & Technical',    description: 'Licensed and unlicensed aircraft maintenance roles. AME licensing, apprenticeship, and technical entry pathways.' },
-        { code: 'STEM',    label: 'STEM Roles in Aviation & Aerospace',  description: 'Engineering, technology, data, and science roles across aviation, airports, aerospace, and related industries.' }
-      ],
-      captain_acia: null,
-    });
-  }
 
   // Guided experience — select primary profile for this instrument
   const profileKey = (instrument === 'A' || instrument === 'E') ? 'AME_AMT'
                    : (instrument === 'B' || instrument === 'D') ? null   // all four shown equally
                    : (instrument === 'C') ? 'AME_AMT'                    // AME profile as demo vehicle
+                   : (instrument === 'F') ? 'ATC'                        // ATC profile for ATC professional
                    : null;
 
   const primaryProfile = profileKey ? VALIDATOR_SANDBOX_PROFILES[profileKey] : null;
@@ -13354,7 +14690,7 @@ async function handleValidationExperience(request, env) {
     all_profiles: allProfiles,
     cohort_summary: cohortSummary,
     // Captain ACIA sandbox context — prompts for this instrument type
-    captain_acia: instrument === 'F' ? null : {
+    captain_acia: {
       sandbox_mode: true,
       fictional_participant: primaryProfile ? primaryProfile.name : (instrument === 'B' || instrument === 'D') ? 'Priya Nair' : 'Jordan Morrow',
       suggested_prompts: captainPrompts,
@@ -13379,7 +14715,6 @@ async function handleValidationCaptainSandbox(request, env) {
   if (session.status === 'REVOKED') return err('This invitation has been revoked', 410);
   if (session.status === 'SUBMITTED') return err('Validation already submitted', 409);
   if (new Date(session.expires_at) < new Date()) return err('Invitation expired', 410);
-  if (session.instrument === 'F') return err('Captain ACIA is not available for this instrument', 403);
 
   let body;
   try { body = await request.json(); } catch { return err('Invalid JSON', 400); }
@@ -13571,6 +14906,949 @@ async function handleAdminValidationSessionAuthorize(request, user, env) {
 
 // ── Main fetch handler ────────────────────────────────────────────────────────
 
+// ── Career Navigator — Stripe Integration ────────────────────────────────────
+
+const NAVIGATOR_PLANS = {
+  premium_student: { name: 'Premium Student', priceEnv: 'STRIPE_NAVIGATOR_PRICE_STUDENT',  priceCAD: 9.99 },
+  advisor_invited:  { name: 'Advisor Invited',  priceEnv: 'STRIPE_NAVIGATOR_PRICE_INVITED',  priceCAD: 7.99 },
+  career_advisor:   { name: 'Career Advisor',   priceEnv: 'STRIPE_NAVIGATOR_PRICE_ADVISOR',  priceCAD: 14.99 },
+};
+
+function nanoid10() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let r = '';
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  for (const b of bytes) r += chars[b % chars.length];
+  return r;
+}
+
+async function stripeRequest(env, method, path, body) {
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY secret not configured');
+  const opts = {
+    method,
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  };
+  if (body) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) {
+      if (v !== undefined && v !== null) params.set(k, String(v));
+    }
+    opts.body = params.toString();
+  }
+  const res = await fetch(`https://api.stripe.com/v1${path}`, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Stripe ${method} ${path} → ${res.status}: ${data?.error?.message ?? JSON.stringify(data)}`);
+  return data;
+}
+
+async function stripeRequestNested(env, method, path, params) {
+  // For deeply nested Stripe params (e.g. metadata[key]=val, line_items[0][price]=...)
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY secret not configured');
+  const encoded = new URLSearchParams(params).toString();
+  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encoded,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Stripe ${method} ${path} → ${res.status}: ${data?.error?.message ?? JSON.stringify(data)}`);
+  return data;
+}
+
+// GET /navigator/subscription — returns current plan/status for the authenticated user
+async function handleNavigatorSubscription(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, current_period_end, cancel_at_period_end, invites_remaining, trial_ends_at
+     FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+  if (!sub) return json({ plan: 'free', status: 'active', invites_remaining: 0 });
+  if (sub.plan !== 'free' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) {
+    return json({ ...sub, plan: 'expired' });
+  }
+  return json(sub);
+}
+
+// POST /navigator/checkout — create a Stripe Checkout Session and return the URL
+// Body: { plan: 'premium_student'|'advisor_invited'|'career_advisor', invite_code?: string, success_url, cancel_url }
+async function handleNavigatorCheckout(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const body = await request.json().catch(() => ({}));
+  const { plan, invite_code, success_url, cancel_url } = body;
+
+  if (!NAVIGATOR_PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
+  const planMeta = NAVIGATOR_PLANS[plan];
+  const priceId = env[planMeta.priceEnv];
+  if (!priceId) return json({ error: `Price ID not configured for plan ${plan}` }, 500);
+
+  const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.id).first();
+  if (!userRow) return json({ error: 'User not found' }, 404);
+
+  // Resolve or create Stripe customer
+  let customerId;
+  const existing = await env.DB.prepare(
+    'SELECT stripe_customer_id FROM navigator_subscriptions WHERE user_id = ?'
+  ).bind(user.id).first();
+  if (existing?.stripe_customer_id) {
+    customerId = existing.stripe_customer_id;
+  } else {
+    const customer = await stripeRequest(env, 'POST', '/customers', {
+      email: userRow.email,
+      'metadata[user_id]': user.id,
+    });
+    customerId = customer.id;
+  }
+
+  // Validate invite code if provided
+  let discounts = [];
+  let inviteCodeId = null;
+  if (invite_code) {
+    const code = await env.DB.prepare(
+      `SELECT id, stripe_coupon_id, max_redemptions, redemptions_used, status, expires_at
+       FROM navigator_invite_codes WHERE code = ?`
+    ).bind(invite_code.trim().toUpperCase()).first();
+    if (!code || code.status !== 'active') return json({ error: 'Invalid or expired invite code' }, 400);
+    if (code.max_redemptions !== null && code.redemptions_used >= code.max_redemptions)
+      return json({ error: 'Invite code has reached its maximum redemptions' }, 400);
+    if (code.expires_at && new Date(code.expires_at) < new Date())
+      return json({ error: 'Invite code has expired' }, 400);
+    if (code.stripe_coupon_id) discounts = [['discounts[0][coupon]', code.stripe_coupon_id]];
+    inviteCodeId = code.id;
+  }
+
+  const params = [
+    // sample_only — real values, preserved as-is
+    ['mode', 'subscription'],
+    ['success_url', success_url || 'https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=success'],
+    ['cancel_url', cancel_url || 'https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=cancelled'],
+    ['line_items[0][price]', priceId],
+    ['line_items[0][quantity]', '1'],
+    // fixed_by_ui — Checkout Studio configuration
+    ['ui_mode', 'hosted_page'],
+    ['billing_address_collection', 'auto'],
+    ['phone_number_collection[enabled]', 'false'],
+    ['automatic_tax[enabled]', 'true'],
+    ['allow_promotion_codes', 'true'],
+    ['payment_method_collection', 'always'],
+    ['submit_type', 'auto'],
+    ['saved_payment_method_options[payment_method_save]', 'enabled'],
+    ['tax_id_collection[enabled]', 'true'],
+    ['tax_id_collection[required]', 'if_supported'],
+    ['name_collection[individual][enabled]', 'true'],
+    ['name_collection[individual][optional]', 'true'],
+    ['integration_identifier', 'hosted_web_0002'],
+    ['origin_context', 'web'],
+    // customer + metadata
+    ['customer', customerId],
+    ['metadata[user_id]', user.id],
+    ['metadata[plan]', plan],
+    ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
+    // 7-day free trial for premium_student and career_advisor
+    ...(plan !== 'advisor_invited' ? [['subscription_data[trial_period_days]', '7']] : []),
+    ...discounts,
+  ];
+
+  const session = await stripeRequestNested(env, 'POST', '/checkout/sessions', params);
+  return json({ url: session.url, session_id: session.id });
+}
+
+// POST /navigator/account/register — self-service registration for navigator users (no admin approval required)
+async function handleNavigatorAccountRegister(request, env, ctx) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const rateLimitKey = `nav_register:${clientIp}`;
+  const attempts = await countAllAttempts(env.DB, rateLimitKey, 60 * 60 * 1000);
+  if (attempts >= 10) return err('Too many registration attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, rateLimitKey, true);
+
+  const body = await request.json().catch(() => null);
+  if (!body?.email || !body?.password || !body?.name) return err('email, password, and name are required');
+
+  const email = body.email.trim().toLowerCase();
+  if (email.length > 254) return err('Email address is too long');
+  if (body.name.trim().length > 100) return err('Name is too long');
+  if (body.password.length < 8) return err('Password must be at least 8 characters');
+  if (body.password.length > 128) return err('Password is too long');
+  if (!/[A-Z]/.test(body.password)) return err('Password must contain at least one uppercase letter');
+  if (!/[a-z]/.test(body.password)) return err('Password must contain at least one lowercase letter');
+  if (!/[0-9]/.test(body.password)) return err('Password must contain at least one number');
+
+  const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : null;
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) return err('An account with this email already exists. Please sign in.', 409);
+
+  const userId = crypto.randomUUID();
+  const passwordHash = await hashPassword(body.password);
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'participant', 'active', 0, ?, ?)
+  `).bind(userId, email, body.name.trim(), passwordHash, now, now).run();
+
+  if (navigatorRole) {
+    await env.DB.prepare(`
+      INSERT INTO navigator_profiles (id, user_id, navigator_role, pathway_data, created_at, updated_at)
+      VALUES (?, ?, ?, NULL, ?, ?)
+    `).bind(crypto.randomUUID(), userId, navigatorRole, now, now).run();
+  }
+
+  await audit(env.DB, 'navigator_account_register', userId, 'user', { email, navigatorRole });
+
+  // Send verification email — account activates on click
+  const verToken = randomHex(32);
+  const verHash = await sha256hex(verToken);
+  const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), userId, verHash, verExpiry, now).run();
+  fireEmail(ctx, emailNavigatorVerification(env, { name: body.name.trim(), email, token: verToken }), 'navigator_verify_email');
+
+  return json({ message: 'Account created. Please check your email to verify your address.', emailVerificationRequired: true, email }, 201);
+}
+
+// GET /navigator/profile — returns navigator_role + pathway_data for the authenticated user
+async function handleNavigatorProfileGet(request, user, env) {
+  const [profile, sub, userRow] = await Promise.all([
+    env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT plan, status, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first(),
+  ]);
+  let plan = sub?.plan ?? 'free';
+  if (plan !== 'free' && sub?.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) plan = 'expired';
+  return json({
+    navigatorRole: profile?.navigator_role ?? null,
+    pathwayData: profile?.pathway_data ? JSON.parse(profile.pathway_data) : null,
+    plan,
+    email: user.email,
+    name: userRow?.name ?? null,
+  });
+}
+
+// PUT /navigator/profile — saves navigator_role and/or pathway_data
+async function handleNavigatorProfileUpdate(request, user, env) {
+  const body = await request.json().catch(() => null);
+  if (!body) return err('Invalid request body');
+
+  const now = new Date().toISOString();
+  const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : undefined;
+  const pathwayData = body.pathwayData !== undefined ? JSON.stringify(body.pathwayData) : undefined;
+
+  const existing = await env.DB.prepare(`SELECT id FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first();
+  if (existing) {
+    const sets = []; const vals = [];
+    if (navigatorRole !== undefined) { sets.push('navigator_role = ?'); vals.push(navigatorRole); }
+    if (pathwayData !== undefined)   { sets.push('pathway_data = ?');   vals.push(pathwayData); }
+    if (sets.length) {
+      sets.push('updated_at = ?'); vals.push(now); vals.push(user.sub);
+      await env.DB.prepare(`UPDATE navigator_profiles SET ${sets.join(', ')} WHERE user_id = ?`).bind(...vals).run();
+    }
+  } else {
+    await env.DB.prepare(`
+      INSERT INTO navigator_profiles (id, user_id, navigator_role, pathway_data, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(crypto.randomUUID(), user.sub, navigatorRole ?? 'student', pathwayData ?? null, now, now).run();
+  }
+
+  return json({ success: true });
+}
+
+// POST /navigator/auth/login — navigator-specific login with email verification enforcement
+async function handleNavigatorAuthLogin(request, env) {
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
+  const body = await request.json().catch(() => null);
+  if (!body?.email || !body?.password) return err('email and password are required');
+  const email = body.email.trim().toLowerCase();
+
+  const ipFails = await countRecentAttempts(env.DB, `nav_login_ip:${clientIp}`, 15 * 60 * 1000);
+  if (ipFails >= 20) return err('Too many login attempts from this address. Please wait 15 minutes.', 429);
+  const recentFails = await countRecentAttempts(env.DB, `nav_login:${email}`, 15 * 60 * 1000);
+  if (recentFails >= 10) return err('Too many failed login attempts. Please wait 15 minutes.', 429);
+
+  const user = rowToUser(await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first());
+  const pwResult = user ? await verifyPassword(body.password, user.passwordHash) : { valid: false, needsRehash: false };
+  if (!user || !pwResult.valid) {
+    await recordAttempt(env.DB, `nav_login:${email}`, false);
+    await recordAttempt(env.DB, `nav_login_ip:${clientIp}`, false);
+    return err('Invalid email or password.', 401);
+  }
+  if (pwResult.needsRehash) {
+    const newHash = await hashPassword(body.password);
+    await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, user.id).run().catch(() => {});
+  }
+  if (user.status !== 'active') return err('Your account is not active. Please contact AACP for assistance.', 403);
+
+  if (!user.emailVerified) {
+    // Resend a fresh verification link
+    const verToken = randomHex(32);
+    const verHash = await sha256hex(verToken);
+    const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
+    await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
+    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+    return json({ emailVerificationRequired: true, email: user.email, message: 'Please verify your email. We\'ve resent the verification link.' });
+  }
+
+  await recordAttempt(env.DB, `nav_login:${email}`, true);
+  await audit(env.DB, 'navigator_login', user.id, 'session');
+
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: user.id, email: user.email, role: user.role, tokenType: 'access' },
+    accessSecret,
+    30 * 24 * 60 * 60
+  );
+  return json({ token, email: user.email });
+}
+
+// POST /navigator/account/verify-email — verify token link, activate account, return JWT
+async function handleNavigatorVerifyEmail(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.token) return err('token is required');
+  const tokenHash = await sha256hex(body.token);
+  const now = new Date().toISOString();
+
+  const row = await env.DB.prepare(
+    `SELECT ev.id, ev.user_id, u.email, u.role, u.name FROM email_verifications ev
+     JOIN users u ON u.id = ev.user_id
+     WHERE ev.code_hash = ? AND ev.expires_at > ? AND ev.verified_at IS NULL`
+  ).bind(tokenHash, now).first();
+
+  if (!row) return err('Invalid or expired verification link. Please request a new one.', 400);
+
+  await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?`).bind(now, row.user_id).run();
+  await env.DB.prepare(`UPDATE email_verifications SET verified_at = ? WHERE id = ?`).bind(now, row.id).run();
+  await audit(env.DB, 'navigator_email_verified', row.user_id, 'user', {});
+
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: row.user_id, email: row.email, role: row.role, tokenType: 'access' },
+    accessSecret,
+    30 * 24 * 60 * 60
+  );
+  return json({ token, email: row.email, name: row.name, message: 'Email verified. Welcome to Career Navigator!' });
+}
+
+// POST /navigator/account/resend-verification — rate-limited resend of verification email
+async function handleNavigatorResendVerification(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.email) return err('email is required');
+  const email = body.email.trim().toLowerCase();
+
+  const attempts = await countRecentAttempts(env.DB, `nav_resend:${email}`, 10 * 60 * 1000);
+  if (attempts >= 3) return err('Too many resend requests. Please wait 10 minutes.', 429);
+  await recordAttempt(env.DB, `nav_resend:${email}`, false);
+
+  const user = await env.DB.prepare(`SELECT id, name, email, email_verified FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
+  if (user && !user.email_verified) {
+    const verToken = randomHex(32);
+    const verHash = await sha256hex(verToken);
+    const verExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
+    await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
+    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+  }
+  return json({ message: 'If your account exists and is unverified, a new verification email has been sent.' });
+}
+
+// GET /navigator/auth/google — start Google OAuth
+async function handleNavigatorAuthGoogle(request, env) {
+  if (!env.GOOGLE_CLIENT_ID) return err('Google sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
+  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', callbackUrl);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', 'openid email profile');
+  authUrl.searchParams.set('state', state);
+  authUrl.searchParams.set('prompt', 'select_account');
+  return Response.redirect(authUrl.toString(), 302);
+}
+
+// GET /navigator/auth/google/callback — exchange code, find/create user, redirect with JWT
+async function handleNavigatorAuthGoogleCallback(request, env) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return err('Google sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
+  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
+
+  let statePayload;
+  try {
+    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
+    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
+  } catch (_) {
+    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
+  }
+  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
+  });
+  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
+  const tokenData = await tokenRes.json();
+
+  const uiRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+  if (!uiRes.ok) return Response.redirect(`${redirectTo}?oauth_error=userinfo_failed`, 302);
+  const ui = await uiRes.json();
+  if (!ui.email) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
+
+  try {
+    const navToken = await upsertOAuthUser(env, { provider: 'google', providerId: ui.sub, email: ui.email, name: ui.name || ui.email.split('@')[0] });
+    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
+  } catch (e) {
+    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
+  }
+}
+
+// GET /navigator/auth/microsoft — start Microsoft OAuth
+async function handleNavigatorAuthMicrosoft(request, env) {
+  if (!env.MICROSOFT_CLIENT_ID) return err('Microsoft sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
+  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
+  const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+  authUrl.searchParams.set('client_id', env.MICROSOFT_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', callbackUrl);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', 'openid email profile');
+  authUrl.searchParams.set('state', state);
+  authUrl.searchParams.set('prompt', 'select_account');
+  return Response.redirect(authUrl.toString(), 302);
+}
+
+// GET /navigator/auth/microsoft/callback — exchange code, find/create user, redirect with JWT
+async function handleNavigatorAuthMicrosoftCallback(request, env) {
+  if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return err('Microsoft sign-in is not configured.', 503);
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
+  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
+
+  let statePayload;
+  try {
+    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
+    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
+  } catch (_) {
+    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
+  }
+  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
+  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
+
+  const tokenRes = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code, client_id: env.MICROSOFT_CLIENT_ID, client_secret: env.MICROSOFT_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
+  });
+  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
+  const tokenData = await tokenRes.json();
+
+  let msEmail, msName, msSub;
+  try {
+    const parts = tokenData.id_token.split('.');
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    msEmail = payload.email || payload.preferred_username;
+    msName = payload.name || (msEmail ? msEmail.split('@')[0] : 'User');
+    msSub = payload.sub || payload.oid;
+  } catch (_) {
+    return Response.redirect(`${redirectTo}?oauth_error=token_decode_failed`, 302);
+  }
+  if (!msEmail || !msSub) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
+
+  try {
+    const navToken = await upsertOAuthUser(env, { provider: 'microsoft', providerId: msSub, email: msEmail, name: msName });
+    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
+  } catch (e) {
+    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
+  }
+}
+
+// Helper — find or create a user from an OAuth provider, return navigator JWT
+async function upsertOAuthUser(env, { provider, providerId, email, name }) {
+  const now = new Date().toISOString();
+  const normalEmail = email.toLowerCase();
+
+  const existing = await env.DB.prepare(
+    `SELECT op.user_id, u.email, u.role FROM oauth_providers op JOIN users u ON u.id = op.user_id WHERE op.provider = ? AND op.provider_id = ?`
+  ).bind(provider, providerId).first();
+
+  let userId, userEmail, userRole;
+  if (existing) {
+    userId = existing.user_id; userEmail = existing.email; userRole = existing.role;
+  } else {
+    const emailUser = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(normalEmail).first();
+    if (emailUser) {
+      userId = emailUser.id; userEmail = emailUser.email; userRole = emailUser.role;
+      await env.DB.prepare(`INSERT OR IGNORE INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run().catch(() => {});
+      await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0`).bind(now, userId).run().catch(() => {});
+    } else {
+      userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'participant';
+      const dummyHash = await sha256hex('oauth_no_password_' + providerId);
+      await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)`)
+        .bind(userId, userEmail, name, dummyHash, now, now).run();
+      await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run();
+      await audit(env.DB, 'navigator_oauth_register', userId, 'user', { provider, email: userEmail });
+    }
+  }
+
+  await audit(env.DB, 'navigator_oauth_login', userId, 'session', { provider });
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  return createJwt({ sub: userId, email: userEmail, role: userRole, tokenType: 'access' }, accessSecret, 30 * 24 * 60 * 60);
+}
+
+// POST /navigator/pilot/redeem — public; validate pilot code, create/link user, activate subscription
+async function handleNavigatorPilotRedeem(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const code = String(body.code ?? '').trim().toUpperCase();
+  const email = String(body.email ?? '').trim().toLowerCase();
+  const name  = String(body.name  ?? '').trim().slice(0, 120);
+
+  if (!code)  return err('code is required');
+  if (!email) return err('email is required');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Invalid email address');
+
+  // Rate limit by IP to prevent brute-force
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const attempts = await countAllAttempts(env.DB, `pilot_redeem:${clientIp}`, 10 * 60 * 1000);
+  if (attempts >= 10) return err('Too many attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, `pilot_redeem:${clientIp}`, true);
+
+  const now = new Date().toISOString();
+
+  // Validate pilot code
+  const pc = await env.DB.prepare(
+    `SELECT id, plan, max_redemptions, redemptions_used, expires_at, status FROM navigator_pilot_codes WHERE code = ?`
+  ).bind(code).first();
+
+  if (!pc || pc.status !== 'active') return err('Invalid or inactive pilot code');
+  if (pc.expires_at && now > pc.expires_at) return err('This pilot code has expired');
+  if (pc.max_redemptions !== null && pc.redemptions_used >= pc.max_redemptions) return err('This pilot code has reached its redemption limit');
+
+  // Find or create user
+  let user = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(email).first();
+  if (!user) {
+    const userId = crypto.randomUUID();
+    // Create a minimal navigator account (no usable password; auth is via pilot JWT)
+    const dummyHash = `pilot:${crypto.randomUUID()}`;
+    await env.DB.prepare(`
+      INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)
+    `).bind(userId, email, name || email.split('@')[0], dummyHash, now, now).run();
+    user = { id: userId, email, role: 'participant' };
+  }
+
+  // Upsert navigator subscription (pilot tier — no Stripe IDs)
+  const plan = pc.plan || 'premium_student';
+  const pilotExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day trial
+  await env.DB.prepare(`
+    INSERT INTO navigator_subscriptions
+      (id, user_id, plan, status, invites_remaining, trial_ends_at, created_at, updated_at)
+    VALUES (?, ?, ?, 'active', 0, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      plan = excluded.plan, status = 'active',
+      trial_ends_at = excluded.trial_ends_at, updated_at = excluded.updated_at
+  `).bind(crypto.randomUUID(), user.id, plan, pilotExpiry, now, now).run();
+
+  // Increment redemptions
+  await env.DB.prepare(
+    `UPDATE navigator_pilot_codes SET redemptions_used = redemptions_used + 1, updated_at = ? WHERE id = ?`
+  ).bind(now, pc.id).run();
+
+  await audit(env.DB, 'navigator_pilot_redeem', user.id, 'navigator_pilot_code', { code, plan, email });
+
+  // Issue 90-day JWT
+  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
+  const token = await createJwt(
+    { sub: user.id, email: user.email, role: user.role, tokenType: 'access' },
+    accessSecret,
+    90 * 24 * 60 * 60
+  );
+
+  return json({ token, email: user.email, plan, message: 'Pilot access activated' });
+}
+
+// GET /admin/navigator — subscriber stats and pilot code list (admin only)
+async function handleAdminNavigatorDashboard(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+
+  const [plans, pilotCodes] = await Promise.all([
+    env.DB.prepare(`
+      SELECT plan, status, COUNT(*) as count
+      FROM navigator_subscriptions
+      GROUP BY plan, status
+      ORDER BY plan, status
+    `).all(),
+    env.DB.prepare(`
+      SELECT id, code, label, plan, max_redemptions, redemptions_used, expires_at, status, created_at
+      FROM navigator_pilot_codes
+      ORDER BY created_at DESC
+      LIMIT 200
+    `).all(),
+  ]);
+
+  return json({ plans: plans.results, pilotCodes: pilotCodes.results });
+}
+
+// POST /admin/navigator/pilot-codes — generate pilot access codes (admin only)
+async function handleAdminNavigatorPilotCodesCreate(request, user, env) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const body = await request.json().catch(() => ({}));
+  const label         = String(body.label ?? 'OSCA-2026').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  const count         = Math.min(Math.max(Number(body.count) || 1, 1), 50);
+  const maxRedemptions = body.max_redemptions != null ? Number(body.max_redemptions) : null;
+  const expiresAt     = body.expires_at || null;
+  const plan          = body.plan || 'premium_student';
+
+  if (!label) return err('label is required');
+
+  const now = new Date().toISOString();
+  const created = [];
+
+  for (let i = 0; i < count; i++) {
+    const suffix = crypto.randomUUID().split('-')[0].toUpperCase();
+    const code = `${label}-${suffix}`;
+    const id = crypto.randomUUID();
+    await env.DB.prepare(`
+      INSERT INTO navigator_pilot_codes (id, code, label, created_by, plan, max_redemptions, redemptions_used, expires_at, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', ?, ?)
+    `).bind(id, code, label, user.id, plan, maxRedemptions, expiresAt, now, now).run();
+    created.push({ id, code, label, plan });
+  }
+
+  await audit(env.DB, 'navigator_pilot_codes_create', user.id, 'navigator_pilot_code', { label, count, plan });
+  return json({ created });
+}
+
+// DELETE /admin/navigator/pilot-codes/:id — revoke a pilot code (admin only)
+async function handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId) {
+  const g = requireRole(user, 'admin', 'super_admin'); if (g) return g;
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare(
+    `UPDATE navigator_pilot_codes SET status = 'revoked', updated_at = ? WHERE id = ? AND status = 'active'`
+  ).bind(now, codeId).run();
+  if (!result.meta?.changes) return err('Code not found or already revoked', 404);
+  await audit(env.DB, 'navigator_pilot_code_revoke', user.id, 'navigator_pilot_code', { codeId });
+  return json({ success: true });
+}
+
+// POST /navigator/chat — ACIA chat for active Navigator premium subscribers
+async function handleNavigatorChat(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+
+  // Check active premium subscription
+  const sub = await env.DB.prepare(
+    `SELECT plan, status FROM navigator_subscriptions WHERE user_id = ? AND status = 'active'`
+  ).bind(user.id).first();
+  if (!sub || sub.plan === 'free') {
+    return err('Active Navigator premium subscription required', 403);
+  }
+
+  // Rate limit: 30 requests per hour per user
+  const attempts = await countAllAttempts(env.DB, `nav_chat:${user.id}`, 60 * 60 * 1000);
+  if (attempts >= 30) {
+    return err('Chat limit reached. Please try again in an hour.', 429);
+  }
+  await recordAttempt(env.DB, `nav_chat:${user.id}`, true);
+
+  const body = await request.json().catch(() => null);
+  if (!body?.messages || !Array.isArray(body.messages)) {
+    return err('messages array required');
+  }
+
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) return err('AI service not configured', 503);
+
+  const ALLOWED_ROLES = new Set(['user', 'assistant']);
+  const messages = body.messages.slice(-20)
+    .filter(m => ALLOWED_ROLES.has(m.role))
+    .map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+
+  const maxTokens = Math.min(Number(body.maxTokens ?? 600), 1200);
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: maxTokens,
+      system: CAPTAIN_ACIA_SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error('Anthropic API error (navigator/chat):', res.status, await res.text());
+    return err('AI service error', 502);
+  }
+
+  const data = await res.json();
+  const reply = data.content?.[0]?.text ?? '';
+  return json({ reply });
+}
+
+// POST /navigator/webhook — Stripe webhook handler (raw body, signature verified)
+async function handleNavigatorWebhook(request, env) {
+  const sig = request.headers.get('stripe-signature');
+  const webhookSecret = env.STRIPE_NAVIGATOR_WEBHOOK_SECRET;
+  if (!webhookSecret) return json({ error: 'Webhook secret not configured' }, 500);
+
+  const rawBody = await request.text();
+
+  // Verify Stripe-Signature using HMAC-SHA256
+  let event;
+  try {
+    event = await verifyStripeWebhook(rawBody, sig, webhookSecret);
+  } catch (err) {
+    console.error('[navigator/webhook] signature verification failed:', err.message);
+    return json({ error: 'Invalid signature' }, 400);
+  }
+
+  const { type, data } = event;
+  const obj = data.object;
+
+  if (type === 'checkout.session.completed') {
+    const userId = obj.metadata?.user_id;
+    const plan = obj.metadata?.plan;
+    const inviteCodeId = obj.metadata?.invite_code_id || null;
+    const customerId = obj.customer;
+    const subscriptionId = obj.subscription;
+    if (!userId || !plan) return json({ received: true });
+
+    const now = new Date().toISOString();
+
+    // Fetch the Stripe subscription to get real status and trial_end
+    let subStatus = 'active';
+    let trialEndsAt = null;
+    let periodEnd = null;
+    if (subscriptionId) {
+      try {
+        const stripeSub = await stripeRequest(env, 'GET', `/subscriptions/${subscriptionId}`, null);
+        subStatus = stripeSub.status || 'active';
+        if (stripeSub.trial_end) trialEndsAt = new Date(stripeSub.trial_end * 1000).toISOString();
+        if (stripeSub.current_period_end) periodEnd = new Date(stripeSub.current_period_end * 1000).toISOString();
+      } catch (e) {
+        console.error('[navigator/webhook] failed to fetch subscription:', e.message);
+      }
+    }
+
+    // During trial career_advisor gets 5 invite slots; paid gets 20
+    const invitesInit = plan === 'career_advisor' ? (subStatus === 'trialing' ? 5 : 20) : 0;
+
+    // Upsert subscription record
+    await env.DB.prepare(`
+      INSERT INTO navigator_subscriptions
+        (id, user_id, plan, status, stripe_customer_id, stripe_subscription_id, invite_code_id, invites_remaining, trial_ends_at, current_period_end, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        plan = excluded.plan,
+        status = excluded.status,
+        stripe_customer_id = excluded.stripe_customer_id,
+        stripe_subscription_id = excluded.stripe_subscription_id,
+        invite_code_id = excluded.invite_code_id,
+        invites_remaining = excluded.invites_remaining,
+        trial_ends_at = excluded.trial_ends_at,
+        current_period_end = excluded.current_period_end,
+        updated_at = excluded.updated_at
+    `).bind(
+      crypto.randomUUID(), userId, plan, subStatus,
+      customerId, subscriptionId, inviteCodeId,
+      invitesInit, trialEndsAt, periodEnd,
+      now, now
+    ).run();
+
+    if (inviteCodeId) {
+      await env.DB.prepare(
+        `UPDATE navigator_invite_codes SET redemptions_used = redemptions_used + 1, updated_at = ? WHERE id = ?`
+      ).bind(now, inviteCodeId).run();
+      const subRow = await env.DB.prepare('SELECT id FROM navigator_subscriptions WHERE user_id = ?').bind(userId).first();
+      if (subRow) {
+        await env.DB.prepare(`
+          INSERT INTO navigator_invite_redemptions (id, code_id, redeemed_by, subscription_id, redeemed_at)
+          VALUES (?,?,?,?,?)
+        `).bind(crypto.randomUUID(), inviteCodeId, userId, subRow.id, now).run();
+      }
+    }
+    await audit(env.DB, 'navigator_subscribe', userId, 'navigator_subscription', { plan, subscriptionId });
+  }
+
+  if (type === 'customer.subscription.updated') {
+    const sub = await env.DB.prepare(
+      'SELECT id, user_id, plan, status AS prev_status, invites_remaining FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
+    ).bind(obj.id).first();
+    if (sub) {
+      const now = new Date().toISOString();
+      const newStatus = obj.status;
+      const periodEnd = obj.current_period_end ? new Date(obj.current_period_end * 1000).toISOString() : null;
+      const periodStart = obj.current_period_start ? new Date(obj.current_period_start * 1000).toISOString() : null;
+      const trialEndsAt = obj.trial_end ? new Date(obj.trial_end * 1000).toISOString() : null;
+
+      // When a career_advisor trial converts to paid, bump invites from 5 → 20
+      let invitesBump = null;
+      if (sub.plan === 'career_advisor' && sub.prev_status === 'trialing' && newStatus === 'active') {
+        // Add 15 more slots (5 trial → 20 paid), preserving any unused trial slots
+        invitesBump = Math.max((sub.invites_remaining ?? 0) + 15, 20);
+      }
+
+      await env.DB.prepare(`
+        UPDATE navigator_subscriptions SET
+          status = ?, current_period_start = ?, current_period_end = ?,
+          cancel_at_period_end = ?, trial_ends_at = ?,
+          ${invitesBump !== null ? 'invites_remaining = ?,' : ''}
+          updated_at = ?
+        WHERE id = ?
+      `).bind(
+        ...(invitesBump !== null
+          ? [newStatus, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, trialEndsAt, invitesBump, now, sub.id]
+          : [newStatus, periodStart, periodEnd, obj.cancel_at_period_end ? 1 : 0, trialEndsAt, now, sub.id])
+      ).run();
+    }
+  }
+
+  if (type === 'customer.subscription.deleted') {
+    const sub = await env.DB.prepare(
+      'SELECT id, user_id FROM navigator_subscriptions WHERE stripe_subscription_id = ?'
+    ).bind(obj.id).first();
+    if (sub) {
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        `UPDATE navigator_subscriptions SET plan = 'free', status = 'canceled', updated_at = ? WHERE id = ?`
+      ).bind(now, sub.id).run();
+      await audit(env.DB, 'navigator_cancel', sub.user_id, 'navigator_subscription', { subscriptionId: obj.id });
+    }
+  }
+
+  return json({ received: true });
+}
+
+async function verifyStripeWebhook(payload, sigHeader, secret) {
+  if (!sigHeader) throw new Error('Missing stripe-signature header');
+  const parts = Object.fromEntries(sigHeader.split(',').map(p => p.split('=')));
+  const timestamp = parts.t;
+  const v1 = parts.v1;
+  if (!timestamp || !v1) throw new Error('Malformed stripe-signature');
+
+  const signed = `${timestamp}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signed));
+  const hex = Array.from(new Uint8Array(mac)).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (hex !== v1) throw new Error('Signature mismatch');
+
+  // Reject events older than 5 minutes
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) throw new Error('Webhook timestamp too old');
+
+  return JSON.parse(payload);
+}
+
+// POST /navigator/invite — advisor creates an invite code
+async function handleNavigatorInviteCreate(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, invites_remaining FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+
+  const isAdvisor = sub?.plan === 'career_advisor' && sub?.status === 'active';
+  const isTrial = sub?.plan === 'career_advisor' && sub?.status === 'trialing';
+  if (!isAdvisor && !isTrial) return json({ error: 'Career Advisor subscription required to generate invite codes' }, 403);
+  if ((sub.invites_remaining ?? 0) <= 0) return json({ error: 'No invite codes remaining on your plan' }, 400);
+
+  const code = nanoid10();
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+
+  // Create Stripe coupon for 20% off
+  let stripeCouponId = null;
+  try {
+    const coupon = await stripeRequest(env, 'POST', '/coupons', {
+      percent_off: '20',
+      duration: 'once',
+      name: `AACP Navigator Advisor Invite`,
+      'metadata[code]': code,
+      'metadata[advisor_user_id]': user.id,
+    });
+    stripeCouponId = coupon.id;
+  } catch (err) {
+    console.error('[navigator/invite] Stripe coupon creation failed:', err.message);
+    // Continue — code still works, just without Stripe discount
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO navigator_invite_codes
+      (id, code, advisor_user_id, stripe_coupon_id, max_redemptions, discount_percent, status, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).bind(id, code, user.id, stripeCouponId, 1, 20, 'active', now, now).run();
+
+  await env.DB.prepare(
+    `UPDATE navigator_subscriptions SET invites_remaining = invites_remaining - 1, updated_at = ? WHERE user_id = ?`
+  ).bind(now, user.id).run();
+
+  await audit(env.DB, 'navigator_invite_create', user.id, 'navigator_invite_code', { code, id });
+  return json({ code, discount_percent: 20, expires_at: null });
+}
+
+// GET /navigator/invites — JWT, return career advisor's own invite codes
+async function handleNavigatorInviteList(request, user, env) {
+  const g = requireAuth(user); if (g) return g;
+  const sub = await env.DB.prepare(
+    `SELECT plan, status, invites_remaining, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`
+  ).bind(user.id).first();
+  if (!sub || sub.plan !== 'career_advisor') return json({ error: 'Career Advisor subscription required' }, 403);
+  const { results } = await env.DB.prepare(
+    `SELECT id, code, discount_percent, status, redemptions_used, max_redemptions, expires_at, created_at
+     FROM navigator_invite_codes WHERE advisor_user_id = ? ORDER BY created_at DESC LIMIT 50`
+  ).bind(user.id).all();
+  return json({
+    codes: results || [],
+    invites_remaining: sub.invites_remaining ?? 0,
+    trial_ends_at: sub.trial_ends_at || null,
+    subscription_status: sub.status,
+  });
+}
+
+// POST /navigator/invite/validate — public, validate an invite code before checkout
+async function handleNavigatorInviteValidate(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const code = (body.code || '').trim().toUpperCase();
+  if (!code) return json({ error: 'code required' }, 400);
+  const row = await env.DB.prepare(
+    `SELECT discount_percent, status, expires_at, max_redemptions, redemptions_used
+     FROM navigator_invite_codes WHERE code = ?`
+  ).bind(code).first();
+  if (!row || row.status !== 'active') return json({ valid: false, error: 'Invalid or expired code' });
+  if (row.max_redemptions !== null && row.redemptions_used >= row.max_redemptions)
+    return json({ valid: false, error: 'Code fully redeemed' });
+  if (row.expires_at && new Date(row.expires_at) < new Date())
+    return json({ valid: false, error: 'Code expired' });
+  return json({ valid: true, discount_percent: row.discount_percent });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const _resp = await _routeRequest(request, env, ctx);
@@ -13583,7 +15861,7 @@ async function _routeRequest(request, env, ctx) {
     const path = url.pathname;
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return _applyResponsePolicies(request, new Response(null, { status: 204, headers: CORS_HEADERS }));
     }
 
     if (!adminSeedDone) {
@@ -13599,16 +15877,31 @@ async function _routeRequest(request, env, ctx) {
       await seedRpasProgram(env.DB);
     }
 
-    if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
-    if (path === '/ping')   return new Response('pong');
+    if (path === '/health') return json({ status: 'ok' });
+
+    // ── Consent audit log (no auth, no PII) ───────────────────────────────────
+    if (path === '/consent/record' && request.method === 'POST') return handleConsentRecord(request, env);
+
+    // ── Career Navigator — public (no JWT) ───────────────────────────────────
+    if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
+    if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
+    if (path === '/navigator/pilot/redeem'     && request.method === 'POST') return handleNavigatorPilotRedeem(request, env);
+    if (path === '/navigator/account/register'         && request.method === 'POST') return handleNavigatorAccountRegister(request, env, ctx);
+    if (path === '/navigator/auth/login'               && request.method === 'POST') return handleNavigatorAuthLogin(request, env);
+    if (path === '/navigator/account/verify-email'     && request.method === 'POST') return handleNavigatorVerifyEmail(request, env);
+    if (path === '/navigator/account/resend-verification' && request.method === 'POST') return handleNavigatorResendVerification(request, env);
+    if (path === '/navigator/auth/google'              && request.method === 'GET')  return handleNavigatorAuthGoogle(request, env);
+    if (path === '/navigator/auth/google/callback'     && request.method === 'GET')  return handleNavigatorAuthGoogleCallback(request, env);
+    if (path === '/navigator/auth/microsoft'           && request.method === 'GET')  return handleNavigatorAuthMicrosoft(request, env);
+    if (path === '/navigator/auth/microsoft/callback'  && request.method === 'GET')  return handleNavigatorAuthMicrosoftCallback(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);
-    if (path === '/rpas/apply/status'   && request.method === 'GET')  return handleRpasApplicationStatus(request, env);
+    if (path === '/rpas/apply/status-request' && request.method === 'POST') return handleRpasApplicationStatusRequest(request, env);
 
     // ── EOI public routes ─────────────────────────────────────────────────────
-    if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env);
-    if (path === '/eoi/partner'         && request.method === 'POST') return handleEoiPartner(request, env);
+    if (path === '/eoi/individual'      && request.method === 'POST') return handleEoiIndividual(request, env, ctx);
+    if (path === '/eoi/partner'         && request.method === 'POST') return handleEoiPartner(request, env, ctx);
 
     // /app → serve the React dashboard
     if (path === '/app' || path === '/app/') {
@@ -13707,8 +16000,9 @@ async function _routeRequest(request, env, ctx) {
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+$/)                             && request.method === 'PATCH') return handleAdminRpasApplicationReview(request, user, env, ctx);
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/payment$/)                    && request.method === 'PATCH') return handleAdminRpasApplicationPayment(request, user, env);
     if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/access$/)                     && request.method === 'PATCH') return handleAdminRpasApplicationAccess(request, user, env);
-    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env);
+    if (path.match(/^\/admin\/rpas\/applications\/[^/]+\/invite$/)                     && request.method === 'POST')  return handleAdminRpasApplicationInvite(request, user, env, ctx);
     if (path === '/admin/rpas/participants'                                             && request.method === 'GET')   return handleAdminRpasParticipants(request, user, env);
+    if (path.match(/^\/admin\/rpas\/participants\/[^/]+\/hub-status$/)                  && request.method === 'PATCH') return handleAdminRpasParticipantHubStatus(request, user, env);
 
     // ── EOI admin routes ──────────────────────────────────────────────────────
     if (path === '/admin/eoi/individuals'                                              && request.method === 'GET')  return handleAdminEoiIndividuals(request, user, env);
@@ -13716,12 +16010,15 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/eoi/partners'                                                 && request.method === 'GET')  return handleAdminEoiPartners(request, user, env);
     if (path.match(/^\/admin\/eoi\/partners\/[^/]+$/)                                 && request.method === 'PATCH') return handleAdminEoiPartnerUpdate(request, user, env);
 
+    if (path === '/acia/m2/responses'             && request.method === 'POST') return handleAciaM2Responses(request, user, env);
     if (path === '/acia/assessment/complete'      && request.method === 'POST') return handleAciaAssessmentComplete(request, user, env, ctx);
     if (path === '/acia/rpas/assessment/complete' && request.method === 'POST') return handleAciaRpasAssessmentComplete(request, env, ctx);
     if (path === '/acia/rpas/report'             && request.method === 'GET')  return handleAciaRpasReport(request, env);
     if (path === '/acia/assessments'         && request.method === 'GET')  return handleAciaAssessmentsGet(request, user, env);
     if (path === '/acia/eligibility'         && request.method === 'GET')  return handleAciaEligibility(request, user, env);
     if (path === '/acia/checkpoint'          && request.method === 'POST') return handleAciaCheckpoint(request, user, env);
+    if (path === '/acia/assembly-evidence'   && request.method === 'POST') return handleAciaAssemblyEvidence(request, user, env);
+    if (path === '/acia/wm-evidence'         && request.method === 'POST') return handleAciaWmEvidence(request, user, env);
     if (path === '/program/interest'         && request.method === 'POST') return handleProgramInterest(request, user, env, ctx);
     if (path === '/program/waitlist'         && request.method === 'POST') return handleProgramWaitlistJoin(request, user, env, ctx);
     if (path === '/program/waitlist'         && request.method === 'GET')  return handleProgramWaitlistGet(request, user, env);
@@ -13747,6 +16044,10 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/participants' && request.method === 'GET') return handleAdminParticipantList(request, user, env);
     if (path.startsWith('/admin/participants/') && path.endsWith('/acia-override') && request.method === 'POST') return handleAdminAciaOverride(request, user, env);
 
+    // Intelligent routing — admin review + participant recommendation
+    if (path.match(/^\/admin\/routing\/review\/[^/]+$/) && request.method === 'POST') return handleAdminRoutingReview(request, user, env);
+    if (path === '/participant/recommendation' && request.method === 'GET') return handleParticipantRecommendation(request, user, env);
+
     // ACIA integrity audit + monitoring (admin+)
     if (path === '/admin/acia/integrity' && request.method === 'GET') return handleAdminAciaIntegrityAudit(request, user, env);
     if (path === '/admin/acia/save-failures' && request.method === 'GET') return handleAdminAciaSaveFailures(request, user, env);
@@ -13761,6 +16062,11 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/cohort/invitations'                                           && request.method === 'POST') return handleCreateCohortInvitation(request, user, env);
     if (path.startsWith('/cohort/invitations/') && path.endsWith('/revoke')      && request.method === 'PUT')  return handleRevokeCohortInvitation(request, user, env);
     if (path.startsWith('/cohort/invitations/') && path.endsWith('/extend')      && request.method === 'PUT')  return handleExtendCohortInvitation(request, user, env);
+    // /pilot/invitations aliases — frontend uses this prefix
+    if (path === '/pilot/invitations'                                            && request.method === 'GET')  return handleListCohortInvitations(request, user, env);
+    if (path === '/pilot/invitations'                                            && request.method === 'POST') return handleCreateCohortInvitation(request, user, env);
+    if (path.startsWith('/pilot/invitations/') && path.endsWith('/revoke')       && request.method === 'PUT')  return handleRevokeCohortInvitation(request, user, env);
+    if (path.startsWith('/pilot/invitations/') && path.endsWith('/extend')       && request.method === 'PUT')  return handleExtendCohortInvitation(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/deactivate')  && request.method === 'PUT')  return handleDeactivatePilotAccount(request, user, env);
     if (path === '/pilot/accounts'                                              && request.method === 'GET')  return handleListPilotAccounts(request, user, env);
     if (path.startsWith('/pilot/accounts/')    && path.endsWith('/revoke')     && request.method === 'PUT')  return handleRevokePilotAccess(request, user, env);
@@ -13885,19 +16191,68 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/admin/external-industry-evidence' && request.method === 'POST') return handleAdminExternalEvidenceSubmit(request, user, env);
     if (path === '/admin/participant-longitudinal-diagnostics' && request.method === 'GET') return handleAdminLongitudinalDiagnostics(request, user, env);
 
+    // ── Career Navigator — Stripe (JWT required) ─────────────────────────────
+    if (path === '/navigator/subscription' && request.method === 'GET')  return handleNavigatorSubscription(request, user, env);
+    if (path === '/navigator/checkout'     && request.method === 'POST') return handleNavigatorCheckout(request, user, env);
+    if (path === '/navigator/invites'      && request.method === 'GET')  return handleNavigatorInviteList(request, user, env);
+    if (path === '/navigator/invite'       && request.method === 'POST') return handleNavigatorInviteCreate(request, user, env);
+    if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
+    if (path === '/navigator/profile'      && request.method === 'GET')  return handleNavigatorProfileGet(request, user, env);
+    if (path === '/navigator/profile'      && request.method === 'PUT')  return handleNavigatorProfileUpdate(request, user, env);
+    if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
+    if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
+    if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {
+      const codeId = path.split('/')[4];
+      return handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId);
+    }
+
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {
       const g = requireAuth(user); if (g) return g;
       return json({ message: 'Coming soon', path });
     }
 
+    // ── FAWN — Industry Network routes ───────────────────────────────────────
+    // Public (no JWT)
+    if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'GET')  return handleNetworkInviteGet(request, env);
+    if (path.match(/^\/network\/invite\/[^/]+$/) && request.method === 'POST') return handleNetworkInviteAccept(request, env);
+    // Member-facing (requires network role JWT)
+    if (path === '/network/profile'                                                     && request.method === 'GET')  return handleNetworkProfile(request, user, env);
+    if (path === '/network/feed'                                                        && request.method === 'GET')  return handleNetworkFeed(request, user, env);
+    if (path === '/network/organizations'                                               && request.method === 'GET')  return handleNetworkOrganizations(request, user, env);
+    if (path === '/network/opportunities'                                               && request.method === 'GET')  return handleNetworkOpportunities(request, user, env);
+    if (path.match(/^\/network\/opportunities\/\d+\/express-interest$/)                && request.method === 'POST') return handleNetworkExpressInterest(request, user, env);
+    if (path === '/network/events'                                                      && request.method === 'GET')  return handleNetworkEvents(request, user, env);
+    if (path.match(/^\/network\/events\/\d+\/register$/)                               && request.method === 'POST') return handleNetworkEventRegister(request, user, env);
+    if (path === '/network/subscriptions'                                               && request.method === 'GET')  return handleNetworkSubscriptionsGet(request, user, env);
+    if (path === '/network/subscriptions'                                               && request.method === 'PUT')  return handleNetworkSubscriptions(request, user, env);
+    if (path === '/network/notifications'                                               && request.method === 'GET')  return handleNetworkNotifications(request, user, env);
+    if (path.match(/^\/network\/notifications\/\d+\/read$/)                            && request.method === 'PUT')  return handleNetworkNotificationRead(request, user, env);
+    // Admin-only
+    if (path === '/admin/network/invitations'               && request.method === 'GET')  return handleAdminNetworkInvitationsList(request, user, env);
+    if (path === '/admin/network/invitations'               && request.method === 'POST') return handleAdminNetworkInvitationCreate(request, user, env);
+    if (path.match(/^\/admin\/network\/invitations\/\d+\/revoke$/) && request.method === 'PUT') return handleAdminNetworkInvitationRevoke(request, user, env);
+    if (path === '/admin/network/organizations'             && request.method === 'GET')  return handleAdminNetworkOrgsList(request, user, env);
+    if (path === '/admin/network/organizations'             && request.method === 'POST') return handleAdminNetworkOrgCreate(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+$/) && request.method === 'GET')  return handleAdminNetworkOrgGet(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+$/) && request.method === 'PUT')  return handleAdminNetworkOrgUpdate(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+\/founding-member$/) && request.method === 'PUT') return handleAdminNetworkOrgFoundingMember(request, user, env);
+    if (path.match(/^\/admin\/network\/organizations\/\d+\/verify$/)          && request.method === 'PUT') return handleAdminNetworkOrgVerify(request, user, env);
+    if (path === '/admin/network/members'                   && request.method === 'GET')  return handleAdminNetworkMembersList(request, user, env);
+    if (path.match(/^\/admin\/network\/members\/[^/]+\/status$/) && request.method === 'PUT') return handleAdminNetworkMemberStatusUpdate(request, user, env);
+
     // ── AACP External Validation — Public token-gated (no JWT) ───────────────
     if (path.match(/^\/validate\/[^/]+$/) && request.method === 'GET') {
       const accept = request.headers.get('Accept') || '';
       if (accept.includes('text/html')) {
         // Browser request — redirect to SPA with token as query param (same pattern as ?reset=, ?pilot=, ?invite=)
+        // Use X-Forwarded-Host (set by CloudFront to the viewer's original host) so the redirect
+        // targets the public CloudFront domain rather than the internal ALB hostname.
         const validatorToken = path.split('/')[2];
-        return Response.redirect(new URL(`/app.html?validate=${validatorToken}`, request.url).toString(), 302);
+        // env.AACP_PUBLIC_ORIGIN must be set to the CloudFront origin (e.g. https://dcthj58xklr8p.cloudfront.net)
+        // so the redirect targets the correct public domain rather than the internal ALB hostname.
+        const publicOrigin = (env.AACP_PUBLIC_ORIGIN || new URL(request.url).origin).replace(/\/$/, '');
+        return Response.redirect(`${publicOrigin}/app.html?validate=${validatorToken}`, 302);
       }
       return handleValidationWelcome(request, env);
     }

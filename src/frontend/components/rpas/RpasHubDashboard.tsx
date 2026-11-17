@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { request } from '../../services/apiClient';
+import { request, ApiError } from '../../services/apiClient';
 import { ACIA } from '../acia/ACIA';
 import { RpasIntakeForm } from './RpasIntakeForm';
 import { RpasCareerProfile } from './RpasCareerProfile';
@@ -31,7 +31,11 @@ export function RpasHubDashboard() {
   async function loadData() {
     try {
       const [p, s] = await Promise.all([
-        request<RpasProfile>('/rpas/profile'),
+        request<RpasProfile>('/rpas/profile').catch((e: unknown) => {
+          // 404 means the profile row hasn't been created yet — not an error
+          if (e instanceof ApiError && e.status === 404) return null;
+          throw e;
+        }),
         request<RpasHubStatus>('/rpas/status'),
       ]);
       setProfile(p);
@@ -83,6 +87,28 @@ export function RpasHubDashboard() {
           <p style={{ color: C.greyD, fontSize: 14, margin: 0 }}>
             Applied RPAS Workforce Intelligence
           </p>
+        </div>
+
+        {/* Program info */}
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 24 }}>
+          <div style={{ color: C.grey, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+            Applied RPAS Workforce Program
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Inaugural Cohorts</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>November 23, 2026</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>December 14, 2026</div>
+            </div>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Investment</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>$1,200 CAD</div>
+            </div>
+            <div>
+              <div style={{ color: C.grey, fontSize: 11, marginBottom: 3 }}>Duration</div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>1 Week</div>
+            </div>
+          </div>
         </div>
 
         {/* Journey progress */}

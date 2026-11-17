@@ -293,7 +293,12 @@
           </div>
         </div>
 
-        <div class="cond-field field" id="ind-rpas-cond">
+        <div class="cond-field" id="ind-rpas-cond">
+          <div style="background:rgba(128,1,31,0.07);border:1px solid rgba(128,1,31,0.18);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:0.82rem;line-height:1.6;color:var(--muted);">
+            <strong style="color:var(--text);display:block;margin-bottom:4px;">Registering general interest in the RPAS Workforce Hub</strong>
+            This form records your interest — it does not submit an application for a specific paid cohort. To apply for a scheduled cohort (November or December 2026), use the <a href="rpas-eoi.html" style="color:var(--crimson-text);text-decoration:underline;font-weight:600;">dedicated RPAS application form</a>.
+          </div>
+        <div class="field">
           <label for="ind-rpas-exp">How would you describe your current experience with RPAS/drones? <span class="opt">(optional)</span></label>
           <select id="ind-rpas-exp" name="rpasExperience">
             <option value="">Select…</option>
@@ -302,6 +307,16 @@
             <option value="training_cert">Previous RPAS training / certification</option>
             <option value="professional_commercial">Professional / commercial RPAS experience</option>
             <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+        </div>
+
+        <div class="field">
+          <label for="ind-cohort">Which cohort are you interested in? <span class="opt">(optional)</span></label>
+          <select id="ind-cohort" name="cohortPreference">
+            <option value="">Select…</option>
+            <option value="acpwr_feb_2027">Aviation Career Pathways &amp; Workforce Readiness — February 15, 2027</option>
+            <option value="not_sure">Not sure yet</option>
           </select>
         </div>
 
@@ -351,6 +366,9 @@
             <option value="industry_association">Industry association</option>
             <option value="job_board">Job board</option>
             <option value="news_media">News / media</option>
+            <option value="cjwe_fm">CJWE FM</option>
+            <option value="aboriginal_futures">Aboriginal Futures</option>
+            <option value="community_futures_treaty_seven">Community Futures Treaty Seven</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -487,6 +505,9 @@
             <option value="employer_referral">Employer referral</option>
             <option value="industry_association">Industry association</option>
             <option value="news_media">News / media</option>
+            <option value="cjwe_fm">CJWE FM</option>
+            <option value="aboriginal_futures">Aboriginal Futures</option>
+            <option value="community_futures_treaty_seven">Community Futures Treaty Seven</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -601,8 +622,10 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (res.ok) {
-          indForm.hidden = true;
+          indForm.style.display = 'none';
+          indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
           showMsg(indMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. We\'ll use the information you provided to understand interest in upcoming AACP opportunities and may contact you when a relevant opportunity becomes available.', 'success');
+          indMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           showMsg(indMsg, res.data.error || 'Submission failed. Please try again.', 'error');
           indSub.disabled = false; indSub.textContent = 'Submit Expression of Interest';
@@ -647,8 +670,10 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (res.ok) {
-          prtForm.hidden = true;
+          prtForm.style.display = 'none';
+          prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';
           showMsg(prtMsg, 'Thank you for your interest in AACP™. Your Expression of Interest has been received. A member of the AACP team may contact you to explore potential alignment and next steps.', 'success');
+          prtMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           showMsg(prtMsg, res.data.error || 'Submission failed. Please try again.', 'error');
           prtSub.disabled = false; prtSub.textContent = 'Submit Expression of Interest';

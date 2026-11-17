@@ -1,5 +1,30 @@
 import { useState } from 'react';
 import type { EvidenceItem } from '../types';
+import { MissionReasoningResponse, type ReasoningQuestion } from './MissionReasoningResponse';
+
+const M4_REASONING_QUESTIONS: ReasoningQuestion[] = [
+  {
+    id: 'relationships',
+    label: 'Component Relationships',
+    prompt: 'Looking at the components you just classified — were there any where you weren\'t sure which category they belonged to? What made those uncertain?',
+    placeholder: 'Describe a component you were unsure about and how you reasoned through it…',
+    minLength: 60,
+  },
+  {
+    id: 'approach',
+    label: 'Approach to Uncertainty',
+    prompt: 'When you encountered something unfamiliar, how did you decide where it belonged? Walk me through your thinking.',
+    placeholder: 'Describe your approach when something was unclear…',
+    minLength: 60,
+  },
+  {
+    id: 'reflection',
+    label: 'What Interests You',
+    prompt: 'Some of these components come from aircraft systems in operation; others come from aerospace manufacturing and structural engineering. If you were building a career around understanding how these systems work — would it pull you more toward the operational side (systems that have to perform reliably in flight) or the engineering and manufacturing side (systems that have to be built right before the first flight)? Describe what draws you in that direction.',
+    placeholder: 'Which direction interests you more — operational or engineering and manufacturing — and what draws you to it…',
+    minLength: 60,
+  },
+];
 
 const C = {
   crimson: '#8F0909',
@@ -35,30 +60,74 @@ const ITEMS: Item[] = [
   { id: 'alternator', label: 'Alternator / Generator', category: 'Electrical Systems', hint: 'Engine-driven primary source of electrical power' },
   { id: 'bus_bar', label: 'Main Bus Bar', category: 'Electrical Systems', hint: 'Distributes electrical power to connected circuits' },
   { id: 'cb', label: 'Circuit Breaker', category: 'Electrical Systems', hint: 'Protects individual circuits from overload' },
+  { id: 'torque_wrench', label: 'Torque Wrench', category: 'Structures & Manufacturing', hint: 'Applies a precisely controlled rotational force to fasteners — used in assembly to meet specified tightening values' },
+  { id: 'load_cell', label: 'Load Cell', category: 'Structures & Manufacturing', hint: 'Measures tensile or compressive force — used in structural testing to verify how much load a component can carry' },
+  { id: 'rivet_gun', label: 'Rivet Gun', category: 'Structures & Manufacturing', hint: 'Drives fasteners through sheets of material to join them permanently — a core tool in airframe and aerospace assembly' },
+  { id: 'ndt_probe', label: 'Ultrasonic NDT Probe', category: 'Structures & Manufacturing', hint: 'Sends sound waves through materials to detect internal cracks or voids without cutting or disassembling the part' },
 ];
 
-const CATEGORIES = ['Air Data Systems', 'Navigation Systems', 'Hydraulic Systems', 'Electrical Systems'];
+const CATEGORIES = ['Air Data Systems', 'Navigation Systems', 'Hydraulic Systems', 'Electrical Systems', 'Structures & Manufacturing'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Air Data Systems': '#2563ab',
   'Navigation Systems': '#0a7060',
   'Hydraulic Systems': '#8F0909',
   'Electrical Systems': '#966000',
+  'Structures & Manufacturing': '#5b3fa6',
+};
+
+const RPAS_ITEMS: Item[] = [
+  { id: 'esc', label: 'Electronic Speed Controller (ESC)', category: 'Propulsion Systems', hint: 'Converts flight controller signals into motor speed commands' },
+  { id: 'bldc', label: 'Brushless DC Motor', category: 'Propulsion Systems', hint: 'Converts electrical energy into rotor thrust' },
+  { id: 'prop', label: 'Propeller / Rotor Blade', category: 'Propulsion Systems', hint: 'Translates motor rotation into lift and thrust' },
+  { id: 'power_dist', label: 'Power Distribution Board', category: 'Propulsion Systems', hint: 'Routes battery power to ESCs and other components' },
+  { id: 'imu', label: 'IMU (Inertial Measurement Unit)', category: 'Flight Control & Navigation', hint: 'Measures acceleration and rotation rate for attitude estimation' },
+  { id: 'fc', label: 'Flight Controller', category: 'Flight Control & Navigation', hint: 'Central processor running stabilisation algorithms' },
+  { id: 'gps', label: 'GNSS Receiver', category: 'Flight Control & Navigation', hint: 'Satellite positioning for hold, RTH and waypoint flight' },
+  { id: 'baro', label: 'Barometric Altimeter', category: 'Flight Control & Navigation', hint: 'Measures altitude via atmospheric pressure' },
+  { id: 'rc_rx', label: 'RC Receiver', category: 'Communication & Data Links', hint: 'Receives pilot commands from the remote controller' },
+  { id: 'telemetry', label: 'Telemetry Radio', category: 'Communication & Data Links', hint: 'Sends live flight data to the ground station' },
+  { id: 'datalink', label: 'C2 Datalink', category: 'Communication & Data Links', hint: 'Command-and-control link between RPAS and ground' },
+  { id: 'video_tx', label: 'Video Transmitter (FPV)', category: 'Communication & Data Links', hint: 'Streams camera feed to the pilot or ground station' },
+  { id: 'lipo', label: 'LiPo Battery', category: 'Power & Energy Systems', hint: 'Primary energy storage for RPAS flight' },
+  { id: 'bms', label: 'Battery Management System', category: 'Power & Energy Systems', hint: 'Monitors cell voltage, temperature and charge balance' },
+  { id: 'reg', label: 'Voltage Regulator / BEC', category: 'Power & Energy Systems', hint: 'Steps down main battery voltage to logic-level voltage' },
+  { id: 'charger', label: 'Balance Charger', category: 'Power & Energy Systems', hint: 'Charges LiPo cells individually to prevent imbalance' },
+];
+
+const RPAS_CATEGORIES = ['Propulsion Systems', 'Flight Control & Navigation', 'Communication & Data Links', 'Power & Energy Systems'];
+
+const RPAS_CATEGORY_COLORS: Record<string, string> = {
+  'Propulsion Systems': '#8F0909',
+  'Flight Control & Navigation': '#2563ab',
+  'Communication & Data Links': '#0a7060',
+  'Power & Energy Systems': '#966000',
 };
 
 interface Props {
+  isRpas?: boolean;
   onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
 }
 
-export function SystemsPuzzle({ onComplete }: Props) {
-  const [shuffled] = useState(() => [...ITEMS].sort(() => Math.random() - 0.5));
+export function SystemsPuzzle({ isRpas, onComplete }: Props) {
+  if (isRpas) return <SystemsPuzzleCore items={RPAS_ITEMS} categories={RPAS_CATEGORIES} categoryColors={RPAS_CATEGORY_COLORS} onComplete={onComplete} />;
+  return <SystemsPuzzleCore items={ITEMS} categories={CATEGORIES} categoryColors={CATEGORY_COLORS} onComplete={onComplete} />;
+}
+
+function SystemsPuzzleCore({ items: allItems, categories, categoryColors, onComplete }: {
+  items: Item[]; categories: string[]; categoryColors: Record<string, string>;
+  onComplete: (evidence: Omit<EvidenceItem, 'mission'>[]) => void;
+}) {
+  const [shuffled] = useState(() => [...allItems].sort(() => Math.random() - 0.5));
   const [placements, setPlacements] = useState<Record<string, string[]>>(
-    Object.fromEntries(CATEGORIES.map(c => [c, []])),
+    Object.fromEntries(categories.map(c => [c, []])),
   );
   const [dragging, setDragging] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null); // tap-to-place selection
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [pendingEvidence, setPendingEvidence] = useState<Omit<EvidenceItem, 'mission'>[]>([]);
   const [startTime] = useState(Date.now());
 
   const placed = new Set(Object.values(placements).flat());
@@ -68,7 +137,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
   function moveItem(itemId: string, toCategory: string | null) {
     setPlacements(prev => {
       const next = { ...prev };
-      for (const cat of CATEGORIES) {
+      for (const cat of categories) {
         next[cat] = next[cat].filter(id => id !== itemId);
       }
       if (toCategory) next[toCategory] = [...next[toCategory], itemId];
@@ -123,13 +192,13 @@ export function SystemsPuzzle({ onComplete }: Props) {
     for (const [cat, ids] of Object.entries(placements)) {
       for (const id of ids) {
         total++;
-        const item = ITEMS.find(i => i.id === id);
+        const item = allItems.find(i => i.id === id);
         if (item?.category === cat) correct++;
       }
     }
     const accuracy = total > 0 ? correct / total : 0;
-    const completion = placed.size / ITEMS.length;
-    const fullyComplete = placed.size === ITEMS.length;
+    const completion = placed.size / allItems.length;
+    const fullyComplete = placed.size === allItems.length;
 
     const evidence: Omit<EvidenceItem, 'mission'>[] = [
       { key: 'mechanical_reasoning', delta: accuracy * 0.85 + completion * 0.15 },
@@ -138,35 +207,50 @@ export function SystemsPuzzle({ onComplete }: Props) {
       { key: 'analytical_reasoning', delta: accuracy * 0.75 },
       { key: 'curiosity', delta: fullyComplete ? 0.6 : completion > 0.6 ? 0.35 : 0.15 },
     ];
-    if (elapsed < 150) evidence.push({ key: 'multitasking_ability', delta: 0.45 });
 
-    setTimeout(() => onComplete(evidence), 2000);
+    setPendingEvidence(evidence);
+    setShowReasoning(true);
   }
 
-  if (done) {
+  if (done && showReasoning) {
     let correct = 0;
     let total = 0;
     for (const [cat, ids] of Object.entries(placements)) {
       for (const id of ids) {
         total++;
-        const item = ITEMS.find(i => i.id === id);
+        const item = allItems.find(i => i.id === id);
         if (item?.category === cat) correct++;
       }
     }
     return (
-      <div style={{ padding: 20, textAlign: 'center' }}>
-        <div style={{ color: C.green, fontSize: 40, marginBottom: 16 }}>✓</div>
-        <div style={{ color: C.white, fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Classification Complete</div>
-        <div style={{ color: C.grey, fontSize: 14, marginBottom: 20 }}>
-          {correct}/{total} components correctly categorised.
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#0f1a0f', border: '1px solid #1a3a1a', borderRadius: 12, padding: '10px 16px' }}>
+          <div style={{ color: C.green, fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+            Systems Classification — {correct}/{total} correct
+          </div>
+          <div style={{ color: C.grey, fontSize: 13 }}>
+            You've categorised the components. Take a moment to reflect on your approach.
+          </div>
         </div>
-        <div style={{ color: C.grey, fontSize: 13 }}>Advancing to next mission…</div>
+        <MissionReasoningResponse
+          questions={M4_REASONING_QUESTIONS}
+          storageKey="acia_m4_reasoning"
+          onComplete={() => onComplete(pendingEvidence)}
+        />
       </div>
     );
   }
 
-  const hintItem = hoveredItem ? ITEMS.find(i => i.id === hoveredItem) : null;
-  const selectedItem = selected ? ITEMS.find(i => i.id === selected) : null;
+  if (done) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        <div style={{ color: C.grey, fontSize: 13 }}>Advancing…</div>
+      </div>
+    );
+  }
+
+  const hintItem = hoveredItem ? allItems.find(i => i.id === hoveredItem) : null;
+  const selectedItem = selected ? allItems.find(i => i.id === selected) : null;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -251,8 +335,8 @@ export function SystemsPuzzle({ onComplete }: Props) {
 
       {/* Category drop zones */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        {CATEGORIES.map(cat => {
-          const catColor = CATEGORY_COLORS[cat];
+        {categories.map(cat => {
+          const catColor = categoryColors[cat];
           const isTarget = !!selected; // highlight zones when something is selected
           return (
             <div
@@ -283,7 +367,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {placements[cat].map(id => {
-                  const item = ITEMS.find(i => i.id === id)!;
+                  const item = allItems.find(i => i.id === id)!;
                   const correct = item.category === cat;
                   return (
                     <div
@@ -337,7 +421,7 @@ export function SystemsPuzzle({ onComplete }: Props) {
           touchAction: 'manipulation',
         }}
       >
-        Submit Classification → ({placed.size}/{ITEMS.length} placed)
+        Submit Classification → ({placed.size}/{allItems.length} placed)
       </button>
     </div>
   );

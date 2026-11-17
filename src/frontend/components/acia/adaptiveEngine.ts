@@ -5,7 +5,7 @@ import { generateVariant, auditStaticVariant, logValidationIssue } from './varia
 // ── Coverage targets (how many observations per competency before sufficient) ─
 const COVERAGE_TARGETS: Partial<Record<CompetencyKey, number>> = {
   SO: 3, DM: 3, CM: 2, MR: 2, AP: 2, SR: 2,
-  PS: 2, SA: 2, MT: 2, PR: 2, AL: 2, WM: 1, AK: 1,
+  PS: 2, SA: 2, MT: 2, PR: 2, AL: 2, WM: 2, AK: 1,
 };
 
 // ── Session composition targets ───────────────────────────────────────────────
@@ -26,12 +26,21 @@ const FAMILY_TARGETS: Record<string, number> = {
   '15': 1,  // Career Navigation
 };
 
+// Career stages that have prior aviation/technical knowledge — eligible for AK questions
+const PRIOR_KNOWLEDGE_ELIGIBLE_STAGES = new Set([
+  'aviation_professional',
+  'intl_aviation_professional',
+  'stem_graduate',
+  'stem_student',
+]);
+
 export interface SelectionContext {
   askedIds: string[];
   familyCounts: Record<string, number>;
   competencyCounts: Record<CompetencyKey, number>;
   interactionCount: number;
   careerInterests?: string[]; // detected from discovery phase
+  careerStage?: string; // from registration — unlocks priorKnowledgeRequired questions
 }
 
 export function buildSelectionContext(session: ACIASession): SelectionContext {
@@ -58,11 +67,14 @@ export function buildSelectionContext(session: ACIASession): SelectionContext {
 export function selectNextQuestion(
   session: ACIASession,
   overrideInteractionType?: string,
+  careerStage?: string,
 ): { question: QuestionRecord; variant: string; expectedCorrect?: string } | null {
-  const ctx = buildSelectionContext(session);
+  const ctx = { ...buildSelectionContext(session), careerStage };
+  const priorKnowledgeEligible = PRIOR_KNOWLEDGE_ELIGIBLE_STAGES.has(ctx.careerStage ?? '');
   const pool = QUESTION_BANK.filter(q =>
     q.status === 'active' &&
     !ctx.askedIds.includes(q.questionId) &&
+    (!q.priorKnowledgeRequired || priorKnowledgeEligible) &&
     (!overrideInteractionType || q.interactionType === overrideInteractionType)
   );
 
