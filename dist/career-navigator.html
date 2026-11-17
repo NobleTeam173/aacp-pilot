@@ -1351,7 +1351,11 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <div class="s1-dot" id="s1Dot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
           <div class="s1-dot" id="s1Dot3" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
         </div>
-        
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px">
+          <button id="s1PrevBtn" onclick="s1SlideNav(-1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer;display:none">Prev</button>
+          <span id="s1SlideCount" style="font-size:12px;color:var(--fg2);flex:1;text-align:center">1 of 4</span>
+          <button id="s1NextBtn" onclick="s1SlideNav(1)" class="scene-next-btn" style="padding:8px 18px">Next</button>
+        </div>
         <button id="s1ToReflect" onclick="s1GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? </button>
       </div>
       <div class="st-stage" id="s1Stage1" style="display:none">
@@ -1419,7 +1423,11 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
           <div class="s2-dot" id="s2Dot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
           <div class="s2-dot" id="s2Dot3" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0"></div>
         </div>
-        
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px">
+          <button id="s2PrevBtn" onclick="s2SlideNav(-1)" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--fg2);font-size:13px;font-weight:600;cursor:pointer;display:none">Prev</button>
+          <span id="s2SlideCount" style="font-size:12px;color:var(--fg2);flex:1;text-align:center">1 of 4</span>
+          <button id="s2NextBtn" onclick="s2SlideNav(1)" class="scene-next-btn" style="padding:8px 18px">Next</button>
+        </div>
         <button id="s2ToReflect" onclick="s2GoTo(1)" class="scene-next-btn" style="margin-top:12px;display:none;width:100%">What interests me? </button>
       </div>
       <div class="st-stage" id="s2Stage1" style="display:none">
