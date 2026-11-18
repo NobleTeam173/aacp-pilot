@@ -14909,7 +14909,7 @@ async function handleAdminValidationSessionAuthorize(request, user, env) {
 // ── Career Navigator — Stripe Integration ────────────────────────────────────
 
 const NAVIGATOR_PLANS = {
-  premium_student: { name: 'Premium Student', priceEnv: 'STRIPE_NAVIGATOR_PRICE_STUDENT',  priceCAD: 9.99 },
+  premium_student: { name: 'Premium Student', priceEnv: 'STRIPE_NAVIGATOR_PRICE_STUDENT',  priceCAD: 49.99 },
   advisor_invited:  { name: 'Advisor Invited',  priceEnv: 'STRIPE_NAVIGATOR_PRICE_INVITED',  priceCAD: 7.99 },
   career_advisor:   { name: 'Career Advisor',   priceEnv: 'STRIPE_NAVIGATOR_PRICE_ADVISOR',  priceCAD: 14.99 },
 };
