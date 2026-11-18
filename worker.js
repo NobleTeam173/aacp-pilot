@@ -14908,6 +14908,16 @@ async function handleAdminValidationSessionAuthorize(request, user, env) {
 
 // ── Career Navigator — Stripe Integration ────────────────────────────────────
 
+// Returns ISO string for Aug 31 of the current school year (Sep 1 – Aug 31).
+// If today is Sep 1 or later, expiry is next year's Aug 31; otherwise this year's.
+function schoolYearExpiry() {
+  const now = new Date();
+  const year = now.getFullYear();
+  // month is 0-indexed: August=7, September=8
+  const expiryYear = now.getMonth() >= 8 ? year + 1 : year;
+  return new Date(Date.UTC(expiryYear, 7, 31, 23, 59, 59)).toISOString();
+}
+
 const NAVIGATOR_PLANS = {
   premium_student: { name: 'Premium Student', priceEnv: 'STRIPE_NAVIGATOR_PRICE_STUDENT',  priceCAD: 49.99 },
   advisor_invited:  { name: 'Advisor Invited',  priceEnv: 'STRIPE_NAVIGATOR_PRICE_INVITED',  priceCAD: 7.99 },
@@ -15048,8 +15058,12 @@ async function handleNavigatorCheckout(request, user, env) {
     ['metadata[user_id]', user.id],
     ['metadata[plan]', plan],
     ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
-    // 7-day free trial for premium_student and career_advisor
-    ...(plan !== 'advisor_invited' ? [['subscription_data[trial_period_days]', '7']] : []),
+    // Trial periods: premium_student trials run to Aug 31 (school year end); others get 7 days
+    ...(plan === 'premium_student'
+      ? [['subscription_data[trial_end]', String(Math.floor(new Date(schoolYearExpiry()).getTime() / 1000))]]
+      : plan !== 'advisor_invited'
+        ? [['subscription_data[trial_period_days]', '7']]
+        : []),
     ...discounts,
   ];
 
@@ -15461,7 +15475,10 @@ async function handleNavigatorPilotRedeem(request, env) {
 
   // Upsert navigator subscription (pilot tier — no Stripe IDs)
   const plan = pc.plan || 'premium_student';
-  const pilotExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day trial
+  // premium_student pilot codes expire Aug 31 (school year end); others get 30 days
+  const pilotExpiry = plan === 'premium_student'
+    ? schoolYearExpiry()
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   await env.DB.prepare(`
     INSERT INTO navigator_subscriptions
       (id, user_id, plan, status, invites_remaining, trial_ends_at, created_at, updated_at)
