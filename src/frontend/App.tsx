@@ -61,6 +61,8 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   const [programArea, setProgramArea] = useState('');
   // Participant: ACIA package selection
   const [aciaPackage, setAciaPackage] = useState<AciaPackageId | null>(null);
+  // Participant: career stage
+  const [careerStage, setCareerStage] = useState('exploring');
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -77,7 +79,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
         method: 'POST',
         body: {
           email, password, name, phone, role,
-          ...(role === 'participant' ? { aciaPackage } : {}),
+          ...(role === 'participant' ? { aciaPackage, careerStage } : {}),
           ...(role === 'employer' ? { organizationName: orgName, jobTitle } : {}),
           ...(role === 'postsecondary' ? { institutionName, region, programArea } : {}),
         },
@@ -232,6 +234,20 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
               <label>Phone Number
                 <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (___) ___-____" />
               </label>
+
+              {/* Participant: career stage */}
+              {role === 'participant' && (
+                <label>What brings you to AACP?
+                  <select value={careerStage} onChange={e => setCareerStage(e.target.value)}>
+                    <option value="exploring">Exploring my first aviation career</option>
+                    <option value="student">Student / Recent Graduate</option>
+                    <option value="stem">STEM Graduate entering aviation/aerospace</option>
+                    <option value="transition">Transitioning from another industry</option>
+                    <option value="aviation_professional">Current Aviation Professional</option>
+                    <option value="intl_aviation_professional">Internationally Trained Aviation Professional</option>
+                  </select>
+                </label>
+              )}
 
               {/* Employer-specific */}
               {role === 'employer' && (
