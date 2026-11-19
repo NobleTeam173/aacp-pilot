@@ -144,7 +144,7 @@ const SECURITY_HEADERS = {
 // admin: approve registrations, view all participants, manage assessments
 // New registrations for non-admin roles start with status 'pending' until admin approves
 const MFA_ENFORCED_ROLES  = new Set(['super_admin', 'admin', 'employer', 'postsecondary']);
-const VALID_ROLES = new Set(['youth', 'employer', 'postsecondary', 'admin', 'super_admin']);
+const VALID_ROLES = new Set(['youth', 'participant', 'employer', 'postsecondary', 'admin', 'super_admin']);
 const ADMIN_ROLES = new Set(['admin', 'super_admin']); // roles with dashboard access
 
 // ── FAWN — Future Aviation Workforce Network ──────────────────────────────────
@@ -4037,7 +4037,7 @@ async function handleAdminAllUsers(request, user, env) {
     params.push(statusFilter);
   }
   // Exclude admin and Career Navigator accounts from AACP participant management list
-  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin', 'participant')` : ` WHERE role NOT IN ('admin', 'super_admin', 'participant')`;
+  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin', 'navigator')` : ` WHERE role NOT IN ('admin', 'super_admin', 'navigator')`;
   query += ` ORDER BY created_at DESC`;
   const { results } = params.length
     ? await env.DB.prepare(query).bind(...params).all()
@@ -12567,7 +12567,7 @@ async function handleIntelligenceAlignmentRun(request, user, env) {
 
   // Verify participant exists
   const participant = await env.DB.prepare(
-    `SELECT id, name FROM users WHERE id=? AND role IN ('participant','youth')`
+    `SELECT id, name FROM users WHERE id=? AND role IN ('participant','youth','navigator')`
   ).bind(body.participant_id).first();
   if (!participant) return err('Participant not found', 404);
 
@@ -15102,7 +15102,7 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
 
   await env.DB.prepare(`
     INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'participant', 'active', 0, ?, ?)
+    VALUES (?, ?, ?, ?, 'navigator', 'active', 0, ?, ?)
   `).bind(userId, email, body.name.trim(), passwordHash, now, now).run();
 
   if (navigatorRole) {
@@ -15417,9 +15417,9 @@ async function upsertOAuthUser(env, { provider, providerId, email, name }) {
         .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run().catch(() => {});
       await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0`).bind(now, userId).run().catch(() => {});
     } else {
-      userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'participant';
+      userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'navigator';
       const dummyHash = await sha256hex('oauth_no_password_' + providerId);
-      await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)`)
+      await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'navigator', 'active', 1, ?, ?)`)
         .bind(userId, userEmail, name, dummyHash, now, now).run();
       await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
         .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run();
@@ -15468,9 +15468,9 @@ async function handleNavigatorPilotRedeem(request, env) {
     const dummyHash = `pilot:${crypto.randomUUID()}`;
     await env.DB.prepare(`
       INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'participant', 'active', 1, ?, ?)
+      VALUES (?, ?, ?, ?, 'navigator', 'active', 1, ?, ?)
     `).bind(userId, email, name || email.split('@')[0], dummyHash, now, now).run();
-    user = { id: userId, email, role: 'participant' };
+    user = { id: userId, email, role: 'navigator' };
   }
 
   // Upsert navigator subscription (pilot tier — no Stripe IDs)
