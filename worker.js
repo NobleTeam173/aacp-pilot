@@ -4036,8 +4036,8 @@ async function handleAdminAllUsers(request, user, env) {
     query += ` WHERE status = ?`;
     params.push(statusFilter);
   }
-  // Exclude admin accounts from participant management list
-  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin')` : ` WHERE role NOT IN ('admin', 'super_admin')`;
+  // Exclude admin and Career Navigator accounts from AACP participant management list
+  query += statusFilter ? ` AND role NOT IN ('admin', 'super_admin', 'participant')` : ` WHERE role NOT IN ('admin', 'super_admin', 'participant')`;
   query += ` ORDER BY created_at DESC`;
   const { results } = params.length
     ? await env.DB.prepare(query).bind(...params).all()
