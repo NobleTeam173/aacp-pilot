@@ -1289,6 +1289,151 @@ function NetworkDashboard() {
   );
 }
 
+// ── Cohort invite acceptance form ─────────────────────────────────────────────
+
+interface CohortInviteInfo {
+  email: string;
+  firstName: string;
+  lastName: string;
+  organization: string | null;
+  pilotRole: string;
+  cohortName: string | null;
+  hubType: string | null;
+  expiresAt: string;
+}
+
+function CohortInviteAcceptForm({ token, onDone }: { token: string; onDone: () => void }) {
+  const [info, setInfo] = useState<CohortInviteInfo | null>(null);
+  const [loadErr, setLoadErr] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [done, setDone] = useState(false);
+  const [isRpas, setIsRpas] = useState(false);
+
+  useEffect(() => {
+    fetch(`/cohort/invite/${token}`)
+      .then(r => r.ok ? r.json() : r.json().then((d: { error?: string }) => Promise.reject(d.error ?? 'Invalid or expired invitation link.')))
+      .then((d: CohortInviteInfo) => { setInfo(d); setIsRpas(d.hubType === 'rpas'); })
+      .catch((e: unknown) => setLoadErr(typeof e === 'string' ? e : 'Invalid or expired invitation link.'));
+  }, [token]);
+
+  const ROLE_LABELS: Record<string, string> = {
+    youth: 'Youth Participant',
+    employer: 'Employer',
+    postsecondary: 'Post-Secondary Institution',
+    coach: 'Coach',
+  };
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
+    setLoading(true); setMsg('');
+    try {
+      const res = await fetch(`/cohort/invite/${token}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json() as {
+        success?: boolean; error?: string;
+        accessToken?: string; refreshToken?: string;
+        role?: string; userId?: string; name?: string; hubType?: string;
+      };
+      if (!res.ok) { setMsg(data.error ?? 'Registration failed.'); setLoading(false); return; }
+
+      // RPAS Hub: tokens issued immediately — log the user straight in
+      if (data.accessToken && data.refreshToken && data.role && data.userId) {
+        setStoredToken(data.accessToken);
+        setStoredRefreshToken(data.refreshToken);
+        localStorage.setItem('aacp_role', data.role);
+        localStorage.setItem('aacp_user_id', data.userId);
+        if (data.name) localStorage.setItem('aacp_name', data.name);
+        if (data.hubType === 'rpas') localStorage.setItem('aacp_participant_type', 'rpas_direct');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('cohortInvite');
+        window.history.replaceState({}, '', url.toString());
+        onDone();
+        return;
+      }
+
+      // Standard cohort: pending approval
+      setDone(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('cohortInvite');
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      setMsg('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const cohortLabel = info?.cohortName ?? (isRpas ? 'AACP RPAS Workforce Hub' : 'AACP Cohort');
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark">AACP™</span>
+          <p>Aviation &amp; Aerospace Competence Program</p>
+        </div>
+
+        {done ? (
+          <>
+            <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Account Created</h2>
+            <p style={{ fontSize: 13, color: '#a3e6b5', lineHeight: 1.7, margin: '0 0 16px' }}>
+              Your account is pending administrator approval. You will be notified at <strong>{info?.email}</strong> once your access has been granted.
+            </p>
+            <button className="login-submit" onClick={onDone}>Back to Sign In</button>
+          </>
+        ) : loadErr ? (
+          <>
+            <p className="login-msg" style={{ color: '#f87171' }}>{loadErr}</p>
+            <button className="login-submit" onClick={onDone}>Back to Sign In</button>
+          </>
+        ) : !info ? (
+          <p style={{ fontSize: 13, color: '#9ca3a8' }}>Verifying invitation…</p>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8F0909', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              Join {cohortLabel}
+            </div>
+            <div style={{ background: '#1a0d10', border: '1px solid #3d1020', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
+              <p style={{ margin: '0 0 2px', color: '#9ca3a8' }}>Invited as</p>
+              <p style={{ margin: '0 0 2px', color: '#f1f5f9', fontWeight: 600 }}>{info.firstName} {info.lastName}</p>
+              <p style={{ margin: '0 0 2px', color: '#9ca3a8' }}>{info.email}</p>
+              <p style={{ margin: '4px 0 0', color: '#9ca3a8' }}>
+                {ROLE_LABELS[info.pilotRole] ?? info.pilotRole}
+                {info.organization ? ` · ${info.organization}` : ''}
+              </p>
+            </div>
+            <p style={{ fontSize: 12, color: '#9ca3a8', marginBottom: 16, lineHeight: 1.6 }}>
+              {isRpas
+                ? 'Create a password to activate your RPAS Hub account.'
+                : 'Create a password to complete your registration. Your account will be reviewed within 1–2 business days.'
+              }
+            </p>
+            {msg && <p className="login-msg" style={{ color: '#f87171' }}>{msg}</p>}
+            <form onSubmit={handleSubmit} className="login-form">
+              <label>Password
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} />
+              </label>
+              <label>Confirm Password
+                <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" />
+              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Creating account…' : 'Create Account'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── FAWN — Network invite acceptance form (Phase 2 will implement full UI) ────
 
 function NetworkInviteAcceptForm({ token }: { token: string }) {
@@ -1413,6 +1558,12 @@ export function App() {
   const networkInviteToken = new URL(window.location.href).searchParams.get('network_invite');
   if (networkInviteToken) {
     return <NetworkInviteAcceptForm token={networkInviteToken} />;
+  }
+
+  // Cohort invitation — token arrives as ?cohortInvite=<token>
+  const cohortInviteToken = new URL(window.location.href).searchParams.get('cohortInvite');
+  if (cohortInviteToken) {
+    return <CohortInviteAcceptForm token={cohortInviteToken} onDone={() => window.location.replace(window.location.pathname)} />;
   }
 
   useEffect(() => {
