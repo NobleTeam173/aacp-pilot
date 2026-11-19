@@ -1329,7 +1329,7 @@ function CohortInviteAcceptForm({ token, onDone }: { token: string; onDone: () =
   const [isRpas, setIsRpas] = useState(false);
 
   useEffect(() => {
-    fetch(`/cohort/invite/${token}`)
+    fetch(`https://api.aviationaerospacecompetency.com/cohort/invite/${token}`)
       .then(r => r.ok ? r.json() : r.json().then((d: { error?: string }) => Promise.reject(d.error ?? 'Invalid or expired invitation link.')))
       .then((d: CohortInviteInfo) => { setInfo(d); setIsRpas(d.hubType === 'rpas'); })
       .catch((e: unknown) => setLoadErr(typeof e === 'string' ? e : 'Invalid or expired invitation link.'));
@@ -1347,7 +1347,7 @@ function CohortInviteAcceptForm({ token, onDone }: { token: string; onDone: () =
     if (password !== confirm) { setMsg('Passwords do not match.'); return; }
     setLoading(true); setMsg('');
     try {
-      const res = await fetch(`/cohort/invite/${token}/accept`, {
+      const res = await fetch(`https://api.aviationaerospacecompetency.com/cohort/invite/${token}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
