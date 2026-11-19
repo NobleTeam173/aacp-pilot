@@ -2297,7 +2297,7 @@ function PilotAccessPanel() {
       {/* Sub-tab selector */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
         {([
-          { key: 'pilot_testing',      label: 'Pilot Testing' },
+          { key: 'pilot_testing',      label: 'Cohort Invitations' },
           { key: 'rpas_hub',           label: 'RPAS Workforce Hub' },
           { key: 'external_validation', label: 'External Validation' },
         ] as { key: 'pilot_testing' | 'rpas_hub' | 'external_validation'; label: string }[]).map(t => (
@@ -2351,7 +2351,7 @@ function PilotTestingInner() {
   const loadInvitations = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const data = await apiFetch<{ invitations: PilotInvitation[] }>('/pilot/invitations');
+      const data = await apiFetch<{ invitations: PilotInvitation[] }>('/cohort/invitations');
       setInvitations(data.invitations);
     } catch (e: unknown) {
       setError((e as Error).message || 'Failed to load invitations');
@@ -2378,7 +2378,7 @@ function PilotTestingInner() {
     e.preventDefault();
     setCreating(true); setCreateError(null); setCreatedLink(null);
     try {
-      const data = await apiFetch<{ token: string; invitationId: string }>('/pilot/invitations', {
+      const data = await apiFetch<{ token: string; invitationId: string }>('/cohort/invitations', {
         method: 'POST',
         body: JSON.stringify({
           email: form.email.trim().toLowerCase(),
@@ -2391,7 +2391,7 @@ function PilotTestingInner() {
           hubType: form.hubType || undefined,
         }),
       });
-      const link = `${window.location.origin}/app.html?pilot=${data.token}`;
+      const link = `${window.location.origin}/app.html?cohortInvite=${data.token}`;
       setCreatedLink(link);
       setForm({ firstName: '', lastName: '', email: '', organization: '', pilotRole: 'youth', cohortName: '', notes: '', hubType: '' });
       loadInvitations();
@@ -2406,7 +2406,7 @@ function PilotTestingInner() {
     if (!confirm(`Revoke invitation for ${inv.email}?`)) return;
     setActionError(null);
     try {
-      await apiFetch(`/pilot/invitations/${inv.id}/revoke`, { method: 'PUT' });
+      await apiFetch(`/cohort/invitations/${inv.id}/revoke`, { method: 'PUT' });
       loadInvitations();
     } catch (e: unknown) { setActionError((e as Error).message || 'Failed to revoke'); }
   }
@@ -2414,7 +2414,7 @@ function PilotTestingInner() {
   async function handleExtend(inv: PilotInvitation) {
     setActionError(null);
     try {
-      await apiFetch(`/pilot/invitations/${inv.id}/extend`, { method: 'PUT' });
+      await apiFetch(`/cohort/invitations/${inv.id}/extend`, { method: 'PUT' });
       loadInvitations();
     } catch (e: unknown) { setActionError((e as Error).message || 'Failed to extend'); }
   }
@@ -2479,7 +2479,7 @@ function PilotTestingInner() {
       {revokeTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: C.bgCard, border: `1px solid ${C.redBorder}`, borderRadius: 16, padding: 28, maxWidth: 480, width: '100%' }}>
-            <div style={{ color: C.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Revoke Pilot Access</div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Revoke Cohort Access</div>
             <div style={{ color: C.greyD, fontSize: 13, marginBottom: 16 }}>
               Revoke platform access for <strong style={{ color: C.white }}>{revokeTarget.name}</strong> ({revokeTarget.email})?
               Their account, ACIA results, and all historical data will be preserved. They will not be able to sign in.
@@ -2518,7 +2518,7 @@ function PilotTestingInner() {
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>Pilot Testers</div>
+            <div style={{ color: C.white, fontWeight: 700, fontSize: 15 }}>Cohort Members</div>
             <div style={{ color: C.greyD, fontSize: 12, marginTop: 2 }}>Accepted accounts with platform access status and feedback completion.</div>
           </div>
           <button onClick={loadAccounts} style={{ background: C.border, color: C.grey, border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>Refresh</button>
@@ -2618,9 +2618,9 @@ function PilotTestingInner() {
 
       {/* Create invitation form */}
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px' }}>
-        <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Invite a Pilot Tester</div>
+        <div style={{ color: C.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Invite a Cohort Member</div>
         <div style={{ color: C.greyD, fontSize: 13, marginBottom: 20 }}>
-          Send a secure invitation link that grants access to the platform for evaluation purposes.
+          Send a secure invitation email and link to grant sponsored access to the platform.
         </div>
 
         {createdLink && (
@@ -2669,7 +2669,7 @@ function PilotTestingInner() {
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Hub Type (optional)</label>
               <select value={form.hubType} onChange={e => setForm(f => ({ ...f, hubType: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="">Standard Pilot Tester</option>
+                <option value="">Standard Cohort Member</option>
                 <option value="rpas">RPAS Workforce Hub</option>
               </select>
               {form.hubType === 'rpas' && (
@@ -3788,7 +3788,7 @@ export function AdminDashboard() {
           { key: 'acia_commercial', label: 'Commercial ACIA' },
           { key: 'eoi', label: 'Expressions of Interest' },
           { key: 'network', label: 'Industry Network' },
-          { key: 'pilot', label: 'Pilot Access' },
+          { key: 'pilot', label: 'AACP Cohort Invite' },
           { key: 'audit', label: 'Audit Log' },
           { key: 'questions', label: 'Question Bank' },
           ...(isSuperAdmin ? [{ key: 'admins', label: 'Admin Management' }] : []),
