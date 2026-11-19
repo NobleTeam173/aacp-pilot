@@ -2947,7 +2947,43 @@ async function emailRegistrationReceived(env, { name, email, role }) {
   return messageId;
 }
 
-// ── 2. Admin registration alert ───────────────────────────────────────────────
+// ── 2. Cohort invitation ──────────────────────────────────────────────────────
+async function emailCohortInvitation(env, { firstName, lastName, email, pilotRole, cohortName, hubType, rawToken, expiresAt }) {
+  const fullName = `${firstName} ${lastName}`.trim();
+  const roleLabel = { youth: 'Youth Participant', employer: 'Employer', postsecondary: 'Post-Secondary Institution', coach: 'Coach' }[pilotRole] ?? pilotRole;
+  const cohortLabel = cohortName ?? (hubType === 'rpas' ? 'AACP RPAS Workforce Hub' : 'AACP Cohort');
+  const expiryStr = new Date(expiresAt).toLocaleDateString('en-CA', { timeZone: 'UTC', dateStyle: 'long' });
+  const inviteUrl = `${PLATFORM_URL}?cohortInvite=${encodeURIComponent(rawToken)}`;
+  const isRpas = hubType === 'rpas';
+
+  const html = emailLayout({
+    preheader: `You've been invited to join ${cohortLabel} on the AACP platform.`,
+    body: eH1(`You're Invited to ${cohortLabel}`) +
+      eP(`Hi ${firstName},`) +
+      eP(`You have been invited to join the <strong>Aviation and Aerospace Competency Program (AACP)</strong> as a <strong>${roleLabel}</strong>${cohortName ? ` in the <strong>${cohortName}</strong> cohort` : ''}.`) +
+      eTable(
+        eInfoRow('Name', fullName) +
+        eInfoRow('Email', email) +
+        eInfoRow('Role', roleLabel) +
+        eInfoRow('Cohort', cohortLabel) +
+        eInfoRow('Invitation Expires', expiryStr)
+      ) +
+      eP('Click the button below to create your account and get started. The invitation link is personal — please do not share it.') +
+      eBtn('Accept Invitation &amp; Create Account →', inviteUrl) +
+      eDivider() +
+      (isRpas
+        ? eP('As an RPAS Hub member your account will be activated immediately upon registration.')
+        : eP('Your account will be reviewed and activated by an administrator within 1–2 business days.')
+      ) +
+      eNote(`This invitation expires on ${expiryStr}. If you did not expect this email, please contact us at ${CONTACT_EMAIL}.`),
+  });
+  const text = `Hi ${firstName},\n\nYou have been invited to join ${cohortLabel} on the AACP platform as a ${roleLabel}.\n\nAccept your invitation here:\n${inviteUrl}\n\nThis link expires on ${expiryStr}.\n\nIf you did not expect this email, contact us at ${CONTACT_EMAIL}.\n\n— The AACP Team`;
+
+  const messageId = await sendEmail(env, { event: 'cohort_invitation', to: email, subject: `You're Invited to Join ${cohortLabel} — AACP`, text, html });
+  return messageId;
+}
+
+// ── 3. Admin registration alert ───────────────────────────────────────────────
 async function emailAdminNewRegistration(env, { name, email, role, organizationName, institutionName }) {
   const adminEmail = env.AACP_ADMIN_EMAIL ?? 'admin@aviationaerospacecompetency.com';
   const roleLabel = { youth: 'Youth Participant', employer: 'Employer', postsecondary: 'Post-Secondary Institution' }[role] ?? role;
@@ -13410,6 +13446,18 @@ async function handleCreateCohortInvitation(request, user, env) {
       `UPDATE rpas_applications SET status = 'invited', invitation_id = ?, invited_at = ?, updated_at = ? WHERE id = ?`
     ).bind(id, now, now, body.rpasApplicationId).run().catch(() => {});
   }
+
+  // Send invitation email (fire-and-forget — don't block on email failure)
+  emailCohortInvitation(env, {
+    firstName: body.firstName.trim(),
+    lastName: body.lastName.trim(),
+    email,
+    pilotRole: body.pilotRole,
+    cohortName: body.cohortName?.trim() ?? null,
+    hubType,
+    rawToken,
+    expiresAt,
+  }).catch(e => console.error(`[email] cohort_invitation FAILED invitationId=${id} err=${e.message}`));
 
   return json({ success: true, invitationId: id, token: rawToken, expiresAt });
 }
