@@ -2779,6 +2779,11 @@ async function handleRegister(request, env, ctx) {
     return err('Cohort participant registration is by invitation only. If you have been accepted into a cohort, please use the registration link from your invitation email. To access AACP™ independently, please register through the commercial pathway and select an ACIA package.', 403);
   }
 
+  // Self-directed participants must select an ACIA package
+  if (role === 'participant' && !body.aciaPackage) {
+    return err('Please select an ACIA package to complete your registration.', 422);
+  }
+
   // Role-specific required fields
   if (role === 'employer' && !body.organizationName) return err('Organization name is required for Employer accounts');
   if (role === 'postsecondary' && (!body.institutionName || !body.region)) return err('Institution name and region are required for Post-Secondary accounts');
@@ -2790,7 +2795,7 @@ async function handleRegister(request, env, ctx) {
   const careerStage = role === 'youth' ? (body.careerStage ?? 'exploring') : null;
 
   const VALID_ACIA_PACKAGES = new Set(['acia_solo', 'acia_plus_coaching']);
-  const aciaPackage = role === 'youth' && body.aciaPackage ? body.aciaPackage.trim() : null;
+  const aciaPackage = (role === 'youth' || role === 'participant') && body.aciaPackage ? body.aciaPackage.trim() : null;
   if (aciaPackage && !VALID_ACIA_PACKAGES.has(aciaPackage)) return err('Invalid aciaPackage. Valid values: acia_solo, acia_plus_coaching');
 
   await env.DB.prepare(

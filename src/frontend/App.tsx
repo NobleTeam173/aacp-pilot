@@ -26,10 +26,27 @@ const CANADIAN_PROVINCES = [
 
 // ── Registration form ─────────────────────────────────────────────────────────
 
-type RegisterRole = 'youth' | 'employer' | 'postsecondary';
+type RegisterRole = 'participant' | 'employer' | 'postsecondary';
+
+const ACIA_PACKAGES = [
+  {
+    id: 'acia_solo',
+    name: 'ACIA™ Career Intelligence',
+    price: '$199 CAD',
+    description: 'Personalized career intelligence experience, Career Intelligence Report, and career direction insights.',
+  },
+  {
+    id: 'acia_plus_coaching',
+    name: 'ACIA™ Career Intelligence + Career Strategy',
+    price: '$399 CAD',
+    description: 'Everything in Career Intelligence, plus a one-on-one Career Strategy Session with a certified advisor.',
+  },
+] as const;
+
+type AciaPackageId = typeof ACIA_PACKAGES[number]['id'];
 
 function RegisterForm({ onBack }: { onBack: () => void }) {
-  const [role, setRole] = useState<RegisterRole>('youth');
+  const [role, setRole] = useState<RegisterRole>('participant');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,8 +59,8 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   const [institutionName, setInstitutionName] = useState('');
   const [region, setRegion] = useState('');
   const [programArea, setProgramArea] = useState('');
-  // Youth-only: career stage
-  const [careerStage, setCareerStage] = useState<string>('exploring');
+  // Participant: ACIA package selection
+  const [aciaPackage, setAciaPackage] = useState<AciaPackageId | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -52,6 +69,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (role === 'participant' && !aciaPackage) { setMsg('Please select an ACIA package to continue.'); return; }
     if (password !== confirm) { setMsg('Passwords do not match.'); return; }
     setMsg(''); setDuplicateType(null); setLoading(true);
     try {
@@ -59,7 +77,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
         method: 'POST',
         body: {
           email, password, name, phone, role,
-          ...(role === 'youth' ? { careerStage } : {}),
+          ...(role === 'participant' ? { aciaPackage } : {}),
           ...(role === 'employer' ? { organizationName: orgName, jobTitle } : {}),
           ...(role === 'postsecondary' ? { institutionName, region, programArea } : {}),
         },
@@ -94,7 +112,7 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
   }
 
   const roleLabel: Record<RegisterRole, string> = {
-    youth: 'Participant',
+    participant: 'Participant',
     employer: 'Employer',
     postsecondary: 'Post-Secondary Institution',
   };
@@ -164,71 +182,102 @@ function RegisterForm({ onBack }: { onBack: () => void }) {
             </select>
           </label>
 
-          {/* Youth: career stage */}
-          {role === 'youth' && (
-            <label>What brings you to AACP?
-              <select value={careerStage} onChange={e => setCareerStage(e.target.value)}>
-                <option value="exploring">Exploring my first aviation career</option>
-                <option value="student">Student / Recent Graduate</option>
-                <option value="stem">STEM Graduate entering aviation/aerospace</option>
-                <option value="transition">Transitioning from another industry</option>
-                <option value="aviation_professional">Current Aviation Professional</option>
-                <option value="intl_aviation_professional">Internationally Trained Aviation Professional</option>
-              </select>
-            </label>
+          {/* Participant: ACIA package selection — required before form fields */}
+          {role === 'participant' && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                Select your ACIA™ package
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {ACIA_PACKAGES.map(pkg => (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => setAciaPackage(pkg.id)}
+                    style={{
+                      background: aciaPackage === pkg.id ? '#1a0a0d' : '#0f0608',
+                      border: `2px solid ${aciaPackage === pkg.id ? '#8F0909' : '#2d1018'}`,
+                      borderRadius: 10,
+                      padding: '14px 16px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{pkg.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: '#8F0909', whiteSpace: 'nowrap', marginLeft: 12 }}>{pkg.price}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9ca3a8', lineHeight: 1.5 }}>{pkg.description}</div>
+                  </button>
+                ))}
+              </div>
+              {!aciaPackage && (
+                <p style={{ fontSize: 11, color: '#6b7280', marginTop: 8, fontStyle: 'italic' }}>
+                  Select a package above to continue registration.
+                </p>
+              )}
+            </div>
           )}
 
-          {/* Common fields */}
-          <label>Full Name
-            <input required value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
-          </label>
-          <label>Email Address
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
-          </label>
-          <label>Phone Number
-            <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (___) ___-____" />
-          </label>
-
-          {/* Employer-specific */}
-          {role === 'employer' && (
+          {/* Common fields + role-specific fields — hidden for participant until package selected */}
+          {(role !== 'participant' || aciaPackage) && (
             <>
-              <label>Organization Name
-                <input required value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Company or organization" />
+              <label>Full Name
+                <input required value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
               </label>
-              <label>Job Title
-                <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Your position" />
+              <label>Email Address
+                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
               </label>
+              <label>Phone Number
+                <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (___) ___-____" />
+              </label>
+
+              {/* Employer-specific */}
+              {role === 'employer' && (
+                <>
+                  <label>Organization Name
+                    <input required value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Company or organization" />
+                  </label>
+                  <label>Job Title
+                    <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Your position" />
+                  </label>
+                </>
+              )}
+
+              {/* Post-secondary-specific */}
+              {role === 'postsecondary' && (
+                <>
+                  <label>Institution Name
+                    <input required value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="College or university name" />
+                  </label>
+                  <label>Province / Region
+                    <select required value={region} onChange={e => setRegion(e.target.value)}>
+                      <option value="">Select province</option>
+                      {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </label>
+                  <label>Program Area
+                    <input value={programArea} onChange={e => setProgramArea(e.target.value)} placeholder="e.g. Aviation Technology, Aerospace Engineering" />
+                  </label>
+                </>
+              )}
             </>
           )}
 
-          {/* Post-secondary-specific */}
-          {role === 'postsecondary' && (
+          {(role !== 'participant' || aciaPackage) && (
             <>
-              <label>Institution Name
-                <input required value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="College or university name" />
+              <label>Password
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 8 characters" minLength={8} />
               </label>
-              <label>Province / Region
-                <select required value={region} onChange={e => setRegion(e.target.value)}>
-                  <option value="">Select province</option>
-                  {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+              <label>Confirm Password
+                <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" />
               </label>
-              <label>Program Area
-                <input value={programArea} onChange={e => setProgramArea(e.target.value)} placeholder="e.g. Aviation Technology, Aerospace Engineering" />
-              </label>
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Submitting…' : 'Submit Registration'}
+              </button>
             </>
           )}
-
-          <label>Password
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 8 characters" minLength={8} />
-          </label>
-          <label>Confirm Password
-            <input required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" />
-          </label>
-
-          <button type="submit" className="login-submit" disabled={loading}>
-            {loading ? 'Submitting…' : 'Submit Registration'}
-          </button>
 
           <button type="button" onClick={onBack} style={{
             background: 'none', border: 'none', color: '#9ca3a8', fontSize: 13,
