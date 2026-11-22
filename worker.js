@@ -1944,6 +1944,17 @@ async function runMigrations(db) {
   `).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_nav_profile_user ON navigator_profiles(user_id)`).run().catch(() => {});
 
+  // navigator_course_plans — "My Courses & Career Pathways" plan (grade, province, careers, courses) per user.
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_course_plans (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL UNIQUE REFERENCES users(id),
+      plan_data   TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    )
+  `).run();
+
   // OAuth provider links — federated identity (Google, Microsoft)
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS oauth_providers (
@@ -15225,6 +15236,54 @@ async function handleNavigatorProfileUpdate(request, user, env) {
   return json({ success: true });
 }
 
+// ── My Courses & Career Pathways — course plan persistence ───────────────────
+const COURSE_PLAN_MAX_BYTES = 16 * 1024;
+const COURSE_PLAN_ID_RE = /^[a-z0-9_-]{1,40}$/;
+
+function sanitizeCoursePlan(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const province = raw.province === 'AB' ? 'AB' : null;
+  const grade = [9, 10, 11, 12].includes(Number(raw.grade)) ? Number(raw.grade) : null;
+  const careers = Array.isArray(raw.careers)
+    ? [...new Set(raw.careers.filter(c => typeof c === 'string' && COURSE_PLAN_ID_RE.test(c)))].slice(0, 20)
+    : [];
+  const courses = {};
+  if (raw.courses && typeof raw.courses === 'object' && !Array.isArray(raw.courses)) {
+    for (const [k, v] of Object.entries(raw.courses).slice(0, 100)) {
+      if (COURSE_PLAN_ID_RE.test(k) && (v === 'taken' || v === 'planned')) courses[k] = v;
+    }
+  }
+  return { province, grade, careers, courses };
+}
+
+// GET /navigator/course-plan
+async function handleNavigatorCoursePlanGet(request, user, env) {
+  const row = await env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(user.sub).first();
+  let plan = null;
+  if (row?.plan_data) { try { plan = sanitizeCoursePlan(JSON.parse(row.plan_data)); } catch { plan = null; } }
+  return json({ plan, updatedAt: row?.updated_at ?? null });
+}
+
+// PUT /navigator/course-plan — body: { plan: { province, grade, careers[], courses{id:'taken'|'planned'} } }
+async function handleNavigatorCoursePlanUpdate(request, user, env) {
+  const text = await request.text().catch(() => '');
+  if (!text || text.length > COURSE_PLAN_MAX_BYTES) return err('Invalid or oversized course plan', 400);
+  let body;
+  try { body = JSON.parse(text); } catch { return err('Invalid request body'); }
+  const plan = sanitizeCoursePlan(body?.plan);
+  if (!plan) return err('plan is required');
+
+  const now = new Date().toISOString();
+  const data = JSON.stringify(plan);
+  await env.DB.prepare(`
+    INSERT INTO navigator_course_plans (id, user_id, plan_data, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET plan_data = excluded.plan_data, updated_at = excluded.updated_at
+  `).bind(crypto.randomUUID(), user.sub, data, now, now).run();
+
+  return json({ success: true, plan, updatedAt: now });
+}
+
 // POST /navigator/auth/login — navigator-specific login with email verification enforcement
 async function handleNavigatorAuthLogin(request, env) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
@@ -16269,6 +16328,8 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/chat'         && request.method === 'POST') return handleNavigatorChat(request, user, env);
     if (path === '/navigator/profile'      && request.method === 'GET')  return handleNavigatorProfileGet(request, user, env);
     if (path === '/navigator/profile'      && request.method === 'PUT')  return handleNavigatorProfileUpdate(request, user, env);
+    if (path === '/navigator/course-plan'  && request.method === 'GET')  return handleNavigatorCoursePlanGet(request, user, env);
+    if (path === '/navigator/course-plan'  && request.method === 'PUT')  return handleNavigatorCoursePlanUpdate(request, user, env);
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
     if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
     if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {
