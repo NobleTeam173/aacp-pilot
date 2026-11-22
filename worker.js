@@ -182,6 +182,20 @@ const MAX_FIELD_LEN  = 255;
 let adminSeedDone = false;
 let curriculumSeedDone = false;
 
+// Column names of a table on either backend: Cloudflare D1 (SQLite → PRAGMA)
+// or the AWS PostgreSQL shim (information_schema). Returns [] if neither works.
+async function getTableColumns(db, table) {
+  try {
+    const r = await db.prepare(`SELECT name FROM pragma_table_info('${table}')`).all();
+    const names = (r.results ?? []).map(x => x.name);
+    if (names.length) return names;
+  } catch { /* not SQLite */ }
+  try {
+    const r = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = ?`).bind(table).all();
+    return (r.results ?? []).map(x => x.name);
+  } catch { return []; }
+}
+
 async function runMigrations(db) {
   // ── Base Schema — fresh-DB bootstrap ─────────────────────────────────────
   // These tables were in the original schema.sql but were never added to
@@ -1123,7 +1137,7 @@ async function runMigrations(db) {
   // DISTINCT from target_occupations (deliberate career targets).
   // Never automatically promoted to target_occupations.
   // Pre-check column existence before ALTER TABLE so unexpected DB errors are not silently swallowed.
-  const pccCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'participant_career_context'`).all();
+  const pccCols = ({ results: (await getTableColumns(db, 'participant_career_context')).map(name => ({ name })) });
   const hasExplorationInterests = (pccCols.results ?? []).some(r => r.name === 'exploration_interests');
   if (!hasExplorationInterests) {
     await db.prepare(`ALTER TABLE participant_career_context ADD COLUMN exploration_interests TEXT NOT NULL DEFAULT '[]'`).run();
@@ -1182,7 +1196,7 @@ async function runMigrations(db) {
 
   // P0C-A new columns — added safely using PRAGMA pre-check so this is
   // idempotent and cannot fail on a database that already has the columns.
-  const enrollCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_enrollments'`).all();
+  const enrollCols = ({ results: (await getTableColumns(db, 'program_enrollments')).map(name => ({ name })) });
   const enrollColNames = (enrollCols.results ?? []).map(r => r.name);
 
   if (!enrollColNames.includes('program_version')) {
@@ -1211,13 +1225,13 @@ async function runMigrations(db) {
   // completion_authority: curriculum governance. Who may legitimately confirm completion.
   // Values: 'participant' | 'facilitator' | 'system'
   // All existing templates get DEFAULT 'participant'; seedCompletionAuthority() corrects them.
-  const enrollCols2 = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_enrollments'`).all();
+  const enrollCols2 = ({ results: (await getTableColumns(db, 'program_enrollments')).map(name => ({ name })) });
   const enrollColNames2 = (enrollCols2.results ?? []).map(r => r.name);
   if (!enrollColNames2.includes('released_week')) {
     await db.prepare(`ALTER TABLE program_enrollments ADD COLUMN released_week INTEGER NOT NULL DEFAULT 0`).run();
   }
 
-  const patCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'program_activity_templates'`).all();
+  const patCols = ({ results: (await getTableColumns(db, 'program_activity_templates')).map(name => ({ name })) });
   const patColNames = (patCols.results ?? []).map(r => r.name);
   if (!patColNames.includes('completion_authority')) {
     await db.prepare(`ALTER TABLE program_activity_templates ADD COLUMN completion_authority TEXT NOT NULL DEFAULT 'participant'`).run();
@@ -1227,7 +1241,7 @@ async function runMigrations(db) {
   // organizations.handoff_authorized: explicit per-org authorization for handoff.
   // partner_status ≠ handoff_authorized — must be explicitly set by admin.
   // DEFAULT 0 keeps all existing org rows unauthorized until admin sets explicitly.
-  const orgColsHf = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'organizations'`).all();
+  const orgColsHf = ({ results: (await getTableColumns(db, 'organizations')).map(name => ({ name })) });
   const orgColNamesHf = (orgColsHf.results ?? []).map(r => r.name);
   if (!orgColNamesHf.includes('handoff_authorized')) {
     await db.prepare(`ALTER TABLE organizations ADD COLUMN handoff_authorized INTEGER NOT NULL DEFAULT 0`).run();
@@ -1368,7 +1382,7 @@ async function runMigrations(db) {
   // This migration drops the primary-key constraint from token and adds a surrogate id column so
   // future inserts do not need to supply token at all. Idempotent: each step is catch()-ed.
   {
-    const rtCols = await db.prepare(`SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'refresh_tokens'`).all().catch(() => ({ results: [] }));
+    const rtCols = ({ results: (await getTableColumns(db, 'refresh_tokens')).map(name => ({ name })) });
     const colNames = (rtCols.results ?? []).map(r => r.name);
     if (!colNames.includes('id')) {
       // Add surrogate primary key; migrate token PK to unique nullable column
@@ -15256,9 +15270,8 @@ function sanitizeCoursePlan(raw) {
   return { province, grade, careers, courses };
 }
 
-// The table is also declared in runMigrations(), but runMigrations() currently
-// aborts on D1 before reaching it (information_schema query at the
-// participant_career_context check), so make sure it exists here.
+// The table is declared in runMigrations(); this is a cheap safety net so the
+// feature never depends on migrations having completed on this isolate.
 let coursePlanTableReady = false;
 async function ensureCoursePlanTable(db) {
   if (coursePlanTableReady) return;
