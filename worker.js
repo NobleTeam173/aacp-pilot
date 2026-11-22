@@ -702,6 +702,250 @@ async function handleAuditLogs(request, user, env) {
   return json({ logs, total: logs.length });
 }
 
+// ── AACP Connector ────────────────────────────────────────────────────────────
+
+const COMPETENCY_LABELS = {
+  SR:'Spatial Reasoning', MR:'Mechanical Reasoning', AP:'Attention & Precision',
+  PS:'Problem Solving', SO:'Safety Orientation', DM:'Decision Making',
+  WM:'Working Memory', MT:'Multitasking & Prioritization', CM:'Communication',
+  PR:'Procedural Reasoning', SA:'Situational Awareness', AL:'Adaptive Learning',
+  AK:'Aviation Knowledge',
+};
+
+async function handleConnectorOverview(request, user, env) {
+  const guard = requireRole(user, 'admin');
+  if (guard) return guard;
+  const [signals, orgs, participants, mappings] = await Promise.all([
+    env.DB.prepare('SELECT COUNT(*) as total, SUM(CASE WHEN validation_status="validated" THEN 1 ELSE 0 END) as validated, SUM(CASE WHEN validation_status="new" THEN 1 ELSE 0 END) as awaiting, SUM(CASE WHEN emerging_requirement=1 AND validation_status="validated" THEN 1 ELSE 0 END) as emerging FROM employer_signals').first(),
+    env.DB.prepare('SELECT COUNT(DISTINCT employer_name) as employers FROM employer_signals WHERE validation_status="validated"').first(),
+    env.DB.prepare('SELECT COUNT(*) as total FROM users WHERE role="youth" AND status="active"').first(),
+    env.DB.prepare('SELECT COUNT(*) as total FROM curriculum_mappings').first(),
+  ]);
+  const occupations = await env.DB.prepare('SELECT COUNT(DISTINCT occupation) as cnt FROM employer_signals WHERE validation_status="validated" AND occupation IS NOT NULL').first();
+  const competencies = await env.DB.prepare('SELECT COUNT(DISTINCT competency) as cnt FROM employer_signals WHERE validation_status="validated"').first();
+  const postSecOrgs = await env.DB.prepare('SELECT COUNT(DISTINCT institution_name) as cnt FROM curriculum_mappings').first();
+  const lastSignal = await env.DB.prepare('SELECT MAX(created_at) as last FROM employer_signals').first();
+  return json({
+    employersContributing: orgs?.employers ?? 0,
+    occupationsMapped: occupations?.cnt ?? 0,
+    competenciesCaptured: signals?.total ?? 0,
+    competenciesValidated: signals?.validated ?? 0,
+    emergingDetected: signals?.emerging ?? 0,
+    awaitingValidation: signals?.awaiting ?? 0,
+    postSecondaryConsuming: postSecOrgs?.cnt ?? 0,
+    participantEvidence: participants?.total ?? 0,
+    curriculumMappings: mappings?.total ?? 0,
+    lastRefresh: lastSignal?.last ?? null,
+  });
+}
+
+async function handleSignalsList(request, user, env) {
+  const guard = requireRole(user, 'admin');
+  if (guard) return guard;
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status') ?? '';
+  const competency = url.searchParams.get('competency') ?? '';
+  let q = 'SELECT * FROM employer_signals WHERE 1=1';
+  const params = [];
+  if (status) { q += ' AND validation_status = ?'; params.push(status); }
+  if (competency) { q += ' AND competency = ?'; params.push(competency); }
+  q += ' ORDER BY created_at DESC LIMIT 200';
+  const { results } = await env.DB.prepare(q).bind(...params).all();
+  return json({ signals: results });
+}
+
+async function handleSignalCreate(request, user, env) {
+  const guard = requireRole(user, 'admin');
+  if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.employer_name || !body?.competency) return err('employer_name and competency are required');
+  const id = randomHex(16);
+  const now = new Date().toISOString();
+  await env.DB.prepare(`INSERT INTO employer_signals (id,org_id,employer_name,industry_subsector,region,occupation,role_title,competency,skill,importance_level,proficiency_expectation,hiring_difficulty,skills_gap,emerging_requirement,certification_required,workforce_readiness_expectation,future_demand,source,collected_by,collected_at,validation_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(id, body.org_id??null, body.employer_name, body.industry_subsector??null, body.region??null, body.occupation??null, body.role_title??null, body.competency, body.skill??null, body.importance_level??'medium', body.proficiency_expectation??'intermediate', body.hiring_difficulty??null, body.skills_gap??null, body.emerging_requirement?1:0, body.certification_required??null, body.workforce_readiness_expectation??null, body.future_demand??'stable', body.source??'employer_submission', user.sub, now, 'new', now, now)
+    .run();
+  await audit(env.DB, 'signal_created', user.sub, 'employer_signal', { signalId: id, competency: body.competency, employer: body.employer_name });
+  return json({ id, message: 'Signal created' }, 201);
+}
+
+async function handleSignalUpdate(request, user, env) {
+  const guard = requireRole(user, 'admin');
+  if (guard) return guard;
+  const url = new URL(request.url);
+  const id = url.pathname.split('/').pop();
+  const body = await request.json().catch(() => null);
+  if (!body) return err('Request body required');
+  const now = new Date().toISOString();
+  const existing = await env.DB.prepare('SELECT * FROM employer_signals WHERE id = ?').bind(id).first();
+  if (!existing) return err('Signal not found', 404);
+  const newStatus = body.validation_status ?? existing.validation_status;
+  const isValidating = ['validated','needs_clarification','archived','under_review'].includes(newStatus);
+  await env.DB.prepare(`UPDATE employer_signals SET employer_name=?,industry_subsector=?,region=?,occupation=?,role_title=?,competency=?,skill=?,importance_level=?,proficiency_expectation=?,hiring_difficulty=?,skills_gap=?,emerging_requirement=?,certification_required=?,workforce_readiness_expectation=?,future_demand=?,source=?,validation_status=?,validated_by=?,validated_at=?,validation_notes=?,updated_at=? WHERE id=?`)
+    .bind(body.employer_name??existing.employer_name, body.industry_subsector??existing.industry_subsector, body.region??existing.region, body.occupation??existing.occupation, body.role_title??existing.role_title, body.competency??existing.competency, body.skill??existing.skill, body.importance_level??existing.importance_level, body.proficiency_expectation??existing.proficiency_expectation, body.hiring_difficulty??existing.hiring_difficulty, body.skills_gap??existing.skills_gap, body.emerging_requirement!==undefined?body.emerging_requirement:existing.emerging_requirement, body.certification_required??existing.certification_required, body.workforce_readiness_expectation??existing.workforce_readiness_expectation, body.future_demand??existing.future_demand, body.source??existing.source, newStatus, isValidating?user.sub:existing.validated_by, isValidating?now:existing.validated_at, body.validation_notes??existing.validation_notes, now, id)
+    .run();
+  await audit(env.DB, 'signal_updated', user.sub, 'employer_signal', { signalId: id, status: newStatus });
+  return json({ message: 'Signal updated' });
+}
+
+async function handleConnectorIntelligence(request, user, env) {
+  const guard = requireRole(user, 'admin', 'postsecondary');
+  if (guard) return guard;
+  const url = new URL(request.url);
+  const occupation = url.searchParams.get('occupation') ?? '';
+  const region = url.searchParams.get('region') ?? '';
+  const subsector = url.searchParams.get('subsector') ?? '';
+  let q = 'SELECT competency, importance_level, future_demand, occupation, region, industry_subsector, employer_name FROM employer_signals WHERE validation_status="validated"';
+  const params = [];
+  if (occupation) { q += ' AND occupation=?'; params.push(occupation); }
+  if (region) { q += ' AND region=?'; params.push(region); }
+  if (subsector) { q += ' AND industry_subsector=?'; params.push(subsector); }
+  const { results } = await env.DB.prepare(q).bind(...params).all();
+  const byComp = {};
+  for (const s of results) {
+    if (!byComp[s.competency]) byComp[s.competency] = { competency: s.competency, signals: 0, employers: new Set(), importanceSum: 0, increasing: 0, stable: 0, decreasing: 0, occupations: new Set(), regions: new Set() };
+    const c = byComp[s.competency];
+    c.signals++;
+    c.employers.add(s.employer_name);
+    const imp = { critical: 4, high: 3, medium: 2, low: 1 }[s.importance_level] ?? 2;
+    c.importanceSum += imp;
+    if (s.future_demand === 'increasing') c.increasing++;
+    else if (s.future_demand === 'decreasing') c.decreasing++;
+    else c.stable++;
+    if (s.occupation) c.occupations.add(s.occupation);
+    if (s.region) c.regions.add(s.region);
+  }
+  const demandLevel = (avg) => avg >= 3.5 ? 'high' : avg >= 2.5 ? 'growing' : avg >= 1.5 ? 'moderate' : 'low';
+  const trend = (c) => c.increasing > c.stable && c.increasing > c.decreasing ? 'increasing' : c.decreasing > c.stable && c.decreasing > c.increasing ? 'decreasing' : 'stable';
+  const evidenceLevel = (n, e) => n >= 10 && e >= 5 ? 'strong' : n >= 5 && e >= 3 ? 'moderate' : n >= 2 ? 'limited' : 'insufficient';
+  const signals = Object.values(byComp).map(c => ({
+    competency: c.competency,
+    label: COMPETENCY_LABELS[c.competency] ?? c.competency,
+    demandLevel: demandLevel(c.importanceSum / c.signals),
+    trend: trend(c),
+    evidenceLevel: evidenceLevel(c.signals, c.employers.size),
+    signalCount: c.signals,
+    contributingEmployers: c.employers.size,
+    occupations: [...c.occupations],
+    regions: [...c.regions],
+  })).sort((a,b) => b.signalCount - a.signalCount);
+  return json({ signals, totalValidatedSignals: results.length, lastUpdated: new Date().toISOString() });
+}
+
+async function handleEmergingSkills(request, user, env) {
+  const guard = requireRole(user, 'admin', 'postsecondary');
+  if (guard) return guard;
+  const { results } = await env.DB.prepare(`SELECT competency, employer_name, future_demand, collected_at FROM employer_signals WHERE validation_status="validated" AND emerging_requirement=1 ORDER BY collected_at DESC`).all();
+  const byComp = {};
+  for (const s of results) {
+    if (!byComp[s.competency]) byComp[s.competency] = { competency: s.competency, employers: new Set(), increasing: 0, total: 0, latest: s.collected_at };
+    byComp[s.competency].employers.add(s.employer_name);
+    byComp[s.competency].total++;
+    if (s.future_demand === 'increasing') byComp[s.competency].increasing++;
+    if (s.collected_at > byComp[s.competency].latest) byComp[s.competency].latest = s.collected_at;
+  }
+  const statusFor = (c) => {
+    if (c.employers.size < 2) return 'insufficient_evidence';
+    const pct = c.increasing / c.total;
+    if (pct >= 0.8) return 'emerging';
+    if (pct >= 0.6) return 'growing';
+    return 'stable';
+  };
+  const skills = Object.values(byComp).map(c => ({
+    competency: c.competency,
+    label: COMPETENCY_LABELS[c.competency] ?? c.competency,
+    status: statusFor(c),
+    signalCount: c.total,
+    contributingEmployers: c.employers.size,
+    latestSignal: c.latest,
+  })).filter(s => s.status !== 'insufficient_evidence' || s.signalCount >= 1)
+    .sort((a,b) => b.signalCount - a.signalCount);
+  return json({ emergingSkills: skills });
+}
+
+async function handleCurriculumMappings(request, user, env) {
+  const guard = requireRole(user, 'postsecondary', 'admin');
+  if (guard) return guard;
+  const url = new URL(request.url);
+  const institutionName = url.searchParams.get('institution');
+  let q = 'SELECT * FROM curriculum_mappings WHERE 1=1';
+  const params = [];
+  if (user.role === 'postsecondary') {
+    q += ' AND created_by=?'; params.push(user.sub);
+  } else if (institutionName) {
+    q += ' AND institution_name=?'; params.push(institutionName);
+  }
+  q += ' ORDER BY created_at DESC';
+  const { results } = await env.DB.prepare(q).bind(...params).all();
+  return json({ mappings: results });
+}
+
+async function handleCurriculumMappingCreate(request, user, env) {
+  const guard = requireRole(user, 'postsecondary', 'admin');
+  if (guard) return guard;
+  const body = await request.json().catch(() => null);
+  if (!body?.program_name || !body?.aacp_competency || !body?.institution_name) return err('program_name, institution_name, and aacp_competency are required');
+  const id = randomHex(16);
+  const now = new Date().toISOString();
+  await env.DB.prepare(`INSERT INTO curriculum_mappings (id,org_id,institution_name,program_name,course_name,learning_outcome,skill,aacp_competency,alignment_level,notes,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(id, body.org_id??null, body.institution_name, body.program_name, body.course_name??null, body.learning_outcome??null, body.skill??null, body.aacp_competency, body.alignment_level??'insufficient_evidence', body.notes??null, user.sub, now, now)
+    .run();
+  await audit(env.DB, 'curriculum_mapping_created', user.sub, 'curriculum_mapping', { mappingId: id, program: body.program_name, competency: body.aacp_competency });
+  return json({ id, message: 'Mapping created' }, 201);
+}
+
+async function handleCompetencyGap(request, user, env) {
+  const guard = requireRole(user, 'postsecondary', 'admin');
+  if (guard) return guard;
+  const { results: signals } = await env.DB.prepare('SELECT competency, importance_level FROM employer_signals WHERE validation_status="validated"').all();
+  let mappingQ = 'SELECT aacp_competency, alignment_level FROM curriculum_mappings WHERE 1=1';
+  const mappingParams = [];
+  if (user.role === 'postsecondary') { mappingQ += ' AND created_by=?'; mappingParams.push(user.sub); }
+  const { results: mappings } = await env.DB.prepare(mappingQ).bind(...mappingParams).all();
+  const { results: assessments } = await env.DB.prepare('SELECT competency_profile FROM acia_assessments WHERE status="complete" AND competency_profile IS NOT NULL').all().catch(() => ({ results: [] }));
+  const demand = {};
+  for (const s of signals) {
+    if (!demand[s.competency]) demand[s.competency] = { sum: 0, count: 0 };
+    demand[s.competency].sum += { critical: 4, high: 3, medium: 2, low: 1 }[s.importance_level] ?? 2;
+    demand[s.competency].count++;
+  }
+  const curriculum = {};
+  for (const m of mappings) {
+    if (!curriculum[m.aacp_competency]) curriculum[m.aacp_competency] = { sum: 0, count: 0 };
+    curriculum[m.aacp_competency].sum += { strong: 4, moderate: 3, developing: 2, gap: 1, insufficient_evidence: 0 }[m.alignment_level] ?? 0;
+    curriculum[m.aacp_competency].count++;
+  }
+  const evidence = {};
+  for (const a of assessments) {
+    try {
+      const profile = JSON.parse(a.competency_profile);
+      for (const [key, val] of Object.entries(profile)) {
+        if (!evidence[key]) evidence[key] = { sum: 0, count: 0 };
+        evidence[key].sum += { strong: 5, demonstrated: 4, developing: 3, emerging: 2, insufficient: 1 }[val?.state ?? val] ?? 1;
+        evidence[key].count++;
+      }
+    } catch {}
+  }
+  const labelDemand = (avg) => avg >= 3.5 ? 'High' : avg >= 2.5 ? 'Growing' : avg >= 1.5 ? 'Moderate' : 'Low';
+  const labelCurriculum = (avg) => avg >= 3.5 ? 'Strong' : avg >= 2.5 ? 'Moderate' : avg >= 1.5 ? 'Developing' : 'Limited';
+  const labelEvidence = (avg) => avg >= 4 ? 'Strong' : avg >= 3 ? 'Demonstrated' : avg >= 2 ? 'Developing' : 'Emerging';
+  const gaps = Object.keys(COMPETENCY_LABELS).map(key => {
+    const d = demand[key];
+    const c = curriculum[key];
+    const e = evidence[key];
+    return {
+      competency: key,
+      label: COMPETENCY_LABELS[key],
+      employerDemand: d ? labelDemand(d.sum / d.count) : 'No Data',
+      employerDemandCount: d?.count ?? 0,
+      curriculumCoverage: c ? labelCurriculum(c.sum / c.count) : 'No Data',
+      curriculumCount: c?.count ?? 0,
+      participantEvidence: e ? labelEvidence(e.sum / e.count) : 'No Data',
+      participantCount: e?.count ?? 0,
+    };
+  });
+  return json({ gaps });
+}
+
 // ── Main fetch handler ────────────────────────────────────────────────────────
 
 export default {
@@ -716,6 +960,9 @@ export default {
     if (!adminSeedDone) {
       adminSeedDone = true;
       await seedAdmin(env.DB);
+      // AACP Connector tables (idempotent)
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS employer_signals (id TEXT PRIMARY KEY, org_id TEXT, employer_name TEXT NOT NULL, industry_subsector TEXT, region TEXT, occupation TEXT, role_title TEXT, competency TEXT NOT NULL, skill TEXT, importance_level TEXT DEFAULT 'medium', proficiency_expectation TEXT DEFAULT 'intermediate', hiring_difficulty TEXT, skills_gap TEXT, emerging_requirement INTEGER DEFAULT 0, certification_required TEXT, workforce_readiness_expectation TEXT, future_demand TEXT DEFAULT 'stable', source TEXT DEFAULT 'employer_submission', collected_by TEXT, collected_at TEXT, validation_status TEXT DEFAULT 'new', validated_by TEXT, validated_at TEXT, validation_notes TEXT, created_at TEXT, updated_at TEXT)`).run().catch(() => {});
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS curriculum_mappings (id TEXT PRIMARY KEY, org_id TEXT, institution_name TEXT NOT NULL, program_name TEXT NOT NULL, course_name TEXT, learning_outcome TEXT, skill TEXT, aacp_competency TEXT NOT NULL, alignment_level TEXT DEFAULT 'insufficient_evidence', notes TEXT, created_by TEXT, created_at TEXT, updated_at TEXT)`).run().catch(() => {});
     }
 
     if (path === '/health') return json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -767,6 +1014,18 @@ export default {
     if (path === '/program/status'   && request.method === 'GET')  return handleProgramStatus(request, user, env);
     if (path === '/program/enroll'   && request.method === 'POST') return handleProgramEnroll(request, user, env);
     if (path === '/program/complete' && request.method === 'POST') return handleProgramComplete(request, user, env);
+
+    // AACP Connector — Admin only
+    if (path === '/connector/overview'  && request.method === 'GET') return handleConnectorOverview(request, user, env);
+    if (path === '/connector/signals'   && request.method === 'GET') return handleSignalsList(request, user, env);
+    if (path === '/connector/signals'   && request.method === 'POST') return handleSignalCreate(request, user, env);
+    if (path.startsWith('/connector/signals/') && request.method === 'PUT') return handleSignalUpdate(request, user, env);
+    if (path === '/connector/intelligence' && request.method === 'GET') return handleConnectorIntelligence(request, user, env);
+    if (path === '/connector/emerging-skills' && request.method === 'GET') return handleEmergingSkills(request, user, env);
+    if (path === '/connector/gap'       && request.method === 'GET') return handleCompetencyGap(request, user, env);
+    // Curriculum mappings — PostSecondary + Admin
+    if (path === '/postsecondary/curriculum-mappings' && request.method === 'GET')  return handleCurriculumMappings(request, user, env);
+    if (path === '/postsecondary/curriculum-mappings' && request.method === 'POST') return handleCurriculumMappingCreate(request, user, env);
 
     // Stubs — authenticated
     if (path.startsWith('/privacy') || path.startsWith('/ai') || path.startsWith('/telemetry')) {

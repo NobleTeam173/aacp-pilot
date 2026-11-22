@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import { YouthDashboard } from './components/dashboard/YouthDashboard';
 import { CoachDashboard } from './components/dashboard/CoachDashboard';
+import { ConnectorDashboard } from './components/connector/ConnectorDashboard';
+import { IndustryIntelligence } from './components/postsecondary/IndustryIntelligence';
 import { request, setStoredToken, setStoredRefreshToken, clearStoredTokens, getStoredToken } from './services/apiClient';
 
-type Role = 'youth' | 'employer' | 'postsecondary' | 'admin';
+type Role = 'youth' | 'employer' | 'postsecondary' | 'admin' | 'super_admin';
 
 interface AuthState {
   role: Role;
@@ -257,16 +259,17 @@ function LoginPage({ onLogin }: { onLogin: (auth: AuthState) => void }) {
 
 // ── Role → dashboard views ────────────────────────────────────────────────────
 
-type DashboardView = 'youth' | 'coach' | 'employer' | 'postsecondary';
+type DashboardView = 'youth' | 'coach' | 'employer' | 'postsecondary' | 'connector';
 
 function viewsForRole(role: Role): DashboardView[] {
-  if (role === 'admin') return ['youth', 'coach', 'employer', 'postsecondary'];
+  if (role === 'admin' || role === 'super_admin') return ['connector', 'youth', 'coach', 'employer', 'postsecondary'];
   if (role === 'employer') return ['employer'];
   if (role === 'postsecondary') return ['postsecondary'];
   return ['youth'];
 }
 
 const VIEW_LABELS: Record<DashboardView, string> = {
+  connector: 'AACP Connector',
   youth: 'Youth',
   coach: 'Coach',
   employer: 'Employer',
@@ -363,10 +366,11 @@ export function App() {
       </aside>
 
       <main className="app-content" aria-label="Dashboard view">
+        {currentView === 'connector'      && <ConnectorDashboard />}
         {currentView === 'youth'          && <YouthDashboard />}
         {currentView === 'coach'          && <CoachDashboard />}
         {currentView === 'employer'       && <EmployerDashboard />}
-        {currentView === 'postsecondary'  && <PostSecondaryDashboard />}
+        {currentView === 'postsecondary'  && (auth.role === 'postsecondary' ? <IndustryIntelligence /> : <PostSecondaryDashboard />)}
       </main>
     </div>
   );
