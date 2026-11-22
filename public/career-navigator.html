@@ -858,7 +858,23 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-stage-text{display:flex;flex-direction:column;min-width:0}
 .mc-stage-title{font-size:13px;font-weight:600;line-height:1.3}
 .mc-stage-meta{font-size:11px;color:var(--fg3);margin-top:2px}
-@media (max-width:560px){.mc-stages{grid-template-columns:1fr}.mc-stage-btn{padding:10px}}
+.mc-short{display:none}
+.mc-subject-cards{display:none}
+.mc-subject-card{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px}
+.mc-subject-card-title{font-size:14px;font-weight:600;color:var(--fg);margin-bottom:6px}
+.mc-subject-line{display:grid;grid-template-columns:76px 1fr;gap:8px;font-size:13px;color:var(--fg2);line-height:1.45;padding:3px 0}
+.mc-subject-name{color:var(--fg);font-weight:500}
+@media (max-width:560px){.mc-table-wrap{display:none}.mc-subject-cards{display:block}}
+@media (max-width:560px){
+  .mc-stages{grid-template-columns:repeat(3,1fr);gap:6px}
+  .mc-stage-btn{flex-direction:column;align-items:center;text-align:center;gap:4px;padding:8px 4px}
+  .mc-stage-text{align-items:center}
+  .mc-stage-meta{display:none}
+  .mc-long{display:none}.mc-short{display:inline}
+  .mc-stage-title{font-size:12px}
+  .mc-q .mc-chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .mc-q .mc-chip{text-align:left;line-height:1.3}
+}
 .mc-stage{display:none}
 .mc-stage.active{display:block}
 .mc-stage-nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 16px}
@@ -973,6 +989,15 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-preview-detail{font-size:12px;color:var(--fg3);line-height:1.45}
 .mc-preview-remove{background:none;border:0;color:var(--fg3);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;font-family:inherit}
 .mc-preview-remove:hover{color:var(--fg)}
+/* Touch screens: give small controls a comfortable tap size (≥40px). */
+@media (pointer: coarse), (max-width: 560px){
+  .mc-link-btn{display:inline-flex;align-items:center;min-height:40px;padding:4px 0}
+  .mc-chip,.mc-chip-sm{min-height:40px;padding:8px 14px}
+  .mc-preview-remove{min-width:40px;min-height:40px;margin:-8px -8px 0 0}
+  .mc-seg button{min-height:40px;padding:8px 12px}
+  .mc-check{padding:10px 0}
+  .mc-check input{width:20px;height:20px;margin-top:1px}
+}
 .mc-idea-title{font-size:13px;font-weight:600}
 .mc-idea-why{font-size:12px;color:var(--fg2);line-height:1.4}
 .mc-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
@@ -2382,13 +2407,13 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 
   <nav class="mc-stages" role="tablist" aria-label="My Courses stages">
     <button type="button" class="mc-stage-btn" data-stage="1" role="tab" onclick="mcGoStage(1, true)">
-      <span class="mc-step-num">1</span><span class="mc-stage-text"><span class="mc-stage-title">Interests &amp; strengths</span><span class="mc-stage-meta" id="mcStageMeta1"></span></span>
+      <span class="mc-step-num">1</span><span class="mc-stage-text"><span class="mc-stage-title"><span class="mc-long">Interests &amp; strengths</span><span class="mc-short">Interests</span></span><span class="mc-stage-meta" id="mcStageMeta1"></span></span>
     </button>
     <button type="button" class="mc-stage-btn" data-stage="2" role="tab" onclick="mcGoStage(2, true)">
-      <span class="mc-step-num">2</span><span class="mc-stage-text"><span class="mc-stage-title">High school courses</span><span class="mc-stage-meta" id="mcStageMeta2"></span></span>
+      <span class="mc-step-num">2</span><span class="mc-stage-text"><span class="mc-stage-title"><span class="mc-long">High school courses</span><span class="mc-short">Courses</span></span><span class="mc-stage-meta" id="mcStageMeta2"></span></span>
     </button>
     <button type="button" class="mc-stage-btn" data-stage="3" role="tab" onclick="mcGoStage(3, true)">
-      <span class="mc-step-num">3</span><span class="mc-stage-text"><span class="mc-stage-title">Education &amp; career pathways</span><span class="mc-stage-meta" id="mcStageMeta3"></span></span>
+      <span class="mc-step-num">3</span><span class="mc-stage-text"><span class="mc-stage-title"><span class="mc-long">Education &amp; career pathways</span><span class="mc-short">Pathways</span></span><span class="mc-stage-meta" id="mcStageMeta3"></span></span>
     </button>
   </nav>
 
@@ -7421,7 +7446,24 @@ function mcToggleActivity(id) { mcToggleList('activities', id); }
 function mcSetCourse(id, v) { if (v === 'taken' || v === 'planned') mcPlan.courses[id] = v; else delete mcPlan.courses[id]; mcSave(); mcRender(); }
 function mcGoStage(n, chosen) {
   mcStage = n; if (chosen) mcStageChosen = true; mcRender();
-  var el = document.getElementById('tab-courses'); if (el && chosen) { var nav = el.querySelector('.mc-stages'); if (nav && nav.getBoundingClientRect().top < 0) nav.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  var el = document.getElementById('tab-courses'); if (!el || !chosen) return;
+  var nav = el.querySelector('.mc-stages'); if (!nav) return;
+  // Keep the step tabs visible below the sticky site header and tab bar.
+  var offset = mcStickyOffset() + 12;
+  if (nav.getBoundingClientRect().top < offset) {
+    window.scrollTo({ top: nav.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+  }
+}
+function mcStickyOffset() {
+  var bottom = 0;
+  document.querySelectorAll('body > header, body > nav, .tab-nav').forEach(function (s) {
+    var cs = getComputedStyle(s);
+    if (cs.position === 'sticky' || cs.position === 'fixed') {
+      var r = s.getBoundingClientRect(), stickTop = parseFloat(cs.top) || 0;
+      if (r.top <= stickTop + 1 && r.bottom > bottom) bottom = r.bottom;
+    }
+  });
+  return bottom;
 }
 
 // ── Analysis ──────────────────────────────────────────────────────
@@ -7766,6 +7808,14 @@ function mcSubjectPlanHtml() {
           var v = rows[s][c]; return '<td>' + (v ? mcEsc(v.join('; ')) : '<span class="mc-req-sub">Not listed</span>') + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
+    // Phone layout: one card per career instead of a wide table.
+    html += '<div class="mc-subject-cards">' + careers.map(function (c) {
+      return '<div class="mc-subject-card"><div class="mc-subject-card-title">' + mcEsc(mcCareerTitle(c)) + '</div>' +
+        ['ela', 'math', 'sci'].map(function (s) {
+          var v = rows[s][c];
+          return '<div class="mc-subject-line"><span class="mc-subject-name">' + { ela: 'English', math: 'Math', sci: 'Sciences' }[s] + '</span><span>' + (v ? mcEsc(v.join('; ')) : '<span class="mc-req-sub">Not listed</span>') + '</span></div>';
+        }).join('') + '</div>';
+    }).join('') + '</div>';
     html += '<p class="mc-note">Where a career has several programs, each one’s main admission route is listed. Step 3 shows minimum grades, alternative routes and sources.</p>';
   }
   var none = mcPlan.careers.filter(function (c) { return !mcProgramsFor(c).length; });
@@ -7865,15 +7915,18 @@ function mcRenderStage3() {
     }).join(''), 'Choose the activities you’d like to try.');
   }
   var cmp = mcCompareIds();
+  var cmpLabel = cmp.length === 1 ? 'Compare ' + mcCareerTitle(cmp[0]) + ' with other careers'
+    : cmp.length === mcPlan.careers.length ? 'Compare these ' + cmp.length + ' careers' : 'Compare ' + cmp.length + ' of these careers';
   html += mcSection('Use my plan across Career Navigator',
     '<div class="mc-actions" style="margin-top:0">' +
-    (cmp.length ? '<button class="btn-secondary" type="button" onclick="mcOpenCompare()">Compare ' + cmp.length + ' of these careers</button>' : '') +
+    (cmp.length ? '<button class="btn-secondary" type="button" onclick="mcOpenCompare()">' + mcEsc(cmpLabel) + '</button>' : '') +
     '<button class="btn-secondary" type="button" onclick="mcAskAcia(\'plan\')">Ask ACIA™ about my plan</button>' +
     '<button class="btn-secondary" type="button" onclick="showTab(\'subscribe\')">Open My Career Pathway</button></div>' +
-    '<div class="mc-actions"><button class="btn-primary" type="button" onclick="mcPrintPlan()">Print / save as PDF</button>' +
+    '<div class="mc-sub" style="margin-top:16px">Share my plan</div>' +
+    '<p class="mc-hint">Share a summary with a parent, teacher or guidance counsellor.</p>' +
+    '<div class="mc-actions" style="margin-top:0"><button class="btn-primary" type="button" onclick="mcPrintPlan()">Print / save as PDF</button>' +
     '<button class="btn-secondary" type="button" onclick="mcCopyPlan()">Copy as text</button></div>' +
-    '<div class="mc-copy-status" id="mcCopyStatus" aria-live="polite"></div>',
-    'Share a summary with a parent, teacher or guidance counsellor.');
+    '<div class="mc-copy-status" id="mcCopyStatus" aria-live="polite"></div>');
   document.getElementById('mcStage3').innerHTML = html;
 }
 
