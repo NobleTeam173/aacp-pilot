@@ -15270,7 +15270,7 @@ function sanitizeCoursePlan(raw) {
       if (COURSE_PLAN_ID_RE.test(k) && (v === 'taken' || v === 'planned')) courses[k] = v;
     }
   }
-  return { province, grade, careers, courses, strengths: idList(raw.strengths, 12), activities: idList(raw.activities, 20) };
+  return { province, grade, careers, courses, interests: idList(raw.interests, 12), strengths: idList(raw.strengths, 12), activities: idList(raw.activities, 20) };
 }
 
 // The table is declared in runMigrations(); this is a cheap safety net so the

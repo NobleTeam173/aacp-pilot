@@ -933,6 +933,14 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-details{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
 .mc-details summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--fg)}
 .mc-callout{background:var(--gold-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--fg2);line-height:1.55;margin-top:10px}
+.mc-q{margin-top:14px}
+.mc-q:first-child{margin-top:0}
+.mc-q-title{font-size:14px;font-weight:600;color:var(--fg);margin-bottom:4px}
+.mc-ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:6px}
+.mc-idea{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-family:inherit;color:var(--fg)}
+.mc-idea:hover{border-color:var(--crimson)}
+.mc-idea-title{font-size:13px;font-weight:600}
+.mc-idea-why{font-size:12px;color:var(--fg2);line-height:1.4}
 .mc-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
 .mc-summary-card:empty{display:none}
 .mc-summary-stats{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 12px}
@@ -7266,7 +7274,9 @@ var MC_GRAD_CHANGES = {
 };
 
 // ── State ─────────────────────────────────────────────────────────
-var mcPlan = { province: 'AB', grade: null, careers: [], courses: {}, strengths: [], activities: [] };
+// interests = "what I enjoy"; strengths = "what I'm good at". Kept separate on purpose:
+// a student can enjoy something before feeling confident in it.
+var mcPlan = { province: 'AB', grade: null, careers: [], courses: {}, interests: [], strengths: [], activities: [] };
 var mcLoaded = false, mcLoading = null, mcSaveTimer = null;
 var mcStage = null, mcStageChosen = false;
 
@@ -7295,6 +7305,7 @@ function mcNormalize(p) {
     grade: [7, 8, 9, 10, 11, 12].indexOf(Number(p.grade)) >= 0 ? Number(p.grade) : null,
     careers: (p.careers || []).filter(function (c) { return known[c]; }),
     courses: courses,
+    interests: (p.interests || []).filter(function (s) { return sIds.indexOf(s) >= 0; }),
     strengths: (p.strengths || []).filter(function (s) { return sIds.indexOf(s) >= 0; }),
     activities: (p.activities || []).filter(function (a) { return aIds.indexOf(a) >= 0; })
   };
@@ -7352,6 +7363,8 @@ function mcSet(key, value) {
 function mcToggleList(list, id) { var i = mcPlan[list].indexOf(id); if (i >= 0) mcPlan[list].splice(i, 1); else mcPlan[list].push(id); mcSave(); mcRender(); }
 function mcToggleCareer(id) { mcToggleList('careers', id); }
 function mcToggleStrength(id) { mcToggleList('strengths', id); }
+function mcToggleInterest(id) { mcToggleList('interests', id); }
+function mcTopicLabel(id) { var s = MC_STRENGTHS.filter(function (x) { return x.id === id; })[0]; return s ? s.label : id; }
 function mcToggleActivity(id) { mcToggleList('activities', id); }
 function mcSetCourse(id, v) { if (v === 'taken' || v === 'planned') mcPlan.courses[id] = v; else delete mcPlan.courses[id]; mcSave(); mcRender(); }
 function mcGoStage(n, chosen) {
@@ -7446,11 +7459,21 @@ function mcRenderStage1() {
   }).join('') + '</div>';
   from += '<div class="mc-actions"><button class="btn-secondary" type="button" onclick="showTab(\'discovery\')">Not sure yet? Try Career Discovery</button>' +
     '<button class="btn-secondary" type="button" onclick="mcAskAcia(\'interests\')">Ask ACIA™ about careers that fit me</button></div>';
-  html += mcSection('What am I good at and interested in?',
-    '<div class="mc-chips">' + MC_STRENGTHS.map(function (s) {
-      return '<button type="button" class="mc-chip" aria-pressed="' + (mcPlan.strengths.indexOf(s.id) >= 0) + '" onclick="mcToggleStrength(\'' + s.id + '\')">' + mcEsc(s.label) + '</button>';
-    }).join('') + '</div>' + mcIdeasHtml() + from,
-    'Pick what you enjoy or do well. You don’t have to decide on a career yet.');
+  function topicChips(list, toggle) {
+    return '<div class="mc-chips">' + MC_STRENGTHS.map(function (s) {
+      return '<button type="button" class="mc-chip" aria-pressed="' + (mcPlan[list].indexOf(s.id) >= 0) + '" onclick="' + toggle + '(\'' + s.id + '\')">' + mcEsc(s.label) + '</button>';
+    }).join('') + '</div>';
+  }
+  var enjoyOnly = mcPlan.interests.filter(function (id) { return mcPlan.strengths.indexOf(id) < 0; });
+  html += mcSection('Getting to know me',
+    '<div class="mc-q"><div class="mc-q-title">What do I enjoy?</div><p class="mc-hint">Things you find interesting or fun — even if you’re still learning them.</p>' +
+      topicChips('interests', 'mcToggleInterest') + '</div>' +
+    '<div class="mc-q"><div class="mc-q-title">What am I good at?</div><p class="mc-hint">Things you do well or that people say you’re good at. It’s fine to leave this short for now.</p>' +
+      topicChips('strengths', 'mcToggleStrength') + '</div>' +
+    (enjoyOnly.length ? '<div class="mc-callout">You enjoy ' + mcEsc(enjoyOnly.map(function (id) { return mcTopicLabel(id).toLowerCase(); }).join(', ')) +
+      ' but didn’t pick ' + (enjoyOnly.length > 1 ? 'them' : 'it') + ' as a strength yet. That’s normal — skills grow with practice, and enjoying something is a great reason to keep going.</div>' : '') +
+    mcIdeasHtml() + from,
+    'Your answers help suggest careers to explore. Neither answer rules anything out — you can explore any career you like.');
 
   html += mcSection('Careers I want to explore',
     MC_SECTORS.map(function (sec) {
@@ -7462,14 +7485,38 @@ function mcRenderStage1() {
     'Choose as many as you like across aviation, engineering, healthcare and skilled trades.');
   document.getElementById('mcStage1').innerHTML = html;
 }
+// Career ideas from both answers; each idea says which answer(s) it came from.
+// Topics picked in both lists come first.
 function mcIdeasHtml() {
-  if (!mcPlan.strengths.length) return '';
-  var ideas = [];
-  mcPlan.strengths.forEach(function (sid) { var s = MC_STRENGTHS.filter(function (x) { return x.id === sid; })[0]; (s ? s.ideas : []).forEach(function (c) { if (ideas.indexOf(c) < 0 && mcPlan.careers.indexOf(c) < 0 && mcCareer(c)) ideas.push(c); }); });
-  if (!ideas.length) return '';
-  return '<p class="mc-hint" style="margin-top:12px">Ideas to explore based on what you picked:</p><div class="mc-chips">' + ideas.slice(0, 8).map(function (id) {
-    return '<button type="button" class="mc-chip" aria-pressed="false" onclick="mcToggleCareer(\'' + id + '\')">+ ' + mcEsc(mcCareerTitle(id)) + '</button>';
-  }).join('') + '</div>';
+  if (!mcPlan.interests.length && !mcPlan.strengths.length) return '';
+  var reasons = {}, order = [];
+  function add(list, why) {
+    mcPlan[list].forEach(function (tid) {
+      var t = MC_STRENGTHS.filter(function (x) { return x.id === tid; })[0]; if (!t) return;
+      t.ideas.forEach(function (c) {
+        if (mcPlan.careers.indexOf(c) >= 0 || !mcCareer(c)) return;
+        if (!reasons[c]) { reasons[c] = { enjoy: [], good: [] }; order.push(c); }
+        if (reasons[c][why].indexOf(t.label) < 0) reasons[c][why].push(t.label);
+      });
+    });
+  }
+  add('interests', 'enjoy'); add('strengths', 'good');
+  if (!order.length) return '';
+  order.sort(function (a, b) {
+    function score(c) { return (reasons[c].enjoy.length ? 1 : 0) + (reasons[c].good.length ? 1 : 0); }
+    return score(b) - score(a);
+  });
+  return '<div class="mc-q"><div class="mc-q-title">Ideas to explore</div><div class="mc-ideas">' + order.slice(0, 8).map(function (id) {
+    var r = reasons[id], why = [];
+    var both = r.enjoy.filter(function (t) { return r.good.indexOf(t) >= 0; });
+    var enjoyOnly = r.enjoy.filter(function (t) { return both.indexOf(t) < 0; });
+    var goodOnly = r.good.filter(function (t) { return both.indexOf(t) < 0; });
+    if (both.length) why.push('you enjoy and are good at ' + both.join(', ').toLowerCase());
+    if (enjoyOnly.length) why.push('you enjoy ' + enjoyOnly.join(', ').toLowerCase());
+    if (goodOnly.length) why.push('you’re good at ' + goodOnly.join(', ').toLowerCase());
+    return '<button type="button" class="mc-idea" onclick="mcToggleCareer(\'' + id + '\')"><span class="mc-idea-title">+ ' + mcEsc(mcCareerTitle(id)) + '</span>' +
+      '<span class="mc-idea-why">Because ' + mcEsc(why.join(' and ')) + '</span></button>';
+  }).join('') + '</div><p class="mc-note">These are starting points, not predictions. Browse every career below too.</p></div>';
 }
 function mcImageSrc(careerId) {
   var alt = MC_IMAGES[careerId]; if (!alt) return null;
@@ -7760,7 +7807,10 @@ function mcAskAcia(kind) {
   var careers = mcPlan.careers.map(mcCareerTitle).join(', ');
   var g = mcPlan.grade ? 'Grade ' + mcPlan.grade + ' ' : '';
   var q = kind === 'interests'
-    ? 'I’m a ' + g + 'student in Alberta. ' + (mcPlan.strengths.length ? 'I enjoy ' + mcPlan.strengths.map(function (s) { return MC_STRENGTHS.filter(function (x) { return x.id === s; })[0].label.toLowerCase(); }).join(', ') + '. ' : '') + 'Which careers should I explore?'
+    ? 'I’m a ' + g + 'student in Alberta. ' +
+      (mcPlan.interests.length ? 'I enjoy ' + mcPlan.interests.map(function (s) { return mcTopicLabel(s).toLowerCase(); }).join(', ') + '. ' : '') +
+      (mcPlan.strengths.length ? 'I’m good at ' + mcPlan.strengths.map(function (s) { return mcTopicLabel(s).toLowerCase(); }).join(', ') + '. ' : '') +
+      'Which careers should I explore?'
     : 'I’m a ' + g + 'student in Alberta' + (careers ? ' interested in ' + careers : '') + '. Which high school courses should I plan for, and what are my options if I change my mind?';
   showTab('chat');
   var input = document.getElementById('chatInput');
@@ -7792,7 +7842,8 @@ function mcPlanText() {
   var L = [];
   L.push('My Courses & Career Pathways — AACP Career Navigator');
   L.push('Province: Alberta' + (mcPlan.grade ? ' · Grade ' + mcPlan.grade : ''));
-  if (mcPlan.strengths.length) L.push('Strengths & interests: ' + mcPlan.strengths.map(function (s) { return MC_STRENGTHS.filter(function (x) { return x.id === s; })[0].label; }).join(', '));
+  if (mcPlan.interests.length) L.push('I enjoy: ' + mcPlan.interests.map(mcTopicLabel).join(', '));
+  if (mcPlan.strengths.length) L.push('I’m good at: ' + mcPlan.strengths.map(mcTopicLabel).join(', '));
   L.push('Careers: ' + (mcPlan.careers.length ? mcPlan.careers.map(mcCareerTitle).join(', ') : 'none selected'));
   var taken = [], planned = [];
   Object.keys(mcPlan.courses).forEach(function (k) { (mcPlan.courses[k] === 'taken' ? taken : planned).push(MC_COURSE_BY_ID[k].name); });
