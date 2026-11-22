@@ -837,6 +837,47 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 @media(max-width:560px){.pathway-stats-row{grid-template-columns:1fr 1fr}}
 </style>
 <style>
+/* ── Simplified student navigation ──
+   Students and visitors without a role see four primary tabs:
+   Home · My Courses · Explore Careers · My Career Plan. Discovery, Education,
+   Compare and Scholarships open contextually; ACIA™ is a floating button.
+   Teachers and advisors keep the full tab bar. */
+.nav-simple{display:none}
+.ctx-only,.acia-fab{display:none}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .nav-full{display:none}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .nav-simple{display:inline}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="discovery"],
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="education"],
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="scholarships"],
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="compare"],
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="chat"]{display:none}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="dashboard"]{order:1}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="courses"]{order:2}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="explore"]{order:3}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-btn[data-tab="subscribe"]{order:4}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .ctx-only{display:block}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .ctx-strip{display:grid}
+body:not([data-role="teacher"]):not([data-role="advisor"]) .acia-fab{display:inline-flex}
+body[data-active-tab="chat"] .acia-fab{display:none!important}
+/* Four primary tabs share the width on phones, so none is hidden off-screen. */
+@media (max-width:560px){
+  body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-nav .tab-btn{flex:1 1 0;padding:11px 4px;font-size:12.5px;text-align:center}
+  body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-nav .role-badge{display:none}
+}
+/* Leave room so the floating ACIA™ button never covers the last controls on a page. */
+body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bottom:110px}
+.ctx-strip{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 20px}
+.ctx-link{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-family:inherit;color:var(--fg);min-height:44px}
+.ctx-link:hover{border-color:var(--crimson)}
+.ctx-link strong{font-size:13px}
+.ctx-link span{font-size:12px;color:var(--fg2);line-height:1.35}
+.ctx-back{margin:0 0 16px}
+.ctx-back button{background:none;border:0;color:var(--fg2);font-size:13px;cursor:pointer;padding:8px 0;font-family:inherit;min-height:40px}
+.ctx-back button:hover{color:var(--fg)}
+.acia-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:60;align-items:center;gap:8px;background:var(--crimson);color:#fff;border:0;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);min-height:44px}
+.acia-fab:hover{background:var(--crimson-h)}
+.mc-dash-hero{border-color:var(--crimson)!important;box-shadow:0 0 0 1px var(--crimson) inset}
+
 /* ── My Courses & Career Pathways ── */
 :root{--mc-gap:#ff7d97;--mc-gap-soft:rgba(255,125,151,0.14)}
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--mc-gap:#9a0126;--mc-gap-soft:rgba(128,1,31,0.1)}}
@@ -989,6 +1030,35 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-preview-detail{font-size:12px;color:var(--fg3);line-height:1.45}
 .mc-preview-remove{background:none;border:0;color:var(--fg3);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;font-family:inherit}
 .mc-preview-remove:hover{color:var(--fg)}
+.mc-req-heading{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);margin:4px 0 4px}
+.mc-recommended{border-top-style:solid}
+.mc-recommended .mc-alts-title{color:var(--blue-fg)}
+.mc-optional{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px}
+.mc-optional > summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--fg);min-height:28px}
+.mc-optional[open] > summary{margin-bottom:12px}
+.mc-optional .mc-step{border:0;padding:0;background:none;margin-bottom:12px}
+.mc-next-card{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-color:var(--crimson)}
+.mc-result-group{margin-bottom:14px}
+.mc-result{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px}
+.mc-result.on{border-color:var(--crimson)}
+.mc-result-head{display:flex;gap:10px;align-items:flex-start}
+.mc-result-text{flex:1;min-width:0}
+.mc-result-title{font-size:14px;font-weight:600;color:var(--fg)}
+.mc-result-status{font-size:13px;line-height:1.45;margin-top:2px}
+.mc-result-status.open{color:var(--green-fg)}
+.mc-result-status.close{color:var(--gold)}
+.mc-result-status.more{color:var(--mc-gap)}
+.mc-result-status.nocourses{color:var(--fg2)}
+.mc-add-btn{flex-shrink:0;background:var(--surface);border:1px solid var(--border2);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.mc-add-btn[aria-pressed="true"]{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.mc-career-actions{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px}
+.mc-facts{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px}
+.mc-fact{display:grid;grid-template-columns:110px 1fr;gap:8px;font-size:13px;color:var(--fg);line-height:1.45;padding:4px 0;border-top:1px solid var(--border)}
+.mc-fact:first-child{border-top:0}
+.mc-fact-label{color:var(--fg3);font-size:12px;font-weight:600}
+.mc-fact-note{display:block;font-size:11px;color:var(--fg3);margin-top:2px}
+.mc-fact-note a,.mc-fact a{color:var(--fg2)}
+@media (max-width:560px){.mc-fact{grid-template-columns:1fr;gap:2px}.mc-result-head{flex-wrap:wrap}.mc-add-btn{min-height:40px}}
 /* Touch screens: give small controls a comfortable tap size (≥40px). */
 @media (pointer: coarse), (max-width: 560px){
   .mc-link-btn{display:inline-flex;align-items:center;min-height:40px;padding:4px 0}
@@ -1208,7 +1278,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 <!-- ── Tab nav ────────────────────────────────────────────────── -->
 <nav class="tab-nav" role="tablist">
   <button class="tab-btn" data-tab="dashboard" onclick="showTab('dashboard')" role="tab">
-    Dashboard
+    <span class="nav-full">Dashboard</span><span class="nav-simple">Home</span>
   </button>
   <button class="tab-btn active" data-tab="discovery" onclick="showTab('discovery')" role="tab">
     Career Discovery
@@ -1232,9 +1302,13 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
     My Courses
   </button>
   <button class="tab-btn" data-tab="subscribe" onclick="showTab('subscribe')" role="tab">
-    <span class="tab-label-student-or-default">My Career Pathway</span><span class="tab-label-advisor-teacher" style="display:none">Account &amp; Plans</span>
+    <span class="tab-label-student-or-default"><span class="nav-full">My Career Pathway</span><span class="nav-simple">My Career Plan</span></span><span class="tab-label-advisor-teacher" style="display:none">Account &amp; Plans</span>
   </button>
 </nav>
+<!-- Students and visitors: ACIA™ stays one tap away on every screen. -->
+<button type="button" class="acia-fab" onclick="showTab('chat')" aria-label="Ask ACIA™, your career mentor">
+  <span aria-hidden="true">&#128172;</span> Ask ACIA&trade;
+</button>
 
 <!-- ═══════════════════════════════════════════════════════════════
      TAB 1 — CAREER DISCOVERY
@@ -1255,7 +1329,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
     <p class="dash-sub">Discover your possibilities. Build your future.</p>
 
     <!-- First-time student state -->
-    <div class="mc-summary-card" id="mcDashCard"></div>
+    <div class="mc-summary-card mc-dash-hero" id="mcDashCard"></div>
     <div class="dash-student-new" id="dashStudentNew">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px">
         <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px">Welcome! Where would you like to begin?</div>
@@ -1878,6 +1952,12 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
      TAB 2 — EXPLORE CAREERS
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel" id="tab-explore" role="tabpanel">
+  <div class="ctx-only ctx-strip" aria-label="More ways to explore">
+    <button type="button" class="ctx-link" onclick="showTab('discovery')"><strong>Discover by interests</strong><span>Photo and interest-based discovery</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('compare')"><strong>Compare careers</strong><span>Salary, training and entry routes side by side</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('education')"><strong>Education &amp; training</strong><span>Programs and schools</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('courses')"><strong>My Courses</strong><span>See which careers your courses open</span></button>
+  </div>
 
   <div class="hero">
     <div class="hero-label">AACP™ Career Navigator</div>
@@ -2427,6 +2507,12 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 </main>
 
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
+  <div class="ctx-only ctx-strip" aria-label="Plan tools">
+    <button type="button" class="ctx-link" onclick="showTab('courses')"><strong>My Courses</strong><span>Courses, careers and admission requirements</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('scholarships')"><strong>Scholarships &amp; funding</strong><span>Grants, bursaries and awards</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('education')"><strong>Education &amp; training</strong><span>Programs and schools</span></button>
+    <button type="button" class="ctx-link" onclick="showTab('compare')"><strong>Compare careers</strong><span>Side by side</span></button>
+  </div>
 
   <!-- ── My Career Pathway Dashboard ─────────────────────────── -->
   <!-- ACIA™ panel: Pathway -->
@@ -3187,7 +3273,30 @@ function showTab(id) {
   if (id === 'dashboard' && navigatorRole === 'student') renderStudentDashboard();
   if (id === 'courses' && typeof mcInit === 'function') mcInit();
   if ((id === 'dashboard' || id === 'subscribe') && typeof mcRenderSummaryCards === 'function') mcRenderSummaryCards();
+  applyNavContext(id);
   applyFreemiumGates();
+}
+
+// ── Simplified navigation context (students and visitors) ─────────
+// Secondary tools aren't primary tabs in the simple nav: highlight the
+// primary tab they belong to and offer a "back" link to it.
+var NAV_PARENT = { discovery: 'explore', compare: 'explore', education: 'explore', scholarships: 'subscribe' };
+var NAV_PRIMARY = ['dashboard', 'courses', 'explore', 'subscribe'];
+var NAV_NAMES = { dashboard: 'Home', courses: 'My Courses', explore: 'Explore Careers', subscribe: 'My Career Plan' };
+var navLastPrimary = 'dashboard';
+// Same rule as the CSS: everyone except teachers and advisors.
+function isSimpleNav() { var r = document.body.getAttribute('data-role'); return r !== 'teacher' && r !== 'advisor'; }
+function applyNavContext(id) {
+  document.body.setAttribute('data-active-tab', id);
+  if (NAV_PRIMARY.indexOf(id) >= 0) navLastPrimary = id;
+  if (!isSimpleNav()) return;
+  var parent = NAV_PARENT[id] || (id === 'chat' ? navLastPrimary : null);
+  if (NAV_PARENT[id]) { var pb = document.querySelector('.tab-btn[data-tab="' + NAV_PARENT[id] + '"]'); if (pb) pb.classList.add('active'); }
+  var panel = document.getElementById('tab-' + id);
+  if (!panel || !parent) return;
+  var bar = panel.querySelector(':scope > .ctx-back');
+  if (!bar) { bar = document.createElement('div'); bar.className = 'ctx-only ctx-back'; panel.insertBefore(bar, panel.firstChild); }
+  bar.innerHTML = '<button type="button" onclick="showTab(\'' + parent + '\')">← Back to ' + NAV_NAMES[parent] + '</button>';
 }
 
 function applyFreemiumGates() {
@@ -3268,12 +3377,12 @@ function renderStudentDashboard() {
     if (list) {
       list.innerHTML = saved.slice(0, 3).map(function(s) {
         var p = CAREER_PATHWAYS && CAREER_PATHWAYS[s.id];
-        var title = p ? p.title : s.id;
+        var title = p ? p.title : (s.title || s.id);
         var icon = p ? '' : '';
         return '<div class="dash-pathway-row"><div class="dash-pathway-icon">' + icon + '</div>'
           + '<div class="dash-pathway-info"><div class="dash-pathway-title">' + title + '</div>'
           + '<div class="dash-pathway-meta">Saved career &middot; Tap to view</div></div>'
-          + '<button onclick="openPathway(\'' + s.id + '\');showTab(\'explore\')" style="font-size:12px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--crimson);font-weight:600">View</button>'
+          + '<button onclick="openSavedCareer(\'' + s.id + '\')" style="font-size:12px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--crimson);font-weight:600">View</button>'
           + '</div>';
       }).join('');
       if (saved.length > 3) {
@@ -6875,7 +6984,8 @@ var SECTOR_ICONS = {
 
 function getPathwaySector(id) {
   var p = PATHWAYS.find(function(x){ return x.id === id; });
-  return p ? p.sector : 'flight_ops';
+  // Non-aviation careers (saved from My Courses) have no aviation sector; callers fall back to the saved sector name.
+  return p ? p.sector : null;
 }
 
 function renderPathwaySavedList(saved) {
@@ -6886,13 +6996,22 @@ function renderPathwaySavedList(saved) {
     var sector = getPathwaySector(s.id);
     var icon = '';
     var statusClass = s.status === 'Primary goal' ? 'primary' : 'exploring';
-    return '<div class="pathway-saved-item" onclick="openPathway(\'' + s.id + '\');showTab(\'explore\')">'
+    return '<div class="pathway-saved-item" onclick="openSavedCareer(\'' + s.id + '\')">'
       + '<div class="pathway-saved-icon">' + icon + '</div>'
       + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--fg)">' + s.title + '</div><div style="font-size:11px;color:var(--fg3);margin-top:1px">' + s.sector + '</div></div>'
       + '<span class="pathway-saved-status ' + statusClass + '">' + s.status + '</span>'
       + '<button onclick="event.stopPropagation();unsavePathway(\'' + s.id + '\')" title="Remove" style="background:none;border:none;color:var(--fg3);font-size:12px;cursor:pointer;padding:2px 5px;opacity:.4;transition:opacity .12s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">&times;</button>'
       + '</div>';
   }).join('');
+}
+
+// Aviation careers open their Explore Careers profile; other careers
+// (engineering, healthcare, trades) open their verified routes in My Courses.
+function openSavedCareer(id) {
+  var isAviation = (typeof PATHWAYS !== 'undefined' ? PATHWAYS : []).some(function (p) { return p.id === id; });
+  if (isAviation) { openPathway(id); showTab('explore'); return; }
+  showTab('courses');
+  if (typeof mcEnsureLoaded === 'function') mcEnsureLoaded().then(function () { mcShowRoutes(id); });
 }
 
 function unsavePathway(id) {
@@ -7164,6 +7283,30 @@ var MC_EXTRA_CAREERS = [
   { id: 'heavy_equipment_tech', sector: 'trades', title: 'Heavy Equipment Technician', blurb: 'Maintain construction, farm and mining equipment; 4-period apprenticeship.' }
 ];
 
+// ── Salary, outlook and training cost for non-aviation careers ────
+// Read on ALIS occupation profiles (2023 Alberta Wage and Salary Survey;
+// 2024–2026 Alberta Short-Term Employment Forecast) and institution fee
+// pages on MC_CHECKED. Where no figure was published, we link instead.
+// Aviation careers use the salary/outlook/cost data already on this page.
+var MC_ALIS = 'https://alis.alberta.ca/occinfo/occupations-in-alberta/occupation-profiles/';
+var MC_TRADE_TUITION = { text: 'Each school sets its own apprentice tuition and fees — check the school you’ll attend.', url: 'https://tradesecrets.alberta.ca/apprentice-services/classroom-instruction/about-classroom-instruction/pay-for-classes/' };
+var MC_CAREER_FACTS = {
+  eng_professional: { profile: 'mechanical-engineer', occ: 'Mechanical engineer', salary: '$103,650 average salary ($50.41/hr)', outlook: 'Cold', employed: '8,685',
+    cost: [ { text: 'University of Calgary Schulich School of Engineering: $963.03 per 3-unit course (domestic, 2026–27).', url: 'https://calendar.ucalgary.ca/pages/b15b7e973a234197aded0daf61f34b9a' },
+            { text: 'University of Alberta: estimate costs with the university’s cost calculator.', url: 'https://costcalculator.registrar.ualberta.ca/costcalculator/' } ] },
+  eng_technologist: { profile: 'mechanical-engineering-technologist', occ: 'Mechanical engineering technologist', salary: '$89,221 average salary ($43.18/hr)', outlook: 'Balanced', employed: '3,125',
+    cost: [ { text: 'SAIT: $231 per credit (domestic, 2026/27).', url: 'https://www.sait.ca/tuition-and-financial-aid/tuition-and-fees/domestic-fee-table' } ] },
+  registered_nurse: { profile: 'registered-nurse', occ: 'Registered nurse', salary: '$73,823 average salary ($47.38/hr)', outlook: 'Hot', employed: '43,880',
+    cost: [ { text: 'Mount Royal’s Bachelor of Nursing has its own tuition structure — see Mount Royal’s costs of education.', url: 'https://www.mtroyal.ca/Admission/FinancingYourEducation/CostsofEducation/index.htm' } ] },
+  practical_nurse: { profile: 'licensed-practical-nurse', occ: 'Licensed practical nurse', salary: '$51,571 average salary ($31.91/hr)', outlook: 'Hot', employed: '9,800',
+    cost: [ { text: 'NorQuest College lists estimated program costs (full course load).', url: 'https://norquest.ca/programs-and-courses/programs/practical-nurse/costs-and-courses/' } ] },
+  electrician: { profile: 'electrician', occ: 'Electrician', salary: '$81,919 average salary ($38.41/hr)', outlook: 'Hot', employed: '16,425', cost: [MC_TRADE_TUITION] },
+  welder: { profile: 'welder', occ: 'Welder', salary: '$79,452 average salary ($37.72/hr)', outlook: 'Hot', employed: '17,545', cost: [MC_TRADE_TUITION] },
+  millwright: { profile: 'industrial-mechanic-millwright', occ: 'Industrial mechanic (millwright)', salary: '$80,202 average salary ($38.86/hr)', outlook: 'Hot', employed: '8,375', cost: [MC_TRADE_TUITION] },
+  auto_tech: { profile: 'automotive-service-technician', occ: 'Automotive service technician', salary: '$77,840 average salary ($36.87/hr)', outlook: 'Hot', employed: '19,320', cost: [MC_TRADE_TUITION] },
+  heavy_equipment_tech: { profile: 'heavy-equipment-technician', occ: 'Heavy-duty equipment mechanic (NOC 72401)', salary: '$87,539 average salary ($41.57/hr)', outlook: 'Hot', employed: '13,280', cost: [MC_TRADE_TUITION] }
+};
+
 // ── Interests & strengths (ideas to explore — not predictions) ────
 var MC_STRENGTHS = [
   { id: 'math', label: 'Math & problem-solving' },
@@ -7231,6 +7374,7 @@ var MC_TRADE_CHECK_NOTE = 'Trade Secrets lists these minimums. It doesn’t say 
 function mcTrade(id, careerId, name, reqs, periods) {
   return { id: id, type: 'apprenticeship', name: name + ' apprenticeship', inst: 'Alberta Apprenticeship and Industry Training', careers: [careerId],
     routes: [{ reqs: reqs }], notes: [periods + ' periods of classroom instruction plus on-the-job training.', MC_TRADE_CHECK_NOTE],
+    recommended: [{ text: 'For the Registered Apprenticeship Program in high school: HCS3010 Workplace Safety Practices and Career Internship 10 are recommended (HCS3000 is required for RAP).', url: MC_RAP.url }],
     alts: MC_TRADE_ALTS, url: 'https://tradesecrets.alberta.ca/trades-in-alberta/profiles/' + id.split('_').pop() + '/' };
 }
 var MC_TRADE_20 = [ { any: ['ela20_2'], checkHigher: true }, { any: ['math20_3'], checkHigher: true }, { any: ['sci10'], checkHigher: true } ];
@@ -7306,6 +7450,7 @@ var MC_PROGRAMS = [
       { any: ['math20_1', 'math20_2', 'math30_1', 'math30_2'], minText: '60% Math 20-1, 70% Math 20-2, 50% Math 30-1 or 60% Math 30-2' },
       { any: ['bio30'], min: 60 } ] }],
     notes: ['Requirements shown are for the January 2027 intake.'],
+    recommended: [{ text: 'NorQuest recommends (but doesn’t require) completing some program courses before entry: ANPH 1001, ANPH 1002, ENGL 2550, HEED 1000, PSYC 1060 and SOCI 1000.' }],
     alts: [{ text: 'Applicants can meet academic requirements through a free Academic Assessment after applying.' }],
     url: 'https://norquest.ca/programs-and-courses/programs/practical-nurse/program-requirements' },
 
@@ -7412,7 +7557,8 @@ async function mcInit() {
   if (!mcStageChosen || !mcStage) mcStage = mcDefaultStage();
   mcRender();
 }
-function mcDefaultStage() { return (mcPlan.grade !== null && mcPlan.grade >= 10) ? 2 : 1; }
+// Both flows start at step 1 (courses for Grades 10–12, interests for Grades 7–9).
+function mcDefaultStage() { return 1; }
 function mcStatus(msg) { var el = document.getElementById('mcSaveStatus'); if (el) el.textContent = msg; }
 
 function mcSave() {
@@ -7433,7 +7579,12 @@ function mcSave() {
 }
 
 function mcSet(key, value) {
-  if (key === 'grade') { mcPlan.grade = value ? Number(value) : null; if (!mcStageChosen) mcStage = mcDefaultStage(); }
+  if (key === 'grade') {
+    var wasCourseFirst = mcCourseFirst();
+    mcPlan.grade = value ? Number(value) : null;
+    // Step numbers mean different things in the two flows, so restart at step 1 when the flow changes.
+    if (!mcStageChosen || wasCourseFirst !== mcCourseFirst()) mcStage = mcDefaultStage();
+  }
   if (key === 'province') mcPlan.province = 'AB';
   mcSave(); mcRender();
 }
@@ -7519,22 +7670,31 @@ function mcRender() {
   var mode = document.getElementById('mcModeNote');
   if (mode) mode.textContent = mcPlan.grade === null ? 'Choose your grade to tailor the plan.' :
     mcExploring() ? 'Grades 7–9: start by exploring careers and planning which high school courses keep your options open. You can still check requirements any time.' :
-    'Grades 10–12: check your courses against verified admission and entrance requirements. You can go back to exploring any time.';
+    'Grades 10–12: start with your courses — see which careers they open and check them against verified admission and entrance requirements.';
 
-  document.querySelectorAll('#tab-courses .mc-stage-btn').forEach(function (b) { b.setAttribute('aria-selected', String(Number(b.dataset.stage) === mcStage)); });
+  var courseFirst = mcCourseFirst(), labels = MC_STAGE_LABELS[courseFirst ? 'course' : 'explore'];
+  document.querySelectorAll('#tab-courses .mc-stage-btn').forEach(function (b) {
+    var n = Number(b.dataset.stage);
+    b.setAttribute('aria-selected', String(n === mcStage));
+    var l = b.querySelector('.mc-long'), s = b.querySelector('.mc-short');
+    if (l) l.textContent = labels[n - 1][0]; if (s) s.textContent = labels[n - 1][1];
+  });
   [1, 2, 3].forEach(function (n) { var s = document.getElementById('mcStage' + n); if (s) s.classList.toggle('active', n === mcStage); });
 
-  var progs = mcSelectedPrograms();
-  document.getElementById('mcStageMeta1').textContent = mcPlan.careers.length ? mcPlan.careers.length + ' career' + (mcPlan.careers.length > 1 ? 's' : '') + ' chosen' : 'Start here';
-  document.getElementById('mcStageMeta2').textContent = mcMarkedCount() ? mcMarkedCount() + ' course' + (mcMarkedCount() > 1 ? 's' : '') + ' marked' : (mcExploring() ? 'Plan ahead' : 'Mark your courses');
+  var progs = mcSelectedPrograms(), marked = mcMarkedCount(), nc = mcPlan.careers.length;
+  var careersMeta = nc ? nc + ' career' + (nc > 1 ? 's' : '') + ' chosen' : (courseFirst ? 'See what opens' : 'Start here');
+  var coursesMeta = marked ? marked + ' course' + (marked > 1 ? 's' : '') + ' marked' : (courseFirst ? 'Start here' : 'Plan ahead');
+  document.getElementById('mcStageMeta1').textContent = courseFirst ? coursesMeta : careersMeta;
+  document.getElementById('mcStageMeta2').textContent = courseFirst ? careersMeta : coursesMeta;
   document.getElementById('mcStageMeta3').textContent = progs.length ? progs.length + ' verified route' + (progs.length > 1 ? 's' : '') : 'Routes after high school';
 
-  mcRenderStage1(); mcRenderStage2(); mcRenderStage3();
+  mcRenderStages();
 
   var nav = document.getElementById('mcStageNav');
-  var prev = mcStage > 1 ? '<button class="btn-secondary" type="button" onclick="mcGoStage(' + (mcStage - 1) + ', true)">← ' + ['', 'Interests & strengths', 'High school courses'][mcStage - 1] + '</button>' : '<span></span>';
-  // Step 1's course preview has its own "See the full course plan" button once careers are chosen.
-  var next = (mcStage < 3 && !(mcStage === 1 && mcPlan.careers.length)) ? '<button class="btn-primary" type="button" onclick="mcGoStage(' + (mcStage + 1) + ', true)">' + ['', 'High school courses', 'Education & career pathways'][mcStage] + ' →</button>' : '';
+  var prev = mcStage > 1 ? '<button class="btn-secondary" type="button" onclick="mcGoStage(' + (mcStage - 1) + ', true)">← ' + mcEsc(labels[mcStage - 2][0]) + '</button>' : '<span></span>';
+  // The careers step's preview and course-first step 1 have their own "next" buttons.
+  var ownNext = (mcStage === mcCareerStep() && nc) || (courseFirst && mcStage === 1);
+  var next = (mcStage < 3 && !ownNext) ? '<button class="btn-primary" type="button" onclick="mcGoStage(' + (mcStage + 1) + ', true)">' + mcEsc(labels[mcStage][0]) + ' →</button>' : '';
   nav.innerHTML = prev + next;
 }
 
@@ -7542,8 +7702,10 @@ function mcSection(title, body, hint) {
   return '<section class="mc-step"><h3 class="mc-step-title">' + title + '</h3>' + (hint ? '<p class="mc-hint">' + hint + '</p>' : '') + body + '</section>';
 }
 
-// Stage 1 — Interests & strengths
-function mcRenderStage1() {
+// Interests, suggestions, career list and preview. In the exploration flow
+// (Grades 7–9) this is step 1; in the course-first flow (Grades 10–12) it is
+// step 2, led by careers matched to the student's courses, with interests optional.
+function mcCareersHtml(courseFirst) {
   var html = '';
   // From the rest of Career Navigator
   var saved = (typeof loadPathway === 'function' ? (loadPathway().saved || []) : []).map(function (s) { return s.id; })
@@ -7571,6 +7733,12 @@ function mcRenderStage1() {
     'Your answers help suggest careers to explore. Neither answer rules anything out — you can explore any career you like.');
 
   html += mcSection('Suggested for me', mcIdeasHtml());
+  if (courseFirst) {
+    var hasAnswers = mcPlan.interests.length || mcPlan.strengths.length;
+    html = mcSection('Careers my courses open', mcCourseResultsHtml(),
+        'Based on the courses you marked in step 1 and each program’s verified admission requirements. You can explore any career, whatever your courses.') +
+      '<details class="mc-optional"' + (hasAnswers ? ' open' : '') + '><summary>Add what I enjoy and am good at <span class="mc-req-sub">(optional)</span></summary>' + html + '</details>';
+  }
 
   var anySuggested = mcShownSuggestions().length > 0;
   html += mcSection('Explore every career',
@@ -7584,7 +7752,39 @@ function mcRenderStage1() {
     'Every career is open to you, whether or not it was suggested.' + (anySuggested ? ' ★ marks the careers suggested above.' : ''));
 
   html += '<section class="mc-step mc-preview" id="mcPreview">' + mcPreviewHtml() + '</section>';
-  document.getElementById('mcStage1').innerHTML = html;
+  return html;
+}
+
+// ── Stage layout by grade ─────────────────────────────────────────
+// Grades 10–12 (course-first): 1 My courses → 2 Careers → 3 Pathways.
+// Grades 7–9 and no grade yet (exploration-first): 1 Interests & careers → 2 Plan ahead → 3 Pathways.
+function mcCourseFirst() { return mcPlan.grade !== null && mcPlan.grade >= 10; }
+function mcCareerStep() { return mcCourseFirst() ? 2 : 1; }
+var MC_STAGE_LABELS = {
+  course: [['My courses', 'Courses'], ['Careers my courses open', 'Careers'], ['Education & career pathways', 'Pathways']],
+  explore: [['Interests & careers', 'Interests'], ['High school courses', 'Courses'], ['Education & career pathways', 'Pathways']]
+};
+function mcRenderStages() {
+  var courseFirst = mcCourseFirst();
+  if (courseFirst) {
+    document.getElementById('mcStage1').innerHTML = mcCoursesFirstHtml();
+    document.getElementById('mcStage2').innerHTML = mcCareersHtml(true) +
+      (mcPlan.careers.length ? mcSection('What my careers need by Grade 12', mcSubjectPlanHtml()) : '');
+  } else {
+    document.getElementById('mcStage1').innerHTML = mcCareersHtml(false);
+    mcRenderStage2();
+  }
+  mcRenderStage3();
+}
+// Course-first step 1: mark courses, check the diploma, then see careers.
+function mcCoursesFirstHtml() {
+  var n = mcMarkedCount(), open = n ? mcCourseResults().filter(function (r) { return r.group === 'open'; }).length : 0;
+  return mcSection('My high school courses', mcCoursesHtml(), 'Mark the Alberta courses you’ve taken and the ones you’re planning or considering.') +
+    '<section class="mc-step mc-next-card"><div><div class="mc-q-title">' + (n ? 'Your ' + n + ' course' + (n > 1 ? 's' : '') + ' already meet the course requirements for ' + open + ' career' + (open === 1 ? '' : 's') + '.' : 'Mark a few courses to see which careers they open.') + '</div>' +
+      '<p class="mc-hint" style="margin:4px 0 0">See every career and which courses each one still needs.</p></div>' +
+      '<button class="btn-primary" type="button" onclick="mcGoStage(2, true)">See careers my courses open →</button></section>' +
+    mcSection('Alberta High School Diploma', mcDiplomaHtml()) +
+    mcSection('My course-planning journey', mcJourneyHtml());
 }
 
 var mcSectorFilter = 'all';
@@ -7592,7 +7792,7 @@ var mcShowAllSuggestions = false;
 var mcCareerQuery = '';
 var mcExpandedSectors = {};
 var MC_LIST_PREVIEW = 5;
-function mcSetSectorFilter(id) { mcSectorFilter = id; mcRenderCareerList(); document.querySelectorAll('#mcStage1 .mc-filter .mc-chip').forEach(function (b, i) { b.setAttribute('aria-pressed', String((['all'].concat(MC_SECTORS.map(function (s) { return s.id; })))[i] === id)); }); }
+function mcSetSectorFilter(id) { mcSectorFilter = id; mcRenderCareerList(); document.querySelectorAll('#tab-courses .mc-filter .mc-chip').forEach(function (b, i) { b.setAttribute('aria-pressed', String((['all'].concat(MC_SECTORS.map(function (s) { return s.id; })))[i] === id)); }); }
 // Typing only re-renders the list, so the search box keeps focus.
 function mcSetCareerQuery(q) { mcCareerQuery = q; mcRenderCareerList(); }
 function mcExpandSector(id) { mcExpandedSectors[id] = !mcExpandedSectors[id]; mcRenderCareerList(); }
@@ -7673,30 +7873,153 @@ function mcCareerPreview(cid) {
 }
 function mcJoinWords(w) { return w.length < 2 ? w.join('') : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1]; }
 function mcPreviewHtml() {
+  var courseFirst = mcCourseFirst();
+  var title = courseFirst ? 'Careers I’m considering' : 'Your interests could connect to…';
   if (!mcPlan.careers.length) {
-    return '<h3 class="mc-step-title">Your interests could connect to…</h3><p class="mc-empty">Choose a career above to preview the high school subjects it may need.</p>';
+    return '<h3 class="mc-step-title">' + title + '</h3><p class="mc-empty">Choose a career above to preview the high school subjects it needs for admission.</p>';
   }
   var rows = mcPlan.careers.map(function (cid) {
     var c = mcCareer(cid), p = mcCareerPreview(cid), line, detail = '';
     if (p.kind === 'subjects') {
-      line = 'Explore ' + mcJoinWords(p.words) + '.';
+      line = 'Admission requires ' + mcJoinWords(p.words) + '.';
       detail = 'e.g. ' + p.courses.join(', ') + ' — ' + p.progs.map(function (x) { return x.inst; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ');
     } else if (p.kind === 'diploma') line = 'No specific courses required — finish your high school diploma.';
     else if (p.kind === 'free') line = 'No high school courses required.';
     else line = 'We haven’t verified an Alberta route yet — ask your counsellor.';
     var visual = '<svg class="mc-preview-icon" viewBox="0 0 24 24" aria-hidden="true">' + (MC_SECTOR_ICONS[c.sector] || '') + '</svg>';
-    var save = (c.sector === 'aviation' && typeof toggleSavePathway === 'function') ?
-      '<button type="button" class="mc-link-btn" onclick="mcSaveToPathway(\'' + cid + '\')">' + (typeof isPathwaySaved === 'function' && isPathwaySaved(cid) ? '✓ In My Career Pathway' : 'Save to My Career Pathway') + '</button>' : '';
     return '<div class="mc-preview-row">' + visual +
       '<div class="mc-preview-text"><div class="mc-preview-title">' + mcEsc(c.title) + '</div><div class="mc-preview-line">' + mcEsc(line) + '</div>' +
-      (detail ? '<div class="mc-preview-detail">' + mcEsc(detail) + '</div>' : '') + save + '</div>' +
+      (detail ? '<div class="mc-preview-detail">' + mcEsc(detail) + '</div>' : '') + mcCareerActionsHtml(cid, 'preview') + '</div>' +
       '<button type="button" class="mc-preview-remove" aria-label="Remove ' + mcEsc(c.title) + '" onclick="mcToggleCareer(\'' + cid + '\')">×</button></div>';
   }).join('');
-  return '<h3 class="mc-step-title">Your interests could connect to…</h3>' + rows +
+  return '<h3 class="mc-step-title">' + title + '</h3>' + rows +
     '<p class="mc-note">These are exploration suggestions, not admission or eligibility decisions. Subjects come from each program’s verified main admission route.</p>' +
-    '<div class="mc-actions"><button class="btn-primary" type="button" onclick="mcGoStage(2, true)">See the full course plan →</button></div>';
+    '<div class="mc-actions">' + (courseFirst
+      ? '<button class="btn-primary" type="button" onclick="mcGoStage(3, true)">See routes after high school →</button>'
+      : '<button class="btn-primary" type="button" onclick="mcGoStage(2, true)">See the full course plan →</button>') + '</div>';
 }
-function mcToggleAllSuggestions() { mcShowAllSuggestions = !mcShowAllSuggestions; mcRenderStage1(); }
+
+// ── Course → career matching (course-first flow) ─────────────────
+// For each career, find its verified route with the fewest missing courses
+// given what the student has marked. Careers without a verified route are
+// left out of matching but stay explorable in the full list.
+function mcCourseResults() {
+  var suggested = mcSuggestions().map(function (s) { return s.id; });
+  return mcCareerList().map(function (c) {
+    var progs = mcProgramsFor(c.id);
+    if (!progs.length) return null;
+    var hasCourses = progs.some(function (p) { return p.routes.some(function (r) { return r.reqs.some(function (q) { return !q.diploma; }); }); });
+    if (!hasCourses) return { id: c.id, sector: c.sector, group: 'nocourses', prog: progs[0], missing: [], suggested: suggested.indexOf(c.id) >= 0 };
+    var best = null;
+    progs.forEach(function (p) {
+      p.routes.forEach(function (r) {
+        var s = mcRouteSummary(r);
+        if (!best || s.gaps < best.s.gaps || (s.gaps === best.s.gaps && s.checks < best.s.checks)) best = { p: p, r: r, s: s };
+      });
+    });
+    var missing = best.r.reqs.filter(function (q, i) { return best.s.states[i] === 'gap'; });
+    var group = best.s.gaps === 0 ? 'open' : best.s.gaps <= 2 ? 'close' : 'more';
+    return { id: c.id, sector: c.sector, group: group, prog: best.p, route: best.r, s: best.s, missing: missing, suggested: suggested.indexOf(c.id) >= 0 };
+  }).filter(Boolean);
+}
+var MC_RESULT_GROUPS = [
+  { id: 'open', title: 'Your courses cover the requirements', hint: 'Every required course is taken or planned (some may need a check with the source).' },
+  { id: 'close', title: 'One or two courses away', hint: 'Add these courses to keep the career open.' },
+  { id: 'nocourses', title: 'No specific high school courses required', hint: 'Open to you with a high school diploma or by age, as stated by the source.' },
+  { id: 'more', title: 'Needs more planning', hint: 'Three or more required courses aren’t in your plan yet — still worth exploring.' }
+];
+var mcResultsExpanded = {};
+function mcToggleResultGroup(id) { mcResultsExpanded[id] = !mcResultsExpanded[id]; mcRenderStages(); }
+function mcCourseResultsHtml() {
+  if (!mcMarkedCount()) {
+    return '<p class="mc-empty">Mark your current or planned courses in step 1 to see which careers they open.</p>' +
+      '<div class="mc-actions" style="margin-top:8px"><button class="btn-primary" type="button" onclick="mcGoStage(1, true)">Mark my courses</button></div>';
+  }
+  var results = mcCourseResults();
+  // Suggested (interest-matched) careers first within each group.
+  results.sort(function (a, b) { return (b.suggested ? 1 : 0) - (a.suggested ? 1 : 0) || mcCareerTitle(a.id).localeCompare(mcCareerTitle(b.id)); });
+  return MC_RESULT_GROUPS.map(function (g) {
+    var items = results.filter(function (r) { return r.group === g.id; });
+    if (!items.length) return '';
+    var limit = mcResultsExpanded[g.id] ? items.length : 4;
+    return '<div class="mc-result-group"><div class="mc-sector-title">' + mcEsc(g.title) + ' <span class="mc-sector-count">' + items.length + '</span></div>' +
+      '<p class="mc-note" style="margin:0 0 8px">' + mcEsc(g.hint) + '</p>' +
+      items.slice(0, limit).map(mcResultCardHtml).join('') +
+      (items.length > 4 ? '<button type="button" class="mc-link-btn" onclick="mcToggleResultGroup(\'' + g.id + '\')">' + (mcResultsExpanded[g.id] ? 'Show fewer' : 'Show all ' + items.length) + '</button>' : '') + '</div>';
+  }).join('') +
+  '<p class="mc-note">Careers we haven’t verified an Alberta route for yet are still in the full list below.</p>';
+}
+function mcResultCardHtml(r) {
+  var c = mcCareer(r.id), on = mcPlan.careers.indexOf(r.id) >= 0, status;
+  if (r.group === 'nocourses') status = mcCareerPreview(r.id).kind === 'free' ? 'No high school courses required' : 'High school diploma (or equivalency)';
+  else if (r.group === 'open') status = r.s.checks ? 'Covered — ' + r.s.checks + ' course' + (r.s.checks > 1 ? 's' : '') + ' to check with the source' : (r.s.plans ? 'Covered by your taken and planned courses' : 'Covered by courses you’ve taken');
+  else status = 'Still needs: ' + r.missing.map(function (q) { return q.any.map(mcShortCourse).join(' or '); }).join(', ');
+  return '<div class="mc-result' + (on ? ' on' : '') + '">' +
+    '<div class="mc-result-head"><svg class="mc-preview-icon" viewBox="0 0 24 24" aria-hidden="true">' + (MC_SECTOR_ICONS[c.sector] || '') + '</svg>' +
+      '<div class="mc-result-text"><div class="mc-result-title">' + (r.suggested ? '<span class="mc-star" aria-hidden="true">★</span> ' : '') + mcEsc(c.title) + (r.suggested ? '<span class="mc-sr"> (matches your interests)</span>' : '') + '</div>' +
+      '<div class="mc-result-status ' + r.group + '">' + mcEsc(status) + '</div>' +
+      '<div class="mc-preview-detail">' + mcEsc(r.prog.inst + ' — ' + r.prog.name) + ' · ' + mcEsc(MC_TYPES[r.prog.type]) + '</div></div>' +
+      '<button type="button" class="mc-add-btn" aria-pressed="' + on + '" onclick="mcToggleCareer(\'' + r.id + '\')">' + (on ? '✓ Considering' : '+ Consider') + '</button></div>' +
+    mcCareerActionsHtml(r.id, 'result') + '</div>';
+}
+
+// ── Career facts and actions (shared by results and the preview) ──
+var mcFactsOpen = {};
+function mcToggleFacts(cid) { mcFactsOpen[cid] = !mcFactsOpen[cid]; mcRenderStages(); }
+function mcMoney(n) { return '$' + Number(n).toLocaleString('en-CA'); }
+function mcCareerFacts(cid) {
+  var f = MC_CAREER_FACTS[cid];
+  if (f) {
+    var src = { text: 'ALIS — ' + f.occ, url: MC_ALIS + f.profile + '/' };
+    return { salary: { text: f.salary + ' in Alberta', note: '2023 Alberta Wage and Salary Survey', src: src },
+      outlook: { text: f.outlook + ' (ALIS 2024–2026 forecast)', note: f.employed + ' employed in Alberta', src: src },
+      cost: f.cost };
+  }
+  var p = (typeof PATHWAYS !== 'undefined' ? PATHWAYS : []).filter(function (x) { return x.id === cid; })[0];
+  var cmp = (typeof COMPARE_CAREERS !== 'undefined' ? COMPARE_CAREERS : []).filter(function (x) { return x.id === cid; })[0];
+  if (!p && !cmp) return null;
+  return {
+    salary: p && p.salary ? { text: p.salary.low + ' – ' + p.salary.high, note: p.salary.note } : null,
+    outlook: cmp && cmp.jobDemand ? { text: cmp.jobDemand, note: cmp.demand_sources ? 'Source: ' + cmp.demand_sources : '' } : null,
+    cost: cmp && cmp.trainingCost ? [{ text: mcMoney(cmp.trainingCost.low) + ' – ' + mcMoney(cmp.trainingCost.high) + ' training. ' + (cmp.trainingCost.note || '') }] : null
+  };
+}
+function mcFactsHtml(cid) {
+  var f = mcCareerFacts(cid);
+  if (!f) return '<div class="mc-facts"><p class="mc-note">Salary and outlook data isn’t available for this career yet.</p></div>';
+  function row(label, item) {
+    if (!item) return '<div class="mc-fact"><span class="mc-fact-label">' + label + '</span><span class="mc-req-sub">Not available yet</span></div>';
+    return '<div class="mc-fact"><span class="mc-fact-label">' + label + '</span><span>' + mcEsc(item.text) +
+      (item.note ? '<span class="mc-fact-note">' + mcEsc(item.note) + '</span>' : '') +
+      (item.src ? '<span class="mc-fact-note"><a href="' + mcEsc(item.src.url) + '" target="_blank" rel="noopener">' + mcEsc(item.src.text) + '</a></span>' : '') + '</span></div>';
+  }
+  var cost = (f.cost || []).length ? '<div class="mc-fact"><span class="mc-fact-label">Training cost</span><span>' + f.cost.map(function (c) {
+    return mcEsc(c.text) + (c.url ? ' <a href="' + mcEsc(c.url) + '" target="_blank" rel="noopener">Source</a>' : '');
+  }).join('<br>') + '</span></div>' : row('Training cost', null);
+  return '<div class="mc-facts">' + row('Salary', f.salary) + row('Outlook', f.outlook) + cost +
+    (MC_CAREER_FACTS[cid] ? '<p class="mc-fact-note" style="margin-top:6px">Checked ' + MC_CHECKED + '.</p>' : '') + '</div>';
+}
+function mcCareerActionsHtml(cid, where) {
+  var inCompare = mcCompareIds([cid]).length > 0;
+  var saved = typeof isPathwaySaved === 'function' && isPathwaySaved(cid);
+  var html = '<div class="mc-career-actions">' +
+    '<button type="button" class="mc-link-btn" aria-expanded="' + !!mcFactsOpen[cid] + '" onclick="mcToggleFacts(\'' + cid + '\')">' + (mcFactsOpen[cid] ? 'Hide salary & outlook' : 'Salary, outlook & costs') + '</button>' +
+    (where === 'result' ? '<button type="button" class="mc-link-btn" onclick="mcShowRoutes(\'' + cid + '\')">Routes & requirements</button>' : '') +
+    (inCompare ? '<button type="button" class="mc-link-btn" onclick="mcOpenCompare([\'' + cid + '\'])">Compare</button>' : '') +
+    '<button type="button" class="mc-link-btn" onclick="mcAskAcia(\'career\', \'' + cid + '\')">Ask ACIA™</button>' +
+    '<button type="button" class="mc-link-btn" onclick="mcSaveToPathway(\'' + cid + '\')">' + (saved ? '✓ In My Career Plan' : 'Save to My Career Plan') + '</button>' +
+    '</div>';
+  return html + (mcFactsOpen[cid] ? mcFactsHtml(cid) : '');
+}
+function mcShowRoutes(cid) {
+  if (mcPlan.careers.indexOf(cid) < 0) { mcPlan.careers.push(cid); mcSave(); }
+  mcGoStage(3, true);
+  setTimeout(function () {
+    var el = document.querySelector('#mcStage3 [data-career="' + cid + '"]');
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - mcStickyOffset() - 12, behavior: 'smooth' });
+  }, 50);
+}
+function mcToggleAllSuggestions() { mcShowAllSuggestions = !mcShowAllSuggestions; mcRenderStages(); }
 
 // Rank every career by how well its topics match the student's answers.
 // Enjoy and good-at count equally; a topic in both counts twice.
@@ -7749,9 +8072,12 @@ function mcIdeaCard(s) {
     '<span class="mc-idea-title">' + (added ? '✓ ' : '+ ') + mcEsc(mcCareerTitle(s.id)) + '</span>' +
     '<span class="mc-idea-why">Because ' + mcEsc(why.join(' and ')) + '</span></button>';
 }
+// Saves any career (aviation or not) to My Career Plan; non-aviation careers
+// carry their industry name as the sector label.
 function mcSaveToPathway(id) {
-  var c = mcCareer(id); if (!c) return;
-  toggleSavePathway(id, c.title, c.avSector);
+  var c = mcCareer(id); if (!c || typeof toggleSavePathway !== 'function') return;
+  var sectorName = (MC_SECTORS.filter(function (s) { return s.id === c.sector; })[0] || {}).name;
+  toggleSavePathway(id, c.title, c.avSector || sectorName);
   mcRender();
 }
 
@@ -7854,7 +8180,7 @@ function mcStreamAdviceHtml() {
     tips.push('<strong>Science:</strong> Science 10, then ' + bits.join('; ') + '.');
   }
   if (!tips.length) return '';
-  return '<div class="mc-callout"><div class="mc-alts-title">To keep all your chosen careers open, plan for</div><ul class="mc-list" style="margin-bottom:0">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
+  return '<div class="mc-callout"><div class="mc-alts-title">Recommended preparation — to keep all your chosen careers open, plan for</div><p class="mc-note" style="margin:0 0 6px">This is planning advice based on the requirements above, not an admission requirement itself.</p><ul class="mc-list" style="margin-bottom:0">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
 }
 function mcJourneyHtml() {
   if (mcPlan.grade === null) return '<p class="mc-empty">Choose your grade above to see your journey year by year.</p>';
@@ -7895,18 +8221,18 @@ function mcDiplomaHtml() {
 function mcRenderStage3() {
   var html = '';
   if (!mcPlan.careers.length) {
-    html += mcSection('Routes after high school', '<p class="mc-empty">Choose careers in step 1 to see university, college, apprenticeship and training routes. <button class="mc-link-btn" type="button" onclick="mcGoStage(1, true)">Go to interests &amp; strengths</button></p>');
+    html += mcSection('Routes after high school', '<p class="mc-empty">Choose careers in step ' + mcCareerStep() + ' to see university, college, apprenticeship and training routes. <button class="mc-link-btn" type="button" onclick="mcGoStage(' + mcCareerStep() + ', true)">Choose careers</button></p>');
   } else {
     html += mcSection('Routes after high school', mcPlan.careers.map(function (cid) {
       var progs = mcProgramsFor(cid);
       var body = progs.length ? progs.map(mcProgramHtml).join('') :
         '<p class="mc-empty">We haven’t verified an Alberta route for this career yet, so we’re not showing requirements. Ask your counsellor, or explore the Education &amp; Training tab.</p>';
-      return '<div class="mc-career"><div class="mc-career-title">' + mcEsc(mcCareerTitle(cid)) + '</div>' + body + '</div>';
+      return '<div class="mc-career" data-career="' + cid + '"><div class="mc-career-title">' + mcEsc(mcCareerTitle(cid)) + '</div>' + body + mcCareerActionsHtml(cid, 'routes') + '</div>';
     }).join(''), mcNeutral() ? 'What you’ll need by the end of Grade 12. Mark courses in step 2 to see how you’re tracking.' : '');
     html += mcSection('Keep my options open', mcOptionsHtml());
   }
   html += mcSection('What if I change my mind?',
-    '<ul class="mc-list"><li><strong>If a career isn’t for you:</strong> go back to step 1 and add others — your courses carry over.</li>' +
+    '<ul class="mc-list"><li><strong>If a career isn’t for you:</strong> go back to step ' + mcCareerStep() + ' and add others — your courses carry over.</li>' +
     '<li><strong>If you miss a required course:</strong> look at the alternatives listed under each route (entrance exams, mature-applicant categories, assessments), and ask your counsellor about upgrading. Options depend on the institution.</li>' +
     '<li><strong>If you haven’t decided:</strong> keep exploring. Choosing courses that several of your careers share keeps the most doors open.</li></ul>');
   if (mcExploring() || mcPlan.activities.length) {
@@ -7921,7 +8247,7 @@ function mcRenderStage3() {
     '<div class="mc-actions" style="margin-top:0">' +
     (cmp.length ? '<button class="btn-secondary" type="button" onclick="mcOpenCompare()">' + mcEsc(cmpLabel) + '</button>' : '') +
     '<button class="btn-secondary" type="button" onclick="mcAskAcia(\'plan\')">Ask ACIA™ about my plan</button>' +
-    '<button class="btn-secondary" type="button" onclick="showTab(\'subscribe\')">Open My Career Pathway</button></div>' +
+    '<button class="btn-secondary" type="button" onclick="showTab(\'subscribe\')">Open My Career Plan</button></div>' +
     '<div class="mc-sub" style="margin-top:16px">Share my plan</div>' +
     '<p class="mc-hint">Share a summary with a parent, teacher or guidance counsellor.</p>' +
     '<div class="mc-actions" style="margin-top:0"><button class="btn-primary" type="button" onclick="mcPrintPlan()">Print / save as PDF</button>' +
@@ -7955,12 +8281,18 @@ function mcProgramHtml(prog) {
     }).join('');
     return (prog.routes.length > 1 ? '<div class="mc-route-name">' + mcEsc(r.name) + '</div>' : '') + reqs + (r.note ? '<div class="mc-note">' + mcEsc(r.note) + '</div>' : '');
   }).join('');
-  var alts = (prog.alts || []).length ? '<div class="mc-alts"><div class="mc-alts-title">Alternatives</div>' + prog.alts.map(function (a) {
-    return '<div class="mc-note">' + mcEsc(a.text) + (a.url ? ' <a href="' + mcEsc(a.url) + '" target="_blank" rel="noopener">Source</a>' : '') + '</div>';
-  }).join('') + '</div>' : '';
+  function linkList(items, title, cls) {
+    return (items || []).length ? '<div class="mc-alts ' + (cls || '') + '"><div class="mc-alts-title">' + title + '</div>' + items.map(function (a) {
+      return '<div class="mc-note">' + mcEsc(a.text) + (a.url ? ' <a href="' + mcEsc(a.url) + '" target="_blank" rel="noopener">Source</a>' : '') + '</div>';
+    }).join('') + '</div>' : '';
+  }
+  var reqTitle = prog.type === 'apprenticeship' ? 'Required to start (entrance requirements)' : prog.type === 'employer' || prog.type === 'certification' ? 'Required to apply' : 'Required for admission';
   return '<div class="mc-program"><div class="mc-program-head"><div><div class="mc-program-name">' + mcEsc(prog.name) + '</div><div class="mc-program-inst">' + mcEsc(prog.inst) + '</div></div>' +
     '<div class="mc-badges"><span class="mc-badge type">' + mcEsc(MC_TYPES[prog.type] || '') + '</span>' + badge + '</div></div>' +
-    routes + prog.notes.map(function (n) { return '<div class="mc-note">' + mcEsc(n) + '</div>'; }).join('') + alts +
+    (hasCourseReqs || prog.routes.some(function (r) { return r.reqs.length; }) ? '<div class="mc-req-heading">' + reqTitle + '</div>' : '') +
+    routes + prog.notes.map(function (n) { return '<div class="mc-note">' + mcEsc(n) + '</div>'; }).join('') +
+    linkList(prog.recommended, 'Recommended preparation (not required)', 'mc-recommended') +
+    linkList(prog.alts, 'Alternatives') +
     '<div class="mc-source">Source: <a href="' + mcEsc(prog.url) + '" target="_blank" rel="noopener">' + mcEsc(prog.inst) + '</a> · checked ' + MC_CHECKED + '</div></div>';
 }
 
@@ -8018,20 +8350,28 @@ function mcOptionsHtml() {
 }
 
 // ── Integrations ──────────────────────────────────────────────────
-function mcCompareIds() {
+function mcCompareIds(list) {
   var ids = (typeof COMPARE_CAREERS !== 'undefined' ? COMPARE_CAREERS : []).map(function (c) { return c.id; });
-  return mcPlan.careers.filter(function (c) { return ids.indexOf(c) >= 0; });
+  return (list || mcPlan.careers).filter(function (c) { return ids.indexOf(c) >= 0; });
 }
-function mcOpenCompare() {
-  var ids = mcCompareIds(); if (!ids.length) return;
+// With `first`, that career leads the comparison alongside the student's other comparable careers.
+function mcOpenCompare(first) {
+  var ids = mcCompareIds();
+  if (first) ids = mcCompareIds(first).concat(ids.filter(function (c) { return first.indexOf(c) < 0; }));
+  if (!ids.length) return;
   try { cmpSelected = ids.slice(0, navigatorPlan === 'free' ? 2 : 4); if (typeof buildCmpToggles === 'function') buildCmpToggles(); } catch (e) {}
   showTab('compare');
   if (typeof renderCompare === 'function') renderCompare();
 }
-function mcAskAcia(kind) {
+function mcAskAcia(kind, cid) {
   var careers = mcPlan.careers.map(mcCareerTitle).join(', ');
   var g = mcPlan.grade ? 'Grade ' + mcPlan.grade + ' ' : '';
-  var q = kind === 'interests'
+  var marked = Object.keys(mcPlan.courses).map(function (k) { return MC_COURSE_BY_ID[k].name; });
+  var q = kind === 'career'
+    ? 'I’m a ' + g + 'student in Alberta interested in this career: ' + mcCareerTitle(cid) + '. ' +
+      (marked.length ? 'My current and planned courses are ' + marked.join(', ') + '. ' : '') +
+      'What does the work involve, which courses do I need for admission, and what are my options after high school?'
+    : kind === 'interests'
     ? 'I’m a ' + g + 'student in Alberta. ' +
       (mcPlan.interests.length ? 'I enjoy ' + mcPlan.interests.map(function (s) { return mcTopicLabel(s).toLowerCase(); }).join(', ') + '. ' : '') +
       (mcPlan.strengths.length ? 'I’m good at ' + mcPlan.strengths.map(function (s) { return mcTopicLabel(s).toLowerCase(); }).join(', ') + '. ' : '') +
@@ -8042,6 +8382,16 @@ function mcAskAcia(kind) {
   if (input) { input.value = q; input.focus(); }
 }
 function mcSummaryHtml(where) {
+  // On the student dashboard, My Courses is the primary starting point.
+  if (where === 'mcDashCard') {
+    var fresh = !mcPlan.careers.length && !mcMarkedCount();
+    var lead = mcExploring() ? 'Explore careers you might enjoy and plan the high school courses that keep them open.'
+      : 'Mark your current and planned courses to see which careers they open — with verified university, college, apprenticeship and trades requirements.';
+    var stats = fresh ? '' : '<div class="mc-summary-stats"><div><strong>' + (mcPlan.grade || '—') + '</strong>Grade</div><div><strong>' + mcMarkedCount() + '</strong>Courses</div><div><strong>' + mcPlan.careers.length + '</strong>Careers</div></div>';
+    return '<p class="section-label" style="margin-bottom:6px">Start here</p>' +
+      '<h3 class="mc-step-title" style="margin-bottom:6px">My Courses</h3><p class="mc-hint">' + lead + '</p>' + stats +
+      '<button class="btn-primary" type="button" onclick="showTab(\'courses\')">' + (fresh ? 'Start with my courses' : 'Continue my course plan') + ' →</button>';
+  }
   if (!mcPlan.careers.length && !mcMarkedCount() && mcPlan.grade === null) {
     return '<p class="section-label" style="margin-bottom:6px">My Courses &amp; Career Pathways</p><p class="mc-empty" style="margin-bottom:10px">Plan which high school courses keep your career options open.</p><button class="btn-secondary" type="button" onclick="showTab(\'courses\')">Start my course plan</button>';
   }
