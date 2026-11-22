@@ -939,6 +939,40 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:6px}
 .mc-idea{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-family:inherit;color:var(--fg)}
 .mc-idea:hover{border-color:var(--crimson)}
+.mc-idea.added{border-color:var(--crimson);background:var(--crimson-soft)}
+.mc-idea{animation:mcFadeIn .25s ease-out}
+@keyframes mcFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.mc-idea{animation:none}}
+.mc-sector-count{font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg3);margin-left:4px}
+.mc-filter{margin-bottom:14px}
+.mc-chip-sm{padding:6px 12px;font-size:12px}
+.mc-chip-suggested{border-color:var(--gold)}
+.mc-star{color:var(--gold)}
+.mc-chip[aria-pressed="true"] .mc-star{color:#fff}
+.mc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mc-live strong{color:var(--fg)}
+.mc-search{margin-bottom:10px}
+.mc-search-input{width:100%;box-sizing:border-box;background:var(--surface2);color:var(--fg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;font-family:inherit}
+.mc-search-input:focus{outline:2px solid var(--crimson);outline-offset:1px}
+.mc-career-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;margin-bottom:6px}
+.mc-career-row{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;cursor:pointer;font-family:inherit;color:var(--fg)}
+.mc-career-row:hover{border-color:var(--border2)}
+.mc-career-row.on{border-color:var(--crimson);background:var(--crimson-soft)}
+.mc-row-check{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:1px solid var(--border2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:var(--fg2)}
+.mc-career-row.on .mc-row-check{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.mc-row-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mc-row-title{font-size:13px;font-weight:600}
+.mc-row-blurb{font-size:12px;color:var(--fg2);line-height:1.4}
+.mc-preview{border-color:var(--border2)}
+.mc-preview-row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
+.mc-preview-row:first-of-type{border-top:0}
+.mc-preview-icon{width:22px;height:22px;flex-shrink:0;margin-top:2px;fill:none;stroke:var(--fg2);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.mc-preview-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mc-preview-title{font-size:15px;font-weight:600;color:var(--fg)}
+.mc-preview-line{font-size:13px;color:var(--fg2);line-height:1.45}
+.mc-preview-detail{font-size:12px;color:var(--fg3);line-height:1.45}
+.mc-preview-remove{background:none;border:0;color:var(--fg3);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;font-family:inherit}
+.mc-preview-remove:hover{color:var(--fg)}
 .mc-idea-title{font-size:13px;font-weight:600}
 .mc-idea-why{font-size:12px;color:var(--fg2);line-height:1.4}
 .mc-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
@@ -7104,29 +7138,47 @@ var MC_EXTRA_CAREERS = [
   { id: 'auto_tech', sector: 'trades', title: 'Automotive Service Technician', blurb: 'Diagnose and repair vehicles; 4-period apprenticeship.' },
   { id: 'heavy_equipment_tech', sector: 'trades', title: 'Heavy Equipment Technician', blurb: 'Maintain construction, farm and mining equipment; 4-period apprenticeship.' }
 ];
-// Photos already on this page, matched by alt text (no new imagery).
-var MC_IMAGES = {
-  pilot: 'Pilots in the cockpit', uav: 'Drone operator in an open field launching a professional RPAS system',
-  ame: 'Engineer inspecting nose gear', avionics: 'Avionics technician in cockpit',
-  structures: 'Engineer reviewing maintenance in hangar', atc: 'Air traffic controllers at radar screens',
-  fss: 'Air traffic controllers at radar screens', airport_ops: 'Ground crew working on the ramp beside a commercial aircraft at dusk',
-  ground_ops: 'Ground crew working on the ramp beside a commercial aircraft at dusk', cargo: 'Aircraft departing at sunset',
-  customer_ops: 'Aviation professionals at work', aerospace_mfg: 'Aerospace technician working on a jet engine in a hangar',
-  gas_turbine: 'Aerospace technician working on a jet engine in a hangar', aerospace_eng: 'Young technician with tablet',
-  aviation_tech: 'Young technician with tablet'
-};
 
 // ── Interests & strengths (ideas to explore — not predictions) ────
 var MC_STRENGTHS = [
-  { id: 'math', label: 'Math & problem-solving', ideas: ['aerospace_eng', 'eng_professional', 'atc'] },
-  { id: 'science', label: 'Science & how things work', ideas: ['eng_professional', 'registered_nurse', 'avionics'] },
-  { id: 'hands_on', label: 'Building & fixing things', ideas: ['ame', 'millwright', 'auto_tech', 'structures'] },
-  { id: 'helping', label: 'Helping & caring for people', ideas: ['registered_nurse', 'practical_nurse', 'customer_ops'] },
-  { id: 'tech', label: 'Computers & technology', ideas: ['avionics', 'eng_technologist', 'uav'] },
-  { id: 'flight', label: 'Aircraft, drones & flight', ideas: ['pilot', 'uav', 'atc'] },
-  { id: 'communication', label: 'Communicating & teamwork', ideas: ['atc', 'fss', 'registered_nurse'] },
-  { id: 'outdoors', label: 'Being active or outdoors', ideas: ['ground_ops', 'heavy_equipment_tech', 'welder'] }
+  { id: 'math', label: 'Math & problem-solving' },
+  { id: 'science', label: 'Science & how things work' },
+  { id: 'hands_on', label: 'Building & fixing things' },
+  { id: 'helping', label: 'Helping & caring for people' },
+  { id: 'tech', label: 'Computers & technology' },
+  { id: 'flight', label: 'Aircraft, drones & flight' },
+  { id: 'communication', label: 'Communicating & teamwork' },
+  { id: 'outdoors', label: 'Being active or outdoors' }
 ];
+// Which interest topics each career draws on. Used only to suggest careers
+// to explore — never to hide or rule out a career. Every career has 2–4 topics
+// and every topic reaches careers in more than one industry.
+var MC_CAREER_TOPICS = {
+  pilot: ['flight', 'math', 'communication'],
+  uav: ['flight', 'tech', 'outdoors'],
+  ame: ['hands_on', 'flight', 'science'],
+  avionics: ['tech', 'hands_on', 'science'],
+  structures: ['hands_on', 'flight'],
+  atc: ['math', 'communication', 'flight'],
+  fss: ['communication', 'flight', 'tech'],
+  airport_ops: ['communication', 'helping', 'outdoors'],
+  ground_ops: ['outdoors', 'hands_on', 'flight'],
+  cargo: ['math', 'outdoors', 'communication'],
+  customer_ops: ['helping', 'communication'],
+  aerospace_mfg: ['hands_on', 'tech'],
+  aerospace_eng: ['math', 'science', 'flight', 'tech'],
+  aviation_tech: ['tech', 'science', 'flight'],
+  gas_turbine: ['hands_on', 'science'],
+  eng_professional: ['math', 'science', 'tech'],
+  eng_technologist: ['math', 'tech', 'hands_on'],
+  registered_nurse: ['helping', 'science', 'communication'],
+  practical_nurse: ['helping', 'science', 'communication'],
+  electrician: ['hands_on', 'math', 'tech'],
+  welder: ['hands_on', 'outdoors'],
+  millwright: ['hands_on', 'math'],
+  auto_tech: ['hands_on', 'tech'],
+  heavy_equipment_tech: ['hands_on', 'outdoors']
+};
 var MC_ACTIVITIES = [
   { id: 'explore_math', label: 'Explore math and problem-solving (clubs, contests, puzzles)' },
   { id: 'design_activity', label: 'Try a science or engineering design activity' },
@@ -7439,7 +7491,8 @@ function mcRender() {
 
   var nav = document.getElementById('mcStageNav');
   var prev = mcStage > 1 ? '<button class="btn-secondary" type="button" onclick="mcGoStage(' + (mcStage - 1) + ', true)">← ' + ['', 'Interests & strengths', 'High school courses'][mcStage - 1] + '</button>' : '<span></span>';
-  var next = mcStage < 3 ? '<button class="btn-primary" type="button" onclick="mcGoStage(' + (mcStage + 1) + ', true)">' + ['', 'High school courses', 'Education & career pathways'][mcStage] + ' →</button>' : '';
+  // Step 1's course preview has its own "See the full course plan" button once careers are chosen.
+  var next = (mcStage < 3 && !(mcStage === 1 && mcPlan.careers.length)) ? '<button class="btn-primary" type="button" onclick="mcGoStage(' + (mcStage + 1) + ', true)">' + ['', 'High school courses', 'Education & career pathways'][mcStage] + ' →</button>' : '';
   nav.innerHTML = prev + next;
 }
 
@@ -7472,68 +7525,187 @@ function mcRenderStage1() {
       topicChips('strengths', 'mcToggleStrength') + '</div>' +
     (enjoyOnly.length ? '<div class="mc-callout">You enjoy ' + mcEsc(enjoyOnly.map(function (id) { return mcTopicLabel(id).toLowerCase(); }).join(', ')) +
       ' but didn’t pick ' + (enjoyOnly.length > 1 ? 'them' : 'it') + ' as a strength yet. That’s normal — skills grow with practice, and enjoying something is a great reason to keep going.</div>' : '') +
-    mcIdeasHtml() + from,
+    from,
     'Your answers help suggest careers to explore. Neither answer rules anything out — you can explore any career you like.');
 
-  html += mcSection('Careers I want to explore',
-    MC_SECTORS.map(function (sec) {
-      var list = mcCareerList().filter(function (c) { return c.sector === sec.id; });
-      return '<div class="mc-sector"><div class="mc-sector-title">' + mcEsc(sec.name) + '</div><div class="mc-chips">' + list.map(function (c) {
-        return '<button type="button" class="mc-chip" aria-pressed="' + (mcPlan.careers.indexOf(c.id) >= 0) + '" onclick="mcToggleCareer(\'' + c.id + '\')">' + mcEsc(c.title) + '</button>';
-      }).join('') + '</div></div>';
-    }).join('') + mcCareerCardsHtml(),
-    'Choose as many as you like across aviation, engineering, healthcare and skilled trades.');
+  html += mcSection('Suggested for me', mcIdeasHtml());
+
+  var anySuggested = mcShownSuggestions().length > 0;
+  html += mcSection('Explore every career',
+    '<div class="mc-search"><label class="mc-sr" for="mcCareerSearch">Search careers</label>' +
+      '<input type="search" id="mcCareerSearch" class="mc-search-input" placeholder="Search careers, e.g. nurse, pilot, electrician" autocomplete="off" value="' + mcEsc(mcCareerQuery) + '" oninput="mcSetCareerQuery(this.value)"></div>' +
+    '<div class="mc-chips mc-filter" role="group" aria-label="Filter by industry">' +
+      [{ id: 'all', name: 'All industries' }].concat(MC_SECTORS).map(function (s) {
+        return '<button type="button" class="mc-chip mc-chip-sm" aria-pressed="' + (mcSectorFilter === s.id) + '" onclick="mcSetSectorFilter(\'' + s.id + '\')">' + mcEsc(s.name) + '</button>';
+      }).join('') + '</div>' +
+    '<div id="mcCareerList">' + mcCareerListHtml() + '</div>',
+    'Every career is open to you, whether or not it was suggested.' + (anySuggested ? ' ★ marks the careers suggested above.' : ''));
+
+  html += '<section class="mc-step mc-preview" id="mcPreview">' + mcPreviewHtml() + '</section>';
   document.getElementById('mcStage1').innerHTML = html;
+}
+
+var mcSectorFilter = 'all';
+var mcShowAllSuggestions = false;
+var mcCareerQuery = '';
+var mcExpandedSectors = {};
+var MC_LIST_PREVIEW = 5;
+function mcSetSectorFilter(id) { mcSectorFilter = id; mcRenderCareerList(); document.querySelectorAll('#mcStage1 .mc-filter .mc-chip').forEach(function (b, i) { b.setAttribute('aria-pressed', String((['all'].concat(MC_SECTORS.map(function (s) { return s.id; })))[i] === id)); }); }
+// Typing only re-renders the list, so the search box keeps focus.
+function mcSetCareerQuery(q) { mcCareerQuery = q; mcRenderCareerList(); }
+function mcExpandSector(id) { mcExpandedSectors[id] = !mcExpandedSectors[id]; mcRenderCareerList(); }
+function mcRenderCareerList() { var el = document.getElementById('mcCareerList'); if (el) el.innerHTML = mcCareerListHtml(); }
+function mcToggleCareerFromList(id) { mcToggleCareer(id); }
+
+// Searchable list grouped by industry: chosen and suggested careers first,
+// then the rest; long groups collapse until expanded or searched.
+function mcCareerListHtml() {
+  var q = mcCareerQuery.trim().toLowerCase();
+  var suggested = mcShownSuggestions().map(function (s) { return s.id; });
+  var sectors = MC_SECTORS.filter(function (sec) { return mcSectorFilter === 'all' || mcSectorFilter === sec.id; });
+  var total = 0;
+  var html = sectors.map(function (sec) {
+    var list = mcCareerList().filter(function (c) {
+      return c.sector === sec.id && (!q || (c.title + ' ' + (c.blurb || '') + ' ' + sec.name).toLowerCase().indexOf(q) >= 0);
+    });
+    if (!list.length) return '';
+    total += list.length;
+    function rank(c) { return mcPlan.careers.indexOf(c.id) >= 0 ? 0 : suggested.indexOf(c.id) >= 0 ? 1 : 2; }
+    list.sort(function (a, b) { return rank(a) - rank(b) || a.title.localeCompare(b.title); });
+    var limit = (q || mcExpandedSectors[sec.id] || mcSectorFilter === sec.id) ? list.length : MC_LIST_PREVIEW;
+    var rows = list.slice(0, limit).map(function (c) {
+      var on = mcPlan.careers.indexOf(c.id) >= 0, isSug = suggested.indexOf(c.id) >= 0;
+      return '<button type="button" class="mc-career-row' + (on ? ' on' : '') + '" aria-pressed="' + on + '" onclick="mcToggleCareerFromList(\'' + c.id + '\')">' +
+        '<span class="mc-row-check" aria-hidden="true">' + (on ? '✓' : '+') + '</span>' +
+        '<span class="mc-row-text"><span class="mc-row-title">' + (isSug ? '<span class="mc-star" aria-hidden="true">★</span> ' : '') + mcEsc(c.title) + (isSug ? '<span class="mc-sr"> (suggested)</span>' : '') + '</span>' +
+        (c.blurb ? '<span class="mc-row-blurb">' + mcEsc(c.blurb) + '</span>' : '') + '</span></button>';
+    }).join('');
+    var more = list.length > limit ? '<button type="button" class="mc-link-btn" onclick="mcExpandSector(\'' + sec.id + '\')">Show all ' + list.length + ' ' + mcEsc(sec.name) + ' careers</button>'
+      : (mcExpandedSectors[sec.id] && !q && mcSectorFilter !== sec.id && list.length > MC_LIST_PREVIEW ? '<button type="button" class="mc-link-btn" onclick="mcExpandSector(\'' + sec.id + '\')">Show fewer</button>' : '');
+    return '<div class="mc-sector"><div class="mc-sector-title">' + mcEsc(sec.name) + ' <span class="mc-sector-count">' + list.length + ' career' + (list.length > 1 ? 's' : '') + '</span></div>' +
+      '<div class="mc-career-rows">' + rows + '</div>' + more + '</div>';
+  }).join('');
+  if (!total) return '<p class="mc-empty">No careers match “' + mcEsc(mcCareerQuery) + '”. Try another word, or <button type="button" class="mc-link-btn" onclick="mcClearSearch()">clear the search</button>.</p>';
+  return (q ? '<p class="mc-hint" aria-live="polite">' + total + ' career' + (total > 1 ? 's' : '') + ' found.</p>' : '') + html;
+}
+function mcClearSearch() { mcCareerQuery = ''; var i = document.getElementById('mcCareerSearch'); if (i) i.value = ''; mcRenderCareerList(); }
+
+// ── Course preview: "Your careers could connect to…" ─────────────
+// Built only from each program's main (first) admission route in MC_PROGRAMS.
+var MC_SECTOR_ICONS = {
+  aviation: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  engineering: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  healthcare: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  trades: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>'
+};
+function mcSubjectWord(id) {
+  var c = MC_COURSE_BY_ID[id];
+  if (c.subj === 'ela') return 'English';
+  if (c.subj === 'math') return 'mathematics';
+  if (/^bio/.test(id)) return 'biology';
+  if (/^chem/.test(id)) return 'chemistry';
+  if (/^phys/.test(id)) return 'physics';
+  return 'science';
+}
+function mcShortCourse(id) { return MC_COURSE_BY_ID[id].name.replace('English Language Arts', 'ELA').replace('Mathematics', 'Math'); }
+function mcCareerPreview(cid) {
+  var progs = mcProgramsFor(cid);
+  if (!progs.length) return { kind: 'none' };
+  var words = [], courses = [], diplomaOnly = true, noneRequired = true;
+  progs.forEach(function (p) {
+    p.routes[0].reqs.forEach(function (q) {
+      noneRequired = false;
+      if (q.diploma) return;
+      diplomaOnly = false;
+      var subjWords = [];
+      q.any.forEach(function (c) { var w = mcSubjectWord(c); if (subjWords.indexOf(w) < 0) subjWords.push(w); });
+      var w = subjWords.length > 1 ? 'a Grade 12 science' : subjWords[0];
+      if (words.indexOf(w) < 0) words.push(w);
+      var label = q.label || q.any.map(mcShortCourse).join(q.any.length > 2 ? ' / ' : ' or ');
+      if (courses.indexOf(label) < 0) courses.push(label);
+    });
+  });
+  if (noneRequired) return { kind: 'free' };
+  if (diplomaOnly) return { kind: 'diploma' };
+  return { kind: 'subjects', words: words, courses: courses, progs: progs };
+}
+function mcJoinWords(w) { return w.length < 2 ? w.join('') : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1]; }
+function mcPreviewHtml() {
+  if (!mcPlan.careers.length) {
+    return '<h3 class="mc-step-title">Your interests could connect to…</h3><p class="mc-empty">Choose a career above to preview the high school subjects it may need.</p>';
+  }
+  var rows = mcPlan.careers.map(function (cid) {
+    var c = mcCareer(cid), p = mcCareerPreview(cid), line, detail = '';
+    if (p.kind === 'subjects') {
+      line = 'Explore ' + mcJoinWords(p.words) + '.';
+      detail = 'e.g. ' + p.courses.join(', ') + ' — ' + p.progs.map(function (x) { return x.inst; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ');
+    } else if (p.kind === 'diploma') line = 'No specific courses required — finish your high school diploma.';
+    else if (p.kind === 'free') line = 'No high school courses required.';
+    else line = 'We haven’t verified an Alberta route yet — ask your counsellor.';
+    var visual = '<svg class="mc-preview-icon" viewBox="0 0 24 24" aria-hidden="true">' + (MC_SECTOR_ICONS[c.sector] || '') + '</svg>';
+    var save = (c.sector === 'aviation' && typeof toggleSavePathway === 'function') ?
+      '<button type="button" class="mc-link-btn" onclick="mcSaveToPathway(\'' + cid + '\')">' + (typeof isPathwaySaved === 'function' && isPathwaySaved(cid) ? '✓ In My Career Pathway' : 'Save to My Career Pathway') + '</button>' : '';
+    return '<div class="mc-preview-row">' + visual +
+      '<div class="mc-preview-text"><div class="mc-preview-title">' + mcEsc(c.title) + '</div><div class="mc-preview-line">' + mcEsc(line) + '</div>' +
+      (detail ? '<div class="mc-preview-detail">' + mcEsc(detail) + '</div>' : '') + save + '</div>' +
+      '<button type="button" class="mc-preview-remove" aria-label="Remove ' + mcEsc(c.title) + '" onclick="mcToggleCareer(\'' + cid + '\')">×</button></div>';
+  }).join('');
+  return '<h3 class="mc-step-title">Your interests could connect to…</h3>' + rows +
+    '<p class="mc-note">These are exploration suggestions, not admission or eligibility decisions. Subjects come from each program’s verified main admission route.</p>' +
+    '<div class="mc-actions"><button class="btn-primary" type="button" onclick="mcGoStage(2, true)">See the full course plan →</button></div>';
+}
+function mcToggleAllSuggestions() { mcShowAllSuggestions = !mcShowAllSuggestions; mcRenderStage1(); }
+
+// Rank every career by how well its topics match the student's answers.
+// Enjoy and good-at count equally; a topic in both counts twice.
+function mcSuggestions() {
+  if (!mcPlan.interests.length && !mcPlan.strengths.length) return [];
+  return mcCareerList().map(function (c) {
+    var topics = MC_CAREER_TOPICS[c.id] || [];
+    var enjoy = topics.filter(function (t) { return mcPlan.interests.indexOf(t) >= 0; });
+    var good = topics.filter(function (t) { return mcPlan.strengths.indexOf(t) >= 0; });
+    var matched = topics.filter(function (t) { return enjoy.indexOf(t) >= 0 || good.indexOf(t) >= 0; }).length;
+    return { id: c.id, sector: c.sector, enjoy: enjoy, good: good, score: enjoy.length + good.length, fit: topics.length ? matched / topics.length : 0 };
+  }).filter(function (s) { return s.score > 0; })
+    // Most matching answers first; ties go to careers whose profile is more fully covered.
+    .sort(function (a, b) { return b.score - a.score || b.fit - a.fit || mcCareerTitle(a.id).localeCompare(mcCareerTitle(b.id)); });
+}
+// The suggestions actually shown (top few per industry, or all when expanded).
+function mcShownSuggestions() {
+  var per = mcShowAllSuggestions ? 99 : 3, count = {};
+  return mcSuggestions().filter(function (s) { count[s.sector] = (count[s.sector] || 0) + 1; return count[s.sector] <= per; });
 }
 // Career ideas from both answers; each idea says which answer(s) it came from.
 // Topics picked in both lists come first.
 function mcIdeasHtml() {
-  if (!mcPlan.interests.length && !mcPlan.strengths.length) return '';
-  var reasons = {}, order = [];
-  function add(list, why) {
-    mcPlan[list].forEach(function (tid) {
-      var t = MC_STRENGTHS.filter(function (x) { return x.id === tid; })[0]; if (!t) return;
-      t.ideas.forEach(function (c) {
-        if (mcPlan.careers.indexOf(c) >= 0 || !mcCareer(c)) return;
-        if (!reasons[c]) { reasons[c] = { enjoy: [], good: [] }; order.push(c); }
-        if (reasons[c][why].indexOf(t.label) < 0) reasons[c][why].push(t.label);
-      });
-    });
-  }
-  add('interests', 'enjoy'); add('strengths', 'good');
-  if (!order.length) return '';
-  order.sort(function (a, b) {
-    function score(c) { return (reasons[c].enjoy.length ? 1 : 0) + (reasons[c].good.length ? 1 : 0); }
-    return score(b) - score(a);
-  });
-  return '<div class="mc-q"><div class="mc-q-title">Ideas to explore</div><div class="mc-ideas">' + order.slice(0, 8).map(function (id) {
-    var r = reasons[id], why = [];
-    var both = r.enjoy.filter(function (t) { return r.good.indexOf(t) >= 0; });
-    var enjoyOnly = r.enjoy.filter(function (t) { return both.indexOf(t) < 0; });
-    var goodOnly = r.good.filter(function (t) { return both.indexOf(t) < 0; });
-    if (both.length) why.push('you enjoy and are good at ' + both.join(', ').toLowerCase());
-    if (enjoyOnly.length) why.push('you enjoy ' + enjoyOnly.join(', ').toLowerCase());
-    if (goodOnly.length) why.push('you’re good at ' + goodOnly.join(', ').toLowerCase());
-    return '<button type="button" class="mc-idea" onclick="mcToggleCareer(\'' + id + '\')"><span class="mc-idea-title">+ ' + mcEsc(mcCareerTitle(id)) + '</span>' +
-      '<span class="mc-idea-why">Because ' + mcEsc(why.join(' and ')) + '</span></button>';
-  }).join('') + '</div><p class="mc-note">These are starting points, not predictions. Browse every career below too.</p></div>';
+  var sugg = mcSuggestions();
+  if (!sugg.length) return '<p class="mc-empty">Pick a few things you enjoy or are good at above, and careers from every industry that match will appear here as you choose.</p>';
+  var sectors = MC_SECTORS.filter(function (sec) { return sugg.some(function (s) { return s.sector === sec.id; }); });
+  var perSector = mcShowAllSuggestions ? 99 : 3, hidden = 0;
+  var groups = sectors.map(function (sec) {
+    var items = sugg.filter(function (s) { return s.sector === sec.id; });
+    hidden += Math.max(0, items.length - perSector);
+    return '<div class="mc-sector"><div class="mc-sector-title">' + mcEsc(sec.name) + ' <span class="mc-sector-count">' + items.length + ' match' + (items.length > 1 ? 'es' : '') + '</span></div><div class="mc-ideas">' +
+      items.slice(0, perSector).map(mcIdeaCard).join('') + '</div></div>';
+  }).join('');
+  return '<p class="mc-hint mc-live" aria-live="polite"><strong>' + sugg.length + ' career' + (sugg.length > 1 ? 's' : '') + '</strong> across <strong>' + sectors.length + ' industr' + (sectors.length > 1 ? 'ies' : 'y') + '</strong> connect to your answers. Here are the best matches in each.</p>' +
+    groups +
+    (hidden || mcShowAllSuggestions ? '<button type="button" class="mc-link-btn" onclick="mcToggleAllSuggestions()">' + (mcShowAllSuggestions ? 'Show fewer' : 'Show all ' + sugg.length + ' suggestions') + '</button>' : '') +
+    '<p class="mc-note">These are starting points, not predictions — you can explore any career below, suggested or not.</p>';
 }
-function mcImageSrc(careerId) {
-  var alt = MC_IMAGES[careerId]; if (!alt) return null;
-  var img = Array.prototype.filter.call(document.querySelectorAll('img[alt]'), function (i) { return i.getAttribute('alt') === alt && !i.closest('#tab-courses'); })[0];
-  return img ? (img.currentSrc || img.src) : null;
-}
-function mcCareerCardsHtml() {
-  if (!mcPlan.careers.length) return '';
-  return '<div class="mc-cards">' + mcPlan.careers.map(function (id) {
-    var c = mcCareer(id); var src = mcImageSrc(id); var n = mcProgramsFor(id).length;
-    var save = (c.sector === 'aviation' && typeof toggleSavePathway === 'function') ?
-      '<button type="button" class="mc-link-btn" onclick="mcSaveToPathway(\'' + id + '\')">' + (typeof isPathwaySaved === 'function' && isPathwaySaved(id) ? '✓ In My Career Pathway' : 'Save to My Career Pathway') + '</button>' : '';
-    return '<div class="mc-card">' + (src ? '<img src="' + mcEsc(src) + '" alt="" loading="lazy">' : '') +
-      '<div class="mc-card-body"><div class="mc-card-title">' + mcEsc(c.title) + '</div>' +
-      (c.blurb ? '<div class="mc-card-meta">' + mcEsc(c.blurb) + '</div>' : '') +
-      '<div class="mc-card-meta">' + (n ? n + ' verified route' + (n > 1 ? 's' : '') + ' in Alberta' : 'No verified Alberta route yet') + '</div>' + save + '</div></div>';
-  }).join('') + '</div>';
+function mcIdeaCard(s) {
+  var why = [];
+  var both = s.enjoy.filter(function (t) { return s.good.indexOf(t) >= 0; });
+  var enjoyOnly = s.enjoy.filter(function (t) { return both.indexOf(t) < 0; });
+  var goodOnly = s.good.filter(function (t) { return both.indexOf(t) < 0; });
+  function labels(ids) { return ids.map(function (t) { return mcTopicLabel(t).toLowerCase(); }).join(', '); }
+  if (both.length) why.push('you enjoy and are good at ' + labels(both));
+  if (enjoyOnly.length) why.push('you enjoy ' + labels(enjoyOnly));
+  if (goodOnly.length) why.push('you’re good at ' + labels(goodOnly));
+  var added = mcPlan.careers.indexOf(s.id) >= 0;
+  return '<button type="button" class="mc-idea' + (added ? ' added' : '') + '" aria-pressed="' + added + '" onclick="mcToggleCareer(\'' + s.id + '\')">' +
+    '<span class="mc-idea-title">' + (added ? '✓ ' : '+ ') + mcEsc(mcCareerTitle(s.id)) + '</span>' +
+    '<span class="mc-idea-why">Because ' + mcEsc(why.join(' and ')) + '</span></button>';
 }
 function mcSaveToPathway(id) {
   var c = mcCareer(id); if (!c) return;
