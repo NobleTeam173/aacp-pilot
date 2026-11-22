@@ -17,7 +17,6 @@ export default defineConfig({
         rpasEoi:      resolve(__dirname, 'rpas-eoi.html'),
         privacy:      resolve(__dirname, 'privacy.html'),
         aviation:     resolve(__dirname, 'aviation.html'),
-        rpas:         resolve(__dirname, 'rpas.html'),
         acia:         resolve(__dirname, 'acia.html'),
         industry:     resolve(__dirname, 'industry.html'),
         awtp:         resolve(__dirname, 'awtp.html'),
