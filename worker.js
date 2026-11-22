@@ -15256,9 +15256,28 @@ function sanitizeCoursePlan(raw) {
   return { province, grade, careers, courses };
 }
 
+// The table is also declared in runMigrations(), but runMigrations() currently
+// aborts on D1 before reaching it (information_schema query at the
+// participant_career_context check), so make sure it exists here.
+let coursePlanTableReady = false;
+async function ensureCoursePlanTable(db) {
+  if (coursePlanTableReady) return;
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_course_plans (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL UNIQUE REFERENCES users(id),
+      plan_data   TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    )
+  `).run();
+  coursePlanTableReady = true;
+}
+
 // GET /navigator/course-plan
 async function handleNavigatorCoursePlanGet(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
+  await ensureCoursePlanTable(env.DB);
   const row = await env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(user.sub).first();
   let plan = null;
   if (row?.plan_data) { try { plan = sanitizeCoursePlan(JSON.parse(row.plan_data)); } catch { plan = null; } }
@@ -15274,6 +15293,7 @@ async function handleNavigatorCoursePlanUpdate(request, user, env) {
   try { body = JSON.parse(text); } catch { return err('Invalid request body'); }
   const plan = sanitizeCoursePlan(body?.plan);
   if (!plan) return err('plan is required');
+  await ensureCoursePlanTable(env.DB);
 
   const now = new Date().toISOString();
   const data = JSON.stringify(plan);
