@@ -15257,7 +15257,10 @@ const COURSE_PLAN_ID_RE = /^[a-z0-9_-]{1,40}$/;
 function sanitizeCoursePlan(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const province = raw.province === 'AB' ? 'AB' : null;
-  const grade = [9, 10, 11, 12].includes(Number(raw.grade)) ? Number(raw.grade) : null;
+  const grade = [7, 8, 9, 10, 11, 12].includes(Number(raw.grade)) ? Number(raw.grade) : null;
+  const idList = (v, max) => Array.isArray(v)
+    ? [...new Set(v.filter(x => typeof x === 'string' && COURSE_PLAN_ID_RE.test(x)))].slice(0, max)
+    : [];
   const careers = Array.isArray(raw.careers)
     ? [...new Set(raw.careers.filter(c => typeof c === 'string' && COURSE_PLAN_ID_RE.test(c)))].slice(0, 20)
     : [];
@@ -15267,7 +15270,7 @@ function sanitizeCoursePlan(raw) {
       if (COURSE_PLAN_ID_RE.test(k) && (v === 'taken' || v === 'planned')) courses[k] = v;
     }
   }
-  return { province, grade, careers, courses };
+  return { province, grade, careers, courses, strengths: idList(raw.strengths, 12), activities: idList(raw.activities, 20) };
 }
 
 // The table is declared in runMigrations(); this is a cheap safety net so the

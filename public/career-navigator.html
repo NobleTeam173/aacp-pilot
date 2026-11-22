@@ -848,9 +848,33 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .mc-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--fg2);flex:1 1 180px}
 .mc-field select{background:var(--surface2);color:var(--fg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px;font-size:14px;font-family:inherit}
+.mc-mode{font-size:13px;color:var(--fg2);margin-top:12px;line-height:1.5}
+.mc-mode:empty{display:none}
+.mc-stages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.mc-stage-btn{display:flex;align-items:center;gap:10px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;color:var(--fg2);font-family:inherit;min-width:0}
+.mc-stage-btn .mc-step-num{background:var(--surface3);color:var(--fg2)}
+.mc-stage-btn[aria-selected="true"]{border-color:var(--crimson);color:var(--fg);box-shadow:0 0 0 1px var(--crimson) inset}
+.mc-stage-btn[aria-selected="true"] .mc-step-num{background:var(--crimson);color:#fff}
+.mc-stage-text{display:flex;flex-direction:column;min-width:0}
+.mc-stage-title{font-size:13px;font-weight:600;line-height:1.3}
+.mc-stage-meta{font-size:11px;color:var(--fg3);margin-top:2px}
+@media (max-width:560px){.mc-stages{grid-template-columns:1fr}.mc-stage-btn{padding:10px}}
+.mc-stage{display:none}
+.mc-stage.active{display:block}
+.mc-stage-nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 16px}
 .mc-chips{display:flex;flex-wrap:wrap;gap:8px}
 .mc-chip{border:1px solid var(--border2);background:var(--surface2);color:var(--fg2);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
 .mc-chip[aria-pressed="true"]{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.mc-sector{margin-bottom:14px}
+.mc-sector-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.mc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px}
+.mc-card{background:var(--surface2);border-radius:var(--radius-sm);overflow:hidden;display:flex;flex-direction:column}
+.mc-card img{width:100%;height:110px;object-fit:cover;display:block}
+.mc-card-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.mc-card-title{font-size:14px;font-weight:600}
+.mc-card-meta{font-size:12px;color:var(--fg2);line-height:1.45}
+.mc-link-btn{background:none;border:0;color:var(--fg2);text-decoration:underline;font-size:12px;cursor:pointer;padding:0;font-family:inherit;text-align:left}
+.mc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .mc-group{margin-bottom:14px}
 .mc-group-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px}
 .mc-course{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap}
@@ -869,23 +893,51 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 .mc-program-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .mc-program-name{font-size:14px;font-weight:600}
 .mc-program-inst{font-size:12px;color:var(--fg2)}
-.mc-badge{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap;align-self:flex-start}
+.mc-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.mc-badge{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap}
 .mc-badge.ok{background:var(--green-soft);color:var(--green-fg)}
 .mc-badge.plan{background:var(--blue-soft);color:var(--blue-fg)}
 .mc-badge.gap{background:var(--mc-gap-soft);color:var(--mc-gap)}
 .mc-badge.info{background:var(--gold-soft);color:var(--gold)}
+.mc-badge.type{background:var(--surface3);color:var(--fg2);font-weight:500}
 .mc-route-name{font-size:12px;color:var(--fg3);margin:8px 0 4px}
 .mc-req{display:flex;gap:8px;font-size:13px;line-height:1.5;padding:3px 0;color:var(--fg2)}
 .mc-req-icon{width:16px;flex-shrink:0;text-align:center}
 .mc-req.ok .mc-req-icon{color:var(--green-fg)}
 .mc-req.plan .mc-req-icon{color:var(--blue-fg)}
 .mc-req.gap .mc-req-icon{color:var(--mc-gap)}
+.mc-req.check .mc-req-icon,.mc-req.info .mc-req-icon{color:var(--gold)}
+.mc-req-sub{color:var(--fg3)}
 .mc-note{font-size:12px;color:var(--fg2);line-height:1.5;margin-top:6px}
+.mc-alts{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2)}
+.mc-alts-title{font-size:12px;font-weight:600;color:var(--fg);margin-bottom:4px}
 .mc-source{font-size:11px;color:var(--fg3);margin-top:8px}
-.mc-source a{color:var(--fg2)}
+.mc-source a,.mc-note a{color:var(--fg2)}
 .mc-empty{font-size:13px;color:var(--fg2);line-height:1.6}
 .mc-list{margin:0 0 10px 18px;font-size:13px;color:var(--fg2);line-height:1.6}
-.mc-sub{font-size:13px;font-weight:600;margin:10px 0 6px}
+.mc-sub{font-size:13px;font-weight:600;margin:12px 0 6px}
+.mc-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mc-table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
+.mc-table th,.mc-table td{text-align:left;vertical-align:top;padding:8px;border-top:1px solid var(--border);color:var(--fg2);line-height:1.45}
+.mc-table th{color:var(--fg);font-weight:600;font-size:12px;border-top:0}
+.mc-table td:first-child{color:var(--fg);font-weight:600;white-space:nowrap}
+.mc-timeline{list-style:none;margin:0;padding:0}
+.mc-timeline li{position:relative;padding:0 0 14px 26px;border-left:2px solid var(--border2);margin-left:8px}
+.mc-timeline li:last-child{border-left-color:transparent}
+.mc-timeline li::before{content:'';position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2)}
+.mc-timeline li.now::before{background:var(--crimson);border-color:var(--crimson)}
+.mc-tl-title{font-size:14px;font-weight:600;color:var(--fg)}
+.mc-tl-body{font-size:13px;color:var(--fg2);line-height:1.55;margin-top:2px}
+.mc-check{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:14px;color:var(--fg);cursor:pointer}
+.mc-check input{margin-top:3px;width:16px;height:16px;accent-color:var(--crimson)}
+.mc-details{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+.mc-details summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--fg)}
+.mc-callout{background:var(--gold-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--fg2);line-height:1.55;margin-top:10px}
+.mc-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.mc-summary-card:empty{display:none}
+.mc-summary-stats{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 12px}
+.mc-summary-stats div{font-size:12px;color:var(--fg3)}
+.mc-summary-stats strong{display:block;font-size:20px;color:var(--fg);font-family:'Fraunces',serif}
 .mc-save-status,.mc-copy-status{font-size:12px;color:var(--fg3);min-height:16px;margin-bottom:8px}
 .mc-disclaimer{font-size:12px;color:var(--fg3);line-height:1.6;margin-top:8px}
 </style>
@@ -1136,6 +1188,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
     <p class="dash-sub">Discover your possibilities. Build your future.</p>
 
     <!-- First-time student state -->
+    <div class="mc-summary-card" id="mcDashCard"></div>
     <div class="dash-student-new" id="dashStudentNew">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px">
         <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px">Welcome! Where would you like to begin?</div>
@@ -2249,16 +2302,18 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
 ════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════════
      TAB — MY COURSES & CAREER PATHWAYS
+     Three connected decisions: interests & strengths → high school
+     courses → education & career pathways. Grades 7–9 lead with
+     exploration; Grades 10–12 lead with the verified course checker.
 ════════════════════════════════════════════════════════════════ -->
 <main class="tab-panel" id="tab-courses" role="tabpanel">
   <p class="section-label">Plan Ahead</p>
   <h2 class="section-title">My Courses &amp; Career Pathways</h2>
-  <p class="section-sub">Check whether your high school courses line up with the post-secondary programs behind the careers you're interested in. Every requirement links to the institution's own admissions page and shows when we last checked it.</p>
+  <p class="section-sub">Connect three decisions: what you're interested in, which high school courses to take, and how you'll get into the career — through university, college, an apprenticeship or on-the-job training. Every requirement links to its official source and shows when we last checked it.</p>
 
   <div class="mc-save-status" id="mcSaveStatus" aria-live="polite"></div>
 
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">1</span>My grade &amp; province</h3>
+  <section class="mc-step mc-profile">
     <div class="mc-row">
       <label class="mc-field">
         <span>Province</span>
@@ -2271,48 +2326,37 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
         <span>Current grade</span>
         <select id="mcGrade" onchange="mcSet('grade', this.value)">
           <option value="">Select…</option>
-          <option value="9">Grade 9 (planning ahead)</option>
+          <option value="7">Grade 7</option>
+          <option value="8">Grade 8</option>
+          <option value="9">Grade 9</option>
           <option value="10">Grade 10</option>
           <option value="11">Grade 11</option>
           <option value="12">Grade 12</option>
         </select>
       </label>
     </div>
+    <p class="mc-mode" id="mcModeNote"></p>
   </section>
 
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">2</span>My career interests</h3>
-    <p class="mc-hint">Choose one or more. Aviation and aerospace careers are available now; engineering, healthcare, skilled trades and other sectors are coming.</p>
-    <div class="mc-chips" id="mcCareers"></div>
-  </section>
+  <nav class="mc-stages" role="tablist" aria-label="My Courses stages">
+    <button type="button" class="mc-stage-btn" data-stage="1" role="tab" onclick="mcGoStage(1, true)">
+      <span class="mc-step-num">1</span><span class="mc-stage-text"><span class="mc-stage-title">Interests &amp; strengths</span><span class="mc-stage-meta" id="mcStageMeta1"></span></span>
+    </button>
+    <button type="button" class="mc-stage-btn" data-stage="2" role="tab" onclick="mcGoStage(2, true)">
+      <span class="mc-step-num">2</span><span class="mc-stage-text"><span class="mc-stage-title">High school courses</span><span class="mc-stage-meta" id="mcStageMeta2"></span></span>
+    </button>
+    <button type="button" class="mc-stage-btn" data-stage="3" role="tab" onclick="mcGoStage(3, true)">
+      <span class="mc-step-num">3</span><span class="mc-stage-text"><span class="mc-stage-title">Education &amp; career pathways</span><span class="mc-stage-meta" id="mcStageMeta3"></span></span>
+    </button>
+  </nav>
 
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">3</span>My high school courses</h3>
-    <p class="mc-hint">Mark the Alberta courses you've already taken and the ones you're considering.</p>
-    <div id="mcCourses"></div>
-  </section>
+  <div class="mc-stage" id="mcStage1" role="tabpanel"></div>
+  <div class="mc-stage" id="mcStage2" role="tabpanel"></div>
+  <div class="mc-stage" id="mcStage3" role="tabpanel"></div>
 
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">4</span>Course-to-career alignment</h3>
-    <div id="mcAlignment"></div>
-  </section>
+  <div class="mc-stage-nav" id="mcStageNav"></div>
 
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">5</span>Keep my options open</h3>
-    <div id="mcOptions"></div>
-  </section>
-
-  <section class="mc-step">
-    <h3 class="mc-step-title"><span class="mc-step-num">6</span>Share my plan</h3>
-    <p class="mc-hint">Create a summary to talk through with a parent, teacher or guidance counsellor.</p>
-    <div class="mc-row">
-      <button class="btn-primary" type="button" onclick="mcPrintPlan()">Print / save as PDF</button>
-      <button class="btn-secondary" type="button" onclick="mcCopyPlan()">Copy as text</button>
-    </div>
-    <div class="mc-copy-status" id="mcCopyStatus" aria-live="polite"></div>
-  </section>
-
-  <p class="mc-disclaimer">Admission requirements change and admission is often competitive — meeting the minimum doesn't guarantee a seat. Always confirm with the institution and your school counsellor before choosing courses.</p>
+  <p class="mc-disclaimer">Admission and entrance requirements change, and admission is often competitive — meeting the minimum doesn't guarantee a seat. Always confirm with the institution or Alberta Apprenticeship and Industry Training, and with your school counsellor, before choosing courses.</p>
 </main>
 
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
@@ -2333,6 +2377,7 @@ body[data-role="advisor"] .tab-label-student-or-default{display:none}
   </div>
 
   <div id="pathwayDashboard">
+    <div class="mc-summary-card" id="mcPathwayCard"></div>
 
     <!-- Empty state (shown when no pathways saved yet) -->
     <div id="pathwayEmpty" style="display:none;text-align:center;padding:48px 24px">
@@ -3074,6 +3119,7 @@ function showTab(id) {
   if (id === 'subscribe') { renderPathwayDashboard(); renderAccountPlans(); }
   if (id === 'dashboard' && navigatorRole === 'student') renderStudentDashboard();
   if (id === 'courses' && typeof mcInit === 'function') mcInit();
+  if ((id === 'dashboard' || id === 'subscribe') && typeof mcRenderSummaryCards === 'function') mcRenderSummaryCards();
   applyFreemiumGates();
 }
 
@@ -6978,185 +7024,307 @@ initRolePicker();
 <script>
 /* ═══════════════════════════════════════════════════════════════
    MY COURSES & CAREER PATHWAYS
-   Requirements below were read on each institution's official page
-   on MC_CHECKED. Do not add a program without a source URL; update
-   MC_CHECKED whenever requirements are re-verified.
+   Three connected decisions — interests & strengths → high school
+   courses → education & career pathways.
+   Every requirement below was read on the official source page on
+   MC_CHECKED. Never add a program without a source URL; update
+   MC_CHECKED whenever requirements are re-verified. Where a source
+   doesn't say something (e.g. whether a higher-level course can
+   replace a listed trade minimum), show "check", never guess.
 ════════════════════════════════════════════════════════════════ */
 var MC_CHECKED = '2026-11-21';
 var MC_STORAGE_KEY = 'navigatorCoursePlan';
 
-// Alberta senior high courses. prereq = the course normally taken before it.
+// ── Alberta senior high courses ───────────────────────────────────
+// subj/lvl let us recognise "a different course at the same or higher level".
 var MC_COURSES = [
   { group: 'English Language Arts', items: [
-    { id: 'ela10_1', name: 'English Language Arts 10-1', level: 10 },
-    { id: 'ela20_1', name: 'English Language Arts 20-1', level: 11, prereq: 'ela10_1' },
-    { id: 'ela30_1', name: 'English Language Arts 30-1', level: 12, prereq: 'ela20_1' },
-    { id: 'ela10_2', name: 'English Language Arts 10-2', level: 10 },
-    { id: 'ela20_2', name: 'English Language Arts 20-2', level: 11, prereq: 'ela10_2' },
-    { id: 'ela30_2', name: 'English Language Arts 30-2', level: 12, prereq: 'ela20_2', stronger: 'ela30_1' }
+    { id: 'ela10_1', name: 'English Language Arts 10-1', level: 10, subj: 'ela', lvl: 10 },
+    { id: 'ela20_1', name: 'English Language Arts 20-1', level: 11, subj: 'ela', lvl: 20, prereq: 'ela10_1' },
+    { id: 'ela30_1', name: 'English Language Arts 30-1', level: 12, subj: 'ela', lvl: 30, prereq: 'ela20_1' },
+    { id: 'ela10_2', name: 'English Language Arts 10-2', level: 10, subj: 'ela', lvl: 10 },
+    { id: 'ela20_2', name: 'English Language Arts 20-2', level: 11, subj: 'ela', lvl: 20, prereq: 'ela10_2', stronger: 'ela20_1' },
+    { id: 'ela30_2', name: 'English Language Arts 30-2', level: 12, subj: 'ela', lvl: 30, prereq: 'ela20_2', stronger: 'ela30_1' }
   ]},
   { group: 'Mathematics', items: [
-    { id: 'math10c', name: 'Mathematics 10C', level: 10 },
-    { id: 'math20_1', name: 'Mathematics 20-1', level: 11, prereq: 'math10c' },
-    { id: 'math30_1', name: 'Mathematics 30-1', level: 12, prereq: 'math20_1' },
-    { id: 'math31', name: 'Mathematics 31', level: 12, prereq: 'math30_1' },
-    { id: 'math20_2', name: 'Mathematics 20-2', level: 11, prereq: 'math10c', stronger: 'math20_1' },
-    { id: 'math30_2', name: 'Mathematics 30-2', level: 12, prereq: 'math20_2', stronger: 'math30_1' }
+    { id: 'math10c', name: 'Mathematics 10C', level: 10, subj: 'math', lvl: 10 },
+    { id: 'math20_1', name: 'Mathematics 20-1', level: 11, subj: 'math', lvl: 20, prereq: 'math10c' },
+    { id: 'math30_1', name: 'Mathematics 30-1', level: 12, subj: 'math', lvl: 30, prereq: 'math20_1' },
+    { id: 'math31', name: 'Mathematics 31', level: 12, subj: 'math', lvl: 31, prereq: 'math30_1' },
+    { id: 'math20_2', name: 'Mathematics 20-2', level: 11, subj: 'math', lvl: 20, prereq: 'math10c', stronger: 'math20_1' },
+    { id: 'math30_2', name: 'Mathematics 30-2', level: 12, subj: 'math', lvl: 30, prereq: 'math20_2', stronger: 'math30_1' },
+    { id: 'math10_3', name: 'Mathematics 10-3', level: 10, subj: 'math', lvl: 10 },
+    { id: 'math20_3', name: 'Mathematics 20-3', level: 11, subj: 'math', lvl: 20, prereq: 'math10_3' }
   ]},
   { group: 'Sciences', items: [
-    { id: 'sci10', name: 'Science 10', level: 10 },
-    { id: 'bio20', name: 'Biology 20', level: 11, prereq: 'sci10' },
-    { id: 'bio30', name: 'Biology 30', level: 12, prereq: 'bio20' },
-    { id: 'chem20', name: 'Chemistry 20', level: 11, prereq: 'sci10' },
-    { id: 'chem30', name: 'Chemistry 30', level: 12, prereq: 'chem20' },
-    { id: 'phys20', name: 'Physics 20', level: 11, prereq: 'sci10' },
-    { id: 'phys30', name: 'Physics 30', level: 12, prereq: 'phys20' },
-    { id: 'sci20', name: 'Science 20', level: 11, prereq: 'sci10' },
-    { id: 'sci30', name: 'Science 30', level: 12, prereq: 'sci20' }
+    { id: 'sci10', name: 'Science 10', level: 10, subj: 'sci', lvl: 10 },
+    { id: 'bio20', name: 'Biology 20', level: 11, subj: 'sci', lvl: 20, prereq: 'sci10' },
+    { id: 'bio30', name: 'Biology 30', level: 12, subj: 'sci', lvl: 30, prereq: 'bio20' },
+    { id: 'chem20', name: 'Chemistry 20', level: 11, subj: 'sci', lvl: 20, prereq: 'sci10' },
+    { id: 'chem30', name: 'Chemistry 30', level: 12, subj: 'sci', lvl: 30, prereq: 'chem20' },
+    { id: 'phys20', name: 'Physics 20', level: 11, subj: 'sci', lvl: 20, prereq: 'sci10' },
+    { id: 'phys30', name: 'Physics 30', level: 12, subj: 'sci', lvl: 30, prereq: 'phys20' },
+    { id: 'sci20', name: 'Science 20', level: 11, subj: 'sci', lvl: 20, prereq: 'sci10' },
+    { id: 'sci30', name: 'Science 30', level: 12, subj: 'sci', lvl: 30, prereq: 'sci20' }
   ]},
   { group: 'Social Studies & Other', items: [
-    { id: 'soc30_1', name: 'Social Studies 30-1', level: 12 },
-    { id: 'soc30_2', name: 'Social Studies 30-2', level: 12 },
-    { id: 'pe30', name: 'Physical Education 30', level: 12 },
-    { id: 'cts_cse30', name: 'CTS Computing Science (30 level)', level: 12 }
+    { id: 'soc30_1', name: 'Social Studies 30-1', level: 12, subj: 'soc', lvl: 30 },
+    { id: 'soc30_2', name: 'Social Studies 30-2', level: 12, subj: 'soc', lvl: 30 },
+    { id: 'pe30', name: 'Physical Education 30', level: 12, subj: 'other', lvl: 30 },
+    { id: 'cts_cse30', name: 'CTS Computing Science (30 level)', level: 12, subj: 'other', lvl: 30 }
   ]}
 ];
-
 var MC_COURSE_BY_ID = {};
 MC_COURSES.forEach(function (g) { g.items.forEach(function (c) { MC_COURSE_BY_ID[c.id] = c; }); });
+var MC_SUBJECT_NAMES = { ela: 'English Language Arts', math: 'Mathematics', sci: 'Sciences', soc: 'Social Studies' };
 
-// Post-secondary programs. Each requirement is satisfied by ANY course in `any`.
+// ── Career areas ──────────────────────────────────────────────────
+var MC_SECTORS = [
+  { id: 'aviation', name: 'Aviation & Aerospace' },
+  { id: 'engineering', name: 'Engineering' },
+  { id: 'healthcare', name: 'Healthcare' },
+  { id: 'trades', name: 'Skilled Trades' }
+];
+var MC_EXTRA_CAREERS = [
+  { id: 'eng_professional', sector: 'engineering', title: 'Professional Engineer', blurb: 'Mechanical, civil, electrical and other engineering degrees.' },
+  { id: 'eng_technologist', sector: 'engineering', title: 'Engineering Technologist (Mechanical)', blurb: 'Hands-on design, testing and analysis with a 2-year diploma.' },
+  { id: 'registered_nurse', sector: 'healthcare', title: 'Registered Nurse', blurb: 'Plan, deliver and coordinate patient care; 4-year degree.' },
+  { id: 'practical_nurse', sector: 'healthcare', title: 'Licensed Practical Nurse', blurb: 'Provide nursing care as part of a health team; college diploma.' },
+  { id: 'electrician', sector: 'trades', title: 'Electrician', blurb: 'Install and maintain electrical systems; 4-period apprenticeship.' },
+  { id: 'welder', sector: 'trades', title: 'Welder', blurb: 'Join and cut metal for construction and industry; 3-period apprenticeship.' },
+  { id: 'millwright', sector: 'trades', title: 'Industrial Mechanic (Millwright)', blurb: 'Install and repair industrial machinery; 4-period apprenticeship.' },
+  { id: 'auto_tech', sector: 'trades', title: 'Automotive Service Technician', blurb: 'Diagnose and repair vehicles; 4-period apprenticeship.' },
+  { id: 'heavy_equipment_tech', sector: 'trades', title: 'Heavy Equipment Technician', blurb: 'Maintain construction, farm and mining equipment; 4-period apprenticeship.' }
+];
+// Photos already on this page, matched by alt text (no new imagery).
+var MC_IMAGES = {
+  pilot: 'Pilots in the cockpit', uav: 'Drone operator in an open field launching a professional RPAS system',
+  ame: 'Engineer inspecting nose gear', avionics: 'Avionics technician in cockpit',
+  structures: 'Engineer reviewing maintenance in hangar', atc: 'Air traffic controllers at radar screens',
+  fss: 'Air traffic controllers at radar screens', airport_ops: 'Ground crew working on the ramp beside a commercial aircraft at dusk',
+  ground_ops: 'Ground crew working on the ramp beside a commercial aircraft at dusk', cargo: 'Aircraft departing at sunset',
+  customer_ops: 'Aviation professionals at work', aerospace_mfg: 'Aerospace technician working on a jet engine in a hangar',
+  gas_turbine: 'Aerospace technician working on a jet engine in a hangar', aerospace_eng: 'Young technician with tablet',
+  aviation_tech: 'Young technician with tablet'
+};
+
+// ── Interests & strengths (ideas to explore — not predictions) ────
+var MC_STRENGTHS = [
+  { id: 'math', label: 'Math & problem-solving', ideas: ['aerospace_eng', 'eng_professional', 'atc'] },
+  { id: 'science', label: 'Science & how things work', ideas: ['eng_professional', 'registered_nurse', 'avionics'] },
+  { id: 'hands_on', label: 'Building & fixing things', ideas: ['ame', 'millwright', 'auto_tech', 'structures'] },
+  { id: 'helping', label: 'Helping & caring for people', ideas: ['registered_nurse', 'practical_nurse', 'customer_ops'] },
+  { id: 'tech', label: 'Computers & technology', ideas: ['avionics', 'eng_technologist', 'uav'] },
+  { id: 'flight', label: 'Aircraft, drones & flight', ideas: ['pilot', 'uav', 'atc'] },
+  { id: 'communication', label: 'Communicating & teamwork', ideas: ['atc', 'fss', 'registered_nurse'] },
+  { id: 'outdoors', label: 'Being active or outdoors', ideas: ['ground_ops', 'heavy_equipment_tech', 'welder'] }
+];
+var MC_ACTIVITIES = [
+  { id: 'explore_math', label: 'Explore math and problem-solving (clubs, contests, puzzles)' },
+  { id: 'design_activity', label: 'Try a science or engineering design activity' },
+  { id: 'coding', label: 'Learn some coding or digital skills' },
+  { id: 'aviation_learn', label: 'Learn how aircraft and airports work' },
+  { id: 'hands_on', label: 'Try a hands-on project or a CTS / shop class' },
+  { id: 'health_learn', label: 'Learn about health careers (e.g. a first aid course)' },
+  { id: 'talk_counsellor', label: 'Talk with a teacher or school counsellor about Grade 10 courses' },
+  { id: 'talk_worker', label: 'Talk to someone who works in a career you like' }
+];
+
+var MC_TYPES = {
+  university: 'University degree', college: 'College / polytechnic', apprenticeship: 'Apprenticeship',
+  employer: 'Paid employer training', certification: 'Certification'
+};
+
+var MC_RAP = { text: 'Start in high school: the Registered Apprenticeship Program (RAP) is open to senior high students aged 15+ with a parent or guardian’s consent. You’re paid at least minimum wage and can earn up to 41 high school credits while logging apprenticeship hours (HCS3000 Workplace Safety Systems is required).',
+  url: 'https://tradesecrets.alberta.ca/get-started/start-in-high-school/registered-apprenticeship-program/' };
+var MC_TRADE_ALTS = [
+  { text: 'No required courses yet? Alberta also accepts the apprenticeship Entrance Exam, a GED/CAEC (all 5 tests), a recognized training program, or a recognized trade certificate.', url: 'https://tradesecrets.alberta.ca/get-started/become-an-apprentice/eligibility-and-entrance-requirements/' },
+  { text: 'You can register as an apprentice before meeting the entrance requirements; you must meet them before your first period of classroom instruction.', url: 'https://tradesecrets.alberta.ca/get-started/become-an-apprentice/eligibility-and-entrance-requirements/' },
+  MC_RAP
+];
+var MC_TRADE_CHECK_NOTE = 'Trade Secrets lists these minimums. It doesn’t say whether a different course at the same or a higher level (e.g. Math 20-1 instead of Math 20-3) is accepted — confirm with Alberta Apprenticeship and Industry Training.';
+function mcTrade(id, careerId, name, reqs, periods) {
+  return { id: id, type: 'apprenticeship', name: name + ' apprenticeship', inst: 'Alberta Apprenticeship and Industry Training', careers: [careerId],
+    routes: [{ reqs: reqs }], notes: [periods + ' periods of classroom instruction plus on-the-job training.', MC_TRADE_CHECK_NOTE],
+    alts: MC_TRADE_ALTS, url: 'https://tradesecrets.alberta.ca/trades-in-alberta/profiles/' + id.split('_').pop() + '/' };
+}
+var MC_TRADE_20 = [ { any: ['ela20_2'], checkHigher: true }, { any: ['math20_3'], checkHigher: true }, { any: ['sci10'], checkHigher: true } ];
+
+// ── Programs (requirements satisfied by ANY course in `any`) ─────
 var MC_PROGRAMS = [
-  { id: 'mru_aviation', name: 'Aviation Diploma', inst: 'Mount Royal University', careers: ['pilot'],
-    routes: [{ reqs: [
-      { any: ['ela30_1'], min: 60 },
-      { any: ['math30_1', 'math30_2'], min: 60 }
-    ]}],
+  { id: 'mru_aviation', type: 'college', name: 'Aviation Diploma', inst: 'Mount Royal University', careers: ['pilot'],
+    routes: [{ reqs: [ { any: ['ela30_1'], min: 60 }, { any: ['math30_1', 'math30_2'], min: 60 } ] }],
     notes: ['High school applicants need a minimum admission average of 60% on five appropriate Grade 12 courses; admission is competitive.',
             'An unrestricted Class 1 Aviation Medical and an unrestricted Private Pilot Licence are required to complete the flight training components.'],
+    alts: [{ text: 'Mature and post-secondary applicant categories don’t require the three additional Grade 12 courses.' }],
     url: 'https://mtroyal.ca/ProgramsCourses/FacultiesSchoolsCentres/Business/Programs/AviationDiploma/AdmissionRequirementsCosts/index.htm' },
 
-  { id: 'mru_bam', name: 'Bachelor of Aviation Management', inst: 'Mount Royal University', careers: ['airport_ops', 'customer_ops'],
-    routes: [{ reqs: [
-      { any: ['ela30_1'], min: 60 },
-      { any: ['math30_1', 'math30_2'], min: 60 }
-    ]}],
-    notes: ['High school applicants need a minimum admission average of 65% on five appropriate Grade 12 courses.',
-            'A related management degree — not a direct operations-entry program.'],
+  { id: 'mru_bam', type: 'university', name: 'Bachelor of Aviation Management', inst: 'Mount Royal University', careers: ['airport_ops', 'customer_ops'],
+    routes: [{ reqs: [ { any: ['ela30_1'], min: 60 }, { any: ['math30_1', 'math30_2'], min: 60 } ] }],
+    notes: ['High school applicants need a minimum admission average of 65% on five appropriate Grade 12 courses.', 'A related management degree — not a direct operations-entry program.'],
+    alts: [{ text: 'Also open to applicants who have completed a two-year business diploma, applied degree or business degree.' }],
     url: 'https://www.mtroyal.ca/ProgramsCourses/FacultiesSchoolsCentres/Business/Programs/BachelorofAviationManagement/AdmissionRequirementsCosts/index.htm' },
 
-  { id: 'sait_ame', name: 'Aircraft Maintenance Engineers Technology (diploma)', inst: 'SAIT', careers: ['ame'],
-    routes: [{ reqs: [
-      { any: ['math30_1', 'math30_2'], min: 50 },
-      { any: ['ela30_1', 'ela30_2'], min: 50 }
-    ]}],
+  { id: 'sait_ame', type: 'college', name: 'Aircraft Maintenance Engineers Technology (diploma)', inst: 'SAIT', careers: ['ame'],
+    routes: [{ reqs: [ { any: ['math30_1', 'math30_2'], min: 50 }, { any: ['ela30_1', 'ela30_2'], min: 50 } ] }],
     notes: ['Applicants must also demonstrate English language proficiency.'],
     url: 'https://www.sait.ca/programs-and-courses/diplomas/aircraft-maintenance-engineers-technology' },
 
-  { id: 'sait_avionics', name: 'Avionics Technology (diploma)', inst: 'SAIT', careers: ['avionics'],
-    routes: [{ reqs: [
-      { any: ['math30_1', 'math30_2'], min: 50 },
-      { any: ['ela30_1', 'ela30_2'], min: 50 }
-    ]}],
+  { id: 'sait_avionics', type: 'college', name: 'Avionics Technology (diploma)', inst: 'SAIT', careers: ['avionics'],
+    routes: [{ reqs: [ { any: ['math30_1', 'math30_2'], min: 50 }, { any: ['ela30_1', 'ela30_2'], min: 50 } ] }],
     notes: ['Applicants must also demonstrate English language proficiency.'],
     url: 'https://www.sait.ca/programs-and-courses/diplomas/avionics-technology' },
 
-  { id: 'sait_structures', name: 'Aircraft Structures Technician (certificate)', inst: 'SAIT', careers: ['structures'],
-    routes: [{ reqs: [
-      { any: ['math20_1', 'math20_2'], min: 50 },
-      { any: ['ela30_1', 'ela30_2'], min: 50 }
-    ]}],
+  { id: 'sait_structures', type: 'college', name: 'Aircraft Structures Technician (certificate)', inst: 'SAIT', careers: ['structures'],
+    routes: [{ reqs: [ { any: ['math20_1', 'math20_2'], min: 50 }, { any: ['ela30_1', 'ela30_2'], min: 50 } ] }],
     notes: ['Applicants must also demonstrate English language proficiency.'],
     url: 'https://sait.ca/programs-and-courses/certificates/aircraft-structures-technician' },
 
-  { id: 'sait_gas_turbine', name: 'Gas Turbine Technician (certificate)', inst: 'SAIT', careers: ['gas_turbine'],
-    routes: [{ reqs: [
-      { any: ['ela30_1', 'ela30_2'], min: 50 },
-      { any: ['math30_1', 'math30_2'], min: 50 },
-      { any: ['bio30', 'chem30', 'phys30', 'sci30'], min: 50, label: 'One Grade 12 science' }
-    ]}],
+  { id: 'sait_gas_turbine', type: 'college', name: 'Gas Turbine Technician (certificate)', inst: 'SAIT', careers: ['gas_turbine'],
+    routes: [{ reqs: [ { any: ['ela30_1', 'ela30_2'], min: 50 }, { any: ['math30_1', 'math30_2'], min: 50 },
+      { any: ['bio30', 'chem30', 'phys30', 'sci30'], min: 50, label: 'One Grade 12 science' } ] }],
     notes: ['Applicants must also demonstrate English language proficiency.'],
     url: 'https://www.sait.ca/programs-and-courses/certificates/gas-turbine-technician' },
 
-  { id: 'ualberta_eng', name: 'Engineering (first year)', inst: 'University of Alberta', careers: ['aerospace_eng'],
-    routes: [{ reqs: [
-      { any: ['ela30_1'] }, { any: ['math30_1'] }, { any: ['math31'] }, { any: ['chem30'] }, { any: ['phys30'] }
-    ]}],
-    notes: ['Admission is competitive and based on the average of these five courses; current competitive averages are published separately by the faculty.',
-            'If a Grade 12 course isn’t finished yet when you apply, the faculty uses the Grade 11 prerequisite.'],
+  { id: 'sait_met', type: 'college', name: 'Mechanical Engineering Technology (diploma)', inst: 'SAIT', careers: ['eng_technologist'],
+    routes: [
+      { name: 'With Physics 20 + Chemistry 20', reqs: [ { any: ['math30_1', 'math30_2'], minText: '60% in Mathematics 30-1 or 75% in Mathematics 30-2' }, { any: ['ela30_1', 'ela30_2'], min: 60 }, { any: ['phys20'], min: 60 }, { any: ['chem20'], min: 60 } ] },
+      { name: 'With Science 30', reqs: [ { any: ['math30_1', 'math30_2'], minText: '60% in Mathematics 30-1 or 75% in Mathematics 30-2' }, { any: ['ela30_1', 'ela30_2'], min: 60 }, { any: ['sci30'], min: 60 } ] }
+    ],
+    notes: ['Applicants must also demonstrate English language proficiency. Two-year diploma.'],
+    url: 'https://www.sait.ca/programs-and-courses/diplomas/mechanical-engineering-technology' },
+
+  { id: 'ualberta_eng', type: 'university', name: 'Engineering (first year)', inst: 'University of Alberta', careers: ['aerospace_eng', 'eng_professional'],
+    routes: [{ reqs: [ { any: ['ela30_1'] }, { any: ['math30_1'] }, { any: ['math31'] }, { any: ['chem30'] }, { any: ['phys30'] } ] }],
+    notes: ['Admission is competitive and based on the average of these five courses; current competitive averages are published separately by the faculty.'],
+    alts: [{ text: 'If a Grade 12 course isn’t finished yet when you apply, the faculty uses the Grade 11 prerequisite.' }],
     url: 'https://www.ualberta.ca/en/engineering/programs/undergraduate/admissions/index.html' },
 
-  { id: 'ucalgary_eng', name: 'Engineering (Schulich School of Engineering)', inst: 'University of Calgary', careers: ['aerospace_eng'],
+  { id: 'ucalgary_eng', type: 'university', name: 'Engineering (Schulich School of Engineering)', inst: 'University of Calgary', careers: ['aerospace_eng', 'eng_professional'],
     routes: [
       { name: 'Regular route', reqs: [ { any: ['ela30_1'] }, { any: ['math30_1'] }, { any: ['math31'] }, { any: ['chem30'] }, { any: ['phys30'] } ] },
       { name: 'Biology-based route', reqs: [ { any: ['ela30_1'] }, { any: ['math30_1'] }, { any: ['math31'] }, { any: ['chem30'] }, { any: ['bio30'] } ],
         note: 'Offers through this route are conditional on completing the Schulich Summer Bioengineering Institute before the program starts.' }
     ],
-    notes: ['If Mathematics 31 wasn’t attempted, the required admission average is at least 5% higher and another approved course replaces it.',
-            'Admission is competitive; meeting the minimum doesn’t guarantee admission (2026–27 calendar).'],
+    notes: ['Admission is competitive; meeting the minimum doesn’t guarantee admission (2026–27 calendar).'],
+    alts: [{ text: 'If Mathematics 31 wasn’t attempted, the required admission average is at least 5% higher and another approved course replaces it.' }],
     url: 'https://calendar.ucalgary.ca/pages/d11b4800e47040a287de3426e4a83bcf' },
 
-  { id: 'navcan_atc', name: 'Air Traffic Controller trainee', inst: 'NAV CANADA', careers: ['atc'],
+  { id: 'mru_bn', type: 'university', name: 'Bachelor of Nursing', inst: 'Mount Royal University', careers: ['registered_nurse'],
+    routes: [{ reqs: [ { any: ['ela30_1'], min: 60 }, { any: ['math30_1', 'math30_2'], min: 60 }, { any: ['bio30'], min: 60 }, { any: ['chem30'], min: 60 } ] }],
+    notes: ['High school applicants submit five Grade 12 courses, including these. All applicants also complete a non-academic assessment (Casper, Acuity Insights), which has a fee.', 'Applications open Oct. 1 and close Feb. 1.'],
+    alts: [{ text: 'Mature applicants need at least two Grade 12 courses.' }],
+    url: 'https://www.mtroyal.ca/ProgramsCourses/FacultiesSchoolsCentres/HealthCommunityEducation/Programs/BachelorofNursing/index.htm' },
+
+  { id: 'norquest_pn', type: 'college', name: 'Practical Nurse (diploma)', inst: 'NorQuest College', careers: ['practical_nurse'],
+    routes: [{ reqs: [ { any: ['ela30_1', 'ela30_2'], minText: '60% in ELA 30-1 or 70% in ELA 30-2' },
+      { any: ['math20_1', 'math20_2', 'math30_1', 'math30_2'], minText: '60% Math 20-1, 70% Math 20-2, 50% Math 30-1 or 60% Math 30-2' },
+      { any: ['bio30'], min: 60 } ] }],
+    notes: ['Requirements shown are for the January 2027 intake.'],
+    alts: [{ text: 'Applicants can meet academic requirements through a free Academic Assessment after applying.' }],
+    url: 'https://norquest.ca/programs-and-courses/programs/practical-nurse/program-requirements' },
+
+  mcTrade('electrician_003', 'electrician', 'Electrician', MC_TRADE_20, 4),
+  mcTrade('welder_012', 'welder', 'Welder', [ { any: ['ela10_2'], checkHigher: true }, { any: ['math10_3'], checkHigher: true } ], 3),
+  mcTrade('millwright_016', 'millwright', 'Industrial Mechanic (Millwright)', MC_TRADE_20, 4),
+  mcTrade('auto_009', 'auto_tech', 'Automotive Service Technician', MC_TRADE_20, 4),
+  mcTrade('heavy_0191', 'heavy_equipment_tech', 'Heavy Equipment Technician', MC_TRADE_20, 4),
+
+  { id: 'navcan_atc', type: 'employer', name: 'Air Traffic Controller trainee', inst: 'NAV CANADA', careers: ['atc'],
     routes: [{ reqs: [ { diploma: true } ] }],
     notes: ['No specific high school courses are required.', 'You must be 18 or older when you apply and a Canadian citizen or permanent resident. NAV CANADA provides paid training.'],
     url: 'https://www.navcanada.ca/en/careers-in-aviation' },
 
-  { id: 'navcan_fss', name: 'Flight Service Specialist trainee', inst: 'NAV CANADA', careers: ['fss'],
+  { id: 'navcan_fss', type: 'employer', name: 'Flight Service Specialist trainee', inst: 'NAV CANADA', careers: ['fss'],
     routes: [{ reqs: [ { diploma: true } ] }],
     notes: ['No specific high school courses are required; aviation experience isn’t required.', 'You must be 18 or older when you apply, and meet Transport Canada medical, security and drug-screening requirements.'],
     url: 'https://www.navcanada.ca/en/careers/flight-service-specialist.aspx' },
 
-  { id: 'tc_drone', name: 'Drone Pilot Certificate (Basic & Advanced)', inst: 'Transport Canada', careers: ['uav'],
+  { id: 'tc_drone', type: 'certification', name: 'Drone Pilot Certificate (Basic & Advanced)', inst: 'Transport Canada', careers: ['uav'],
     routes: [{ reqs: [] }],
     notes: ['No high school courses are required.', 'You need to be 14 for a Basic certificate (online exam) and 16 for an Advanced certificate (online exam plus flight review).'],
     url: 'https://tc.canada.ca/en/aviation/drone-safety/learn-rules-you-fly-your-drone/drone-operation-categories-pilot-certificates/advanced-operations' }
 ];
 
-var mcPlan = { province: 'AB', grade: null, careers: [], courses: {} };
-var mcLoaded = false;
-var mcSaveTimer = null;
+// ── Alberta High School Diploma ──────────────────────────────────
+var MC_DIPLOMA = {
+  url: 'https://manuals.alberta.ca/guide-to-education/program-administration-and-delivery-diploma-and-certificate-requirements/alberta-high-school-diploma-graduation-requirements-english/',
+  updated: '2026-09-04',
+  reqs: [
+    { label: 'English Language Arts — 30 level', any: ['ela30_1', 'ela30_2'] },
+    { label: 'Social Studies — 30 level', any: ['soc30_1', 'soc30_2'] },
+    { label: 'Mathematics — 20 level', any: ['math20_1', 'math20_2', 'math20_3'] },
+    { label: 'Science — 20 level', any: ['sci20', 'bio20', 'chem20', 'phys20'], extra: 'Science 24 also counts' }
+  ],
+  other: ['100 credits in total', 'Physical Education 10 (3 credits) and Career and Life Management (3 credits)',
+          '10 credits from options such as CTS, fine arts or second languages', '10 credits in any 30-level course']
+};
+var MC_GRAD_CHANGES = {
+  url: 'https://www.alberta.ca/upcoming-changes-to-graduation-requirements',
+  firstFall: 2028,
+  text: 'Alberta’s new High School Diploma requirements become mandatory for Grade 10 students in fall 2028, Grade 11 in fall 2029, and all of senior high in fall 2030. Students still need 100 credits; optional credits increase from 44 to 53, new Grade 10 career-and-life-management and physical education & wellness courses become mandatory, and at least one diploma exam is required.'
+};
+
+// ── State ─────────────────────────────────────────────────────────
+var mcPlan = { province: 'AB', grade: null, careers: [], courses: {}, strengths: [], activities: [] };
+var mcLoaded = false, mcLoading = null, mcSaveTimer = null;
+var mcStage = null, mcStageChosen = false;
 
 function mcEsc(s) {
   return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
 }
 function mcToken() { try { return localStorage.getItem('navigatorToken'); } catch (e) { return null; } }
-function mcCareerList() { return (typeof PATHWAYS !== 'undefined' ? PATHWAYS : []).map(function (p) { return { id: p.id, title: p.title }; }); }
-function mcCareerTitle(id) { var c = mcCareerList().filter(function (p) { return p.id === id; })[0]; return c ? c.title : id; }
+function mcCareerList() {
+  var aviation = (typeof PATHWAYS !== 'undefined' ? PATHWAYS : []).map(function (p) { return { id: p.id, title: p.title, sector: 'aviation', avSector: p.sector, blurb: p.tagline || '' }; });
+  return aviation.concat(MC_EXTRA_CAREERS);
+}
+function mcCareer(id) { return mcCareerList().filter(function (c) { return c.id === id; })[0] || null; }
+function mcCareerTitle(id) { var c = mcCareer(id); return c ? c.title : id; }
+function mcExploring() { return mcPlan.grade !== null && mcPlan.grade <= 9; }
+function mcSchoolYearStart() { var d = new Date(); return d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; }
+function mcYearLabel(start) { return start + '–' + String((start + 1) % 100).padStart(2, '0'); }
 
 function mcNormalize(p) {
   p = p || {};
   var known = {}; mcCareerList().forEach(function (c) { known[c.id] = 1; });
   var courses = {};
   Object.keys(p.courses || {}).forEach(function (k) { if (MC_COURSE_BY_ID[k] && (p.courses[k] === 'taken' || p.courses[k] === 'planned')) courses[k] = p.courses[k]; });
+  var sIds = MC_STRENGTHS.map(function (s) { return s.id; }), aIds = MC_ACTIVITIES.map(function (a) { return a.id; });
   return {
     province: 'AB',
-    grade: [9, 10, 11, 12].indexOf(Number(p.grade)) >= 0 ? Number(p.grade) : null,
+    grade: [7, 8, 9, 10, 11, 12].indexOf(Number(p.grade)) >= 0 ? Number(p.grade) : null,
     careers: (p.careers || []).filter(function (c) { return known[c]; }),
-    courses: courses
+    courses: courses,
+    strengths: (p.strengths || []).filter(function (s) { return sIds.indexOf(s) >= 0; }),
+    activities: (p.activities || []).filter(function (a) { return aIds.indexOf(a) >= 0; })
   };
 }
 
-async function mcInit() {
-  if (!mcLoaded) {
-    mcLoaded = true;
+// Load once (local first, then account). Used by the tab and the summary cards.
+function mcEnsureLoaded() {
+  if (mcLoaded) return Promise.resolve();
+  if (mcLoading) return mcLoading;
+  mcLoading = (async function () {
     try { var local = localStorage.getItem(MC_STORAGE_KEY); if (local) mcPlan = mcNormalize(JSON.parse(local)); } catch (e) {}
     var token = mcToken();
     if (token) {
       try {
         var res = await fetch(NAV_API + '/navigator/course-plan', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (res.ok) {
-          var data = await res.json();
-          if (data.plan) mcPlan = mcNormalize(data.plan);
-          mcStatus('Your plan is saved to your account.');
-        }
+        if (res.ok) { var data = await res.json(); if (data.plan) mcPlan = mcNormalize(data.plan); }
       } catch (e) {}
-    } else {
-      mcStatus('Your plan is saved in this browser. Sign in to keep it with your account.');
     }
-  }
-  mcRender();
+    mcLoaded = true;
+  })();
+  return mcLoading;
 }
 
+async function mcInit() {
+  await mcEnsureLoaded();
+  mcStatus(mcToken() ? 'Your plan is saved to your account.' : 'Your plan is saved in this browser. Sign in to keep it with your account.');
+  if (!mcStageChosen || !mcStage) mcStage = mcDefaultStage();
+  mcRender();
+}
+function mcDefaultStage() { return (mcPlan.grade !== null && mcPlan.grade >= 10) ? 2 : 1; }
 function mcStatus(msg) { var el = document.getElementById('mcSaveStatus'); if (el) el.textContent = msg; }
 
 function mcSave() {
@@ -7168,74 +7336,180 @@ function mcSave() {
   mcSaveTimer = setTimeout(async function () {
     try {
       var res = await fetch(NAV_API + '/navigator/course-plan', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ plan: mcPlan })
       });
       mcStatus(res.ok ? 'Saved to your account.' : 'Couldn’t save to your account — your plan is kept in this browser.');
-    } catch (e) {
-      mcStatus('Couldn’t save to your account — your plan is kept in this browser.');
-    }
+    } catch (e) { mcStatus('Couldn’t save to your account — your plan is kept in this browser.'); }
   }, 600);
 }
 
 function mcSet(key, value) {
-  if (key === 'grade') mcPlan.grade = value ? Number(value) : null;
+  if (key === 'grade') { mcPlan.grade = value ? Number(value) : null; if (!mcStageChosen) mcStage = mcDefaultStage(); }
   if (key === 'province') mcPlan.province = 'AB';
   mcSave(); mcRender();
 }
-function mcToggleCareer(id) {
-  var i = mcPlan.careers.indexOf(id);
-  if (i >= 0) mcPlan.careers.splice(i, 1); else mcPlan.careers.push(id);
-  mcSave(); mcRender();
-}
-function mcSetCourse(id, v) {
-  if (v === 'taken' || v === 'planned') mcPlan.courses[id] = v; else delete mcPlan.courses[id];
-  mcSave(); mcRender();
+function mcToggleList(list, id) { var i = mcPlan[list].indexOf(id); if (i >= 0) mcPlan[list].splice(i, 1); else mcPlan[list].push(id); mcSave(); mcRender(); }
+function mcToggleCareer(id) { mcToggleList('careers', id); }
+function mcToggleStrength(id) { mcToggleList('strengths', id); }
+function mcToggleActivity(id) { mcToggleList('activities', id); }
+function mcSetCourse(id, v) { if (v === 'taken' || v === 'planned') mcPlan.courses[id] = v; else delete mcPlan.courses[id]; mcSave(); mcRender(); }
+function mcGoStage(n, chosen) {
+  mcStage = n; if (chosen) mcStageChosen = true; mcRender();
+  var el = document.getElementById('tab-courses'); if (el && chosen) { var nav = el.querySelector('.mc-stages'); if (nav && nav.getBoundingClientRect().top < 0) nav.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
-// ── Analysis ────────────────────────────────────────────────────────────────
+// ── Analysis ──────────────────────────────────────────────────────
+function mcCourseNames(ids) { return ids.map(function (c) { return MC_COURSE_BY_ID[c].name; }); }
 function mcReqLabel(req) {
   if (req.diploma) return 'Alberta High School Diploma (or equivalency)';
-  if (req.label) return req.label + ' (' + req.any.map(function (c) { return MC_COURSE_BY_ID[c].name; }).join(', ') + ')';
-  return req.any.map(function (c) { return MC_COURSE_BY_ID[c].name; }).join(' or ');
+  if (req.label) return req.label + ' (' + mcCourseNames(req.any).join(', ') + ')';
+  return mcCourseNames(req.any).join(' or ');
 }
+function mcReqMin(req) { return req.minText ? ' — ' + req.minText : (req.min ? ' — minimum ' + req.min + '%' : ''); }
 function mcReqState(req) {
   if (req.diploma) return 'info';
   var st = req.any.map(function (c) { return mcPlan.courses[c]; });
   if (st.indexOf('taken') >= 0) return 'ok';
   if (st.indexOf('planned') >= 0) return 'plan';
+  if (req.checkHigher) {
+    var subj = MC_COURSE_BY_ID[req.any[0]].subj;
+    var minLvl = Math.min.apply(null, req.any.map(function (c) { return MC_COURSE_BY_ID[c].lvl; }));
+    var other = Object.keys(mcPlan.courses).some(function (c) { var k = MC_COURSE_BY_ID[c]; return k && k.subj === subj && k.lvl >= minLvl; });
+    if (other) return 'check';
+  }
   return 'gap';
 }
 function mcRouteSummary(route) {
   var states = route.reqs.map(mcReqState);
-  var gaps = states.filter(function (s) { return s === 'gap'; }).length;
-  var plans = states.filter(function (s) { return s === 'plan'; }).length;
-  return { gaps: gaps, plans: plans, states: states };
+  function n(s) { return states.filter(function (x) { return x === s; }).length; }
+  return { gaps: n('gap'), plans: n('plan'), checks: n('check'), states: states };
 }
 function mcBestRoute(prog) {
   var best = null;
-  prog.routes.forEach(function (r) { var s = mcRouteSummary(r); if (!best || s.gaps < best.s.gaps) best = { r: r, s: s }; });
+  prog.routes.forEach(function (r) { var s = mcRouteSummary(r); if (!best || s.gaps < best.s.gaps || (s.gaps === best.s.gaps && s.checks < best.s.checks)) best = { r: r, s: s }; });
   return best;
 }
-// Missing prerequisite chain for a course (earliest first), skipping courses already marked.
 function mcMissingChain(id) {
   var chain = []; var c = MC_COURSE_BY_ID[id];
   while (c && c.prereq) { c = MC_COURSE_BY_ID[c.prereq]; if (c && !mcPlan.courses[c.id]) chain.unshift(c); }
   return chain;
 }
 function mcProgramsFor(careerId) { return MC_PROGRAMS.filter(function (p) { return p.careers.indexOf(careerId) >= 0; }); }
+function mcSelectedPrograms() {
+  var out = [], seen = {};
+  mcPlan.careers.forEach(function (cid) { mcProgramsFor(cid).forEach(function (p) { if (!seen[p.id]) { seen[p.id] = 1; out.push(p); } }); });
+  return out;
+}
+function mcMarkedCount() { return Object.keys(mcPlan.courses).length; }
+function mcNeutral() { return mcExploring() && mcMarkedCount() === 0; }
 
-// ── Rendering ───────────────────────────────────────────────────────────────
+// ── Rendering ─────────────────────────────────────────────────────
 function mcRender() {
+  var panel = document.getElementById('tab-courses'); if (!panel) return;
+  if (!mcStage) mcStage = mcDefaultStage();
   var g = document.getElementById('mcGrade'); if (g) g.value = mcPlan.grade ? String(mcPlan.grade) : '';
+  var mode = document.getElementById('mcModeNote');
+  if (mode) mode.textContent = mcPlan.grade === null ? 'Choose your grade to tailor the plan.' :
+    mcExploring() ? 'Grades 7–9: start by exploring careers and planning which high school courses keep your options open. You can still check requirements any time.' :
+    'Grades 10–12: check your courses against verified admission and entrance requirements. You can go back to exploring any time.';
 
-  document.getElementById('mcCareers').innerHTML = mcCareerList().map(function (c) {
-    var on = mcPlan.careers.indexOf(c.id) >= 0;
-    return '<button type="button" class="mc-chip" aria-pressed="' + on + '" onclick="mcToggleCareer(\'' + c.id + '\')">' + mcEsc(c.title) + '</button>';
-  }).join('');
+  document.querySelectorAll('#tab-courses .mc-stage-btn').forEach(function (b) { b.setAttribute('aria-selected', String(Number(b.dataset.stage) === mcStage)); });
+  [1, 2, 3].forEach(function (n) { var s = document.getElementById('mcStage' + n); if (s) s.classList.toggle('active', n === mcStage); });
 
-  document.getElementById('mcCourses').innerHTML = MC_COURSES.map(function (grp) {
+  var progs = mcSelectedPrograms();
+  document.getElementById('mcStageMeta1').textContent = mcPlan.careers.length ? mcPlan.careers.length + ' career' + (mcPlan.careers.length > 1 ? 's' : '') + ' chosen' : 'Start here';
+  document.getElementById('mcStageMeta2').textContent = mcMarkedCount() ? mcMarkedCount() + ' course' + (mcMarkedCount() > 1 ? 's' : '') + ' marked' : (mcExploring() ? 'Plan ahead' : 'Mark your courses');
+  document.getElementById('mcStageMeta3').textContent = progs.length ? progs.length + ' verified route' + (progs.length > 1 ? 's' : '') : 'Routes after high school';
+
+  mcRenderStage1(); mcRenderStage2(); mcRenderStage3();
+
+  var nav = document.getElementById('mcStageNav');
+  var prev = mcStage > 1 ? '<button class="btn-secondary" type="button" onclick="mcGoStage(' + (mcStage - 1) + ', true)">← ' + ['', 'Interests & strengths', 'High school courses'][mcStage - 1] + '</button>' : '<span></span>';
+  var next = mcStage < 3 ? '<button class="btn-primary" type="button" onclick="mcGoStage(' + (mcStage + 1) + ', true)">' + ['', 'High school courses', 'Education & career pathways'][mcStage] + ' →</button>' : '';
+  nav.innerHTML = prev + next;
+}
+
+function mcSection(title, body, hint) {
+  return '<section class="mc-step"><h3 class="mc-step-title">' + title + '</h3>' + (hint ? '<p class="mc-hint">' + hint + '</p>' : '') + body + '</section>';
+}
+
+// Stage 1 — Interests & strengths
+function mcRenderStage1() {
+  var html = '';
+  // From the rest of Career Navigator
+  var saved = (typeof loadPathway === 'function' ? (loadPathway().saved || []) : []).map(function (s) { return s.id; })
+    .filter(function (id) { return mcCareer(id) && mcPlan.careers.indexOf(id) < 0; });
+  var from = '';
+  if (saved.length) from += '<p class="mc-hint">Careers saved in My Career Pathway:</p><div class="mc-chips">' + saved.map(function (id) {
+    return '<button type="button" class="mc-chip" aria-pressed="false" onclick="mcToggleCareer(\'' + id + '\')">+ ' + mcEsc(mcCareerTitle(id)) + '</button>';
+  }).join('') + '</div>';
+  from += '<div class="mc-actions"><button class="btn-secondary" type="button" onclick="showTab(\'discovery\')">Not sure yet? Try Career Discovery</button>' +
+    '<button class="btn-secondary" type="button" onclick="mcAskAcia(\'interests\')">Ask ACIA™ about careers that fit me</button></div>';
+  html += mcSection('What am I good at and interested in?',
+    '<div class="mc-chips">' + MC_STRENGTHS.map(function (s) {
+      return '<button type="button" class="mc-chip" aria-pressed="' + (mcPlan.strengths.indexOf(s.id) >= 0) + '" onclick="mcToggleStrength(\'' + s.id + '\')">' + mcEsc(s.label) + '</button>';
+    }).join('') + '</div>' + mcIdeasHtml() + from,
+    'Pick what you enjoy or do well. You don’t have to decide on a career yet.');
+
+  html += mcSection('Careers I want to explore',
+    MC_SECTORS.map(function (sec) {
+      var list = mcCareerList().filter(function (c) { return c.sector === sec.id; });
+      return '<div class="mc-sector"><div class="mc-sector-title">' + mcEsc(sec.name) + '</div><div class="mc-chips">' + list.map(function (c) {
+        return '<button type="button" class="mc-chip" aria-pressed="' + (mcPlan.careers.indexOf(c.id) >= 0) + '" onclick="mcToggleCareer(\'' + c.id + '\')">' + mcEsc(c.title) + '</button>';
+      }).join('') + '</div></div>';
+    }).join('') + mcCareerCardsHtml(),
+    'Choose as many as you like across aviation, engineering, healthcare and skilled trades.');
+  document.getElementById('mcStage1').innerHTML = html;
+}
+function mcIdeasHtml() {
+  if (!mcPlan.strengths.length) return '';
+  var ideas = [];
+  mcPlan.strengths.forEach(function (sid) { var s = MC_STRENGTHS.filter(function (x) { return x.id === sid; })[0]; (s ? s.ideas : []).forEach(function (c) { if (ideas.indexOf(c) < 0 && mcPlan.careers.indexOf(c) < 0 && mcCareer(c)) ideas.push(c); }); });
+  if (!ideas.length) return '';
+  return '<p class="mc-hint" style="margin-top:12px">Ideas to explore based on what you picked:</p><div class="mc-chips">' + ideas.slice(0, 8).map(function (id) {
+    return '<button type="button" class="mc-chip" aria-pressed="false" onclick="mcToggleCareer(\'' + id + '\')">+ ' + mcEsc(mcCareerTitle(id)) + '</button>';
+  }).join('') + '</div>';
+}
+function mcImageSrc(careerId) {
+  var alt = MC_IMAGES[careerId]; if (!alt) return null;
+  var img = Array.prototype.filter.call(document.querySelectorAll('img[alt]'), function (i) { return i.getAttribute('alt') === alt && !i.closest('#tab-courses'); })[0];
+  return img ? (img.currentSrc || img.src) : null;
+}
+function mcCareerCardsHtml() {
+  if (!mcPlan.careers.length) return '';
+  return '<div class="mc-cards">' + mcPlan.careers.map(function (id) {
+    var c = mcCareer(id); var src = mcImageSrc(id); var n = mcProgramsFor(id).length;
+    var save = (c.sector === 'aviation' && typeof toggleSavePathway === 'function') ?
+      '<button type="button" class="mc-link-btn" onclick="mcSaveToPathway(\'' + id + '\')">' + (typeof isPathwaySaved === 'function' && isPathwaySaved(id) ? '✓ In My Career Pathway' : 'Save to My Career Pathway') + '</button>' : '';
+    return '<div class="mc-card">' + (src ? '<img src="' + mcEsc(src) + '" alt="" loading="lazy">' : '') +
+      '<div class="mc-card-body"><div class="mc-card-title">' + mcEsc(c.title) + '</div>' +
+      (c.blurb ? '<div class="mc-card-meta">' + mcEsc(c.blurb) + '</div>' : '') +
+      '<div class="mc-card-meta">' + (n ? n + ' verified route' + (n > 1 ? 's' : '') + ' in Alberta' : 'No verified Alberta route yet') + '</div>' + save + '</div></div>';
+  }).join('') + '</div>';
+}
+function mcSaveToPathway(id) {
+  var c = mcCareer(id); if (!c) return;
+  toggleSavePathway(id, c.title, c.avSector);
+  mcRender();
+}
+
+// Stage 2 — High school courses
+function mcRenderStage2() {
+  var exploring = mcExploring();
+  var parts = {
+    plan: mcSection('What my careers need by Grade 12', mcSubjectPlanHtml(), exploring ? 'A plan for Grades 10–12 based on the verified requirements of the careers you chose.' : ''),
+    journey: mcSection('My course-planning journey', mcJourneyHtml()),
+    diploma: mcSection('Alberta High School Diploma', mcDiplomaHtml()),
+    tracker: mcSection('My high school courses', mcCoursesHtml(), 'Mark the Alberta courses you’ve taken and the ones you’re planning.')
+  };
+  var html = exploring ? parts.plan + parts.journey + parts.diploma +
+      '<section class="mc-step"><details class="mc-details" style="margin:0;border:0;padding:0"><summary>Already choosing courses? Mark them here</summary><div style="margin-top:12px">' + mcCoursesHtml() + '</div></details></section>'
+    : parts.tracker + parts.diploma + parts.plan + parts.journey;
+  document.getElementById('mcStage2').innerHTML = html;
+}
+function mcCoursesHtml() {
+  return MC_COURSES.map(function (grp) {
     return '<div class="mc-group"><div class="mc-group-title">' + mcEsc(grp.group) + '</div>' + grp.items.map(function (c) {
       var v = mcPlan.courses[c.id] || '';
       function b(val, label) { return '<button type="button" data-v="' + val + '" aria-pressed="' + (v === val) + '" onclick="mcSetCourse(\'' + c.id + '\',\'' + val + '\')">' + label + '</button>'; }
@@ -7243,77 +7517,193 @@ function mcRender() {
         '<span class="mc-seg" role="group" aria-label="' + mcEsc(c.name) + '">' + b('', 'Not taking') + b('taken', 'Taken') + b('planned', 'Planned') + '</span></div>';
     }).join('') + '</div>';
   }).join('');
-
-  mcRenderAlignment();
-  mcRenderOptions();
+}
+// Subject-by-career matrix derived only from verified requirements.
+function mcSubjectNeeds() {
+  var rows = { ela: {}, math: {}, sci: {}, soc: {} };
+  mcPlan.careers.forEach(function (cid) {
+    // Main (first) route of each program only; alternative routes are shown in step 3.
+    mcProgramsFor(cid).forEach(function (p) {
+      p.routes[0].reqs.forEach(function (q) {
+        if (q.diploma) return;
+        var subj = MC_COURSE_BY_ID[q.any[0]].subj; if (!rows[subj]) return;
+        rows[subj][cid] = rows[subj][cid] || [];
+        var label = mcCourseNames(q.any).join(' or ');
+        if (rows[subj][cid].indexOf(label) < 0) rows[subj][cid].push(label);
+      });
+    });
+  });
+  return rows;
+}
+function mcSubjectPlanHtml() {
+  if (!mcPlan.careers.length) return '<p class="mc-empty">Choose careers in step 1 to see which subjects they need. <button class="mc-link-btn" type="button" onclick="mcGoStage(1, true)">Go to interests &amp; strengths</button></p>';
+  var rows = mcSubjectNeeds();
+  var careers = mcPlan.careers.filter(function (c) { return mcProgramsFor(c).length; });
+  var html = '';
+  if (careers.length) {
+    html += '<div class="mc-table-wrap"><table class="mc-table"><thead><tr><th>Subject</th>' + careers.map(function (c) { return '<th>' + mcEsc(mcCareerTitle(c)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      ['ela', 'math', 'sci'].map(function (s) {
+        return '<tr><td>' + MC_SUBJECT_NAMES[s] + '</td>' + careers.map(function (c) {
+          var v = rows[s][c]; return '<td>' + (v ? mcEsc(v.join('; ')) : '<span class="mc-req-sub">Not listed</span>') + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    html += '<p class="mc-note">Where a career has several programs, each one’s main admission route is listed. Step 3 shows minimum grades, alternative routes and sources.</p>';
+  }
+  var none = mcPlan.careers.filter(function (c) { return !mcProgramsFor(c).length; });
+  if (none.length) html += '<p class="mc-note">No verified Alberta route yet for: ' + mcEsc(none.map(mcCareerTitle).join(', ')) + '.</p>';
+  html += mcStreamAdviceHtml();
+  return html;
+}
+// Which course streams keep every selected career open.
+function mcStreamAdviceHtml() {
+  var progs = mcSelectedPrograms(); if (!progs.length) return '';
+  var needs = { math31: false, math30_1only: false, math30: false, math20: false, math10_3: false, ela30_1only: false, ela30: false, ela20_2: false, sci: [] };
+  progs.forEach(function (p) { [p.routes[0]].forEach(function (r) { r.reqs.forEach(function (q) {
+    if (q.diploma) return; var a = q.any;
+    if (a.indexOf('math31') >= 0) needs.math31 = true;
+    if (a.length === 1 && a[0] === 'math30_1') needs.math30_1only = true;
+    if (a.indexOf('math30_1') >= 0 || a.indexOf('math30_2') >= 0) needs.math30 = true;
+    if (a.indexOf('math20_1') >= 0 || a.indexOf('math20_3') >= 0) needs.math20 = true;
+    if (a.indexOf('math10_3') >= 0) needs.math10_3 = true;
+    if (a.length === 1 && a[0] === 'ela30_1') needs.ela30_1only = true;
+    if (a.indexOf('ela30_1') >= 0) needs.ela30 = true;
+    if (a.indexOf('ela20_2') >= 0 || a.indexOf('ela10_2') >= 0) needs.ela20_2 = true;
+    if (a.length === 1 && MC_COURSE_BY_ID[a[0]].subj === 'sci' && needs.sci.indexOf(a[0]) < 0) needs.sci.push(a[0]);
+  }); }); });
+  var tips = [];
+  if (needs.math30_1only || needs.math31) tips.push('<strong>Math:</strong> the -1 stream — Mathematics 10C → 20-1 → 30-1' + (needs.math31 ? ', plus Mathematics 31' : '') + '. This keeps every route you chose open.');
+  else if (needs.math30) tips.push('<strong>Math:</strong> Mathematics 10C → 20-1 or 20-2 → 30-1 or 30-2. Taking the -1 stream keeps more university options open.');
+  else if (needs.math20 || needs.math10_3) tips.push('<strong>Math:</strong> your chosen routes list ' + (needs.math20 ? '20-level' : '10-level') + ' math. Taking Mathematics 10C keeps college and university options open too.');
+  if (needs.ela30_1only) tips.push('<strong>English:</strong> the -1 stream — English Language Arts 10-1 → 20-1 → 30-1.');
+  else if (needs.ela30 || needs.ela20_2) tips.push('<strong>English:</strong> English Language Arts 30-1 or 30-2 is accepted by most of your routes; 30-1 keeps every option open.');
+  if (needs.sci.length) {
+    var sci30 = needs.sci.filter(function (c) { return MC_COURSE_BY_ID[c].lvl === 30; });
+    var sci20 = needs.sci.filter(function (c) { return MC_COURSE_BY_ID[c].lvl === 20; });
+    var bits = [];
+    if (sci30.length) bits.push(mcCourseNames(sci30).join(', ') + ' (take the matching 20-level course first)');
+    if (sci20.length) bits.push(mcCourseNames(sci20).join(', '));
+    tips.push('<strong>Science:</strong> Science 10, then ' + bits.join('; ') + '.');
+  }
+  if (!tips.length) return '';
+  return '<div class="mc-callout"><div class="mc-alts-title">To keep all your chosen careers open, plan for</div><ul class="mc-list" style="margin-bottom:0">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
+}
+function mcJourneyHtml() {
+  if (mcPlan.grade === null) return '<p class="mc-empty">Choose your grade above to see your journey year by year.</p>';
+  var start = mcSchoolYearStart(), g0 = mcPlan.grade, items = [];
+  var g10Fall = start + Math.max(0, 10 - g0);
+  for (var g = g0; g <= 12; g++) {
+    var yr = mcYearLabel(start + (g - g0)), t = '', b = '';
+    if (g <= 8) { t = 'Explore'; b = 'Build confidence in math, science, reading and communication. Try activities that match your interests and find out what you enjoy.'; }
+    else if (g === 9) { t = 'Prepare'; b = 'Learn about Grade 10 course options and their prerequisites. Talk with your counsellor about which math, English and science sequences keep your careers open.'; }
+    else if (g === 10) { t = 'Begin high school'; b = 'Choose your Grade 10 courses (e.g. which math and English stream). Senior high students aged 15+ can ask about the Registered Apprenticeship Program.'; }
+    else if (g === 11) { t = 'Build'; b = 'Take the 20-level courses that lead to the 30-level courses your routes need. Review your plan before choosing Grade 12 courses.'; }
+    else { t = 'Finish & apply'; b = 'Complete the 30-level courses your routes require and apply. Many programs open applications in the fall (e.g. Mount Royal: Oct. 1).'; }
+    items.push('<li class="' + (g === g0 ? 'now' : '') + '"><div class="mc-tl-title">Grade ' + g + ' — ' + t + ' (' + yr + ')</div><div class="mc-tl-body">' + b + '</div></li>');
+  }
+  var html = '<ol class="mc-timeline">' + items.join('') + '</ol>';
+  if (g0 <= 10) {
+    var applies = g10Fall >= MC_GRAD_CHANGES.firstFall;
+    html += '<div class="mc-callout">' + (g0 < 10 ? 'You’ll start Grade 10 in fall ' + g10Fall + '. ' : '') +
+      (applies ? 'Alberta’s new High School Diploma requirements will apply to you. ' : 'You’ll most likely follow the current diploma requirements — confirm any transition arrangements with your school. ') +
+      mcEsc(MC_GRAD_CHANGES.text) + ' <a href="' + MC_GRAD_CHANGES.url + '" target="_blank" rel="noopener">Alberta.ca</a> · checked ' + MC_CHECKED + '</div>';
+  }
+  return html;
+}
+function mcDiplomaHtml() {
+  var neutral = mcNeutral();
+  var reqs = MC_DIPLOMA.reqs.map(function (q) {
+    var st = neutral ? 'info' : mcReqState(q);
+    var icon = { ok: '✓', plan: '◷', gap: '✕', info: '•' }[st];
+    return '<div class="mc-req ' + st + '"><span class="mc-req-icon" aria-hidden="true">' + icon + '</span><span>' + mcEsc(q.label) + ': ' + mcEsc(mcCourseNames(q.any).join(', ')) + (q.extra ? ' <span class="mc-req-sub">(' + mcEsc(q.extra) + ')</span>' : '') + '</span></div>';
+  }).join('');
+  return '<p class="mc-hint">Current requirements for the Alberta High School Diploma (100 credits):</p>' + reqs +
+    '<ul class="mc-list" style="margin-top:8px">' + MC_DIPLOMA.other.map(function (o) { return '<li>' + mcEsc(o) + '</li>'; }).join('') + '</ul>' +
+    '<div class="mc-source">Source: <a href="' + MC_DIPLOMA.url + '" target="_blank" rel="noopener">Alberta Guide to Education</a> (updated ' + MC_DIPLOMA.updated + ') · checked ' + MC_CHECKED + '</div>' +
+    (mcPlan.grade !== null && mcPlan.grade >= 11 ? '' : '<p class="mc-note">These change for students starting Grade 10 in fall 2028 or later — see your journey above.</p>');
 }
 
-function mcRenderAlignment() {
-  var el = document.getElementById('mcAlignment');
-  if (!mcPlan.careers.length) { el.innerHTML = '<p class="mc-empty">Choose at least one career interest in step 2 to see how your courses line up.</p>'; return; }
-  el.innerHTML = mcPlan.careers.map(function (cid) {
-    var progs = mcProgramsFor(cid);
-    var body = progs.length ? progs.map(mcProgramHtml).join('') :
-      '<p class="mc-empty">We haven’t verified an Alberta program for this career yet, so we’re not showing requirements. Ask your counsellor, or explore the Education &amp; Training tab.</p>';
-    return '<div class="mc-career"><div class="mc-career-title">' + mcEsc(mcCareerTitle(cid)) + '</div>' + body + '</div>';
-  }).join('');
+// Stage 3 — Education & career pathways
+function mcRenderStage3() {
+  var html = '';
+  if (!mcPlan.careers.length) {
+    html += mcSection('Routes after high school', '<p class="mc-empty">Choose careers in step 1 to see university, college, apprenticeship and training routes. <button class="mc-link-btn" type="button" onclick="mcGoStage(1, true)">Go to interests &amp; strengths</button></p>');
+  } else {
+    html += mcSection('Routes after high school', mcPlan.careers.map(function (cid) {
+      var progs = mcProgramsFor(cid);
+      var body = progs.length ? progs.map(mcProgramHtml).join('') :
+        '<p class="mc-empty">We haven’t verified an Alberta route for this career yet, so we’re not showing requirements. Ask your counsellor, or explore the Education &amp; Training tab.</p>';
+      return '<div class="mc-career"><div class="mc-career-title">' + mcEsc(mcCareerTitle(cid)) + '</div>' + body + '</div>';
+    }).join(''), mcNeutral() ? 'What you’ll need by the end of Grade 12. Mark courses in step 2 to see how you’re tracking.' : '');
+    html += mcSection('Keep my options open', mcOptionsHtml());
+  }
+  html += mcSection('What if I change my mind?',
+    '<ul class="mc-list"><li><strong>If a career isn’t for you:</strong> go back to step 1 and add others — your courses carry over.</li>' +
+    '<li><strong>If you miss a required course:</strong> look at the alternatives listed under each route (entrance exams, mature-applicant categories, assessments), and ask your counsellor about upgrading. Options depend on the institution.</li>' +
+    '<li><strong>If you haven’t decided:</strong> keep exploring. Choosing courses that several of your careers share keeps the most doors open.</li></ul>');
+  if (mcExploring() || mcPlan.activities.length) {
+    html += mcSection('My next learning activities', MC_ACTIVITIES.map(function (a) {
+      return '<label class="mc-check"><input type="checkbox" ' + (mcPlan.activities.indexOf(a.id) >= 0 ? 'checked' : '') + ' onchange="mcToggleActivity(\'' + a.id + '\')"><span>' + mcEsc(a.label) + '</span></label>';
+    }).join(''), 'Choose the activities you’d like to try.');
+  }
+  var cmp = mcCompareIds();
+  html += mcSection('Use my plan across Career Navigator',
+    '<div class="mc-actions" style="margin-top:0">' +
+    (cmp.length ? '<button class="btn-secondary" type="button" onclick="mcOpenCompare()">Compare ' + cmp.length + ' of these careers</button>' : '') +
+    '<button class="btn-secondary" type="button" onclick="mcAskAcia(\'plan\')">Ask ACIA™ about my plan</button>' +
+    '<button class="btn-secondary" type="button" onclick="showTab(\'subscribe\')">Open My Career Pathway</button></div>' +
+    '<div class="mc-actions"><button class="btn-primary" type="button" onclick="mcPrintPlan()">Print / save as PDF</button>' +
+    '<button class="btn-secondary" type="button" onclick="mcCopyPlan()">Copy as text</button></div>' +
+    '<div class="mc-copy-status" id="mcCopyStatus" aria-live="polite"></div>',
+    'Share a summary with a parent, teacher or guidance counsellor.');
+  document.getElementById('mcStage3').innerHTML = html;
 }
 
 function mcProgramHtml(prog) {
-  var best = mcBestRoute(prog);
-  var badge;
+  var best = mcBestRoute(prog), neutral = mcNeutral();
   var hasCourseReqs = prog.routes.some(function (r) { return r.reqs.some(function (q) { return !q.diploma; }); });
+  var badge;
   if (!hasCourseReqs) badge = '<span class="mc-badge info">No course requirements</span>';
-  else if (best.s.gaps === 0 && best.s.plans === 0) badge = '<span class="mc-badge ok">Requirements met</span>';
-  else if (best.s.gaps === 0) badge = '<span class="mc-badge plan">On track if you complete planned courses</span>';
-  else badge = '<span class="mc-badge gap">' + best.s.gaps + ' missing</span>';
+  else if (neutral) badge = '';
+  else if (best.s.gaps) badge = '<span class="mc-badge gap">' + best.s.gaps + ' missing</span>';
+  else if (best.s.checks) badge = '<span class="mc-badge info">Check ' + best.s.checks + ' with the source</span>';
+  else if (best.s.plans) badge = '<span class="mc-badge plan">On track if you complete planned courses</span>';
+  else badge = '<span class="mc-badge ok">Requirements met</span>';
 
   var routes = prog.routes.map(function (r) {
     var reqs = r.reqs.map(function (q) {
-      var st = mcReqState(q);
-      var icon = { ok: '✓', plan: '◷', gap: '✕', info: 'ℹ' }[st];
-      var suffix = q.min ? ' — minimum ' + q.min + '%' : '';
+      var st = neutral && !q.diploma ? 'info' : mcReqState(q);
+      var icon = neutral && !q.diploma ? '•' : { ok: '✓', plan: '◷', gap: '✕', info: 'ℹ', check: '?' }[st];
       var extra = '';
-      if (st === 'gap' && !q.diploma && q.any.length === 1) {
+      if (!neutral && st === 'gap' && !q.diploma && q.any.length === 1) {
         var chain = mcMissingChain(q.any[0]);
-        if (chain.length) extra = ' <span style="color:var(--fg3)">(needs ' + chain.map(function (c) { return mcEsc(c.name); }).join(' → ') + ' first)</span>';
+        if (chain.length) extra = ' <span class="mc-req-sub">(needs ' + chain.map(function (c) { return mcEsc(c.name); }).join(' → ') + ' first)</span>';
       }
-      return '<div class="mc-req ' + st + '"><span class="mc-req-icon" aria-hidden="true">' + icon + '</span><span>' + mcEsc(mcReqLabel(q)) + suffix + extra + '</span></div>';
+      if (st === 'check') extra = ' <span class="mc-req-sub">(you have a different course at this level — check it’s accepted)</span>';
+      return '<div class="mc-req ' + st + '"><span class="mc-req-icon" aria-hidden="true">' + icon + '</span><span>' + mcEsc(mcReqLabel(q)) + mcEsc(mcReqMin(q)) + extra + '</span></div>';
     }).join('');
     return (prog.routes.length > 1 ? '<div class="mc-route-name">' + mcEsc(r.name) + '</div>' : '') + reqs + (r.note ? '<div class="mc-note">' + mcEsc(r.note) + '</div>' : '');
   }).join('');
-
-  return '<div class="mc-program"><div class="mc-program-head"><div><div class="mc-program-name">' + mcEsc(prog.name) + '</div><div class="mc-program-inst">' + mcEsc(prog.inst) + '</div></div>' + badge + '</div>' +
-    routes + prog.notes.map(function (n) { return '<div class="mc-note">' + mcEsc(n) + '</div>'; }).join('') +
-    '<div class="mc-source">Source: <a href="' + mcEsc(prog.url) + '" target="_blank" rel="noopener">' + mcEsc(prog.inst) + ' admissions</a> · checked ' + MC_CHECKED + '</div></div>';
+  var alts = (prog.alts || []).length ? '<div class="mc-alts"><div class="mc-alts-title">Alternatives</div>' + prog.alts.map(function (a) {
+    return '<div class="mc-note">' + mcEsc(a.text) + (a.url ? ' <a href="' + mcEsc(a.url) + '" target="_blank" rel="noopener">Source</a>' : '') + '</div>';
+  }).join('') + '</div>' : '';
+  return '<div class="mc-program"><div class="mc-program-head"><div><div class="mc-program-name">' + mcEsc(prog.name) + '</div><div class="mc-program-inst">' + mcEsc(prog.inst) + '</div></div>' +
+    '<div class="mc-badges"><span class="mc-badge type">' + mcEsc(MC_TYPES[prog.type] || '') + '</span>' + badge + '</div></div>' +
+    routes + prog.notes.map(function (n) { return '<div class="mc-note">' + mcEsc(n) + '</div>'; }).join('') + alts +
+    '<div class="mc-source">Source: <a href="' + mcEsc(prog.url) + '" target="_blank" rel="noopener">' + mcEsc(prog.inst) + '</a> · checked ' + MC_CHECKED + '</div></div>';
 }
 
 function mcOptionsData() {
-  var progs = []; var seen = {};
-  mcPlan.careers.forEach(function (cid) { mcProgramsFor(cid).forEach(function (p) { if (!seen[p.id]) { seen[p.id] = 1; progs.push(p); } }); });
-
-  // Missing requirements, grouped by course option set
+  var progs = mcSelectedPrograms();
   var missing = [];
-  progs.forEach(function (p) {
-    var best = mcBestRoute(p);
-    best.r.reqs.forEach(function (q, i) { if (best.s.states[i] === 'gap') missing.push({ prog: p, req: q }); });
-  });
-
-  // Courses that support several selected careers
+  progs.forEach(function (p) { var best = mcBestRoute(p); best.r.reqs.forEach(function (q, i) { if (best.s.states[i] === 'gap') missing.push({ prog: p, req: q }); }); });
   var support = {};
   progs.forEach(function (p) {
     var ids = {};
     p.routes.forEach(function (r) { r.reqs.forEach(function (q) { (q.any || []).forEach(function (c) { ids[c] = 1; }); }); });
-    Object.keys(ids).forEach(function (c) {
-      support[c] = support[c] || {};
-      p.careers.forEach(function (cid) { if (mcPlan.careers.indexOf(cid) >= 0) support[c][cid] = 1; });
-    });
+    Object.keys(ids).forEach(function (c) { support[c] = support[c] || {}; p.careers.forEach(function (cid) { if (mcPlan.careers.indexOf(cid) >= 0) support[c][cid] = 1; }); });
   });
   var multi = Object.keys(support).map(function (c) { return { id: c, careers: Object.keys(support[c]) }; })
-    .filter(function (x) { return x.careers.length >= 2; })
-    .sort(function (a, b) { return b.careers.length - a.careers.length; });
-
-  // Stream warnings: student chose a -2 course where a selected program accepts only the -1 course
+    .filter(function (x) { return x.careers.length >= 2; }).sort(function (a, b) { return b.careers.length - a.careers.length; });
   var warnings = [];
   progs.forEach(function (p) {
     var best = mcBestRoute(p);
@@ -7322,97 +7712,126 @@ function mcOptionsData() {
       Object.keys(mcPlan.courses).forEach(function (cid) {
         var c = MC_COURSE_BY_ID[cid];
         if (c && c.stronger && q.any.indexOf(c.stronger) >= 0 && q.any.indexOf(cid) < 0) {
-          warnings.push('You have ' + c.name + ' marked, but ' + p.inst + ' ' + p.name + ' requires ' + MC_COURSE_BY_ID[c.stronger].name + '. Taking ' + MC_COURSE_BY_ID[c.stronger].name + ' keeps this option open.');
+          var w = 'You have ' + c.name + ' marked, but ' + p.inst + ' ' + p.name + ' requires ' + MC_COURSE_BY_ID[c.stronger].name + '. Taking ' + MC_COURSE_BY_ID[c.stronger].name + ' keeps this option open.';
+          if (warnings.indexOf(w) < 0) warnings.push(w);
         }
       });
     });
   });
-
-  // Alternative routes
-  var alts = [];
-  progs.forEach(function (p) {
-    if (p.routes.length > 1) alts.push(p.inst + ' ' + p.name + ' has more than one admission route: ' + p.routes.map(function (r) { return r.name; }).join(' or ') + '.');
-  });
-  return { progs: progs, missing: missing, multi: multi, warnings: warnings, alts: alts };
+  var types = {}; progs.forEach(function (p) { types[p.type] = 1; });
+  return { progs: progs, missing: missing, multi: multi, warnings: warnings, types: Object.keys(types) };
 }
-
-function mcRenderOptions() {
-  var el = document.getElementById('mcOptions');
-  if (!mcPlan.careers.length) { el.innerHTML = '<p class="mc-empty">Your missing prerequisites, alternative routes and courses that support more than one career will appear here.</p>'; return; }
-  var d = mcOptionsData(); var html = '';
-
-  html += '<div class="mc-sub">Missing requirements</div>';
-  if (!d.missing.length) html += '<p class="mc-empty">Nothing missing for the programs above, based on the courses you’ve marked.</p>';
-  else html += '<ul class="mc-list">' + d.missing.map(function (m) {
-    var chainNote = '';
-    if (m.req.any && m.req.any.length === 1) {
-      var chain = mcMissingChain(m.req.any[0]);
-      if (chain.length) chainNote = ' — start with ' + chain.map(function (c) { return c.name; }).join(' → ');
-    }
-    return '<li>' + mcEsc(mcReqLabel(m.req)) + ' for ' + mcEsc(m.prog.inst + ' ' + m.prog.name) + mcEsc(chainNote) + '</li>';
-  }).join('') + '</ul>';
-
-  if (d.warnings.length) html += '<div class="mc-sub">Keep this door open</div><ul class="mc-list">' + d.warnings.map(function (w) { return '<li>' + mcEsc(w) + '</li>'; }).join('') + '</ul>';
-
+function mcOptionsHtml() {
+  var d = mcOptionsData(), html = '';
+  if (d.types.length) html += '<p class="mc-hint">Your careers include ' + d.types.map(function (t) { return MC_TYPES[t].toLowerCase(); }).join(', ') + ' routes.</p>';
+  if (!mcNeutral()) {
+    html += '<div class="mc-sub">Missing requirements</div>';
+    if (!d.missing.length) html += '<p class="mc-empty">Nothing missing for the routes above, based on the courses you’ve marked.</p>';
+    else html += '<ul class="mc-list">' + d.missing.map(function (m) {
+      var chainNote = '';
+      if (m.req.any && m.req.any.length === 1) { var chain = mcMissingChain(m.req.any[0]); if (chain.length) chainNote = ' — start with ' + chain.map(function (c) { return c.name; }).join(' → '); }
+      return '<li>' + mcEsc(mcReqLabel(m.req)) + ' for ' + mcEsc(m.prog.inst + ' ' + m.prog.name) + mcEsc(chainNote) + '</li>';
+    }).join('') + '</ul>';
+    if (d.warnings.length) html += '<div class="mc-sub">Keep this door open</div><ul class="mc-list">' + d.warnings.map(function (w) { return '<li>' + mcEsc(w) + '</li>'; }).join('') + '</ul>';
+  }
   html += '<div class="mc-sub">Courses that support more than one of your careers</div>';
-  if (!d.multi.length) html += '<p class="mc-empty">' + (mcPlan.careers.length < 2 ? 'Choose two or more careers to see courses they have in common.' : 'Your careers don’t share a required course in the programs we’ve verified.') + '</p>';
+  if (!d.multi.length) html += '<p class="mc-empty">' + (mcPlan.careers.length < 2 ? 'Choose two or more careers to see courses they have in common.' : 'Your careers don’t share a listed course in the routes we’ve verified.') + '</p>';
   else html += '<ul class="mc-list">' + d.multi.map(function (x) {
     var st = mcPlan.courses[x.id]; var tag = st === 'taken' ? ' (taken)' : st === 'planned' ? ' (planned)' : '';
     return '<li><strong>' + mcEsc(MC_COURSE_BY_ID[x.id].name) + '</strong>' + tag + ' — ' + mcEsc(x.careers.map(mcCareerTitle).join(', ')) + '</li>';
   }).join('') + '</ul>';
-
-  if (d.alts.length) html += '<div class="mc-sub">Alternative routes</div><ul class="mc-list">' + d.alts.map(function (a) { return '<li>' + mcEsc(a) + '</li>'; }).join('') + '</ul>';
-
-  if (mcPlan.grade === 12 && d.missing.some(function (m) { return m.req.any && m.req.any.length === 1 && mcMissingChain(m.req.any[0]).length; })) {
-    html += '<p class="mc-note">Some missing courses need a Grade 11 prerequisite first. Talk to your counsellor about timing options.</p>';
-  }
-  el.innerHTML = html;
+  var multiRoute = d.progs.filter(function (p) { return p.routes.length > 1; });
+  if (multiRoute.length) html += '<div class="mc-sub">Programs with more than one admission route</div><ul class="mc-list">' + multiRoute.map(function (p) { return '<li>' + mcEsc(p.inst + ' ' + p.name + ': ' + p.routes.map(function (r) { return r.name; }).join(' or ')) + '</li>'; }).join('') + '</ul>';
+  return html;
 }
 
-// ── Share My Plan ───────────────────────────────────────────────────────────
+// ── Integrations ──────────────────────────────────────────────────
+function mcCompareIds() {
+  var ids = (typeof COMPARE_CAREERS !== 'undefined' ? COMPARE_CAREERS : []).map(function (c) { return c.id; });
+  return mcPlan.careers.filter(function (c) { return ids.indexOf(c) >= 0; });
+}
+function mcOpenCompare() {
+  var ids = mcCompareIds(); if (!ids.length) return;
+  try { cmpSelected = ids.slice(0, navigatorPlan === 'free' ? 2 : 4); if (typeof buildCmpToggles === 'function') buildCmpToggles(); } catch (e) {}
+  showTab('compare');
+  if (typeof renderCompare === 'function') renderCompare();
+}
+function mcAskAcia(kind) {
+  var careers = mcPlan.careers.map(mcCareerTitle).join(', ');
+  var g = mcPlan.grade ? 'Grade ' + mcPlan.grade + ' ' : '';
+  var q = kind === 'interests'
+    ? 'I’m a ' + g + 'student in Alberta. ' + (mcPlan.strengths.length ? 'I enjoy ' + mcPlan.strengths.map(function (s) { return MC_STRENGTHS.filter(function (x) { return x.id === s; })[0].label.toLowerCase(); }).join(', ') + '. ' : '') + 'Which careers should I explore?'
+    : 'I’m a ' + g + 'student in Alberta' + (careers ? ' interested in ' + careers : '') + '. Which high school courses should I plan for, and what are my options if I change my mind?';
+  showTab('chat');
+  var input = document.getElementById('chatInput');
+  if (input) { input.value = q; input.focus(); }
+}
+function mcSummaryHtml(where) {
+  if (!mcPlan.careers.length && !mcMarkedCount() && mcPlan.grade === null) {
+    return '<p class="section-label" style="margin-bottom:6px">My Courses &amp; Career Pathways</p><p class="mc-empty" style="margin-bottom:10px">Plan which high school courses keep your career options open.</p><button class="btn-secondary" type="button" onclick="showTab(\'courses\')">Start my course plan</button>';
+  }
+  var d = mcOptionsData();
+  return '<p class="section-label" style="margin-bottom:6px">My Courses &amp; Career Pathways</p>' +
+    '<div class="mc-summary-stats"><div><strong>' + (mcPlan.grade ? mcPlan.grade : '—') + '</strong>Grade</div><div><strong>' + mcPlan.careers.length + '</strong>Careers</div>' +
+    '<div><strong>' + d.progs.length + '</strong>Verified routes</div><div><strong>' + mcMarkedCount() + '</strong>Courses marked</div>' +
+    (mcNeutral() ? '' : '<div><strong>' + d.missing.length + '</strong>Missing</div>') + '</div>' +
+    '<button class="btn-secondary" type="button" onclick="showTab(\'courses\')">Open My Courses</button>';
+}
+function mcRenderSummaryCards() {
+  mcEnsureLoaded().then(function () {
+    ['mcDashCard', 'mcPathwayCard'].forEach(function (id) {
+      var el = document.getElementById(id); if (!el) return;
+      if (id === 'mcDashCard' && typeof navigatorRole !== 'undefined' && navigatorRole && navigatorRole !== 'student') { el.innerHTML = ''; return; }
+      el.innerHTML = mcSummaryHtml(id);
+    });
+  });
+}
+
+// ── Share My Plan ─────────────────────────────────────────────────
 function mcPlanText() {
-  var lines = [];
-  lines.push('My Courses & Career Pathways — AACP Career Navigator');
-  lines.push('Province: Alberta' + (mcPlan.grade ? ' · Grade ' + mcPlan.grade : ''));
-  lines.push('');
-  lines.push('Career interests: ' + (mcPlan.careers.length ? mcPlan.careers.map(mcCareerTitle).join(', ') : 'none selected'));
+  var L = [];
+  L.push('My Courses & Career Pathways — AACP Career Navigator');
+  L.push('Province: Alberta' + (mcPlan.grade ? ' · Grade ' + mcPlan.grade : ''));
+  if (mcPlan.strengths.length) L.push('Strengths & interests: ' + mcPlan.strengths.map(function (s) { return MC_STRENGTHS.filter(function (x) { return x.id === s; })[0].label; }).join(', '));
+  L.push('Careers: ' + (mcPlan.careers.length ? mcPlan.careers.map(mcCareerTitle).join(', ') : 'none selected'));
   var taken = [], planned = [];
   Object.keys(mcPlan.courses).forEach(function (k) { (mcPlan.courses[k] === 'taken' ? taken : planned).push(MC_COURSE_BY_ID[k].name); });
-  lines.push('Courses taken: ' + (taken.length ? taken.join(', ') : 'none marked'));
-  lines.push('Courses planned: ' + (planned.length ? planned.join(', ') : 'none marked'));
+  L.push('Courses taken: ' + (taken.length ? taken.join(', ') : 'none marked'));
+  L.push('Courses planned: ' + (planned.length ? planned.join(', ') : 'none marked'));
   mcPlan.careers.forEach(function (cid) {
-    lines.push(''); lines.push('== ' + mcCareerTitle(cid) + ' ==');
+    L.push(''); L.push('== ' + mcCareerTitle(cid) + ' ==');
     var progs = mcProgramsFor(cid);
-    if (!progs.length) { lines.push('No verified Alberta program yet — discuss options with a counsellor.'); return; }
+    if (!progs.length) { L.push('No verified Alberta route yet — discuss options with a counsellor.'); return; }
     progs.forEach(function (p) {
       var best = mcBestRoute(p);
-      lines.push(p.inst + ' — ' + p.name + (best.s.gaps ? ' (' + best.s.gaps + ' missing)' : best.s.plans ? ' (on track if planned courses are completed)' : ''));
+      L.push(p.inst + ' — ' + p.name + ' [' + MC_TYPES[p.type] + ']' + (mcNeutral() ? '' : best.s.gaps ? ' (' + best.s.gaps + ' missing)' : best.s.checks ? ' (check with source)' : best.s.plans ? ' (on track if planned courses are completed)' : ''));
       p.routes.forEach(function (r) {
-        if (p.routes.length > 1) lines.push('  ' + r.name + ':');
+        if (p.routes.length > 1) L.push('  ' + r.name + ':');
         r.reqs.forEach(function (q) {
-          var st = mcReqState(q);
-          lines.push('  ' + ({ ok: '[met]', plan: '[planned]', gap: '[missing]', info: '[check]' }[st]) + ' ' + mcReqLabel(q) + (q.min ? ' — min ' + q.min + '%' : ''));
+          var st = mcNeutral() && !q.diploma ? 'need' : mcReqState(q);
+          L.push('  ' + ({ ok: '[met]', plan: '[planned]', gap: '[missing]', info: '[check]', check: '[check]', need: '[needed]' }[st]) + ' ' + mcReqLabel(q) + mcReqMin(q));
         });
       });
-      p.notes.forEach(function (n) { lines.push('  Note: ' + n); });
-      lines.push('  Source: ' + p.url + ' (checked ' + MC_CHECKED + ')');
+      p.notes.forEach(function (n) { L.push('  Note: ' + n); });
+      (p.alts || []).forEach(function (a) { L.push('  Alternative: ' + a.text); });
+      L.push('  Source: ' + p.url + ' (checked ' + MC_CHECKED + ')');
     });
   });
   var d = mcOptionsData();
-  if (d.multi.length) { lines.push(''); lines.push('Courses supporting more than one career: ' + d.multi.map(function (x) { return MC_COURSE_BY_ID[x.id].name; }).join(', ')); }
-  if (d.warnings.length) { lines.push(''); d.warnings.forEach(function (w) { lines.push('Keep options open: ' + w); }); }
-  lines.push('');
-  lines.push('Admission requirements change and admission is often competitive. Confirm with each institution and your school counsellor.');
-  return lines.join('\n');
+  if (d.multi.length) { L.push(''); L.push('Courses supporting more than one career: ' + d.multi.map(function (x) { return MC_COURSE_BY_ID[x.id].name; }).join(', ')); }
+  if (d.warnings.length) { L.push(''); d.warnings.forEach(function (w) { L.push('Keep options open: ' + w); }); }
+  if (mcPlan.activities.length) { L.push(''); L.push('Next activities: ' + mcPlan.activities.map(function (a) { return MC_ACTIVITIES.filter(function (x) { return x.id === a; })[0].label; }).join('; ')); }
+  L.push('');
+  L.push('Alberta High School Diploma requirements: ' + MC_DIPLOMA.url);
+  L.push('Admission and entrance requirements change and admission is often competitive. Confirm with each institution, Alberta Apprenticeship and Industry Training, and your school counsellor.');
+  return L.join('\n');
 }
-
 function mcCopyPlan() {
   var text = mcPlanText(); var el = document.getElementById('mcCopyStatus');
   var done = function () { el.textContent = 'Copied — paste it into an email or message.'; };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { el.textContent = 'Couldn’t copy automatically. Use Print / save as PDF instead.'; });
   else el.textContent = 'Copy isn’t supported in this browser. Use Print / save as PDF instead.';
 }
-
 function mcPrintPlan() {
   var w = window.open('', '_blank');
   if (!w) { document.getElementById('mcCopyStatus').textContent = 'Allow pop-ups to print your plan, or use Copy as text.'; return; }
