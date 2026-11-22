@@ -15258,6 +15258,7 @@ function sanitizeCoursePlan(raw) {
 
 // GET /navigator/course-plan
 async function handleNavigatorCoursePlanGet(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
   const row = await env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(user.sub).first();
   let plan = null;
   if (row?.plan_data) { try { plan = sanitizeCoursePlan(JSON.parse(row.plan_data)); } catch { plan = null; } }
@@ -15266,6 +15267,7 @@ async function handleNavigatorCoursePlanGet(request, user, env) {
 
 // PUT /navigator/course-plan — body: { plan: { province, grade, careers[], courses{id:'taken'|'planned'} } }
 async function handleNavigatorCoursePlanUpdate(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
   const text = await request.text().catch(() => '');
   if (!text || text.length > COURSE_PLAN_MAX_BYTES) return err('Invalid or oversized course plan', 400);
   let body;
