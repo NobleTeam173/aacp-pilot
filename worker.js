@@ -15329,8 +15329,26 @@ async function ensureCoursePlanTable(db) {
 }
 
 // GET /navigator/course-plan
+// Career Navigator plan for a user — same rule the page reads from GET /navigator/profile:
+// no subscription → 'free'; a paid plan whose trial_ends_at has passed → 'expired'.
+async function navigatorPlanFor(env, userId) {
+  const sub = await env.DB.prepare(`SELECT plan, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(userId).first().catch(() => null);
+  let plan = sub?.plan ?? 'free';
+  if (plan !== 'free' && sub?.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) plan = 'expired';
+  return plan;
+}
+// My Courses is premium-only: free and expired plans get 403 (the page shows the upgrade card).
+async function requireCoursePlanAccess(env, user) {
+  const plan = await navigatorPlanFor(env, user.sub);
+  if (plan === 'free' || plan === 'expired') {
+    return json({ error: 'My Courses is a Premium feature.', code: 'premium_required', plan }, 403);
+  }
+  return null;
+}
+
 async function handleNavigatorCoursePlanGet(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
+  const planErr = await requireCoursePlanAccess(env, user); if (planErr) return planErr;
   await ensureCoursePlanTable(env.DB);
   const row = await env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(user.sub).first();
   let plan = null;
@@ -15341,6 +15359,7 @@ async function handleNavigatorCoursePlanGet(request, user, env) {
 // PUT /navigator/course-plan — body: { plan: { province, grade, careers[], courses{id:'taken'|'planned'} } }
 async function handleNavigatorCoursePlanUpdate(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
+  const planErr = await requireCoursePlanAccess(env, user); if (planErr) return planErr;
   const text = await request.text().catch(() => '');
   if (!text || text.length > COURSE_PLAN_MAX_BYTES) return err('Invalid or oversized course plan', 400);
   let body;
