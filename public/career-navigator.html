@@ -879,6 +879,8 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .mc-dash-hero{border-color:var(--crimson)!important;box-shadow:0 0 0 1px var(--crimson) inset}
 
 /* ── My Courses & Career Pathways ── */
+/* Premium gate: when locked, only the heading and the upgrade card show. */
+#tab-courses.mc-locked > :not(.section-label):not(.section-title):not(.section-sub):not(.mc-gate){display:none!important}
 :root{--mc-gap:#ff7d97;--mc-gap-soft:rgba(255,125,151,0.14)}
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--mc-gap:#9a0126;--mc-gap-soft:rgba(128,1,31,0.1)}}
 :root[data-theme="light"]{--mc-gap:#9a0126;--mc-gap-soft:rgba(128,1,31,0.1)}
@@ -2458,6 +2460,24 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
   <h2 class="section-title">My Courses &amp; Career Pathways</h2>
   <p class="section-sub">Connect three decisions: what you're interested in, which high school courses to take, and how you'll get into the career — through university, college, an apprenticeship or on-the-job training. Every requirement links to its official source and shows when we last checked it.</p>
 
+  <!-- Premium gate: shown instead of My Courses for free and expired plans. -->
+  <div class="gate mc-gate" id="mcGate" style="display:none">
+    <div class="gate-card">
+      <div class="gate-title">My Courses is a Premium feature</div>
+      <p class="gate-body">Plan your high school courses with confidence. See which careers your courses open, check them against verified university, college, apprenticeship and trades requirements, and build a plan to share with your family and counsellor.</p>
+      <div class="gate-price">
+        <span class="gate-price-amount">$49.99</span><span class="gate-price-period">/year CAD</span>
+      </div>
+      <div class="gate-features">
+        <div class="gate-feature">Course-to-career matching for Grades 7&ndash;12</div>
+        <div class="gate-feature">Verified admission and entrance requirements with sources</div>
+        <div class="gate-feature">Salary, outlook and training costs for each career</div>
+        <div class="gate-feature">Printable course plan to share</div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="showTab('subscribe')">Unlock Premium Access</button>
+    </div>
+  </div>
+
   <div class="mc-save-status" id="mcSaveStatus" aria-live="polite"></div>
 
   <section class="mc-step mc-profile">
@@ -2502,8 +2522,6 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
   <div class="mc-stage" id="mcStage3" role="tabpanel"></div>
 
   <div class="mc-stage-nav" id="mcStageNav"></div>
-
-  <p class="mc-disclaimer">Admission and entrance requirements change, and admission is often competitive — meeting the minimum doesn't guarantee a seat. Always confirm with the institution or Alberta Apprenticeship and Industry Training, and with your school counsellor, before choosing courses.</p>
 </main>
 
 <main class="tab-panel" id="tab-subscribe" role="tabpanel">
@@ -3300,6 +3318,14 @@ function applyNavContext(id) {
 }
 
 function applyFreemiumGates() {
+  // My Courses is premium-only: free and expired plans see the upgrade card instead.
+  var coursesPanel = document.getElementById('tab-courses');
+  if (coursesPanel) {
+    var coursesLocked = navigatorPlan === 'free' || navigatorPlan === 'expired';
+    coursesPanel.classList.toggle('mc-locked', coursesLocked);
+    var mcGate = document.getElementById('mcGate');
+    if (mcGate) mcGate.style.display = coursesLocked ? '' : 'none';
+  }
   var isFreeUser = navigatorPlan === 'free';
   var eduGate = document.getElementById('eduGate');
   var scholGate = document.getElementById('scholGate');
@@ -7489,11 +7515,6 @@ var MC_DIPLOMA = {
   other: ['100 credits in total', 'Physical Education 10 (3 credits) and Career and Life Management (3 credits)',
           '10 credits from options such as CTS, fine arts or second languages', '10 credits in any 30-level course']
 };
-var MC_GRAD_CHANGES = {
-  url: 'https://www.alberta.ca/upcoming-changes-to-graduation-requirements',
-  firstFall: 2028,
-  text: 'Alberta’s new High School Diploma requirements become mandatory for Grade 10 students in fall 2028, Grade 11 in fall 2029, and all of senior high in fall 2030. Students still need 100 credits; optional credits increase from 44 to 53, new Grade 10 career-and-life-management and physical education & wellness courses become mandatory, and at least one diploma exam is required.'
-};
 
 // ── State ─────────────────────────────────────────────────────────
 // interests = "what I enjoy"; strengths = "what I'm good at". Kept separate on purpose:
@@ -8185,7 +8206,6 @@ function mcStreamAdviceHtml() {
 function mcJourneyHtml() {
   if (mcPlan.grade === null) return '<p class="mc-empty">Choose your grade above to see your journey year by year.</p>';
   var start = mcSchoolYearStart(), g0 = mcPlan.grade, items = [];
-  var g10Fall = start + Math.max(0, 10 - g0);
   for (var g = g0; g <= 12; g++) {
     var yr = mcYearLabel(start + (g - g0)), t = '', b = '';
     if (g <= 8) { t = 'Explore'; b = 'Build confidence in math, science, reading and communication. Try activities that match your interests and find out what you enjoy.'; }
@@ -8195,14 +8215,7 @@ function mcJourneyHtml() {
     else { t = 'Finish & apply'; b = 'Complete the 30-level courses your routes require and apply. Many programs open applications in the fall (e.g. Mount Royal: Oct. 1).'; }
     items.push('<li class="' + (g === g0 ? 'now' : '') + '"><div class="mc-tl-title">Grade ' + g + ' — ' + t + ' (' + yr + ')</div><div class="mc-tl-body">' + b + '</div></li>');
   }
-  var html = '<ol class="mc-timeline">' + items.join('') + '</ol>';
-  if (g0 <= 10) {
-    var applies = g10Fall >= MC_GRAD_CHANGES.firstFall;
-    html += '<div class="mc-callout">' + (g0 < 10 ? 'You’ll start Grade 10 in fall ' + g10Fall + '. ' : '') +
-      (applies ? 'Alberta’s new High School Diploma requirements will apply to you. ' : 'You’ll most likely follow the current diploma requirements — confirm any transition arrangements with your school. ') +
-      mcEsc(MC_GRAD_CHANGES.text) + ' <a href="' + MC_GRAD_CHANGES.url + '" target="_blank" rel="noopener">Alberta.ca</a> · checked ' + MC_CHECKED + '</div>';
-  }
-  return html;
+  return '<ol class="mc-timeline">' + items.join('') + '</ol>';
 }
 function mcDiplomaHtml() {
   var neutral = mcNeutral();
@@ -8213,8 +8226,7 @@ function mcDiplomaHtml() {
   }).join('');
   return '<p class="mc-hint">Current requirements for the Alberta High School Diploma (100 credits):</p>' + reqs +
     '<ul class="mc-list" style="margin-top:8px">' + MC_DIPLOMA.other.map(function (o) { return '<li>' + mcEsc(o) + '</li>'; }).join('') + '</ul>' +
-    '<div class="mc-source">Source: <a href="' + MC_DIPLOMA.url + '" target="_blank" rel="noopener">Alberta Guide to Education</a> (updated ' + MC_DIPLOMA.updated + ') · checked ' + MC_CHECKED + '</div>' +
-    (mcPlan.grade !== null && mcPlan.grade >= 11 ? '' : '<p class="mc-note">These change for students starting Grade 10 in fall 2028 or later — see your journey above.</p>');
+    '<div class="mc-source">Source: <a href="' + MC_DIPLOMA.url + '" target="_blank" rel="noopener">Alberta Guide to Education</a> (updated ' + MC_DIPLOMA.updated + ') · checked ' + MC_CHECKED + '</div>';
 }
 
 // Stage 3 — Education & career pathways
@@ -8388,9 +8400,10 @@ function mcSummaryHtml(where) {
     var lead = mcExploring() ? 'Explore careers you might enjoy and plan the high school courses that keep them open.'
       : 'Mark your current and planned courses to see which careers they open — with verified university, college, apprenticeship and trades requirements.';
     var stats = fresh ? '' : '<div class="mc-summary-stats"><div><strong>' + (mcPlan.grade || '—') + '</strong>Grade</div><div><strong>' + mcMarkedCount() + '</strong>Courses</div><div><strong>' + mcPlan.careers.length + '</strong>Careers</div></div>';
-    return '<p class="section-label" style="margin-bottom:6px">Start here</p>' +
-      '<h3 class="mc-step-title" style="margin-bottom:6px">My Courses</h3><p class="mc-hint">' + lead + '</p>' + stats +
-      '<button class="btn-primary" type="button" onclick="showTab(\'courses\')">' + (fresh ? 'Start with my courses' : 'Continue my course plan') + ' →</button>';
+    var locked = typeof navigatorPlan !== 'undefined' && (navigatorPlan === 'free' || navigatorPlan === 'expired');
+    return '<p class="section-label" style="margin-bottom:6px">Start here' + (locked ? ' · Premium' : '') + '</p>' +
+      '<h3 class="mc-step-title" style="margin-bottom:6px">My Courses</h3><p class="mc-hint">' + lead + '</p>' + (locked ? '' : stats) +
+      '<button class="btn-primary" type="button" onclick="showTab(\'courses\')">' + (locked ? 'See My Courses (Premium)' : fresh ? 'Start with my courses' : 'Continue my course plan') + ' →</button>';
   }
   if (!mcPlan.careers.length && !mcMarkedCount() && mcPlan.grade === null) {
     return '<p class="section-label" style="margin-bottom:6px">My Courses &amp; Career Pathways</p><p class="mc-empty" style="margin-bottom:10px">Plan which high school courses keep your career options open.</p><button class="btn-secondary" type="button" onclick="showTab(\'courses\')">Start my course plan</button>';
