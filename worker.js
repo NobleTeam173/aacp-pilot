@@ -2606,7 +2606,9 @@ async function authenticate(request, env) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return null;
   const secret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
-  return verifyJwt(token, secret);
+  // A malformed token (bad base64/JSON) used to throw here and crash the request (1101).
+  // Treat it like any other invalid token: no user → the route returns 401.
+  try { return await verifyJwt(token, secret); } catch { return null; }
 }
 
 function requireAuth(user) {
@@ -15244,6 +15246,7 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
 
 // GET /navigator/profile — returns navigator_role + pathway_data for the authenticated user
 async function handleNavigatorProfileGet(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
   const [profile, sub, userRow] = await Promise.all([
     env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
     env.DB.prepare(`SELECT plan, status, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
@@ -15262,6 +15265,7 @@ async function handleNavigatorProfileGet(request, user, env) {
 
 // PUT /navigator/profile — saves navigator_role and/or pathway_data
 async function handleNavigatorProfileUpdate(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
   const body = await request.json().catch(() => null);
   if (!body) return err('Invalid request body');
 
