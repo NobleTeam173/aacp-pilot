@@ -180,7 +180,45 @@ const MAX_FIELD_LEN  = 255;
 // Falls back to env.AACP_ADMIN_EMAIL and a placeholder if secrets are not set.
 // The seeded account is forced to change its password on first login (password_change_required=1).
 let adminSeedDone = false;
-let curriculumSeedDone = false;
+
+// ── Schema version gate ──────────────────────────────────────────────────────
+// Every new Worker isolate used to run runMigrations() and the curriculum seeds
+// (~400 D1 queries) on its first request. D1 processes queries one at a time,
+// so a burst of cold starts (e.g. a whole class signing in) queued thousands of
+// queries. Now the version is a SHA-256 of the migration/seed functions' source
+// (so it changes automatically whenever that code or its inline seed data
+// changes) and is stored in schema_meta once the work succeeds. Normal cold
+// starts do a single SELECT. Works on D1 and the AWS PostgreSQL shim.
+const SCHEMA_STEPS = [runMigrations, seedCurriculum, applyCurriculumSeedCorrections, seedCompletionAuthority, seedRpasProgram];
+let schemaVersionPromise = null;
+function schemaVersion() {
+  if (!schemaVersionPromise) {
+    const src = SCHEMA_STEPS.map(f => f.toString()).join('\n');
+    schemaVersionPromise = crypto.subtle.digest('SHA-256', new TextEncoder().encode(src))
+      .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32));
+  }
+  return schemaVersionPromise;
+}
+async function ensureSchemaCurrent(db) {
+  const version = await schemaVersion();
+  try {
+    const row = await db.prepare(`SELECT value FROM schema_meta WHERE key = 'schema_version'`).first();
+    if (row?.value === version) return;
+  } catch { /* schema_meta doesn't exist yet — run everything below */ }
+  try {
+    console.log(`[schema] migrating to ${version}`);
+    for (const step of SCHEMA_STEPS) await step(db);
+    await db.prepare(`CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)`).run();
+    await db.prepare(`
+      INSERT INTO schema_meta (key, value, updated_at) VALUES ('schema_version', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    `).bind(version, new Date().toISOString()).run();
+    console.log(`[schema] up to date (${version})`);
+  } catch (e) {
+    // Don't fail the user's request; the marker isn't written, so the next isolate retries.
+    console.error('[schema] migration failed; will retry on next cold start:', e?.message || e);
+  }
+}
 
 // Column names of a table on either backend: Cloudflare D1 (SQLite → PRAGMA)
 // or the AWS PostgreSQL shim (information_schema). Returns [] if neither works.
@@ -16033,15 +16071,10 @@ async function _routeRequest(request, env, ctx) {
 
     if (!adminSeedDone) {
       adminSeedDone = true;
-      await runMigrations(env.DB);
+      // Migrations and curriculum seeds run only when their code has changed
+      // (one marker query on a normal cold start instead of ~400 queries).
+      await ensureSchemaCurrent(env.DB);
       await seedAdmin(env.DB, env);
-    }
-    if (!curriculumSeedDone) {
-      curriculumSeedDone = true;
-      await seedCurriculum(env.DB);
-      await applyCurriculumSeedCorrections(env.DB);
-      await seedCompletionAuthority(env.DB);
-      await seedRpasProgram(env.DB);
     }
 
     if (path === '/health') return json({ status: 'ok' });
