@@ -7244,7 +7244,10 @@ initRolePicker();
    doesn't say something (e.g. whether a higher-level course can
    replace a listed trade minimum), show "check", never guess.
 ════════════════════════════════════════════════════════════════ */
-var MC_CHECKED = '2026-11-21';
+// Admission/entrance requirements and the diploma rules: last re-verified 2026-11-23 (all 17 sources unchanged).
+var MC_CHECKED = '2026-11-23';
+// Salary, outlook and tuition figures in MC_CAREER_FACTS were checked separately.
+var MC_FACTS_CHECKED = '2026-11-21';
 var MC_STORAGE_KEY = 'navigatorCoursePlan';
 
 // ── Alberta senior high courses ───────────────────────────────────
@@ -7510,7 +7513,7 @@ var MC_DIPLOMA = {
     { label: 'English Language Arts — 30 level', any: ['ela30_1', 'ela30_2'] },
     { label: 'Social Studies — 30 level', any: ['soc30_1', 'soc30_2'] },
     { label: 'Mathematics — 20 level', any: ['math20_1', 'math20_2', 'math20_3'] },
-    { label: 'Science — 20 level', any: ['sci20', 'bio20', 'chem20', 'phys20'], extra: 'Science 24 also counts' }
+    { label: 'Science — 20 level', any: ['sci20', 'bio20', 'chem20', 'phys20'], extra: 'Science 24, or Science 14 + Science 10, also count' }
   ],
   other: ['100 credits in total', 'Physical Education 10 (3 credits) and Career and Life Management (3 credits)',
           '10 credits from options such as CTS, fine arts or second languages', '10 credits in any 30-level course']
@@ -8018,7 +8021,7 @@ function mcFactsHtml(cid) {
     return mcEsc(c.text) + (c.url ? ' <a href="' + mcEsc(c.url) + '" target="_blank" rel="noopener">Source</a>' : '');
   }).join('<br>') + '</span></div>' : row('Training cost', null);
   return '<div class="mc-facts">' + row('Salary', f.salary) + row('Outlook', f.outlook) + cost +
-    (MC_CAREER_FACTS[cid] ? '<p class="mc-fact-note" style="margin-top:6px">Checked ' + MC_CHECKED + '.</p>' : '') + '</div>';
+    (MC_CAREER_FACTS[cid] ? '<p class="mc-fact-note" style="margin-top:6px">Checked ' + MC_FACTS_CHECKED + '.</p>' : '') + '</div>';
 }
 function mcCareerActionsHtml(cid, where) {
   var inCompare = mcCompareIds([cid]).length > 0;
