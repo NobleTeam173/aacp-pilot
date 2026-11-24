@@ -15080,7 +15080,9 @@ async function stripeRequestNested(env, method, path, params) {
   const encoded = new URLSearchParams(params).toString();
   const res = await fetch(`https://api.stripe.com/v1${path}`, {
     method,
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    // Used only by the Career Navigator Checkout Session call. ui_mode "form" (embedded
+    // Checkout Form SDK) requires API version 2026-03-25.dahlia or later.
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Stripe-Version': '2026-03-25.dahlia' },
     body: encoded,
   });
   const data = await res.json();
@@ -15094,7 +15096,7 @@ async function handleNavigatorSubscription(request, user, env) {
   const sub = await env.DB.prepare(
     `SELECT plan, status, current_period_end, cancel_at_period_end, invites_remaining, trial_ends_at
      FROM navigator_subscriptions WHERE user_id = ?`
-  ).bind(user.id).first();
+  ).bind(user.sub).first();
   if (!sub) return json({ plan: 'free', status: 'active', invites_remaining: 0 });
   if (sub.plan !== 'free' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) {
     return json({ ...sub, plan: 'expired' });
@@ -15107,27 +15109,30 @@ async function handleNavigatorSubscription(request, user, env) {
 async function handleNavigatorCheckout(request, user, env) {
   const g = requireAuth(user); if (g) return g;
   const body = await request.json().catch(() => ({}));
-  const { plan, invite_code, success_url, cancel_url } = body;
+  const { plan, invite_code, return_url } = body;
+  // Access-token payloads carry the user id as `sub` (there is no `id`).
+  const userId = user.sub;
 
   if (!NAVIGATOR_PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
+  if (!env.STRIPE_SECRET_KEY) return json({ error: 'Payments are not available yet. Please try again later.' }, 503);
   const planMeta = NAVIGATOR_PLANS[plan];
   const priceId = env[planMeta.priceEnv];
   if (!priceId) return json({ error: `Price ID not configured for plan ${plan}` }, 500);
 
-  const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.id).first();
+  const userRow = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(userId).first();
   if (!userRow) return json({ error: 'User not found' }, 404);
 
   // Resolve or create Stripe customer
   let customerId;
   const existing = await env.DB.prepare(
     'SELECT stripe_customer_id FROM navigator_subscriptions WHERE user_id = ?'
-  ).bind(user.id).first();
+  ).bind(userId).first();
   if (existing?.stripe_customer_id) {
     customerId = existing.stripe_customer_id;
   } else {
     const customer = await stripeRequest(env, 'POST', '/customers', {
       email: userRow.email,
-      'metadata[user_id]': user.id,
+      'metadata[user_id]': userId,
     });
     customerId = customer.id;
   }
@@ -15149,31 +15154,36 @@ async function handleNavigatorCheckout(request, user, env) {
     inviteCodeId = code.id;
   }
 
+  // Embedded form: after confirmation (or a redirect-based payment method), Stripe returns
+  // the customer here. Only Career Navigator pages are accepted from the client.
+  const DEFAULT_RETURN = 'https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=success&session_id={CHECKOUT_SESSION_ID}';
+  const safeReturn = typeof return_url === 'string' &&
+    /^(https:\/\/careers\.aviationaerospacecompetency\.com\/|http:\/\/localhost:3000\/)/.test(return_url) ? return_url : DEFAULT_RETURN;
+
   const params = [
     // sample_only — real values, preserved as-is
     ['mode', 'subscription'],
-    ['success_url', success_url || 'https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=success'],
-    ['cancel_url', cancel_url || 'https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=cancelled'],
     ['line_items[0][price]', priceId],
     ['line_items[0][quantity]', '1'],
+    ['return_url', safeReturn],
     // fixed_by_ui — Checkout Studio configuration
-    ['ui_mode', 'hosted_page'],
+    ['ui_mode', 'form'],
     ['billing_address_collection', 'auto'],
     ['phone_number_collection[enabled]', 'false'],
-    ['automatic_tax[enabled]', 'true'],
-    ['allow_promotion_codes', 'true'],
+    ['automatic_tax[enabled]', 'false'],
     ['payment_method_collection', 'always'],
     ['submit_type', 'auto'],
     ['saved_payment_method_options[payment_method_save]', 'enabled'],
     ['tax_id_collection[enabled]', 'true'],
-    ['tax_id_collection[required]', 'if_supported'],
+    ['tax_id_collection[required]', 'never'],
     ['name_collection[individual][enabled]', 'true'],
     ['name_collection[individual][optional]', 'true'],
-    ['integration_identifier', 'hosted_web_0002'],
-    ['origin_context', 'web'],
+    ['name_collection[business][enabled]', 'true'],
+    ['name_collection[business][optional]', 'true'],
+    ['integration_identifier', 'custom_embedded_web_0001'],
     // customer + metadata
     ['customer', customerId],
-    ['metadata[user_id]', user.id],
+    ['metadata[user_id]', userId],
     ['metadata[plan]', plan],
     ...(inviteCodeId ? [['metadata[invite_code_id]', inviteCodeId]] : []),
     // Trial periods: premium_student trials run to Aug 31 (school year end); others get 7 days
@@ -15186,7 +15196,8 @@ async function handleNavigatorCheckout(request, user, env) {
   ];
 
   const session = await stripeRequestNested(env, 'POST', '/checkout/sessions', params);
-  return json({ url: session.url, session_id: session.id });
+  // The embedded form needs the client secret, not a redirect URL.
+  return json({ client_secret: session.client_secret, session_id: session.id });
 }
 
 // POST /navigator/account/register — self-service registration for navigator users (no admin approval required)

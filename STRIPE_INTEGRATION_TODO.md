@@ -1,135 +1,161 @@
 # Stripe Integration — Remaining Setup
 
-This file is the single source of truth for completing the Stripe integration on the Career Navigator.
+This file is the single source of truth for completing the Stripe integration on the AACP™ Career Navigator
+(careers.aviationaerospacecompetency.com). Payments use Stripe Checkout with the **embedded form**
+(`ui_mode: "form"`, Checkout Form SDK) and Stripe API version **`2026-03-25.dahlia`**.
+
+Status (2026-11-23): code updated; **not live yet** — the Worker has no Stripe secrets and Stripe has no
+webhook endpoint for Career Navigator, so checkout currently returns "Payments are not available yet".
 
 ---
 
 ## Values to Replace
 
-The following `sample_only` parameters have real values in production code but should be verified before going live.
+The following values are placeholders and must be updated before going live.
 
-**File:** `worker.js` → `handleNavigatorCheckout()`
+**Files containing placeholders:**
+- [public/career-navigator.html](public/career-navigator.html) — `STRIPE_PK` (then run `npm run build` so `dist/` picks it up)
 
 | Field | Current Value | What to Set |
 |-------|--------------|-------------|
-| `success_url` | `https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=success` | Update if the domain changes or you add a dedicated success page. Keep `?payment=success` so the page shows a confirmation toast. |
-| `cancel_url` | `https://careers.aviationaerospacecompetency.com/career-navigator.html?payment=cancelled` | Update if the domain changes. |
-| `line_items[0][price]` | Resolved at runtime from wrangler secrets (`STRIPE_NAVIGATOR_PRICE_STUDENT`, `STRIPE_NAVIGATOR_PRICE_INVITED`, `STRIPE_NAVIGATOR_PRICE_ADVISOR`) | ✅ Already using real Price IDs — just ensure the secrets are set (see below). |
+| `STRIPE_PK` (publishable key) | `pk_live_...` | The **publishable** key of the same Stripe account as `STRIPE_SECRET_KEY` (Noble D Business Limited, `acct_1UcCdE…`): Dashboard → Developers → [API keys](https://dashboard.stripe.com/apikeys). The previous value was a **test** key from a different account (`acct_1UcBhc…`) and cannot open sessions created by this account. |
+
+`sample_only` parameters already have real values and were kept:
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| `mode` | `subscription` | All three Career Navigator plans are recurring. |
+| `line_items[0][price]` | From the plan's Worker secret (see below) | Real Price IDs — set the secrets. |
+| `line_items[0][quantity]` | `1` | — |
 
 ---
 
 ## Configured Parameters
 
-These parameters were set in Checkout Studio and are already applied in `worker.js`.
+These parameters were configured in Checkout Studio and are already set correctly.
 
-**File:** `worker.js` → `handleNavigatorCheckout()` params array
+**Files containing these parameters:**
+- [worker.js](worker.js) — `handleNavigatorCheckout()` (Checkout Session params) and `stripeRequestNested()` (`Stripe-Version` header)
 
 | Parameter | Value |
 |-----------|-------|
-| `ui_mode` | `hosted_page` |
+| `ui_mode` | `form` |
 | `billing_address_collection` | `auto` |
 | `phone_number_collection[enabled]` | `false` |
-| `automatic_tax[enabled]` | `true` — Stripe Tax calculates and collects GST/HST automatically |
-| `allow_promotion_codes` | `true` |
-| `payment_method_collection` | `always` (subscription mode) |
+| `automatic_tax[enabled]` | `false` |
+| `payment_method_collection` | `always` (subscription mode only) |
 | `submit_type` | `auto` |
 | `saved_payment_method_options[payment_method_save]` | `enabled` |
 | `tax_id_collection[enabled]` | `true` |
-| `tax_id_collection[required]` | `if_supported` |
-| `name_collection[individual][enabled]` | `true` |
-| `name_collection[individual][optional]` | `true` |
-| `integration_identifier` | `hosted_web_0002` |
-| `origin_context` | `web` |
+| `tax_id_collection[required]` | `never` |
+| `name_collection[individual][enabled]` / `[optional]` | `true` / `true` |
+| `name_collection[business][enabled]` / `[optional]` | `true` / `true` |
+| `integration_identifier` | `custom_embedded_web_0001` |
+
+Removed because they are no longer configured: `allow_promotion_codes`, `origin_context`, and the
+hosted-page `success_url` / `cancel_url` (replaced by `return_url`, below).
+
+**Client appearance** (Checkout Studio) is in [public/career-navigator.html](public/career-navigator.html) as
+`STRIPE_CHECKOUT_APPEARANCE`: theme `stripe`, labels `auto`, inputs `spaced`, borderRadius `4px`,
+colorBackground `#ffffff`, colorDanger `#df1b41`, colorPrimary `#0570de`, colorSuccess `#00c853`,
+colorText `#30313d`, fontFamily `default`, fontSizeBase `16px`, spacingUnit `4px`.
+
+Other session values (integration plumbing, not Checkout Studio): `return_url` (Career Navigator page with
+`?payment=success&session_id={CHECKOUT_SESSION_ID}`; only careers.aviationaerospacecompetency.com or
+localhost:3000 is accepted from the client), `customer`, `metadata[user_id|plan|invite_code_id]`, trial
+settings (`subscription_data[trial_end]` for Premium Student = Aug 31; 7-day trial for Career Advisor) and
+invite-code `discounts`.
 
 ---
 
-## Required Secrets
+## Setup
 
-Set these via `npx wrangler secret put <NAME>` before the worker can process payments:
+### 1. Worker secrets (Cloudflare Worker `aacp-backend`)
 
-```
-STRIPE_SECRET_KEY                   # sk_live_... or sk_test_...
-STRIPE_NAVIGATOR_WEBHOOK_SECRET     # whsec_... from Stripe Dashboard → Webhooks
-STRIPE_NAVIGATOR_PRICE_STUDENT      # price_... for $9.99/mo Premium Student
-STRIPE_NAVIGATOR_PRICE_INVITED      # price_... for $7.99/mo Advisor-Invited
-STRIPE_NAVIGATOR_PRICE_ADVISOR      # price_... for $14.99/mo Career Advisor
-```
+Set each with `npx wrangler secret put <NAME> --config wrangler.toml` (you'll be prompted for the value — don't put keys in code or in this file):
 
----
+| Secret | Value |
+|--------|-------|
+| `STRIPE_SECRET_KEY` | Secret key (`sk_live_…`) or, better, a **restricted key** (`rk_live_…`) with write access to Checkout Sessions and Customers, from the same account as `STRIPE_PK`. |
+| `STRIPE_NAVIGATOR_PRICE_STUDENT` | `price_1Uf9sm6f5fXzbpPK54zV01jY` — "Student AACP Career Navigator", **$49.99 CAD / year** (matches the plan and the Premium card) |
+| `STRIPE_NAVIGATOR_PRICE_INVITED` | `price_1UfA1L6f5fXzbpPKbg1tjOgI` — "Career Navigator Student Referral", $7.99 CAD / month |
+| `STRIPE_NAVIGATOR_PRICE_ADVISOR` | `price_1Uf9r36f5fXzbpPKFrthQUl9` — "Guidance Counsellor", $14.99 CAD / month. (An older duplicate `price_1UcFjc6f5fXzbpPKAVNSVDE4`, also $14.99/month, exists — confirm which you want and archive the other.) |
+| `STRIPE_NAVIGATOR_WEBHOOK_SECRET` | The webhook signing secret (`whsec_…`) from step 2. |
 
-## Stripe Dashboard Setup
+Price IDs above were read from the live account on 2026-11-23.
 
-### 1. Create the three products and prices
+### 2. Webhook endpoint (Stripe Dashboard)
 
-In [Stripe Dashboard → Products](https://dashboard.stripe.com/products), create:
+Stripe currently has **no** webhook endpoints. In [Workbench → Webhooks](https://dashboard.stripe.com/workbench/webhooks) add:
 
-| Product | Price | Billing |
-|---------|-------|---------|
-| Career Navigator — Premium Student | $9.99 CAD/month | Recurring |
-| Career Navigator — Advisor-Invited | $7.99 CAD/month | Recurring |
-| Career Navigator — Career Advisor | $14.99 CAD/month | Recurring |
+- **URL:** `https://api.aviationaerospacecompetency.com/navigator/webhook`
+- **Events:** `checkout.session.completed` (the only event the Worker handles today)
 
-Copy each Price ID (starts with `price_`) and set the corresponding wrangler secret.
+Copy its signing secret into `STRIPE_NAVIGATOR_WEBHOOK_SECRET`.
 
-### 2. Register the webhook endpoint
+### 3. Publishable key and deploy
 
-In [Stripe Dashboard → Developers → Webhooks](https://dashboard.stripe.com/workbench/webhooks):
+1. Replace `STRIPE_PK` (see *Values to Replace*), run `npm run build`.
+2. Deploy the page (S3 + CloudFront) and the Worker (`npx wrangler deploy --config wrangler.toml`).
 
-- **Endpoint URL:** `https://api.aviationaerospacecompetency.com/navigator/webhook`
-- **Events to listen for:**
-  - `checkout.session.completed`
-  - `customer.subscription.updated`
-  - `customer.subscription.deleted`
+### 4. Tax
 
-After saving, copy the **Signing secret** (`whsec_...`) and set `STRIPE_NAVIGATOR_WEBHOOK_SECRET`.
-
-### 3. Note on `automatic_tax`
-
-`automatic_tax` is enabled (`true`). Stripe will automatically calculate and collect GST/HST at checkout. Ensure your Stripe account has [Stripe Tax](https://dashboard.stripe.com/tax) enabled with a Canada tax registration added before going live.
+Checkout Studio sets `automatic_tax: false`, so **no GST is collected**. The Plans tab currently says
+"Alberta GST applied at checkout" — either update that wording or turn Stripe Tax on (add a Canada
+registration in [Stripe Tax](https://dashboard.stripe.com/tax) and change the Checkout Studio setting).
 
 ---
 
-## How the Integration Works
+## Project structure (files changed — no new files besides this one)
 
-1. User clicks a plan CTA on the Career Navigator Plans tab.
-2. Frontend calls `POST /navigator/checkout` with `{ plan, invite_code?, success_url, cancel_url }`.
-3. Worker resolves/creates a Stripe Customer, looks up the Price ID from secrets, optionally applies an invite code coupon, then calls `stripe.checkout.sessions.create(...)` via the Stripe REST API.
-4. Worker returns `{ url }` → frontend redirects to `session.url` (Stripe-hosted page).
-5. After payment, Stripe sends a `checkout.session.completed` webhook to `POST /navigator/webhook`.
-6. Worker verifies the HMAC-SHA256 signature, upserts `navigator_subscriptions`, records invite redemptions, and writes to the audit log.
-7. User is redirected to `success_url` with `?payment=success` — the page shows a confirmation toast.
+- [worker.js](worker.js) — `handleNavigatorCheckout()` now creates a `ui_mode: "form"` session and returns
+  `{ client_secret, session_id }`; `stripeRequestNested()` pins `Stripe-Version: 2026-03-25.dahlia`;
+  checkout and `GET /navigator/subscription` read the signed-in user from `user.sub` (they used `user.id`,
+  which access tokens don't contain, so checkout failed with "User not found" and the subscription
+  endpoint always reported "free"); checkout returns 503 instead of crashing when `STRIPE_SECRET_KEY` is missing.
+- [public/career-navigator.html](public/career-navigator.html) — loads Stripe.js from
+  `https://js.stripe.com/dahlia/stripe.js` (never bundled or self-hosted — PCI), adds the checkout panel
+  (`#checkout-form`), and `initiateCheckout()` mounts the embedded form instead of redirecting.
 
----
+## How it works
+
+1. A signed-in user picks a plan (Plans / My Career Plan). `initiateCheckout(plan, inviteCode?)` calls
+   `POST /navigator/checkout` with `{ plan, invite_code?, return_url }`.
+2. The Worker finds or creates the Stripe Customer, applies any invite-code coupon, and creates the
+   Checkout Session; it returns the `client_secret`.
+3. The page calls `stripe.initCheckoutFormSdk({ clientSecret, appearance })`, mounts
+   `checkout.createForm({ layout: 'expanded' })` in the checkout panel, and on the form's `confirm`
+   event calls `actions.confirm({ formConfirmEvent })`.
+4. On success Stripe returns the customer to `return_url` (`?payment=success`) and the page shows a
+   confirmation toast.
+5. Stripe sends `checkout.session.completed` to `/navigator/webhook`; the Worker verifies the signature,
+   upserts `navigator_subscriptions` (plan becomes Premium), and records invite redemptions.
 
 ## Testing
 
-Use Stripe test mode keys (`sk_test_...`, `pk_test_...`). Test card numbers:
+Use a sandbox / test-mode key pair from one account (`sk_test_…` / `pk_test_…`) and test-mode Price IDs
+first. Test cards (any future expiry, any CVC, any postal code):
 
-| Scenario | Card Number |
-|----------|-------------|
-| Successful payment | `4242 4242 4242 4242` |
-| Requires authentication (3DS) | `4000 0025 0000 3155` |
-| Payment declined | `4000 0000 0000 9995` |
-| Insufficient funds | `4000 0000 0000 9995` |
+| Scenario | Card |
+|----------|------|
+| Success | `4242 4242 4242 4242` |
+| Requires 3D Secure | `4000 0025 0000 3155` |
+| Declined | `4000 0000 0000 9995` |
 
-Use any future expiry date, any 3-digit CVC, and any postal code.
+Test webhooks with the [Stripe CLI](https://docs.stripe.com/stripe-cli):
+`stripe listen --forward-to https://api.aviationaerospacecompetency.com/navigator/webhook`
 
-Test webhooks locally with the [Stripe CLI](https://docs.stripe.com/stripe-cli):
-```bash
-stripe listen --forward-to https://api.aviationaerospacecompetency.com/navigator/webhook
-```
+## Next steps
 
----
-
-## SDK Version Note
-
-The integration calls the Stripe REST API directly (no Stripe Node.js SDK). The `ui_mode: hosted_page` value applies to Stripe SDK version 21.0.0+. Since this codebase uses raw HTTP calls to `api.stripe.com`, this is not version-dependent.
-
----
+- **Subscription changes:** the Worker only handles `checkout.session.completed`. Cancellations, failed
+  renewals and plan changes (`customer.subscription.updated` / `customer.subscription.deleted`,
+  `invoice.payment_failed`) are not processed, so a cancelled subscription stays Premium in Career
+  Navigator. Add handlers before relying on recurring billing.
+- Archive unused prices/products in the Dashboard (see the duplicate $14.99 price).
+- Consider a Customer Portal link so subscribers can manage or cancel their plan.
 
 ## Resources
 
-- [Stripe Docs](https://docs.stripe.com)
-- [Stripe Dashboard](https://dashboard.stripe.com)
 - [Stripe Support](https://support.stripe.com)
 - [Stripe MCP](https://docs.stripe.com/mcp)
+- [Checkout custom (form) integration docs](https://docs.stripe.com/payments/checkout)
