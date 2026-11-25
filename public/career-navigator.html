@@ -1082,6 +1082,29 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 /* ── Embedded Stripe checkout panel ── */
 .co-overlay{position:fixed;inset:0;z-index:1200;background:rgba(10,5,15,.6);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px}
 .co-overlay.open{display:flex}
+/* Sharing (view-only plan access for parent / teacher / counsellor) */
+.share-section{margin-top:28px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.share-sub{font-size:13px;color:var(--fg2);line-height:1.55;margin:0 0 14px}
+.share-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.share-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--fg2);flex:1 1 200px;min-width:0}
+.share-field input,.share-field select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--fg);font-size:14px;font-family:inherit;min-height:42px}
+.share-btn{min-height:42px;flex:0 0 auto}
+.share-msg{font-size:13px;margin:10px 0 0;min-height:1em}
+.share-msg.err{color:#c0392b}.share-msg.ok{color:#2a9}
+.share-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.share-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.share-who{min-width:0;flex:1 1 220px}
+.share-name{font-size:14px;font-weight:600;color:var(--fg);overflow-wrap:anywhere}
+.share-meta{font-size:12px;color:var(--fg3);overflow-wrap:anywhere}
+.share-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:1px}
+.share-badge.pending{background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--fg)}
+.share-badge.active{background:color-mix(in srgb,#2a9 18%,transparent);color:#1f8a73}
+.share-actions{display:flex;gap:6px;flex-wrap:wrap}
+.share-actions button{min-height:36px;padding:6px 12px;font-size:13px}
+.share-h3{font-size:16px;font-weight:700;margin:22px 0 4px}
+.co-panel.share-view-panel{background:var(--surface);color:var(--fg);max-width:640px}
+.share-view-panel h4{font-size:14px;font-weight:700;margin:16px 0 6px}
+.share-view-panel ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:var(--fg2)}
 .co-panel{background:#ffffff;color:#30313d;width:100%;max-width:520px;border-radius:12px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .co-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .co-title{font-size:16px;font-weight:700}
@@ -2678,6 +2701,46 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
     </div><!-- /pathwayMain -->
   </div><!-- /pathwayDashboard -->
 
+  <!-- ── Sharing: student-controlled, view-only access for a parent, teacher or counsellor ── -->
+  <section id="shareSection" class="share-section" style="display:none" aria-labelledby="shareTitle">
+    <p class="section-label" style="margin-bottom:6px">Sharing</p>
+    <h2 class="section-title" id="shareTitle" style="font-size:22px;margin-bottom:6px">Share my plan</h2>
+    <p class="share-sub">Let a parent or guardian, teacher or guidance counsellor <strong>view</strong> your saved careers and course plan. They can’t change anything, and you can stop sharing at any time. They need a Career Navigator account with the email you enter. Teachers and counsellors can sign in with their school account.</p>
+    <form class="share-form" onsubmit="event.preventDefault();navShareSubmit()">
+      <label class="share-field"><span>Their email</span>
+        <input id="shareEmail" type="email" autocomplete="off" maxlength="254" required placeholder="name@example.com">
+      </label>
+      <label class="share-field"><span>They are my</span>
+        <select id="shareRel" required>
+          <option value="parent">Parent or guardian</option>
+          <option value="teacher">Teacher</option>
+          <option value="counsellor">Guidance counsellor</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primary share-btn" id="shareBtn">Share</button>
+    </form>
+    <p id="shareMsg" class="share-msg" role="status" aria-live="polite"></p>
+    <div id="shareOutList" class="share-list"></div>
+
+    <div id="shareInWrap" style="display:none">
+      <h3 class="share-h3">Shared with me</h3>
+      <p class="share-sub" style="margin-bottom:10px">Students who invited you to view their plan.</p>
+      <div id="shareInList" class="share-list"></div>
+    </div>
+  </section>
+
+  <!-- Read-only view of a student's shared plan -->
+  <div id="shareViewModal" class="co-overlay" role="dialog" aria-modal="true" aria-labelledby="shareViewTitle">
+    <div class="co-panel share-view-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px">
+        <h2 id="shareViewTitle" style="font-size:18px;font-weight:700;margin:0">Shared plan</h2>
+        <button type="button" onclick="navShareCloseView()" aria-label="Close" style="background:none;border:none;color:var(--fg3);font-size:22px;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      <p class="share-sub" style="margin-bottom:14px">View only. The student can stop sharing at any time.</p>
+      <div id="shareViewBody"></div>
+    </div>
+  </div>
+
   <!-- ── Goal picker modal ────────────────────────────────────── -->
   <div id="pathwayGoalModal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(8,2,10,.85);overflow-y:auto;padding:40px 16px">
     <div style="max-width:520px;margin:0 auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:28px 24px">
@@ -3405,6 +3468,16 @@ function renderAccountPlans() {
   if (forTeacher) forTeacher.style.display = (navigatorRole === 'teacher') ? '' : 'none';
 }
 
+// Saved-career lookup for the student Home dashboard: title from PATHWAYS, entry
+// routes from COMPARE_CAREERS. (It referenced an undefined CAREER_PATHWAYS, which
+// threw for any student with saved careers and stopped the dashboard rendering.)
+function navDashCareer(id) {
+  var p = (typeof PATHWAYS !== 'undefined' ? PATHWAYS : []).filter(function (x) { return x.id === id; })[0];
+  var c = (typeof COMPARE_CAREERS !== 'undefined' ? COMPARE_CAREERS : []).filter(function (x) { return x.id === id; })[0];
+  if (!p && !c) return null;
+  return { title: (p && p.title) || (c && c.title), entryRoutes: c && c.entryRoutes ? c.entryRoutes : [] };
+}
+
 function renderStudentDashboard() {
   var pathway = loadPathway();
   var saved = pathway.saved || [];
@@ -3421,11 +3494,11 @@ function renderStudentDashboard() {
     var list = document.getElementById('dashSavedPathwaysList');
     if (list) {
       list.innerHTML = saved.slice(0, 3).map(function(s) {
-        var p = CAREER_PATHWAYS && CAREER_PATHWAYS[s.id];
+        var p = navDashCareer(s.id);
         var title = p ? p.title : (s.title || s.id);
         var icon = p ? '' : '';
         return '<div class="dash-pathway-row"><div class="dash-pathway-icon">' + icon + '</div>'
-          + '<div class="dash-pathway-info"><div class="dash-pathway-title">' + title + '</div>'
+          + '<div class="dash-pathway-info"><div class="dash-pathway-title">' + escHtml(title) + '</div>'
           + '<div class="dash-pathway-meta">Saved career &middot; Tap to view</div></div>'
           + '<button onclick="openSavedCareer(\'' + s.id + '\')" style="font-size:12px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--crimson);font-weight:600">View</button>'
           + '</div>';
@@ -3437,7 +3510,7 @@ function renderStudentDashboard() {
     // Stats
     var steps = pathway.nextSteps || [];
     var roadmap = pathway.roadmap || {};
-    var routeCount = saved.reduce(function(acc, s) { var p = CAREER_PATHWAYS && CAREER_PATHWAYS[s.id]; return acc + (p && p.entryRoutes ? p.entryRoutes.length : 0); }, 0);
+    var routeCount = saved.reduce(function(acc, s) { var p = navDashCareer(s.id); return acc + (p && p.entryRoutes ? p.entryRoutes.length : 0); }, 0);
     var statSaved = document.getElementById('dashStatSaved');
     var statRoutes = document.getElementById('dashStatRoutes');
     var statSteps = document.getElementById('dashStatSteps');
@@ -3924,6 +3997,7 @@ async function loadNavigatorProfile(token) {
     }
     // Show sign-out link
     showSignOutLink();
+    navSharingAfterLogin();
   } catch(e) {
     // Network error — fall back to localStorage role if available
     if (navigatorRole) {
@@ -3954,6 +4028,10 @@ function signOut() {
   document.querySelectorAll('.role-badge').forEach(b => b.remove());
   var sol = document.getElementById('signOutLink');
   if (sol) sol.remove();
+  // Clear sharing lists and any open shared plan (shared school computers).
+  var shs = document.getElementById('shareSection');
+  if (shs) { shs.style.display = 'none'; ['shareOutList', 'shareInList', 'shareViewBody'].forEach(function (id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; }); navShareMsg(''); }
+  navShareCloseView();
   showAuthGate();
 }
 
@@ -3966,6 +4044,143 @@ function saveRoleToBackend(role) {
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
     body: JSON.stringify({ navigatorRole: role })
   }).catch(() => {});
+}
+
+/* ── Sharing: student-controlled, view-only plan access ─────────────────
+   Student invites a parent/teacher/counsellor by email (they need a verified
+   Career Navigator account). The invitee accepts in the same section and gets
+   a read-only view; either side can stop sharing, and the server re-checks
+   the grant on every view, so revoking takes effect immediately. */
+var SHARE_REL_LABEL = { parent: 'Parent or guardian', teacher: 'Teacher', counsellor: 'Guidance counsellor' };
+function navShareToken() { try { return localStorage.getItem('navigatorToken'); } catch (e) { return null; } }
+async function navShareApi(path, method, body) {
+  var token = navShareToken();
+  if (!token) throw new Error('Please sign in first.');
+  var res = await fetch(NAV_API + '/navigator/sharing' + path, {
+    method: method || 'GET',
+    headers: Object.assign({ 'Authorization': 'Bearer ' + token }, body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined
+  });
+  var data = await res.json().catch(function () { return {}; });
+  if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+  return data;
+}
+function navShareMsg(text, kind) {
+  var el = document.getElementById('shareMsg'); if (!el) return;
+  el.textContent = text || ''; el.className = 'share-msg' + (kind ? ' ' + kind : '');
+}
+function navShareDate(iso) {
+  try { return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; }
+}
+async function navLoadSharing() {
+  var sec = document.getElementById('shareSection'); if (!sec) return null;
+  if (!navShareToken()) { sec.style.display = 'none'; return null; }
+  sec.style.display = '';
+  try {
+    var d = await navShareApi('', 'GET');
+    navRenderSharing(d);
+    return d;
+  } catch (e) { navShareMsg(e.message, 'err'); return null; }
+}
+function navRenderSharing(d) {
+  var out = document.getElementById('shareOutList');
+  var list = d.sharing || [];
+  out.innerHTML = list.length ? list.map(function (s) {
+    var badge = s.status === 'active' ? '<span class="share-badge active">Can view</span>' : '<span class="share-badge pending">Invited — waiting</span>';
+    return '<div class="share-row"><div class="share-who"><div class="share-name">' + escHtml(s.viewerName || s.viewerEmail) + badge + '</div>' +
+      '<div class="share-meta">' + escHtml(SHARE_REL_LABEL[s.relationship] || '') + ' · ' + escHtml(s.viewerEmail) + ' · since ' + escHtml(navShareDate(s.respondedAt || s.createdAt)) + '</div></div>' +
+      '<div class="share-actions"><button type="button" class="btn-secondary" onclick="navShareAct(\'' + s.id + '\',\'revoke\')">' + (s.status === 'active' ? 'Stop sharing' : 'Cancel invite') + '</button></div></div>';
+  }).join('') : '<p class="share-meta">You aren’t sharing your plan with anyone.</p>';
+
+  var inc = d.sharedWithMe || [];
+  document.getElementById('shareInWrap').style.display = inc.length ? '' : 'none';
+  document.getElementById('shareInList').innerHTML = inc.map(function (s) {
+    var who = escHtml(s.studentName || 'A student');
+    var rel = escHtml((SHARE_REL_LABEL[s.relationship] || '').toLowerCase());
+    if (s.status === 'pending') {
+      return '<div class="share-row"><div class="share-who"><div class="share-name">' + who + '<span class="share-badge pending">New invitation</span></div>' +
+        '<div class="share-meta">Invited you as their ' + rel + ' · ' + escHtml(navShareDate(s.createdAt)) + '</div></div>' +
+        '<div class="share-actions"><button type="button" class="btn-primary" onclick="navShareAct(\'' + s.id + '\',\'accept\')">Accept</button>' +
+        '<button type="button" class="btn-secondary" onclick="navShareAct(\'' + s.id + '\',\'decline\')">Decline</button></div></div>';
+    }
+    return '<div class="share-row"><div class="share-who"><div class="share-name">' + who + '<span class="share-badge active">Shared with you</span></div>' +
+      '<div class="share-meta">As their ' + rel + ' · since ' + escHtml(navShareDate(s.respondedAt || s.createdAt)) + '</div></div>' +
+      '<div class="share-actions"><button type="button" class="btn-primary" onclick="navShareView(\'' + s.id + '\')">View plan</button>' +
+      '<button type="button" class="btn-secondary" onclick="navShareAct(\'' + s.id + '\',\'revoke\')">Remove</button></div></div>';
+  }).join('');
+}
+async function navShareSubmit() {
+  var email = document.getElementById('shareEmail').value.trim();
+  var rel = document.getElementById('shareRel').value;
+  var btn = document.getElementById('shareBtn');
+  if (!email) { navShareMsg('Enter their email address.', 'err'); return; }
+  btn.disabled = true; navShareMsg('Sending invitation…');
+  try {
+    var r = await navShareApi('', 'POST', { email: email, relationship: rel });
+    document.getElementById('shareEmail').value = '';
+    navShareMsg('Invitation sent to ' + (r.viewerName || r.viewerEmail) + '. They can view your plan once they accept.', 'ok');
+    await navLoadSharing();
+  } catch (e) { navShareMsg(e.message, 'err'); }
+  btn.disabled = false;
+}
+async function navShareAct(id, action) {
+  if (action === 'revoke' && !confirm('Stop sharing? They will lose access right away.')) return;
+  try {
+    await navShareApi('/' + id + '/' + action, 'POST');
+    var done = { accept: 'Invitation accepted. Use “View plan” to see it.', decline: 'Invitation declined.', revoke: 'Sharing stopped.' };
+    navShareMsg(done[action] || '', 'ok');
+    await navLoadSharing();
+  } catch (e) { navShareMsg(e.message, 'err'); }
+}
+function navShareCloseView() { document.getElementById('shareViewModal').classList.remove('open'); }
+async function navShareView(id) {
+  var body = document.getElementById('shareViewBody');
+  body.innerHTML = '<p class="share-meta">Loading…</p>';
+  document.getElementById('shareViewModal').classList.add('open');
+  try {
+    var v = await navShareApi('/' + id + '/view', 'GET');
+    document.getElementById('shareViewTitle').textContent = (v.studentName || 'Student') + '’s plan';
+    var h = '';
+    var p = v.pathway;
+    h += '<h4>Career goal</h4><ul><li>' + escHtml(p && p.primaryGoal ? p.primaryGoal.title + (p.primaryGoal.sector ? ' — ' + p.primaryGoal.sector : '') : 'Not set yet') + '</li></ul>';
+    var saved = p && p.saved ? p.saved : [];
+    h += '<h4>Saved careers</h4>' + (saved.length ? '<ul>' + saved.map(function (s) { return '<li>' + escHtml(s.title || s.id) + (s.status ? ' <span class="share-meta">(' + escHtml(s.status) + ')</span>' : '') + '</li>'; }).join('') + '</ul>' : '<p class="share-meta">None saved yet.</p>');
+    var steps = p && p.nextSteps ? p.nextSteps : [];
+    if (steps.length) h += '<h4>Next steps</h4><ul>' + steps.map(function (s) { return '<li>' + (s.done ? '✓ ' : '') + escHtml(s.text || '') + '</li>'; }).join('') + '</ul>';
+    var c = v.coursePlan;
+    h += '<h4>Course plan</h4>';
+    if (c) {
+      h += '<p class="share-meta" style="margin:0 0 6px">' + (c.grade ? 'Grade ' + c.grade : 'Grade not set') + (c.province === 'AB' ? ' · Alberta' : '') + (v.coursePlanUpdatedAt ? ' · updated ' + escHtml(navShareDate(v.coursePlanUpdatedAt)) : '') + '</p>';
+      var taken = [], planned = [];
+      Object.keys(c.courses || {}).forEach(function (k) {
+        var nm = (typeof MC_COURSE_BY_ID !== 'undefined' && MC_COURSE_BY_ID[k]) ? MC_COURSE_BY_ID[k].name : k;
+        (c.courses[k] === 'taken' ? taken : planned).push(nm);
+      });
+      h += '<p class="share-meta" style="margin:8px 0 2px">Taken</p>' + (taken.length ? '<ul>' + taken.map(function (n) { return '<li>' + escHtml(n) + '</li>'; }).join('') + '</ul>' : '<p class="share-meta">—</p>');
+      h += '<p class="share-meta" style="margin:8px 0 2px">Planned</p>' + (planned.length ? '<ul>' + planned.map(function (n) { return '<li>' + escHtml(n) + '</li>'; }).join('') + '</ul>' : '<p class="share-meta">—</p>');
+      if (c.careers && c.careers.length) h += '<p class="share-meta" style="margin:8px 0 2px">Careers they’re considering</p><ul>' + c.careers.map(function (id) { return '<li>' + escHtml(typeof mcCareerTitle === 'function' ? mcCareerTitle(id) : id) + '</li>'; }).join('') + '</ul>';
+    } else {
+      h += '<p class="share-meta">No course plan saved yet.</p>';
+    }
+    body.innerHTML = h;
+  } catch (e) {
+    body.innerHTML = '<p class="share-msg err">' + escHtml(e.message) + '</p>';
+    navLoadSharing();
+  }
+}
+// After sign-in: load sharing and point the person to any new invitation.
+async function navSharingAfterLogin() {
+  var d = await navLoadSharing();
+  var wantShared = false;
+  try { wantShared = new URLSearchParams(location.search).get('shared') === '1'; } catch (e) {}
+  var pending = d && (d.sharedWithMe || []).some(function (s) { return s.status === 'pending'; });
+  if (wantShared || pending) {
+    if (wantShared) { try { history.replaceState({}, '', location.pathname); } catch (e) {} }
+    showTab('subscribe');
+    var sec = document.getElementById('shareSection');
+    if (sec) setTimeout(function () { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+    if (pending) showToast('A student invited you to view their career plan — see Sharing.');
+  }
 }
 
 function savePathwayToBackend(data) {
@@ -7283,6 +7498,7 @@ var _origShowTab = showTab;
   var orig = showTab;
   showTab = function(id) {
     orig(id);
+    if (id === 'subscribe') navLoadSharing();
     if (id === 'discovery') {
       var d = loadPathway();
       if (!d.roadmap.discover) {

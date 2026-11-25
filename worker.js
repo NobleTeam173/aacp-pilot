@@ -15398,6 +15398,184 @@ async function handleNavigatorCoursePlanUpdate(request, user, env) {
   return json({ success: true, plan, updatedAt: now });
 }
 
+// ── Plan sharing — student-controlled, view-only access for a parent/guardian,
+// teacher or guidance counsellor. The invitee must already have a verified Career
+// Navigator account with that email (teachers/counsellors can use school Microsoft
+// sign-in). The student can revoke at any time; every read re-checks the grant, so
+// revocation is immediate. Grants are never deleted — status changes keep the audit trail.
+const SHARE_RELATIONSHIPS = ['parent', 'teacher', 'counsellor'];
+const SHARE_MAX_ACTIVE = 10;
+let shareTableReady = false;
+
+async function ensureShareTable(db) {
+  if (shareTableReady) return;
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_plan_shares (
+      id              TEXT PRIMARY KEY,
+      student_user_id TEXT NOT NULL REFERENCES users(id),
+      viewer_user_id  TEXT NOT NULL REFERENCES users(id),
+      relationship    TEXT NOT NULL,
+      status          TEXT NOT NULL DEFAULT 'pending',
+      created_at      TEXT NOT NULL,
+      responded_at    TEXT,
+      revoked_at      TEXT,
+      revoked_by      TEXT
+    )
+  `).run();
+  shareTableReady = true;
+}
+
+function htmlEsc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+const SHARE_LABEL = { parent: 'parent or guardian', teacher: 'teacher', counsellor: 'guidance counsellor' };
+
+async function emailNavigatorShareInvite(env, { viewerName, viewerEmail, studentName, relationship }) {
+  const url = `${NAVIGATOR_URL}?shared=1`;
+  const who = htmlEsc(studentName);
+  const html = emailLayout({
+    preheader: `${studentName} invited you to view their career plan.`,
+    body: eH1('You’ve been invited to view a career plan') +
+      eP(`Hi ${htmlEsc(viewerName)},`) +
+      eP(`<strong>${who}</strong> has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan. You’ll be able to see their saved careers and course plan. You can’t change anything, and ${who} can stop sharing at any time.`) +
+      eBtn('Review the invitation', url) +
+      eNote('Sign in with this email address, then open My Career Plan → Sharing to accept or decline. If you don’t know this student, decline the invitation.'),
+  });
+  return sendEmail(env, {
+    event: 'navigator_share_invite', to: viewerEmail,
+    subject: `${studentName} shared their career plan with you — AACP Career Navigator`,
+    text: `Hi ${viewerName},\n\n${studentName} has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan (view only).\n\nSign in with this email at ${url} and open My Career Plan → Sharing to accept or decline.`,
+    html,
+  });
+}
+
+// GET /navigator/sharing — what I share (outgoing) and what's shared with me (incoming)
+async function handleNavigatorSharingList(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  await ensureShareTable(env.DB);
+  const [out, inc] = await Promise.all([
+    env.DB.prepare(`
+      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, s.revoked_at, u.name AS viewer_name, u.email AS viewer_email
+      FROM navigator_plan_shares s JOIN users u ON u.id = s.viewer_user_id
+      WHERE s.student_user_id = ? AND s.status IN ('pending','active') ORDER BY s.created_at DESC
+    `).bind(user.sub).all(),
+    env.DB.prepare(`
+      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, u.name AS student_name
+      FROM navigator_plan_shares s JOIN users u ON u.id = s.student_user_id
+      WHERE s.viewer_user_id = ? AND s.status IN ('pending','active') ORDER BY s.created_at DESC
+    `).bind(user.sub).all(),
+  ]);
+  return json({
+    sharing: (out.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, viewerName: r.viewer_name, viewerEmail: r.viewer_email })),
+    sharedWithMe: (inc.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, studentName: r.student_name })),
+  });
+}
+
+// POST /navigator/sharing — body { email, relationship } — student invites a viewer
+async function handleNavigatorSharingCreate(request, user, env, ctx) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  const body = await request.json().catch(() => null);
+  const email = String(body?.email ?? '').trim().toLowerCase();
+  const relationship = body?.relationship;
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Enter a valid email address.');
+  if (!SHARE_RELATIONSHIPS.includes(relationship)) return err('Choose parent or guardian, teacher, or guidance counsellor.');
+
+  const rlKey = `nav_share:${user.sub}`;
+  if (await countAllAttempts(env.DB, rlKey, 60 * 60 * 1000) >= 20) return err('Too many invitations. Please try again in an hour.', 429);
+  await recordAttempt(env.DB, rlKey, true);
+
+  await ensureShareTable(env.DB);
+  const viewer = await env.DB.prepare(`SELECT id, name, email, role, email_verified FROM users WHERE email = ?`).bind(email).first();
+  let isNavigator = viewer?.role === 'navigator';
+  if (viewer && !isNavigator) {
+    const reg = await env.DB.prepare(`SELECT 1 AS ok FROM navigator_accounts WHERE user_id = ?`).bind(viewer.id).first().catch(() => null);
+    isNavigator = !!reg;
+  }
+  if (!viewer || !isNavigator || !viewer.email_verified) {
+    return err('That person needs a verified Career Navigator account with this email before you can share. Teachers and counsellors can sign in with their school Microsoft account.', 404);
+  }
+  if (viewer.id === user.sub) return err('You can’t share your plan with yourself.');
+
+  const existing = await env.DB.prepare(
+    `SELECT id FROM navigator_plan_shares WHERE student_user_id = ? AND viewer_user_id = ? AND status IN ('pending','active')`
+  ).bind(user.sub, viewer.id).first();
+  if (existing) return err('You’re already sharing with this person.', 409);
+  const count = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM navigator_plan_shares WHERE student_user_id = ? AND status IN ('pending','active')`
+  ).bind(user.sub).first();
+  if ((count?.n ?? 0) >= SHARE_MAX_ACTIVE) return err(`You can share with up to ${SHARE_MAX_ACTIVE} people. Remove someone first.`);
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO navigator_plan_shares (id, student_user_id, viewer_user_id, relationship, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`
+  ).bind(id, user.sub, viewer.id, relationship, now).run();
+  await audit(env.DB, 'navigator_share_invite', user.sub, 'navigator_plan_share', { id, viewer_user_id: viewer.id, relationship });
+
+  const student = await env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first();
+  if (ctx) fireEmail(ctx, emailNavigatorShareInvite(env, { viewerName: viewer.name || 'there', viewerEmail: viewer.email, studentName: student?.name || 'A student', relationship }), 'navigator_share_invite');
+
+  return json({ id, status: 'pending', relationship, viewerName: viewer.name, viewerEmail: viewer.email, createdAt: now }, 201);
+}
+
+// POST /navigator/sharing/:id/{accept|decline|revoke}
+//   accept/decline — the invited viewer; revoke — the student, or the viewer removing themselves.
+async function handleNavigatorSharingAction(request, user, env, shareId, action) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  await ensureShareTable(env.DB);
+  const s = await env.DB.prepare(`SELECT id, student_user_id, viewer_user_id, status FROM navigator_plan_shares WHERE id = ?`).bind(shareId).first();
+  const isStudent = s?.student_user_id === user.sub;
+  const isViewer = s?.viewer_user_id === user.sub;
+  if (!s || (!isStudent && !isViewer)) return err('Sharing invitation not found.', 404);
+  const now = new Date().toISOString();
+
+  if (action === 'accept' || action === 'decline') {
+    if (!isViewer) return err('Only the invited person can respond.', 403);
+    if (s.status !== 'pending') return err('This invitation is no longer pending.', 409);
+    const status = action === 'accept' ? 'active' : 'declined';
+    await env.DB.prepare(`UPDATE navigator_plan_shares SET status = ?, responded_at = ? WHERE id = ? AND status = 'pending'`).bind(status, now, shareId).run();
+    await audit(env.DB, `navigator_share_${action}`, user.sub, 'navigator_plan_share', { id: shareId });
+    return json({ id: shareId, status });
+  }
+  // revoke
+  if (s.status !== 'pending' && s.status !== 'active') return json({ id: shareId, status: s.status });
+  await env.DB.prepare(`UPDATE navigator_plan_shares SET status = 'revoked', revoked_at = ?, revoked_by = ? WHERE id = ?`).bind(now, isStudent ? 'student' : 'viewer', shareId).run();
+  await audit(env.DB, 'navigator_share_revoke', user.sub, 'navigator_plan_share', { id: shareId, by: isStudent ? 'student' : 'viewer' });
+  return json({ id: shareId, status: 'revoked' });
+}
+
+// GET /navigator/sharing/:id/view — read-only copy of the student's plan for an active viewer
+async function handleNavigatorSharingView(request, user, env, shareId) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  await ensureShareTable(env.DB);
+  const s = await env.DB.prepare(
+    `SELECT id, student_user_id, relationship FROM navigator_plan_shares WHERE id = ? AND viewer_user_id = ? AND status = 'active'`
+  ).bind(shareId, user.sub).first();
+  if (!s) return err('This plan is no longer shared with you.', 404);
+  await ensureCoursePlanTable(env.DB);
+  const [student, profile, course] = await Promise.all([
+    env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(s.student_user_id).first(),
+    env.DB.prepare(`SELECT pathway_data, updated_at FROM navigator_profiles WHERE user_id = ?`).bind(s.student_user_id).first(),
+    env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(s.student_user_id).first(),
+  ]);
+  let pathway = null, coursePlan = null;
+  try { pathway = profile?.pathway_data ? JSON.parse(profile.pathway_data) : null; } catch { pathway = null; }
+  try { coursePlan = course?.plan_data ? sanitizeCoursePlan(JSON.parse(course.plan_data)) : null; } catch { coursePlan = null; }
+  // Only the plan fields — nothing else from the student's profile.
+  const p = pathway && typeof pathway === 'object' ? {
+    primaryGoal: pathway.primaryGoal ?? null,
+    saved: Array.isArray(pathway.saved) ? pathway.saved.slice(0, 50) : [],
+    roadmap: pathway.roadmap && typeof pathway.roadmap === 'object' ? pathway.roadmap : null,
+    nextSteps: Array.isArray(pathway.nextSteps) ? pathway.nextSteps.slice(0, 50) : [],
+  } : null;
+  return json({
+    id: s.id, relationship: s.relationship, studentName: student?.name ?? 'Student',
+    pathway: p, pathwayUpdatedAt: profile?.updated_at ?? null,
+    coursePlan, coursePlanUpdatedAt: course?.updated_at ?? null,
+  });
+}
+
 // POST /navigator/auth/login — navigator-specific login with email verification enforcement
 async function handleNavigatorAuthLogin(request, env) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
@@ -16437,6 +16615,13 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/profile'      && request.method === 'PUT')  return handleNavigatorProfileUpdate(request, user, env);
     if (path === '/navigator/course-plan'  && request.method === 'GET')  return handleNavigatorCoursePlanGet(request, user, env);
     if (path === '/navigator/course-plan'  && request.method === 'PUT')  return handleNavigatorCoursePlanUpdate(request, user, env);
+    if (path === '/navigator/sharing'      && request.method === 'GET')  return handleNavigatorSharingList(request, user, env);
+    if (path === '/navigator/sharing'      && request.method === 'POST') return handleNavigatorSharingCreate(request, user, env, ctx);
+    {
+      const m = path.match(/^\/navigator\/sharing\/([0-9a-f-]{36})\/(accept|decline|revoke|view)$/);
+      if (m && m[2] === 'view' && request.method === 'GET') return handleNavigatorSharingView(request, user, env, m[1]);
+      if (m && m[2] !== 'view' && request.method === 'POST') return handleNavigatorSharingAction(request, user, env, m[1], m[2]);
+    }
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
     if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
     if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {

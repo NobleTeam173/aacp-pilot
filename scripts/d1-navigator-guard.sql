@@ -91,6 +91,26 @@ CREATE TRIGGER IF NOT EXISTS nav_guard_pilot_codes_delete BEFORE DELETE ON navig
 WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_pilot_codes is protected'); END;
 
+-- Plan sharing (parent / teacher / counsellor view-only access). Same schema the Worker
+-- creates lazily (ensureShareTable); revoking is a status change, never a delete.
+CREATE TABLE IF NOT EXISTS navigator_plan_shares (
+  id              TEXT PRIMARY KEY,
+  student_user_id TEXT NOT NULL REFERENCES users(id),
+  viewer_user_id  TEXT NOT NULL REFERENCES users(id),
+  relationship    TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending',
+  created_at      TEXT NOT NULL,
+  responded_at    TEXT,
+  revoked_at      TEXT,
+  revoked_by      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_nav_shares_student ON navigator_plan_shares(student_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_nav_shares_viewer ON navigator_plan_shares(viewer_user_id, status);
+
+CREATE TRIGGER IF NOT EXISTS nav_guard_plan_shares_delete BEFORE DELETE ON navigator_plan_shares
+WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_plan_shares is protected'); END;
+
 CREATE TRIGGER IF NOT EXISTS nav_guard_invite_codes_delete BEFORE DELETE ON navigator_invite_codes
 WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_invite_codes is protected'); END;
