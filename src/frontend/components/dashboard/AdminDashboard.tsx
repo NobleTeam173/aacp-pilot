@@ -8,8 +8,10 @@ import { C } from '../../theme';
 import { getStoredToken, getStoredRefreshToken, setStoredToken } from '../../services/apiClient';
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const isGet = !opts?.method || opts.method.toUpperCase() === 'GET';
+  const url = isGet ? `${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}` : path;
   const doFetch = (token: string | null) =>
-    fetch(path, {
+    fetch(url, {
       ...opts,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...((opts?.headers as Record<string, string>) ?? {}) },
     });
