@@ -15776,11 +15776,11 @@ async function handleAdminNavigatorPilotCodesCreate(request, user, env) {
     await env.DB.prepare(`
       INSERT INTO navigator_pilot_codes (id, code, label, created_by, plan, max_redemptions, redemptions_used, expires_at, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', ?, ?)
-    `).bind(id, code, label, user.id, plan, maxRedemptions, expiresAt, now, now).run();
+    `).bind(id, code, label, user.sub, plan, maxRedemptions, expiresAt, now, now).run();
     created.push({ id, code, label, plan });
   }
 
-  await audit(env.DB, 'navigator_pilot_codes_create', user.id, 'navigator_pilot_code', { label, count, plan });
+  await audit(env.DB, 'navigator_pilot_codes_create', user.sub, 'navigator_pilot_code', { label, count, plan });
   return json({ created });
 }
 
@@ -15792,7 +15792,7 @@ async function handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId) {
     `UPDATE navigator_pilot_codes SET status = 'revoked', updated_at = ? WHERE id = ? AND status = 'active'`
   ).bind(now, codeId).run();
   if (!result.meta?.changes) return err('Code not found or already revoked', 404);
-  await audit(env.DB, 'navigator_pilot_code_revoke', user.id, 'navigator_pilot_code', { codeId });
+  await audit(env.DB, 'navigator_pilot_code_revoke', user.sub, 'navigator_pilot_code', { codeId });
   return json({ success: true });
 }
 
@@ -15800,20 +15800,18 @@ async function handleAdminNavigatorPilotCodeRevoke(request, user, env, codeId) {
 async function handleNavigatorChat(request, user, env) {
   const g = requireAuth(user); if (g) return g;
 
-  // Check active premium subscription
-  const sub = await env.DB.prepare(
-    `SELECT plan, status FROM navigator_subscriptions WHERE user_id = ? AND status = 'active'`
-  ).bind(user.id).first();
-  if (!sub || sub.plan === 'free') {
+  // Premium only — same plan rule as GET /navigator/profile and My Courses (access tokens carry `sub`, not `id`)
+  const plan = await navigatorPlanFor(env, user.sub);
+  if (plan === 'free' || plan === 'expired') {
     return err('Active Navigator premium subscription required', 403);
   }
 
   // Rate limit: 30 requests per hour per user
-  const attempts = await countAllAttempts(env.DB, `nav_chat:${user.id}`, 60 * 60 * 1000);
+  const attempts = await countAllAttempts(env.DB, `nav_chat:${user.sub}`, 60 * 60 * 1000);
   if (attempts >= 30) {
     return err('Chat limit reached. Please try again in an hour.', 429);
   }
-  await recordAttempt(env.DB, `nav_chat:${user.id}`, true);
+  await recordAttempt(env.DB, `nav_chat:${user.sub}`, true);
 
   const body = await request.json().catch(() => null);
   if (!body?.messages || !Array.isArray(body.messages)) {
@@ -16015,7 +16013,7 @@ async function handleNavigatorInviteCreate(request, user, env) {
   const g = requireAuth(user); if (g) return g;
   const sub = await env.DB.prepare(
     `SELECT plan, status, invites_remaining FROM navigator_subscriptions WHERE user_id = ?`
-  ).bind(user.id).first();
+  ).bind(user.sub).first();
 
   const isAdvisor = sub?.plan === 'career_advisor' && sub?.status === 'active';
   const isTrial = sub?.plan === 'career_advisor' && sub?.status === 'trialing';
@@ -16034,7 +16032,7 @@ async function handleNavigatorInviteCreate(request, user, env) {
       duration: 'once',
       name: `AACP Navigator Advisor Invite`,
       'metadata[code]': code,
-      'metadata[advisor_user_id]': user.id,
+      'metadata[advisor_user_id]': user.sub,
     });
     stripeCouponId = coupon.id;
   } catch (err) {
@@ -16046,13 +16044,13 @@ async function handleNavigatorInviteCreate(request, user, env) {
     INSERT INTO navigator_invite_codes
       (id, code, advisor_user_id, stripe_coupon_id, max_redemptions, discount_percent, status, created_at, updated_at)
     VALUES (?,?,?,?,?,?,?,?,?)
-  `).bind(id, code, user.id, stripeCouponId, 1, 20, 'active', now, now).run();
+  `).bind(id, code, user.sub, stripeCouponId, 1, 20, 'active', now, now).run();
 
   await env.DB.prepare(
     `UPDATE navigator_subscriptions SET invites_remaining = invites_remaining - 1, updated_at = ? WHERE user_id = ?`
-  ).bind(now, user.id).run();
+  ).bind(now, user.sub).run();
 
-  await audit(env.DB, 'navigator_invite_create', user.id, 'navigator_invite_code', { code, id });
+  await audit(env.DB, 'navigator_invite_create', user.sub, 'navigator_invite_code', { code, id });
   return json({ code, discount_percent: 20, expires_at: null });
 }
 
@@ -16061,12 +16059,12 @@ async function handleNavigatorInviteList(request, user, env) {
   const g = requireAuth(user); if (g) return g;
   const sub = await env.DB.prepare(
     `SELECT plan, status, invites_remaining, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`
-  ).bind(user.id).first();
+  ).bind(user.sub).first();
   if (!sub || sub.plan !== 'career_advisor') return json({ error: 'Career Advisor subscription required' }, 403);
   const { results } = await env.DB.prepare(
     `SELECT id, code, discount_percent, status, redemptions_used, max_redemptions, expires_at, created_at
      FROM navigator_invite_codes WHERE advisor_user_id = ? ORDER BY created_at DESC LIMIT 50`
-  ).bind(user.id).all();
+  ).bind(user.sub).all();
   return json({
     codes: results || [],
     invites_remaining: sub.invites_remaining ?? 0,
