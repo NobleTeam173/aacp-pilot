@@ -1000,7 +1000,9 @@ interface NetworkEvent { id: number; title: string; description: string; event_d
 
 function netFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const token = sessionStorage.getItem('aacp_token') ?? localStorage.getItem('aacp_token');
-  return fetch(path, {
+  const isGet = !opts?.method || opts.method.toUpperCase() === 'GET';
+  const url = isGet ? `${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}` : path;
+  return fetch(url, {
     ...opts,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers as Record<string,string> ?? {}) },
   }).then(async r => {
