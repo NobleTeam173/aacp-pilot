@@ -15615,7 +15615,7 @@ const CONSENT_POLICIES = {
   age_eligibility:        { version: '2026-11-25', required: true },
   privacy_policy:         { version: '2026-10-04', required: true },
   terms:                  { version: null,         required: true },  // switched on when Terms of Use are published
-  acia_ai_processing:     { version: '2026-11-25.2', required: false }, // needed only for ACIA™ chat (wording: gateway, no personal data to AI)
+  acia_ai_processing:     { version: '2026-11-25.3', required: false }, // needed only for ACIA™ chat — wording: "ACIA™ AI-Assisted Career Guidance" (AACP text, 2026-11-25)
   guardian_authorization: { version: '2026-11-25.2', required: false }, // needed when age band is under_13
 };
 const CONSENT_AGE_BANDS = ['under_13', '13_17', '18_plus'];

@@ -1117,6 +1117,13 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .consent-check a{color:var(--crimson)}
 .consent-overlay{z-index:1300}
 .acia-label{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--fg2);border:1px solid var(--border);margin-bottom:4px}
+.acia-more{margin:4px 0 0 25px;font-size:12px;color:var(--fg3);line-height:1.5}
+.acia-more summary{cursor:pointer;color:var(--crimson);font-weight:600;list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:28px}
+.acia-more summary::-webkit-details-marker{display:none}
+.acia-more summary::after{content:"▾";font-size:10px}
+.acia-more[open] summary::after{content:"▴"}
+.acia-more p{margin:4px 0 0}
+.acia-more-modal{font-size:13px}
 .acia-cites{margin-top:8px;font-size:12px;color:var(--fg3)}
 .acia-cites a{color:var(--crimson)}
 .del-account-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
@@ -1213,8 +1220,9 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
           </label>
           <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer">
             <input type="checkbox" id="authConsentAcia" style="margin-top:2px;cursor:pointer;accent-color:var(--crimson);flex-shrink:0">
-            <span style="font-size:12px;color:var(--fg2);line-height:1.5"><strong>Optional:</strong> I allow ACIA™ to use AACP’s AI service to help answer my career questions. ACIA™ answers from AACP’s verified career information first; my messages, name and account details are never sent to outside AI providers. I can turn this off any time.</span>
+            <span style="font-size:12px;color:var(--fg2);line-height:1.5"><strong>Optional: ACIA™ AI-Assisted Career Guidance</strong><br>I agree to use ACIA™ for career exploration and education guidance.</span>
           </label>
+          <details class="acia-more"><summary>How your information is protected</summary><p>My messages, conversation history and account information are not sent to external AI providers. ACIA™ may use external AI services to generate general, non-identifying career information.</p><p>I can withdraw this authorization at any time.</p></details>
         </div>
         <p id="authRegError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
         <button onclick="submitRegister()" id="authRegBtn" class="btn-primary" style="width:100%;justify-content:center">Create Account</button>
@@ -1404,7 +1412,8 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
       <label class="consent-check" id="consentTermsRow" style="display:none"><input type="checkbox" id="consentTerms">
         <span>I accept the <a id="consentTermsLink" href="#" target="_blank">Terms of Use</a>.</span></label>
       <label class="consent-check" id="consentAciaRow"><input type="checkbox" id="consentAcia">
-        <span><strong>Optional:</strong> I allow ACIA™ to use AACP’s AI service to help answer my career questions. ACIA™ answers from AACP’s verified career information first; my messages, name and account details are never sent to outside AI providers. I can turn this off any time.</span></label>
+        <span><strong>Optional: ACIA™ AI-Assisted Career Guidance</strong><br>I agree to use ACIA™ for career exploration and education guidance.</span></label>
+      <details class="acia-more acia-more-modal"><summary>How your information is protected</summary><p>My messages, conversation history and account information are not sent to external AI providers. ACIA™ may use external AI services to generate general, non-identifying career information.</p><p>I can withdraw this authorization at any time.</p></details>
       <p id="consentMsg" class="share-msg" role="status" aria-live="polite"></p>
       <div class="share-actions" style="margin-top:10px">
         <button type="submit" class="btn-primary" id="consentBtn">Save and continue</button>
@@ -4303,7 +4312,7 @@ async function navShareView(id) {
 /* ── Privacy & consent ──────────────────────────────────────────────────
    Consent records are stored server-side in AWS Canada; this page only shows
    and changes them through /navigator/consent. Separate consents: age range,
-   Privacy Policy, Terms of Use (once published) and ACIA™ AI processing; plus
+   Privacy Policy, Terms of Use (once published) and ACIA™ AI-assisted career guidance; plus
    parent/guardian authorization for under-13s (ACIA™, sharing, payments). */
 var NAV_TERMS_URL = null; // set to the Terms of Use URL when published (server: CONSENT_POLICIES.terms.version)
 var navConsentState = null;
@@ -4329,7 +4338,7 @@ function navRenderConsent(s) {
   rows.push('<div class="consent-row"><span>Age range</span><span>' + (s.ageBand ? escHtml(CONSENT_AGE_LABEL[s.ageBand] || s.ageBand) : '<span class="consent-no">Needed</span>') + '</span></div>');
   rows.push('<div class="consent-row"><span>Privacy Policy</span>' + done(s.missing.indexOf('privacy_policy') < 0) + '</div>');
   if (s.policies && s.policies.terms) rows.push('<div class="consent-row"><span>Terms of Use</span>' + done(s.missing.indexOf('terms') < 0) + '</div>');
-  rows.push('<div class="consent-row"><span>ACIA™ AI processing</span><span>' + (s.aciaConsent ? '<span class="consent-ok">On</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(false)">Turn off</button>' : '<span class="consent-wait">Off</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(true)">Turn on</button>') + '</span></div>');
+  rows.push('<div class="consent-row"><span>ACIA™ AI-assisted career guidance</span><span>' + (s.aciaConsent ? '<span class="consent-ok">On</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(false)">Turn off</button>' : '<span class="consent-wait">Off</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(true)">Turn on</button>') + '</span></div>');
   if (s.needsGuardian) {
     var gs = { approved: '<span class="consent-ok">Approved</span>', pending: '<span class="consent-wait">Waiting for reply</span>' + (s.guardianEmailMasked ? ' <span class="share-meta">(' + escHtml(s.guardianEmailMasked) + ')</span>' : ''), declined: '<span class="consent-no">Declined</span>', withdrawn: '<span class="consent-no">Withdrawn</span>', cancelled: '<span class="consent-no">Not sent</span>', expired: '<span class="consent-no">Link expired</span>', none: '<span class="consent-no">Needed</span>' };
     rows.push('<div class="consent-row"><span>Parent or guardian approval</span><span>' + (gs[s.guardianStatus] || gs.none) + '</span></div>');
@@ -4367,6 +4376,7 @@ function navConsentOpen(s) {
   if (NAV_TERMS_URL) document.getElementById('consentTermsLink').href = NAV_TERMS_URL;
   document.getElementById('consentTerms').checked = false;
   document.getElementById('consentAciaRow').style.display = s.aciaConsent ? 'none' : '';
+  var aciaMore = document.querySelector('#consentModal .acia-more'); if (aciaMore) { aciaMore.style.display = s.aciaConsent ? 'none' : ''; aciaMore.open = false; }
   document.getElementById('consentAcia').checked = false;
   document.getElementById('consentIntro').textContent = (s.outdated || []).length
     ? 'We’ve updated our policies. Please review and accept them to keep using ACIA™, sharing and payments.'
@@ -4406,11 +4416,11 @@ async function navConsentSubmit() {
   btn.disabled = false;
 }
 async function navConsentAcia(on) {
-  if (!on && !confirm('Turn off ACIA™ AI processing? ACIA™ chat will stop working until you turn it back on.')) return;
+  if (!on && !confirm('Withdraw your ACIA™ AI-assisted career guidance authorization? ACIA™ chat will stop working until you turn it back on.')) return;
   try {
     navConsentState = await navConsentApi('', 'POST', { consents: [{ type: 'acia_ai_processing', status: on ? 'granted' : 'withdrawn' }] });
     navRenderConsent(navConsentState);
-    navConsentCardMsg(on ? 'ACIA™ AI processing is on.' : 'ACIA™ AI processing is off.', 'ok');
+    navConsentCardMsg(on ? 'ACIA™ AI-assisted career guidance is on.' : 'ACIA™ AI-assisted career guidance is off.', 'ok');
   } catch (e) { navConsentCardMsg(e.message, 'err'); }
 }
 async function navGuardianRequest() {
