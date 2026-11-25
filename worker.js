@@ -2008,30 +2008,6 @@ async function runMigrations(db) {
     )
   `).run();
 
-  // OAuth provider links — federated identity (Google, Microsoft)
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS oauth_providers (
-      id            TEXT PRIMARY KEY,
-      user_id       TEXT NOT NULL REFERENCES users(id),
-      provider      TEXT NOT NULL,
-      provider_id   TEXT NOT NULL,
-      provider_email TEXT,
-      created_at    TEXT NOT NULL,
-      updated_at    TEXT,
-      UNIQUE(provider, provider_id)
-    )
-  `).run().catch(() => {});
-  // The live D1 table predates this definition: it has no provider_email and a
-  // NOT NULL updated_at, so sign-in inserts failed there. Make both columns exist
-  // everywhere; upsertOAuthUser always writes both.
-  const oauthCols = await getTableColumns(db, 'oauth_providers');
-  if (oauthCols.length && !oauthCols.includes('provider_email')) {
-    await db.prepare(`ALTER TABLE oauth_providers ADD COLUMN provider_email TEXT`).run().catch(() => {});
-  }
-  if (oauthCols.length && !oauthCols.includes('updated_at')) {
-    await db.prepare(`ALTER TABLE oauth_providers ADD COLUMN updated_at TEXT`).run().catch(() => {});
-  }
-  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_providers(user_id)`).run().catch(() => {});
 }
 
 async function seedAdmin(db, env) {
@@ -4056,33 +4032,34 @@ async function emailVerificationCode(env, { email, otp }) {
 }
 
 // ── 8. Password reset ─────────────────────────────────────────────────────────
-async function emailPasswordReset(env, { name, email, token }) {
-  const resetUrl = `${PLATFORM_URL}?reset=${token}`;
+async function emailPasswordReset(env, { name, email, token, resetUrl: customUrl, product = 'AACP' }) {
+  const resetUrl = customUrl || `${PLATFORM_URL}?reset=${token}`;
+  const greeting = name ? `Hello ${name},` : 'Hello,';
   const html = emailLayout({
-    preheader: 'Reset your AACP account password.',
+    preheader: `Reset your ${product} account password.`,
     body: eH1('Reset Your Password') +
-      eP(`Hello ${name},`) +
-      eP('You requested a password reset for your AACP account. Click the button below to choose a new password.') +
+      eP(greeting) +
+      eP(`You requested a password reset for your ${product} account. Click the button below to choose a new password.`) +
       eBtn('Reset Password', resetUrl) +
       eP('This link expires in <strong>1 hour</strong>.') +
       eNote(`If you did not request a reset, please ignore this email — your password remains unchanged.<br>If the button does not work, copy this link: <a href="${resetUrl}" style="color:#80011f">${resetUrl}</a>`),
   });
-  return sendEmail(env, { event: 'password_reset', to: email, subject: 'AACP — Reset your password', text: `Hello ${name},\n\nReset your AACP password here: ${resetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`, html });
+  return sendEmail(env, { event: 'password_reset', to: email, subject: `${product} — Reset your password`, text: `${greeting}\n\nReset your ${product} password here: ${resetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`, html });
 }
 
 // ── Navigator: email verification link ────────────────────────────────────────
-async function emailNavigatorVerification(env, { name, email, token }) {
+async function emailNavigatorVerification(env, { email, token }) {
   const verifyUrl = `${NAVIGATOR_URL}?nav_verify=${token}`;
   const html = emailLayout({
     preheader: 'Verify your email to activate your AACP Career Navigator account.',
     body: eH1('Verify Your Email Address') +
-      eP(`Hi ${name},`) +
+      eP('Hello,') +
       eP('Thank you for creating an AACP Career Navigator account. Click the button below to verify your email and activate your account.') +
       eBtn('Verify Email Address', verifyUrl) +
       eP('This link expires in <strong>24 hours</strong>.') +
       eNote(`If you did not create an account, you can safely ignore this email.<br>If the button does not work, copy this link: <a href="${verifyUrl}" style="color:#80011f;word-break:break-all">${verifyUrl}</a>`),
   });
-  return sendEmail(env, { event: 'navigator_verify_email', to: email, subject: 'Verify your email — AACP Career Navigator', text: `Hi ${name},\n\nVerify your AACP Career Navigator email:\n${verifyUrl}\n\nThis link expires in 24 hours.`, html });
+  return sendEmail(env, { event: 'navigator_verify_email', to: email, subject: 'Verify your email — AACP Career Navigator', text: `Hello,\n\nVerify your AACP Career Navigator email:\n${verifyUrl}\n\nThis link expires in 24 hours.`, html });
 }
 
 // Fire-and-forget wrapper — uses ctx.waitUntil() so the Cloudflare Worker does
@@ -9526,7 +9503,7 @@ async function handleForgotPassword(request, env, ctx) {
   const attempts = await countRecentAttempts(env.DB, `pwreset:${email}`, 60 * 60 * 1000);
   if (attempts >= 3) return err('Too many reset requests. Please try again in 1 hour.', 429);
 
-  const userRow = await env.DB.prepare(`SELECT id, name, email FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
+  const userRow = await env.DB.prepare(`SELECT id, name, email, role FROM users WHERE email = ? AND status = 'active'`).bind(email).first();
   await recordAttempt(env.DB, `pwreset:${email}`, false);
   await recordAttempt(env.DB, `pwreset_ip:${clientIp}`, false);
 
@@ -9540,7 +9517,13 @@ async function handleForgotPassword(request, env, ctx) {
       `INSERT INTO password_resets (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
     ).bind(randomHex(16), userRow.id, tokenHash, expiresAt, now).run();
     await audit(env.DB, 'password_reset_requested', userRow.id, 'user', {});
-    fireEmail(ctx, emailPasswordReset(env, { name: userRow.name, email: userRow.email, token }), 'password_reset');
+    // Career Navigator accounts reset on the Career Navigator page (same database as
+    // this request) with a neutral greeting; main AACP accounts keep the AACP link.
+    let navigator = userRow.role === 'navigator';
+    if (!navigator) navigator = !!(await env.DB.prepare(`SELECT 1 AS ok FROM navigator_accounts WHERE user_id = ?`).bind(userRow.id).first().catch(() => null));
+    fireEmail(ctx, navigator
+      ? emailPasswordReset(env, { name: null, email: userRow.email, token, resetUrl: `${NAVIGATOR_URL}?nav_reset=${token}`, product: 'AACP Career Navigator' })
+      : emailPasswordReset(env, { name: userRow.name, email: userRow.email, token }), 'password_reset');
   }
 
   // Always return the same message to prevent email enumeration
@@ -15226,11 +15209,11 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
   await recordAttempt(env.DB, rateLimitKey, true);
 
   const body = await request.json().catch(() => null);
-  if (!body?.email || !body?.password || !body?.name) return err('email, password, and name are required');
+  // No name is collected: Career Navigator identifies students by an auto-generated AACP™ Student ID.
+  if (!body?.email || !body?.password) return err('email and password are required');
 
   const email = body.email.trim().toLowerCase();
   if (email.length > 254) return err('Email address is too long');
-  if (body.name.trim().length > 100) return err('Name is too long');
   if (body.password.length < 8) return err('Password must be at least 8 characters');
   if (body.password.length > 128) return err('Password is too long');
   if (!/[A-Z]/.test(body.password)) return err('Password must contain at least one uppercase letter');
@@ -15249,7 +15232,8 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
   await env.DB.prepare(`
     INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'navigator', 'active', 0, ?, ?)
-  `).bind(userId, email, body.name.trim(), passwordHash, now, now).run();
+  `).bind(userId, email, '', passwordHash, now, now).run();
+  const studentCode = await studentCodeFor(env.DB, userId);
 
   if (navigatorRole) {
     await env.DB.prepare(`
@@ -15275,9 +15259,9 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
   await env.DB.prepare(
     `INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
   ).bind(crypto.randomUUID(), userId, verHash, verExpiry, now).run();
-  fireEmail(ctx, emailNavigatorVerification(env, { name: body.name.trim(), email, token: verToken }), 'navigator_verify_email');
+  fireEmail(ctx, emailNavigatorVerification(env, { email, token: verToken }), 'navigator_verify_email');
 
-  return json({ message: 'Account created. Please check your email to verify your address.', emailVerificationRequired: true, email }, 201);
+  return json({ message: 'Account created. Please check your email to verify your address.', emailVerificationRequired: true, email, studentCode }, 201);
 }
 
 // GET /navigator/profile — returns navigator_role + pathway_data for the authenticated user
@@ -15286,7 +15270,7 @@ async function handleNavigatorProfileGet(request, user, env) {
   const [profile, sub, userRow] = await Promise.all([
     env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
     env.DB.prepare(`SELECT plan, status, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
-    env.DB.prepare(`SELECT name, status FROM users WHERE id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT status FROM users WHERE id = ?`).bind(user.sub).first(),
   ]);
   // Deleted (or missing) account: treat the token as signed out on every device.
   if (!userRow || userRow.status === 'deleted') return json({ error: 'Account not found' }, 401);
@@ -15297,7 +15281,7 @@ async function handleNavigatorProfileGet(request, user, env) {
     pathwayData: profile?.pathway_data ? JSON.parse(profile.pathway_data) : null,
     plan,
     email: user.email,
-    name: userRow?.name ?? null,
+    studentCode: await studentCodeFor(env.DB, user.sub), // AACP™ Student ID (display only; not a credential)
   });
 }
 
@@ -15421,10 +15405,51 @@ async function handleNavigatorCoursePlanUpdate(request, user, env) {
   return json({ success: true, plan, updatedAt: now });
 }
 
+// ── AACP™ Student ID ─────────────────────────────────────────────────────────
+// Career Navigator doesn't collect names. Each account gets a random, pseudonymous
+// display code (AACP-XXXX-XXXX) used wherever a person would otherwise be named
+// (sharing, parent/guardian requests). It is NOT a credential — sign-in is email +
+// password only — and it is never sent to external AI providers.
+const STUDENT_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no I, L, O, 0, 1
+let studentCodeTableReady = false;
+async function ensureStudentCodeTable(db) {
+  if (studentCodeTableReady) return;
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS navigator_student_codes (
+      user_id    TEXT PRIMARY KEY REFERENCES users(id),
+      code       TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL
+    )`).run();
+  studentCodeTableReady = true;
+}
+function randomStudentCode() {
+  const n = STUDENT_CODE_ALPHABET.length, limit = 256 - (256 % n), out = [];
+  while (out.length < 8) {
+    for (const b of crypto.getRandomValues(new Uint8Array(16))) { if (b < limit && out.length < 8) out.push(STUDENT_CODE_ALPHABET[b % n]); }
+  }
+  return `AACP-${out.slice(0, 4).join('')}-${out.slice(4).join('')}`;
+}
+async function studentCodeFor(db, userId) {
+  await ensureStudentCodeTable(db);
+  const row = await db.prepare(`SELECT code FROM navigator_student_codes WHERE user_id = ?`).bind(userId).first();
+  if (row?.code) return row.code;
+  for (let i = 0; i < 5; i++) {
+    const code = randomStudentCode();
+    try {
+      await db.prepare(`INSERT INTO navigator_student_codes (user_id, code, created_at) VALUES (?, ?, ?)`).bind(userId, code, new Date().toISOString()).run();
+      return code;
+    } catch {
+      const again = await db.prepare(`SELECT code FROM navigator_student_codes WHERE user_id = ?`).bind(userId).first();
+      if (again?.code) return again.code; // created concurrently
+    } // else: code collision → retry
+  }
+  throw new Error('could not allocate student code');
+}
+
 // ── Plan sharing — student-controlled, view-only access for a parent/guardian,
 // teacher or guidance counsellor. The invitee must already have a verified Career
-// Navigator account with that email (teachers/counsellors can use school Microsoft
-// sign-in). The student can revoke at any time; every read re-checks the grant, so
+// Navigator account with that email (teachers/counsellors can register with a school
+// email). The student can revoke at any time; every read re-checks the grant, so
 // revocation is immediate. Grants are never deleted — status changes keep the audit trail.
 const SHARE_RELATIONSHIPS = ['parent', 'teacher', 'counsellor'];
 const SHARE_MAX_ACTIVE = 10;
@@ -15454,21 +15479,21 @@ function htmlEsc(s) {
 
 const SHARE_LABEL = { parent: 'parent or guardian', teacher: 'teacher', counsellor: 'guidance counsellor' };
 
-async function emailNavigatorShareInvite(env, { viewerName, viewerEmail, studentName, relationship }) {
+async function emailNavigatorShareInvite(env, { viewerEmail, studentCode, relationship }) {
   const url = `${NAVIGATOR_URL}?shared=1`;
-  const who = htmlEsc(studentName);
+  const who = htmlEsc(studentCode);
   const html = emailLayout({
-    preheader: `${studentName} invited you to view their career plan.`,
+    preheader: 'A student invited you to view their career plan.',
     body: eH1('You’ve been invited to view a career plan') +
-      eP(`Hi ${htmlEsc(viewerName)},`) +
-      eP(`<strong>${who}</strong> has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan. You’ll be able to see their saved careers and course plan. You can’t change anything, and ${who} can stop sharing at any time.`) +
+      eP('Hello,') +
+      eP(`A student with AACP™ Student ID <strong>${who}</strong> has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan. You’ll be able to see their saved careers and course plan. You can’t change anything, and the student can stop sharing at any time.`) +
       eBtn('Review the invitation', url) +
-      eNote('Sign in with this email address, then open My Career Plan → Sharing to accept or decline. If you don’t know this student, decline the invitation.'),
+      eNote('Sign in with this email address, then open My Career Plan → Sharing to accept or decline. If you don’t recognise this Student ID, ask the student or decline the invitation.'),
   });
   return sendEmail(env, {
     event: 'navigator_share_invite', to: viewerEmail,
-    subject: `${studentName} shared their career plan with you — AACP Career Navigator`,
-    text: `Hi ${viewerName},\n\n${studentName} has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan (view only).\n\nSign in with this email at ${url} and open My Career Plan → Sharing to accept or decline.`,
+    subject: 'A student shared their career plan with you — AACP Career Navigator',
+    text: `Hello,\n\nA student with AACP Student ID ${studentCode} has invited you, as their ${SHARE_LABEL[relationship]}, to view their AACP Career Navigator plan (view only).\n\nSign in with this email at ${url} and open My Career Plan → Sharing to accept or decline.`,
     html,
   });
 }
@@ -15477,21 +15502,22 @@ async function emailNavigatorShareInvite(env, { viewerName, viewerEmail, student
 async function handleNavigatorSharingList(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
   await ensureShareTable(env.DB);
+  await ensureStudentCodeTable(env.DB);
   const [out, inc] = await Promise.all([
     env.DB.prepare(`
-      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, s.revoked_at, u.name AS viewer_name, u.email AS viewer_email
+      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, s.revoked_at, u.email AS viewer_email
       FROM navigator_plan_shares s JOIN users u ON u.id = s.viewer_user_id
       WHERE s.student_user_id = ? AND s.status IN ('pending','active') ORDER BY s.created_at DESC
     `).bind(user.sub).all(),
     env.DB.prepare(`
-      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, u.name AS student_name
-      FROM navigator_plan_shares s JOIN users u ON u.id = s.student_user_id
+      SELECT s.id, s.relationship, s.status, s.created_at, s.responded_at, c.code AS student_code
+      FROM navigator_plan_shares s LEFT JOIN navigator_student_codes c ON c.user_id = s.student_user_id
       WHERE s.viewer_user_id = ? AND s.status IN ('pending','active') ORDER BY s.created_at DESC
     `).bind(user.sub).all(),
   ]);
   return json({
-    sharing: (out.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, viewerName: r.viewer_name, viewerEmail: r.viewer_email })),
-    sharedWithMe: (inc.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, studentName: r.student_name })),
+    sharing: (out.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, viewerEmail: r.viewer_email })),
+    sharedWithMe: (inc.results ?? []).map(r => ({ id: r.id, relationship: r.relationship, status: r.status, createdAt: r.created_at, respondedAt: r.responded_at, studentCode: r.student_code || 'AACP student' })),
   });
 }
 
@@ -15510,14 +15536,14 @@ async function handleNavigatorSharingCreate(request, user, env, ctx) {
   await recordAttempt(env.DB, rlKey, true);
 
   await ensureShareTable(env.DB);
-  const viewer = await env.DB.prepare(`SELECT id, name, email, role, email_verified FROM users WHERE email = ?`).bind(email).first();
+  const viewer = await env.DB.prepare(`SELECT id, email, role, email_verified FROM users WHERE email = ?`).bind(email).first();
   let isNavigator = viewer?.role === 'navigator';
   if (viewer && !isNavigator) {
     const reg = await env.DB.prepare(`SELECT 1 AS ok FROM navigator_accounts WHERE user_id = ?`).bind(viewer.id).first().catch(() => null);
     isNavigator = !!reg;
   }
   if (!viewer || !isNavigator || !viewer.email_verified) {
-    return err('That person needs a verified Career Navigator account with this email before you can share. Teachers and counsellors can sign in with their school Microsoft account.', 404);
+    return err('That person needs a verified Career Navigator account with this email before you can share. Teachers and counsellors can create one with their school email address.', 404);
   }
   if (viewer.id === user.sub) return err('You can’t share your plan with yourself.');
 
@@ -15537,10 +15563,10 @@ async function handleNavigatorSharingCreate(request, user, env, ctx) {
   ).bind(id, user.sub, viewer.id, relationship, now).run();
   await audit(env.DB, 'navigator_share_invite', user.sub, 'navigator_plan_share', { id, viewer_user_id: viewer.id, relationship });
 
-  const student = await env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first();
-  if (ctx) fireEmail(ctx, emailNavigatorShareInvite(env, { viewerName: viewer.name || 'there', viewerEmail: viewer.email, studentName: student?.name || 'A student', relationship }), 'navigator_share_invite');
+  const studentCode = await studentCodeFor(env.DB, user.sub);
+  if (ctx) fireEmail(ctx, emailNavigatorShareInvite(env, { viewerEmail: viewer.email, studentCode, relationship }), 'navigator_share_invite');
 
-  return json({ id, status: 'pending', relationship, viewerName: viewer.name, viewerEmail: viewer.email, createdAt: now }, 201);
+  return json({ id, status: 'pending', relationship, viewerEmail: viewer.email, createdAt: now }, 201);
 }
 
 // POST /navigator/sharing/:id/{accept|decline|revoke}
@@ -15580,7 +15606,7 @@ async function handleNavigatorSharingView(request, user, env, shareId) {
   if (!s) return err('This plan is no longer shared with you.', 404);
   await ensureCoursePlanTable(env.DB);
   const [student, profile, course] = await Promise.all([
-    env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(s.student_user_id).first(),
+    studentCodeFor(env.DB, s.student_user_id),
     env.DB.prepare(`SELECT pathway_data, updated_at FROM navigator_profiles WHERE user_id = ?`).bind(s.student_user_id).first(),
     env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(s.student_user_id).first(),
   ]);
@@ -15595,7 +15621,7 @@ async function handleNavigatorSharingView(request, user, env, shareId) {
     nextSteps: Array.isArray(pathway.nextSteps) ? pathway.nextSteps.slice(0, 50) : [],
   } : null;
   return json({
-    id: s.id, relationship: s.relationship, studentName: student?.name ?? 'Student',
+    id: s.id, relationship: s.relationship, studentCode: student,
     pathway: p, pathwayUpdatedAt: profile?.updated_at ?? null,
     coursePlan, coursePlanUpdatedAt: course?.updated_at ?? null,
   });
@@ -15901,13 +15927,14 @@ async function handleNavigatorConsentUpdate(request, user, env) {
   }
 }
 
-async function emailGuardianRequest(env, { guardianEmail, studentFirstName, token }) {
+async function emailGuardianRequest(env, { guardianEmail, studentCode, token }) {
   const url = `${NAVIGATOR_URL}?guardian=${token}`;
-  const who = htmlEsc(studentFirstName);
+  const who = htmlEsc(studentCode);
   const html = emailLayout({
-    preheader: `${studentFirstName} is asking for your permission to use AACP Career Navigator.`,
+    preheader: 'A student is asking for your permission to use AACP Career Navigator.',
     body: eH1('A student is asking for your permission') +
-      eP(`<strong>${who}</strong> has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, some features need your approval:`) +
+      eP('Hello,') +
+      eP(`A student has created an AACP Career Navigator account and gave your email as their parent or guardian. Their AACP™ Student ID is <strong>${who}</strong> — they can show it to you in My Career Plan. Because they are under 13, some features need your approval:`) +
       eP('• <strong>ACIA™</strong>, AACP’s career assistant (it answers from AACP’s verified career information and may use an AI service for general questions; your child’s messages and personal details are never sent to outside AI providers)<br>• <strong>Sharing</strong> their career plan with a teacher, counsellor or family member<br>• <strong>Buying</strong> a Premium subscription') +
       eBtn('Review and respond', url) +
       eP(`The link works for ${GUARDIAN_LINK_DAYS} days. You can approve or decline, and if you approve you can withdraw your approval later from the same link.`) +
@@ -15915,8 +15942,8 @@ async function emailGuardianRequest(env, { guardianEmail, studentFirstName, toke
   });
   return sendEmail(env, {
     event: 'navigator_guardian_request', to: guardianEmail,
-    subject: `${studentFirstName} is asking for your permission — AACP Career Navigator`,
-    text: `${studentFirstName} has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, using ACIA (AACP's career assistant; their messages and personal details are never sent to outside AI providers), sharing their plan, and buying Premium need your approval.\n\nReview and respond (link valid ${GUARDIAN_LINK_DAYS} days): ${url}\n\nIf you don't know this student, ignore this email or choose Decline.`,
+    subject: 'A student is asking for your permission — AACP Career Navigator',
+    text: `Hello,\n\nA student (AACP Student ID ${studentCode}) has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, using ACIA (AACP's career assistant; their messages and personal details are never sent to outside AI providers), sharing their plan, and buying Premium need your approval.\n\nReview and respond (link valid ${GUARDIAN_LINK_DAYS} days): ${url}\n\nIf you don't know this student, ignore this email or choose Decline.`,
     html,
   });
 }
@@ -15936,9 +15963,7 @@ async function handleNavigatorGuardianRequest(request, user, env, ctx) {
     if (state.guardianStatus === 'approved') return err('A parent or guardian has already approved your account.', 409);
     await recordAttempt(env.DB, rl, true);
     const r = await consentStore(env, 'POST', '/guardian/request', { user_id: user.sub, guardian_email: email });
-    const row = await env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first();
-    const first = String(row?.name || 'A student').trim().split(/\s+/)[0];
-    if (ctx) fireEmail(ctx, emailGuardianRequest(env, { guardianEmail: email, studentFirstName: first, token: r.token }), 'navigator_guardian_request');
+    if (ctx) fireEmail(ctx, emailGuardianRequest(env, { guardianEmail: email, studentCode: await studentCodeFor(env.DB, user.sub), token: r.token }), 'navigator_guardian_request');
     await audit(env.DB, 'navigator_guardian_request', user.sub, 'consent', { request_id: r.requestId });
     return json({ sent: true, expiresAt: r.expiresAt, consent: await navigatorConsentState(env, user.sub) });
   } catch (e) {
@@ -15958,9 +15983,9 @@ async function handleNavigatorGuardianLink(request, env, action) {
   try {
     if (action === 'lookup') {
       const g = await consentStore(env, 'POST', '/guardian/lookup', { token });
-      const row = await env.DB.prepare(`SELECT name, status FROM users WHERE id = ?`).bind(g.userId).first();
+      const row = await env.DB.prepare(`SELECT status FROM users WHERE id = ?`).bind(g.userId).first();
       if (!row || row.status === 'deleted') return err('This request is no longer active.', 404);
-      return json({ studentFirstName: String(row.name || 'The student').trim().split(/\s+/)[0], status: g.status, expiresAt: g.expiresAt });
+      return json({ studentCode: await studentCodeFor(env.DB, g.userId), status: g.status, expiresAt: g.expiresAt });
     }
     const r = await consentStore(env, 'POST', '/guardian/respond', { token, decision: body?.decision });
     await audit(env.DB, `navigator_guardian_${r.status}`, r.userId, 'consent', { via: 'guardian_email_link' });
@@ -15999,17 +16024,17 @@ const ERASE_BY_PARTICIPANT_ID = [
 const USER_PII_COLUMNS = ['phone', 'phone_normalized', 'organization_name', 'job_title', 'institution_name', 'region', 'province',
   'program_area', 'routing_data', 'recommended_program', 'recommended_specialization', 'mfa_secret', 'invitation_id', 'pilot_cohort'];
 
-async function emailNavigatorAccountDeleted(env, { name, email }) {
+async function emailNavigatorAccountDeleted(env, { email }) {
   const html = emailLayout({
     preheader: 'Your AACP Career Navigator account has been deleted.',
     body: eH1('Your account has been deleted') +
-      eP(`Hi ${htmlEsc(name)},`) +
+      eP('Hello,') +
       eP('As you requested, your AACP Career Navigator account and the personal information in it have been deleted, and any plan sharing has been stopped. You won’t be able to sign in with this email any more, but you’re welcome to create a new account at any time.') +
       eNote('If you didn’t request this, please contact us right away by replying to this email.'),
   });
   return sendEmail(env, {
     event: 'navigator_account_deleted', to: email, subject: 'Your account has been deleted — AACP Career Navigator',
-    text: `Hi ${name},\n\nAs you requested, your AACP Career Navigator account and the personal information in it have been deleted, and any plan sharing has been stopped.\n\nIf you didn't request this, please contact us right away by replying to this email.`,
+    text: `Hello,\n\nAs you requested, your AACP Career Navigator account and the personal information in it have been deleted, and any plan sharing has been stopped.\n\nIf you didn't request this, please contact us right away by replying to this email.`,
     html,
   });
 }
@@ -16032,14 +16057,10 @@ async function handleNavigatorAccountDelete(request, user, env, ctx) {
   if (!isNavigator) isNavigator = !!(await db.prepare(`SELECT 1 AS ok FROM navigator_accounts WHERE user_id = ?`).bind(row.id).first().catch(() => null));
   if (!isNavigator) return err('This account is managed by the main AACP site. Please contact AACP to delete it.', 403);
 
-  // Re-authenticate: password accounts must enter their password; Google/Microsoft-only accounts confirm by typing DELETE.
-  const oauth = await db.prepare(`SELECT 1 AS ok FROM oauth_providers WHERE user_id = ?`).bind(row.id).first().catch(() => null);
-  if (body.password) {
-    const pw = await verifyPassword(String(body.password), row.password_hash);
-    if (!pw.valid) return err('That password is incorrect.', 401);
-  } else if (!oauth) {
-    return err('Enter your password to confirm.', 400);
-  }
+  // Re-authenticate with the account password (email + password is the only sign-in method).
+  if (!body.password) return err('Enter your password to confirm.', 400);
+  const pw = await verifyPassword(String(body.password), row.password_hash);
+  if (!pw.valid) return err('That password is incorrect. If you never set one, use “Forgot password” on the sign-in screen first.', 401);
 
   // Stop billing before erasing anything.
   const sub = await db.prepare(`SELECT stripe_subscription_id, status FROM navigator_subscriptions WHERE user_id = ?`).bind(row.id).first().catch(() => null);
@@ -16055,7 +16076,7 @@ async function handleNavigatorAccountDelete(request, user, env, ctx) {
   }
 
   const now = new Date().toISOString();
-  const originalEmail = row.email, originalName = row.name || 'there';
+  const originalEmail = row.email;
   const run = (sql, ...args) => db.prepare(sql).bind(...args).run().catch(() => null); // table may not exist on this backend
 
   for (const t of ERASE_BY_USER_ID) await run(`DELETE FROM ${t} WHERE user_id = ?`, row.id);
@@ -16085,7 +16106,7 @@ async function handleNavigatorAccountDelete(request, user, env, ctx) {
   await run(`UPDATE audit_log SET details = ? WHERE user_id = ?`, JSON.stringify({ redacted: 'account_deleted' }), row.id);
   await audit(db, 'navigator_account_delete', row.id, 'user', { by: 'self' });
 
-  if (ctx) fireEmail(ctx, emailNavigatorAccountDeleted(env, { name: originalName, email: originalEmail }), 'navigator_account_deleted');
+  if (ctx) fireEmail(ctx, emailNavigatorAccountDeleted(env, { email: originalEmail }), 'navigator_account_deleted');
   return json({ deleted: true });
 }
 
@@ -16123,7 +16144,7 @@ async function handleNavigatorAuthLogin(request, env) {
     await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
     await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
       .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
-    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+    emailNavigatorVerification(env, { email: user.email, token: verToken }).catch(() => {});
     return json({ emailVerificationRequired: true, email: user.email, message: 'Please verify your email. We\'ve resent the verification link.' });
   }
 
@@ -16186,167 +16207,9 @@ async function handleNavigatorResendVerification(request, env) {
     await env.DB.prepare(`DELETE FROM email_verifications WHERE user_id = ?`).bind(user.id).run().catch(() => {});
     await env.DB.prepare(`INSERT INTO email_verifications (id, user_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
       .bind(crypto.randomUUID(), user.id, verHash, verExpiry, now).run();
-    emailNavigatorVerification(env, { name: user.name, email: user.email, token: verToken }).catch(() => {});
+    emailNavigatorVerification(env, { email: user.email, token: verToken }).catch(() => {});
   }
   return json({ message: 'If your account exists and is unverified, a new verification email has been sent.' });
-}
-
-// GET /navigator/auth/google — start Google OAuth
-async function handleNavigatorAuthGoogle(request, env) {
-  if (!env.GOOGLE_CLIENT_ID) return err('Google sign-in is not configured.', 503);
-  const url = new URL(request.url);
-  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
-  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
-  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
-  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
-  authUrl.searchParams.set('redirect_uri', callbackUrl);
-  authUrl.searchParams.set('response_type', 'code');
-  authUrl.searchParams.set('scope', 'openid email profile');
-  authUrl.searchParams.set('state', state);
-  authUrl.searchParams.set('prompt', 'select_account');
-  return Response.redirect(authUrl.toString(), 302);
-}
-
-// GET /navigator/auth/google/callback — exchange code, find/create user, redirect with JWT
-async function handleNavigatorAuthGoogleCallback(request, env) {
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return err('Google sign-in is not configured.', 503);
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  const oauthError = url.searchParams.get('error');
-  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
-  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
-
-  let statePayload;
-  try {
-    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
-    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
-  } catch (_) {
-    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
-  }
-  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
-  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/google/callback';
-
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
-  });
-  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
-  const tokenData = await tokenRes.json();
-
-  const uiRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
-  if (!uiRes.ok) return Response.redirect(`${redirectTo}?oauth_error=userinfo_failed`, 302);
-  const ui = await uiRes.json();
-  if (!ui.email) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
-
-  try {
-    const navToken = await upsertOAuthUser(env, { provider: 'google', providerId: ui.sub, email: ui.email, name: ui.name || ui.email.split('@')[0] });
-    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
-  } catch (e) {
-    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
-  }
-}
-
-// GET /navigator/auth/microsoft — start Microsoft OAuth
-async function handleNavigatorAuthMicrosoft(request, env) {
-  if (!env.MICROSOFT_CLIENT_ID) return err('Microsoft sign-in is not configured.', 503);
-  const url = new URL(request.url);
-  const redirectTo = url.searchParams.get('redirect') || NAVIGATOR_URL;
-  const state = await createJwt({ redirectTo, nonce: randomHex(8), type: 'oauth_state' }, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'), 10 * 60);
-  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
-  const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
-  authUrl.searchParams.set('client_id', env.MICROSOFT_CLIENT_ID);
-  authUrl.searchParams.set('redirect_uri', callbackUrl);
-  authUrl.searchParams.set('response_type', 'code');
-  authUrl.searchParams.set('scope', 'openid email profile');
-  authUrl.searchParams.set('state', state);
-  authUrl.searchParams.set('prompt', 'select_account');
-  return Response.redirect(authUrl.toString(), 302);
-}
-
-// GET /navigator/auth/microsoft/callback — exchange code, find/create user, redirect with JWT
-async function handleNavigatorAuthMicrosoftCallback(request, env) {
-  if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return err('Microsoft sign-in is not configured.', 503);
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  const oauthError = url.searchParams.get('error');
-  if (oauthError) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=${encodeURIComponent(oauthError)}`, 302);
-  if (!code || !state) return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_callback`, 302);
-
-  let statePayload;
-  try {
-    statePayload = await verifyJwt(state, requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET'));
-    if (statePayload.type !== 'oauth_state') throw new Error('invalid type');
-  } catch (_) {
-    return Response.redirect(`${NAVIGATOR_URL}?oauth_error=invalid_state`, 302);
-  }
-  const redirectTo = statePayload.redirectTo || NAVIGATOR_URL;
-  const callbackUrl = 'https://api.aviationaerospacecompetency.com/navigator/auth/microsoft/callback';
-
-  const tokenRes = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ code, client_id: env.MICROSOFT_CLIENT_ID, client_secret: env.MICROSOFT_CLIENT_SECRET, redirect_uri: callbackUrl, grant_type: 'authorization_code' }),
-  });
-  if (!tokenRes.ok) return Response.redirect(`${redirectTo}?oauth_error=token_exchange_failed`, 302);
-  const tokenData = await tokenRes.json();
-
-  let msEmail, msName, msSub;
-  try {
-    const parts = tokenData.id_token.split('.');
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    msEmail = payload.email || payload.preferred_username;
-    msName = payload.name || (msEmail ? msEmail.split('@')[0] : 'User');
-    msSub = payload.sub || payload.oid;
-  } catch (_) {
-    return Response.redirect(`${redirectTo}?oauth_error=token_decode_failed`, 302);
-  }
-  if (!msEmail || !msSub) return Response.redirect(`${redirectTo}?oauth_error=no_email`, 302);
-
-  try {
-    const navToken = await upsertOAuthUser(env, { provider: 'microsoft', providerId: msSub, email: msEmail, name: msName });
-    return Response.redirect(`${redirectTo}?nav_token=${encodeURIComponent(navToken)}`, 302);
-  } catch (e) {
-    return Response.redirect(`${redirectTo}?oauth_error=account_error`, 302);
-  }
-}
-
-// Helper — find or create a user from an OAuth provider, return navigator JWT
-async function upsertOAuthUser(env, { provider, providerId, email, name }) {
-  const now = new Date().toISOString();
-  const normalEmail = email.toLowerCase();
-
-  const existing = await env.DB.prepare(
-    `SELECT op.user_id, u.email, u.role FROM oauth_providers op JOIN users u ON u.id = op.user_id WHERE op.provider = ? AND op.provider_id = ?`
-  ).bind(provider, providerId).first();
-
-  let userId, userEmail, userRole;
-  if (existing) {
-    userId = existing.user_id; userEmail = existing.email; userRole = existing.role;
-  } else {
-    const emailUser = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(normalEmail).first();
-    if (emailUser) {
-      userId = emailUser.id; userEmail = emailUser.email; userRole = emailUser.role;
-      await env.DB.prepare(`INSERT OR IGNORE INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now, now).run().catch(() => {});
-      await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0`).bind(now, userId).run().catch(() => {});
-    } else {
-      userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'navigator';
-      const dummyHash = await sha256hex('oauth_no_password_' + providerId);
-      await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'navigator', 'active', 1, ?, ?)`)
-        .bind(userId, userEmail, name, dummyHash, now, now).run();
-      await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now, now).run();
-      await audit(env.DB, 'navigator_oauth_register', userId, 'user', { provider, email: userEmail });
-    }
-  }
-
-  await audit(env.DB, 'navigator_oauth_login', userId, 'session', { provider });
-  const accessSecret = requireSecret(env, 'AACP_ACCESS_TOKEN_SECRET');
-  return createJwt({ sub: userId, email: userEmail, role: userRole, tokenType: 'access' }, accessSecret, 30 * 24 * 60 * 60);
 }
 
 // POST /navigator/pilot/redeem — public; validate pilot code, create/link user, activate subscription
@@ -16354,7 +16217,6 @@ async function handleNavigatorPilotRedeem(request, env) {
   const body = await request.json().catch(() => ({}));
   const code = String(body.code ?? '').trim().toUpperCase();
   const email = String(body.email ?? '').trim().toLowerCase();
-  const name  = String(body.name  ?? '').trim().slice(0, 120);
 
   if (!code)  return err('code is required');
   if (!email) return err('email is required');
@@ -16386,7 +16248,7 @@ async function handleNavigatorPilotRedeem(request, env) {
     await env.DB.prepare(`
       INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'navigator', 'active', 1, ?, ?)
-    `).bind(userId, email, name || email.split('@')[0], dummyHash, now, now).run();
+    `).bind(userId, email, '', dummyHash, now, now).run();
     user = { id: userId, email, role: 'navigator' };
   }
 
@@ -16844,10 +16706,6 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/auth/login'               && request.method === 'POST') return handleNavigatorAuthLogin(request, env);
     if (path === '/navigator/account/verify-email'     && request.method === 'POST') return handleNavigatorVerifyEmail(request, env);
     if (path === '/navigator/account/resend-verification' && request.method === 'POST') return handleNavigatorResendVerification(request, env);
-    if (path === '/navigator/auth/google'              && request.method === 'GET')  return handleNavigatorAuthGoogle(request, env);
-    if (path === '/navigator/auth/google/callback'     && request.method === 'GET')  return handleNavigatorAuthGoogleCallback(request, env);
-    if (path === '/navigator/auth/microsoft'           && request.method === 'GET')  return handleNavigatorAuthMicrosoft(request, env);
-    if (path === '/navigator/auth/microsoft/callback'  && request.method === 'GET')  return handleNavigatorAuthMicrosoftCallback(request, env);
 
     // ── RPAS Hub public routes (no auth) ──────────────────────────────────────
     if (path === '/rpas/apply'          && request.method === 'POST') return handleRpasApply(request, env, ctx);

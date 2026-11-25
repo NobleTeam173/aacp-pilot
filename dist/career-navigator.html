@@ -1116,6 +1116,13 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .consent-check input{margin-top:3px;accent-color:var(--crimson);flex-shrink:0;width:16px;height:16px}
 .consent-check a{color:var(--crimson)}
 .consent-overlay{z-index:1300}
+.sid-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.sid-label{font-size:12px;font-weight:600;color:var(--fg2)}
+.sid-code{font-size:22px;font-weight:800;letter-spacing:.04em;color:var(--crimson);margin:4px 0;font-variant-numeric:tabular-nums}
+.sid-text{font-size:12px;color:var(--fg3);line-height:1.5;margin-top:2px}
+.sid-note{display:flex;align-items:center;gap:6px;justify-content:center;font-size:12px;color:var(--fg3);margin:-4px 0 0}
+.sid-note span{color:#1f8a73;font-weight:700}
+.sid-inline{font-size:12px;font-weight:600;color:var(--fg2);margin-bottom:6px;letter-spacing:.02em}
 .acia-label{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--fg2);border:1px solid var(--border);margin-bottom:4px}
 .acia-more{margin:4px 0 0 25px;font-size:12px;color:var(--fg3);line-height:1.5}
 .acia-more summary{cursor:pointer;color:var(--crimson);font-weight:600;list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:28px}
@@ -1159,39 +1166,15 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
     <div id="authStep0">
       <button onclick="showAuthStep('register')" class="btn-primary" style="width:100%;justify-content:center;margin-bottom:12px">Create Free Account</button>
       <button onclick="showAuthStep('signin')" class="btn-secondary" style="width:100%;justify-content:center;background:var(--surface2)">Sign In</button>
-      <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:12px;color:var(--fg3)">or continue with</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-      <div style="display:flex;gap:10px">
-        <button onclick="oauthSignIn('google')" class="btn-secondary" style="flex:1;justify-content:center;gap:8px;font-size:13px">
-          <svg width="15" height="15" viewBox="0 0 24 24" style="flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Google
-        </button>
-        <button onclick="oauthSignIn('microsoft')" class="btn-secondary" style="flex:1;justify-content:center;gap:8px;font-size:13px">
-          <svg width="15" height="15" viewBox="0 0 23 23" style="flex-shrink:0"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
-          Microsoft
-        </button>
-      </div>
     </div>
 
     <!-- Register step -->
     <div id="authStepRegister" style="display:none">
       <div style="display:flex;flex-direction:column;gap:12px">
-        <input id="authRegName" type="text" placeholder="Full name" autocomplete="name"
-          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
-        <div style="display:flex;gap:10px;margin-bottom:-2px">
-          <button onclick="oauthSignIn('google')" class="btn-secondary" style="flex:1;justify-content:center;gap:7px;font-size:13px;padding:9px 10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Google
-          </button>
-          <button onclick="oauthSignIn('microsoft')" class="btn-secondary" style="flex:1;justify-content:center;gap:7px;font-size:13px;padding:9px 10px">
-            <svg width="14" height="14" viewBox="0 0 23 23" style="flex-shrink:0"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
-            Microsoft
-          </button>
+        <div class="sid-card">
+          <div class="sid-label">Your AACP™ Student ID</div>
+          <div class="sid-text">Created automatically when you sign up — it’s how you’ll appear if you share your plan. No real name needed.</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin:0 0 -4px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:11px;color:var(--fg3)">or use email</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
         <input id="authRegEmail" type="email" placeholder="Email address" autocomplete="email"
           style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
         <input id="authRegPass" type="password" placeholder="Password" autocomplete="new-password"
@@ -1226,6 +1209,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
         </div>
         <p id="authRegError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
         <button onclick="submitRegister()" id="authRegBtn" class="btn-primary" style="width:100%;justify-content:center">Create Account</button>
+        <p class="sid-note"><span aria-hidden="true">✓</span> No real name or exact date of birth required.</p>
         <p style="text-align:center;font-size:13px;color:var(--fg3)">Already have an account? <button onclick="showAuthStep('signin')" style="background:none;border:none;color:#e05575;cursor:pointer;font-size:13px;text-decoration:underline">Sign in</button></p>
       </div>
     </div>
@@ -1237,6 +1221,11 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
         <h3 style="font-size:17px;font-weight:700;margin-bottom:8px">Check your inbox</h3>
         <p style="font-size:14px;color:var(--fg2);margin-bottom:4px">We've sent a verification link to</p>
         <p id="authVerifyEmailDisplay" style="font-size:14px;font-weight:600;margin-bottom:16px;word-break:break-all;color:var(--fg)"></p>
+        <div id="authVerifyCodeWrap" class="sid-card" style="display:none;text-align:left;margin-bottom:16px">
+          <div class="sid-label">Your AACP™ Student ID</div>
+          <div id="authVerifyCode" class="sid-code"></div>
+          <div class="sid-text">You’ll also find it in My Career Plan → My Account. It isn’t a password — you sign in with your email.</div>
+        </div>
         <p style="font-size:13px;color:var(--fg3);margin-bottom:20px;line-height:1.6">Click the link in the email to activate your account. It may take a minute to arrive — check your spam folder too.</p>
         <p id="authResendMsg" style="display:none;font-size:12px;margin-bottom:12px;color:var(--green-fg)"></p>
         <button onclick="resendVerification()" id="authResendBtn" class="btn-secondary" style="width:100%;justify-content:center;margin-bottom:10px">Resend verification email</button>
@@ -1273,17 +1262,6 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
     <!-- Sign-in step -->
     <div id="authStepSignin" style="display:none">
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;gap:10px">
-          <button onclick="oauthSignIn('google')" class="btn-secondary" style="flex:1;justify-content:center;gap:7px;font-size:13px;padding:9px 10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Google
-          </button>
-          <button onclick="oauthSignIn('microsoft')" class="btn-secondary" style="flex:1;justify-content:center;gap:7px;font-size:13px;padding:9px 10px">
-            <svg width="14" height="14" viewBox="0 0 23 23" style="flex-shrink:0"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
-            Microsoft
-          </button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;margin:0 0 -4px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:11px;color:var(--fg3)">or use email</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
         <input id="authSiEmail" type="email" placeholder="Email address" autocomplete="email"
           style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-size:14px;outline:none">
         <input id="authSiPass" type="password" placeholder="Password" autocomplete="current-password"
@@ -2787,7 +2765,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
   <section id="shareSection" class="share-section" style="display:none" aria-labelledby="shareTitle">
     <p class="section-label" style="margin-bottom:6px">Sharing</p>
     <h2 class="section-title" id="shareTitle" style="font-size:22px;margin-bottom:6px">Share my plan</h2>
-    <p class="share-sub">Let a parent or guardian, teacher or guidance counsellor <strong>view</strong> your saved careers and course plan. They can’t change anything, and you can stop sharing at any time. They need a Career Navigator account with the email you enter. Teachers and counsellors can sign in with their school account.</p>
+    <p class="share-sub">Let a parent or guardian, teacher or guidance counsellor <strong>view</strong> your saved careers and course plan. They can’t change anything, and you can stop sharing at any time. They need a Career Navigator account with the email you enter — a school email works too.</p>
     <form class="share-form" onsubmit="event.preventDefault();navShareSubmit()">
       <label class="share-field"><span>Their email</span>
         <input id="shareEmail" type="email" autocomplete="off" maxlength="254" required placeholder="name@example.com">
@@ -2844,7 +2822,8 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);margin-bottom:4px">My Account</div>
-          <div id="accountProfileEmail" style="font-size:15px;font-weight:700;color:var(--fg);margin-bottom:6px"></div>
+          <div id="accountProfileEmail" style="font-size:15px;font-weight:700;color:var(--fg);margin-bottom:2px"></div>
+          <div id="accountStudentCode" class="sid-inline" style="display:none"></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span id="accountProfileRole" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--crimson);color:#fff"></span>
             <span id="accountProfilePlan" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--fg2);border:1px solid var(--border2)"></span>
@@ -2889,7 +2868,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
           <li>You’ll get a confirmation email. You can create a new account later if you want.</li>
         </ul>
         <form onsubmit="event.preventDefault();navDeleteAccount()">
-          <label class="share-field" style="margin-top:12px"><span>Password <span style="font-weight:400">(leave blank if you sign in with Google or Microsoft)</span></span>
+          <label class="share-field" style="margin-top:12px"><span>Password</span>
             <input id="delPassword" type="password" autocomplete="current-password" maxlength="128">
           </label>
           <label class="share-field" style="margin-top:10px"><span>Type DELETE to confirm</span>
@@ -3578,6 +3557,8 @@ function renderAccountPlans() {
     var emailEl = document.getElementById('accountProfileEmail');
     if (emailEl && payload.email) emailEl.textContent = payload.email;
   } catch(e) {}
+  var sidEl = document.getElementById('accountStudentCode');
+  if (sidEl) { if (navStudentCode) { sidEl.textContent = 'AACP™ Student ID: ' + navStudentCode; sidEl.style.display = ''; } else { sidEl.style.display = 'none'; } }
 
   // Role badge
   var roleLabels = { student: 'Student', teacher: 'Teacher', advisor: 'Career Advisor' };
@@ -3926,6 +3907,7 @@ let activeSector = 'all';
 let activePathway = null;
 let chatQuestionsLeft = 3;
 let navigatorPlan = 'free'; // updated on load if token present
+var navStudentCode = null; // AACP™ Student ID (display only; Career Navigator collects no names)
 let chatHistory = []; // {role, content} pairs for context window
 
 // ── Auth + Role-based onboarding ───────────────────────────────
@@ -3962,10 +3944,10 @@ function showAuthStep(step) {
     document.getElementById('authGateSub').textContent = 'Create a free account to save your pathway, track your progress, and return to your personalised dashboard anytime.';
     document.getElementById('authStep0').style.display = 'block';
   } else if (step === 'register') {
-    document.getElementById('authGateTitle').textContent = 'Create Your Account';
-    document.getElementById('authGateSub').textContent = 'Free to sign up. Your career pathway saves automatically.';
+    document.getElementById('authGateTitle').textContent = 'Create your Career Navigator account';
+    document.getElementById('authGateSub').textContent = 'Explore your future while protecting your privacy.';
     document.getElementById('authStepRegister').style.display = 'block';
-    setTimeout(function(){ var el = document.getElementById('authRegName'); if(el) el.focus(); }, 50);
+    setTimeout(function(){ var el = document.getElementById('authConsentAgeBand') || document.getElementById('authRegEmail'); if(el) el.focus(); }, 50);
   } else if (step === 'signin') {
     document.getElementById('authGateTitle').textContent = 'Sign In';
     document.getElementById('authGateSub').textContent = 'Welcome back. Your saved pathway will load automatically.';
@@ -4006,12 +3988,11 @@ function checkPasswordStrength(pass, targetId) {
 }
 
 async function submitRegister() {
-  var name = (document.getElementById('authRegName').value || '').trim();
   var email = (document.getElementById('authRegEmail').value || '').trim();
   var password = document.getElementById('authRegPass').value || '';
   var errEl = document.getElementById('authRegError');
   errEl.style.display = 'none';
-  if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+  if (!email || !password) { errEl.textContent = 'Please enter your email and a password.'; errEl.style.display = 'block'; return; }
   if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
   if (!/[A-Z]/.test(password)) { errEl.textContent = 'Password must contain at least one uppercase letter.'; errEl.style.display = 'block'; return; }
   if (!/[a-z]/.test(password)) { errEl.textContent = 'Password must contain at least one lowercase letter.'; errEl.style.display = 'block'; return; }
@@ -4031,7 +4012,7 @@ async function submitRegister() {
     var res = await fetch(NAV_API + '/navigator/account/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, consents: consents })
+      body: JSON.stringify({ email, password, consents: consents })
     });
     var data = await res.json().catch(() => ({}));
     if (!res.ok) { errEl.textContent = data.error || 'Registration failed. Please try again.'; errEl.style.display = 'block'; return; }
@@ -4040,6 +4021,8 @@ async function submitRegister() {
       try { localStorage.setItem('navigatorPendingEmail', email); } catch(e) {}
       var disp = document.getElementById('authVerifyEmailDisplay');
       if (disp) disp.textContent = email;
+      var cw = document.getElementById('authVerifyCodeWrap');
+      if (cw && data.studentCode) { document.getElementById('authVerifyCode').textContent = data.studentCode; cw.style.display = 'block'; }
       showAuthStep('verify');
       return;
     }
@@ -4112,6 +4095,7 @@ async function loadNavigatorProfile(token) {
     var data = await res.json().catch(() => ({}));
     // Load subscription plan
     if (data.plan) navigatorPlan = data.plan;
+    navStudentCode = data.studentCode || null;
     // Load pathway data from backend (merge with localStorage)
     if (data.pathwayData) {
       try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data.pathwayData)); } catch(e) {}
@@ -4228,15 +4212,15 @@ function navRenderSharing(d) {
   var list = d.sharing || [];
   out.innerHTML = list.length ? list.map(function (s) {
     var badge = s.status === 'active' ? '<span class="share-badge active">Can view</span>' : '<span class="share-badge pending">Invited — waiting</span>';
-    return '<div class="share-row"><div class="share-who"><div class="share-name">' + escHtml(s.viewerName || s.viewerEmail) + badge + '</div>' +
-      '<div class="share-meta">' + escHtml(SHARE_REL_LABEL[s.relationship] || '') + ' · ' + escHtml(s.viewerEmail) + ' · since ' + escHtml(navShareDate(s.respondedAt || s.createdAt)) + '</div></div>' +
+    return '<div class="share-row"><div class="share-who"><div class="share-name">' + escHtml(s.viewerEmail) + badge + '</div>' +
+      '<div class="share-meta">' + escHtml(SHARE_REL_LABEL[s.relationship] || '') + ' · since ' + escHtml(navShareDate(s.respondedAt || s.createdAt)) + '</div></div>' +
       '<div class="share-actions"><button type="button" class="btn-secondary" onclick="navShareAct(\'' + s.id + '\',\'revoke\')">' + (s.status === 'active' ? 'Stop sharing' : 'Cancel invite') + '</button></div></div>';
   }).join('') : '<p class="share-meta">You aren’t sharing your plan with anyone.</p>';
 
   var inc = d.sharedWithMe || [];
   document.getElementById('shareInWrap').style.display = inc.length ? '' : 'none';
   document.getElementById('shareInList').innerHTML = inc.map(function (s) {
-    var who = escHtml(s.studentName || 'A student');
+    var who = 'Student ' + escHtml(s.studentCode || '');
     var rel = escHtml((SHARE_REL_LABEL[s.relationship] || '').toLowerCase());
     if (s.status === 'pending') {
       return '<div class="share-row"><div class="share-who"><div class="share-name">' + who + '<span class="share-badge pending">New invitation</span></div>' +
@@ -4259,7 +4243,7 @@ async function navShareSubmit() {
   try {
     var r = await navShareApi('', 'POST', { email: email, relationship: rel });
     document.getElementById('shareEmail').value = '';
-    navShareMsg('Invitation sent to ' + (r.viewerName || r.viewerEmail) + '. They can view your plan once they accept.', 'ok');
+    navShareMsg('Invitation sent to ' + r.viewerEmail + '. They can view your plan once they accept.', 'ok');
     await navLoadSharing();
   } catch (e) { navShareMsg(e.message, 'err'); }
   btn.disabled = false;
@@ -4280,7 +4264,7 @@ async function navShareView(id) {
   document.getElementById('shareViewModal').classList.add('open');
   try {
     var v = await navShareApi('/' + id + '/view', 'GET');
-    document.getElementById('shareViewTitle').textContent = (v.studentName || 'Student') + '’s plan';
+    document.getElementById('shareViewTitle').textContent = 'Plan for Student ' + (v.studentCode || '');
     var h = '';
     var p = v.pathway;
     h += '<h4>Career goal</h4><ul><li>' + escHtml(p && p.primaryGoal ? p.primaryGoal.title + (p.primaryGoal.sector ? ' — ' + p.primaryGoal.sector : '') : 'Not set yet') + '</li></ul>';
@@ -4447,26 +4431,26 @@ async function navGuardianPage(token) {
   var close = '<div class="share-actions" style="margin-top:14px"><button type="button" class="btn-secondary" onclick="document.getElementById(\'guardianModal\').classList.remove(\'open\')">Close</button></div>';
   try {
     var d = await post('lookup', { token: token });
-    var who = escHtml(d.studentFirstName);
+    var who = 'the student with AACP™ Student ID ' + escHtml(d.studentCode || '');
     var what = '<ul style="margin:8px 0 12px"><li><strong>ACIA™</strong> — AACP’s career assistant. It answers from AACP’s verified career information and may use an AI service for general questions; the student’s messages and personal details are never sent to outside AI providers.</li><li><strong>Sharing</strong> their career plan (view only) with a teacher, counsellor or family member they choose.</li><li><strong>Buying</strong> a Premium subscription.</li></ul>';
     var respond = function (decision) {
       return async function () {
         body.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
         try {
           var r = await post('respond', { token: token, decision: decision });
-          var done = { approved: 'Thank you — you’ve approved ' + who + '’s use of these features. You can withdraw your approval later using the same link.', declined: 'You’ve declined. ' + who + ' can still explore careers, but ACIA™, sharing and payments stay off.', withdrawn: 'Your approval has been withdrawn. ACIA™, sharing and payments are off for ' + who + ' again.' };
+          var done = { approved: 'Thank you — you’ve approved these features for ' + who + '. You can withdraw your approval later using the same link.', declined: 'You’ve declined. ' + who + ' can still explore careers, but ACIA™, sharing and payments stay off.', withdrawn: 'Your approval has been withdrawn. ACIA™, sharing and payments are off for ' + who + ' again.' };
           body.innerHTML = '<p class="share-sub">' + (done[r.status] || 'Saved.') + '</p>' + close;
         } catch (e) { body.innerHTML = '<p class="share-msg err">' + escHtml(e.message) + '</p>' + close; }
       };
     };
     if (d.status === 'pending') {
-      body.innerHTML = '<p class="share-sub"><strong>' + who + '</strong> is under 13 and has asked for your permission to use these Career Navigator features:</p>' + what +
+      body.innerHTML = '<p class="share-sub">A student under 13 (AACP™ Student ID <strong>' + escHtml(d.studentCode || '') + '</strong>) has asked for your permission to use these Career Navigator features:</p>' + what +
         '<p class="share-sub">If you approve, it’s recorded with the date and the policy version. You can withdraw your approval later from this same link.</p>' +
         '<div class="share-actions"><button type="button" class="btn-primary" id="gApprove">Approve</button><button type="button" class="btn-secondary" id="gDecline">Decline</button></div>';
       document.getElementById('gApprove').onclick = respond('approve');
       document.getElementById('gDecline').onclick = respond('decline');
     } else if (d.status === 'approved') {
-      body.innerHTML = '<p class="share-sub">You approved <strong>' + who + '</strong>’s use of these features:</p>' + what +
+      body.innerHTML = '<p class="share-sub">You approved these features for AACP™ Student ID <strong>' + escHtml(d.studentCode || '') + '</strong>:</p>' + what +
         '<div class="share-actions"><button type="button" class="btn-secondary" id="gWithdraw">Withdraw my approval</button></div>';
       document.getElementById('gWithdraw').onclick = respond('withdraw');
     } else {
@@ -5837,44 +5821,16 @@ async function submitResetPassword() {
   }
 }
 
-function oauthSignIn(provider) {
-  var url = NAV_API + '/navigator/auth/' + provider;
-  window.location.href = url;
-}
 
 // Handle Stripe redirect result on page load
 (function checkPaymentResult() {
   const params = new URLSearchParams(location.search);
 
-  // OAuth / email-verify redirect handling
-  var navToken = params.get('nav_token');
+  // Email-verify / password-reset redirect handling
   var navVerify = params.get('nav_verify');
   var navReset = params.get('nav_reset');
-  var oauthError = params.get('oauth_error');
 
-  if (navToken) {
-    history.replaceState({}, '', location.pathname);
-    try { localStorage.setItem('navigatorToken', navToken); } catch(e) {}
-    // Load profile and show role picker or main app
-    (async function() {
-      try {
-        var res = await fetch(NAV_API + '/navigator/profile', { headers: { 'Authorization': 'Bearer ' + navToken } });
-        var data = await res.json().catch(() => ({}));
-        if (!res.ok) { showAuthGate(); return; }
-        document.getElementById('authGate').style.display = 'none';
-        if (!data.navigatorRole) {
-          document.getElementById('rolePicker').style.display = 'block';
-        } else {
-          if (data.plan) navigatorPlan = data.plan;
-          if (data.pathwayData) { try { localStorage.setItem(PATHWAY_KEY, JSON.stringify(data.pathwayData)); } catch(e) {} }
-          navigatorRole = data.navigatorRole;
-          applyRole(data.navigatorRole, false);
-          showSignOutLink();
-          showTab('dashboard');
-        }
-      } catch(e) { showAuthGate(); }
-    })();
-  } else if (navVerify) {
+  if (navVerify) {
     history.replaceState({}, '', location.pathname);
     verifyEmail(navVerify);
   } else if (navReset) {
@@ -5882,10 +5838,6 @@ function oauthSignIn(provider) {
     try { localStorage.setItem('navigatorResetToken', navReset); } catch(e) {}
     showAuthGate();
     showAuthStep('reset');
-  } else if (oauthError) {
-    history.replaceState({}, '', location.pathname);
-    showAuthGate();
-    showToast('Sign in failed: ' + decodeURIComponent(oauthError).replace(/\+/g, ' '));
   }
 
   if (params.get('payment') === 'success') {

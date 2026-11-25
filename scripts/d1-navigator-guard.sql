@@ -111,6 +111,18 @@ CREATE TRIGGER IF NOT EXISTS nav_guard_plan_shares_delete BEFORE DELETE ON navig
 WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_plan_shares is protected'); END;
 
+-- AACP™ Student IDs (random display codes; Career Navigator collects no names).
+CREATE TABLE IF NOT EXISTS navigator_student_codes (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id),
+  code       TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS nav_reg_student_codes AFTER INSERT ON navigator_student_codes
+BEGIN INSERT OR IGNORE INTO navigator_accounts (user_id) VALUES (NEW.user_id); END;
+CREATE TRIGGER IF NOT EXISTS nav_guard_student_codes_delete BEFORE DELETE ON navigator_student_codes
+WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_student_codes is protected'); END;
+
 CREATE TRIGGER IF NOT EXISTS nav_guard_invite_codes_delete BEFORE DELETE ON navigator_invite_codes
 WHEN NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 BEGIN SELECT RAISE(ABORT, 'navigator_guard: navigator_invite_codes is protected'); END;

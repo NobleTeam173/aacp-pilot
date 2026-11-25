@@ -50,6 +50,7 @@ const PII_RE = [
   /\b[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][\s-]?\d[ABCEGHJ-NPRSTV-Z]\d\b/i, // Canadian postal code
   /\b\d{1,5}\s+\w+(\s+\w+)?\s+(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|crescent|cres|way|court|ct|lane|ln)\b/i,
   /\b\d{9}\b/,                                                      // student / SIN-like numbers
+  /\bAACP-[A-Z0-9]{4}-[A-Z0-9]{4}\b/i,                              // AACP™ Student ID — never sent to AI providers
   /\bmy\s+(name|full\s+name|address|phone|number|email|school\s+is|birthday|password)\b/i,
   /\b(i\s+live\s+(at|on)|i\s+go\s+to\s+\w+\s+(school|high|junior))\b/i,
   /\b(19|20)\d{2}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[12]\d|3[01])\b/, // date (e.g. birth date)
