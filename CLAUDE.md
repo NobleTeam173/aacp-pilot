@@ -36,3 +36,13 @@
 ## Notes
 - Use `AACP_AUTH_TEST_MODE=true` only in test or development environments.
 - Production deployments should keep MFA enforcement enabled for admin and coach accounts.
+
+## Career Navigator guardrail (main AACP must not touch Career Navigator)
+Career Navigator (careers.aviationaerospacecompetency.com, `/navigator/*` on the Cloudflare Worker) shares the D1 database `aacp-db` with the main AACP site. On 2026-11-25 a main-AACP test-account cleanup deleted real Career Navigator accounts; they had to be recovered from D1 Time Travel.
+
+- **Database guard** (`scripts/d1-navigator-guard.sql`, applied to live D1): every Career Navigator user is registered in `navigator_accounts` (automatically for role `navigator` and for anyone with `navigator_*` rows; older accounts use role `participant`). Triggers abort any DELETE of a registered user, any change of their role, and any DELETE from a `navigator_*` table. A whole statement fails if it would touch even one Career Navigator row, so cleanups must exclude them.
+- **Session guard** (`.claude/settings.json` → `scripts/hooks/navigator-guard.cjs`): blocks commands that delete `navigator_*` data, drop the guard, touch `navigator_guard_override`, or run `wrangler d1 time-travel restore`.
+- **Rules for every session:**
+  - Main AACP cleanups target main roles only (`youth`/`employer`/`postsecondary`/main-site `participant` with `status = 'pending'`) and must `LEFT JOIN navigator_accounts` to exclude Career Navigator users.
+  - Export the rows (`wrangler d1 export` or a SELECT saved to a file) before any DELETE on shared tables.
+  - Never drop or bypass the guard. Intentional Career Navigator deletions (e.g. a user's erasure request) are done by the owner with a time-limited override, as documented in the SQL file.
