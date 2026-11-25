@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "vite",
     "dev:worker": "wrangler dev",
-    "build": "vite build",
+    "build": "node scripts/build-career-kb.mjs && vite build",
     "deploy": "vite build && wrangler deploy --config wrangler.toml",
     "preview": "vite preview",
     "test": "echo \"No tests configured yet\"",

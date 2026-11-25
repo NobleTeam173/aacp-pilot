@@ -1116,6 +1116,9 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .consent-check input{margin-top:3px;accent-color:var(--crimson);flex-shrink:0;width:16px;height:16px}
 .consent-check a{color:var(--crimson)}
 .consent-overlay{z-index:1300}
+.acia-label{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--fg2);border:1px solid var(--border);margin-bottom:4px}
+.acia-cites{margin-top:8px;font-size:12px;color:var(--fg3)}
+.acia-cites a{color:var(--crimson)}
 .del-account-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .del-link{background:none;border:0;padding:4px 0;font:inherit;font-size:13px;color:#c0392b;text-decoration:underline;cursor:pointer;min-height:32px}
 .del-list{margin:0 0 4px}
@@ -1210,7 +1213,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
           </label>
           <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer">
             <input type="checkbox" id="authConsentAcia" style="margin-top:2px;cursor:pointer;accent-color:var(--crimson);flex-shrink:0">
-            <span style="font-size:12px;color:var(--fg2);line-height:1.5"><strong>Optional:</strong> I allow ACIA™ to send my chat messages to an AI provider to answer my questions. Messages aren’t stored by AACP. You can change this any time.</span>
+            <span style="font-size:12px;color:var(--fg2);line-height:1.5"><strong>Optional:</strong> I allow ACIA™ to use AACP’s AI service to help answer my career questions. ACIA™ answers from AACP’s verified career information first; my messages, name and account details are never sent to outside AI providers. I can turn this off any time.</span>
           </label>
         </div>
         <p id="authRegError" style="display:none;font-size:12px;color:#e55;margin:0"></p>
@@ -1401,7 +1404,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
       <label class="consent-check" id="consentTermsRow" style="display:none"><input type="checkbox" id="consentTerms">
         <span>I accept the <a id="consentTermsLink" href="#" target="_blank">Terms of Use</a>.</span></label>
       <label class="consent-check" id="consentAciaRow"><input type="checkbox" id="consentAcia">
-        <span><strong>Optional:</strong> I allow ACIA™ to send my chat messages to an AI provider to answer my questions. Messages aren’t stored by AACP. You can turn this off any time.</span></label>
+        <span><strong>Optional:</strong> I allow ACIA™ to use AACP’s AI service to help answer my career questions. ACIA™ answers from AACP’s verified career information first; my messages, name and account details are never sent to outside AI providers. I can turn this off any time.</span></label>
       <p id="consentMsg" class="share-msg" role="status" aria-live="polite"></p>
       <div class="share-actions" style="margin-top:10px">
         <button type="submit" class="btn-primary" id="consentBtn">Save and continue</button>
@@ -4435,7 +4438,7 @@ async function navGuardianPage(token) {
   try {
     var d = await post('lookup', { token: token });
     var who = escHtml(d.studentFirstName);
-    var what = '<ul style="margin:8px 0 12px"><li><strong>ACIA™</strong> — an AI career assistant. Messages are sent to an AI provider to generate answers; AACP doesn’t store them.</li><li><strong>Sharing</strong> their career plan (view only) with a teacher, counsellor or family member they choose.</li><li><strong>Buying</strong> a Premium subscription.</li></ul>';
+    var what = '<ul style="margin:8px 0 12px"><li><strong>ACIA™</strong> — AACP’s career assistant. It answers from AACP’s verified career information and may use an AI service for general questions; the student’s messages and personal details are never sent to outside AI providers.</li><li><strong>Sharing</strong> their career plan (view only) with a teacher, counsellor or family member they choose.</li><li><strong>Buying</strong> a Premium subscription.</li></ul>';
     var respond = function (decision) {
       return async function () {
         body.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
@@ -5257,6 +5260,20 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
+// ACIA™ replies are plain text with **bold** and "• " bullets; render them safely.
+var aciaLastCareerId = null;
+function aciaFormatReply(text, data) {
+  var html = escHtml(String(text)).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  if (data && data.label) html = '<span class="acia-label">' + escHtml(data.label) + '</span><br>' + html;
+  var cites = (data && Array.isArray(data.citations)) ? data.citations.filter(function (c) { return c && /^https:\/\//.test(c.url); }) : [];
+  if (cites.length) {
+    html += '<div class="acia-cites">Sources: ' + cites.slice(0, 4).map(function (c) {
+      return '<a href="' + escHtml(c.url) + '" target="_blank" rel="noopener noreferrer">' + escHtml(c.label || 'Official source') + '</a>';
+    }).join(' · ') + '</div>';
+  }
+  return html;
+}
+
 function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
@@ -5286,17 +5303,20 @@ function sendChat() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
     const token = localStorage.getItem('navigatorToken');
+    // ACIA™ is answered by the AACP Intelligence Gateway: only this message and the
+    // career being discussed are sent (no history or profile details).
     fetch(`${API_BASE}/navigator/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ messages: chatHistory, maxTokens: 800 }),
+      body: JSON.stringify({ message: msg, context: { careerId: aciaLastCareerId } }),
     })
       .then(res => res.json())
       .then(data => {
         const typing = document.getElementById('typing');
         if (typing) typing.remove();
         const reply = data.reply || data.error || 'I encountered an issue — please try again.';
-        messagesEl.innerHTML += `<div class="msg bot">${reply.replace(/\n/g, '<br>')}</div>`;
+        if (data.careerId) aciaLastCareerId = data.careerId;
+        messagesEl.innerHTML += `<div class="msg bot">${aciaFormatReply(reply, data)}</div>`;
         messagesEl.scrollTop = messagesEl.scrollHeight;
         chatHistory.push({ role: 'assistant', content: reply });
       })

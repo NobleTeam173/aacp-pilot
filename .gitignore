@@ -4,6 +4,11 @@ dist/worker.js
 *.tsbuildinfo
 src/**/*.js
 src/**/*.map
+# Hand-written server modules (not compiled TypeScript output)
+!src/env-builder.js
+!src/db-shim.js
+!src/acia-gateway.js
+!src/knowledge/*.js
 *.DS_Store
 .wrangler/state/
 .wrangler/tmp/

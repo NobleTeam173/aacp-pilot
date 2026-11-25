@@ -1,6 +1,7 @@
 // AACP Cloudflare Worker — full backend (Web Crypto only, no Node.js builtins)
 // Backed by D1 (see schema.sql) — accounts, ACIA results, program enrollment,
 // and audit history survive redeploys and cold starts.
+import { gatewayAnswer, ensureGatewayTables } from './src/acia-gateway.js';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const ACCESS_EXPIRES_SEC  = 15 * 60;
@@ -15614,8 +15615,8 @@ const CONSENT_POLICIES = {
   age_eligibility:        { version: '2026-11-25', required: true },
   privacy_policy:         { version: '2026-10-04', required: true },
   terms:                  { version: null,         required: true },  // switched on when Terms of Use are published
-  acia_ai_processing:     { version: '2026-11-25', required: false }, // needed only for ACIA™ chat
-  guardian_authorization: { version: '2026-11-25', required: false }, // needed when age band is under_13
+  acia_ai_processing:     { version: '2026-11-25.2', required: false }, // needed only for ACIA™ chat (wording: gateway, no personal data to AI)
+  guardian_authorization: { version: '2026-11-25.2', required: false }, // needed when age band is under_13
 };
 const CONSENT_AGE_BANDS = ['under_13', '13_17', '18_plus'];
 const CONSENT_SELF_TYPES = ['age_eligibility', 'privacy_policy', 'terms', 'acia_ai_processing'];
@@ -15789,11 +15790,13 @@ async function handleAdminNavigatorConsent(request, user, env) {
 }
 
 // ── Cloudflare side: client for the AWS store ───────────────────────────────
-async function consentStore(env, method, path, body) {
+// Internal call from the Cloudflare Worker to the AWS Canada backend (/auth/...), shared-key protected.
+async function consentStore(env, method, path, body) { return aacpInternal(env, method, '/navigator-consent' + path, body); }
+async function aacpInternal(env, method, path, body, timeoutMs = 8000) {
   if (!env.CONSENT_STORE_KEY) throw new Error('consent store not configured');
-  const base = (env.CONSENT_STORE_URL || CONSENT_STORE_DEFAULT_URL).replace(/\/$/, '');
+  const base = (env.CONSENT_STORE_URL || CONSENT_STORE_DEFAULT_URL).replace(/\/$/, '').replace(/\/navigator-consent$/, '');
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 8000);
+  const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const res = await fetch(base + path, {
       method, signal: ctl.signal,
@@ -15905,7 +15908,7 @@ async function emailGuardianRequest(env, { guardianEmail, studentFirstName, toke
     preheader: `${studentFirstName} is asking for your permission to use AACP Career Navigator.`,
     body: eH1('A student is asking for your permission') +
       eP(`<strong>${who}</strong> has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, some features need your approval:`) +
-      eP('• <strong>ACIA™</strong>, an AI career assistant (messages are sent to an AI provider to generate answers and are not stored by us)<br>• <strong>Sharing</strong> their career plan with a teacher, counsellor or family member<br>• <strong>Buying</strong> a Premium subscription') +
+      eP('• <strong>ACIA™</strong>, AACP’s career assistant (it answers from AACP’s verified career information and may use an AI service for general questions; your child’s messages and personal details are never sent to outside AI providers)<br>• <strong>Sharing</strong> their career plan with a teacher, counsellor or family member<br>• <strong>Buying</strong> a Premium subscription') +
       eBtn('Review and respond', url) +
       eP(`The link works for ${GUARDIAN_LINK_DAYS} days. You can approve or decline, and if you approve you can withdraw your approval later from the same link.`) +
       eNote('If you don’t know this student, you can ignore this email or choose Decline. We only use your email address for this authorization.'),
@@ -15913,7 +15916,7 @@ async function emailGuardianRequest(env, { guardianEmail, studentFirstName, toke
   return sendEmail(env, {
     event: 'navigator_guardian_request', to: guardianEmail,
     subject: `${studentFirstName} is asking for your permission — AACP Career Navigator`,
-    text: `${studentFirstName} has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, using ACIA (an AI career assistant), sharing their plan, and buying Premium need your approval.\n\nReview and respond (link valid ${GUARDIAN_LINK_DAYS} days): ${url}\n\nIf you don't know this student, ignore this email or choose Decline.`,
+    text: `${studentFirstName} has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, using ACIA (AACP's career assistant; their messages and personal details are never sent to outside AI providers), sharing their plan, and buying Premium need your approval.\n\nReview and respond (link valid ${GUARDIAN_LINK_DAYS} days): ${url}\n\nIf you don't know this student, ignore this email or choose Decline.`,
     html,
   });
 }
@@ -16494,7 +16497,10 @@ async function handleNavigatorChat(request, user, env) {
     return err('Active Navigator premium subscription required', 403);
   }
   // AI processing authorization (and, for under-13s, a parent or guardian's approval).
-  const consentErr = await requireNavigatorConsent(env, user.sub, 'acia'); if (consentErr) return consentErr;
+  let consent;
+  try { consent = await navigatorConsentState(env, user.sub); }
+  catch (e) { console.error('consent store unavailable:', e?.message); return json({ error: 'ACIA™ is unavailable right now. Please try again in a moment.', code: 'consent_unavailable' }, 503); }
+  if (!consent.allowed.acia) { const consentErr = await requireNavigatorConsent(env, user.sub, 'acia'); if (consentErr) return consentErr; }
 
   // Rate limit: 30 requests per hour per user
   const attempts = await countAllAttempts(env.DB, `nav_chat:${user.sub}`, 60 * 60 * 1000);
@@ -16503,44 +16509,59 @@ async function handleNavigatorChat(request, user, env) {
   }
   await recordAttempt(env.DB, `nav_chat:${user.sub}`, true);
 
+  // ACIA™ answers come only from the AACP Intelligence Gateway in AWS Canada.
+  // Only the current message, the student's age range and a career ID (for
+  // follow-ups like "what about the pay?") are sent — no history, name, email or
+  // account ID. The gateway never forwards the message to an AI provider.
   const body = await request.json().catch(() => null);
-  if (!body?.messages || !Array.isArray(body.messages)) {
-    return err('messages array required');
+  let message = typeof body?.message === 'string' ? body.message : null;
+  if (!message && Array.isArray(body?.messages)) { // older page versions
+    const lastUser = [...body.messages].reverse().find(m => m?.role === 'user');
+    message = lastUser ? String(lastUser.content) : null;
   }
-
-  const apiKey = env.ANTHROPIC_API_KEY;
-  if (!apiKey) return err('AI service not configured', 503);
-
-  const ALLOWED_ROLES = new Set(['user', 'assistant']);
-  const messages = body.messages.slice(-20)
-    .filter(m => ALLOWED_ROLES.has(m.role))
-    .map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
-
-  const maxTokens = Math.min(Number(body.maxTokens ?? 600), 1200);
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: maxTokens,
-      system: CAPTAIN_ACIA_SYSTEM_PROMPT,
-      messages,
-    }),
-  });
-
-  if (!res.ok) {
-    console.error('Anthropic API error (navigator/chat):', res.status, await res.text());
-    return err('AI service error', 502);
+  if (!message || !message.trim()) return err('message required');
+  const careerId = typeof body?.context?.careerId === 'string' && /^[a-z0-9_]{1,40}$/.test(body.context.careerId) ? body.context.careerId : null;
+  try {
+    const r = await aacpInternal(env, 'POST', '/navigator-gateway/ask', { message: message.slice(0, 1000), ageBand: consent.ageBand, context: { careerId } }, 30000);
+    return json({ reply: r.reply, source: r.source, citations: r.citations || [], careerId: r.careerId || null, label: r.label || null });
+  } catch (e) {
+    console.error('ACIA gateway unavailable:', e?.message);
+    return json({ error: 'ACIA™ is unavailable right now. Please try again in a moment.', code: 'gateway_unavailable' }, 503);
   }
+}
 
-  const data = await res.json();
-  const reply = data.content?.[0]?.text ?? '';
-  return json({ reply });
+// ── AACP Intelligence Gateway endpoints (AWS Canada only) ───────────────────
+// POST /auth/navigator-gateway/ask — called only by the Career Navigator Worker (shared key).
+async function handleGatewayAsk(request, env) {
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Not found', 404);
+  if (!env.CONSENT_STORE_KEY || !constantTimeEqual(request.headers.get('X-Consent-Store-Key'), env.CONSENT_STORE_KEY)) return err('Not found', 404);
+  const body = await request.json().catch(() => ({}));
+  try { return json(await gatewayAnswer(env, body)); }
+  catch (e) { console.error('gateway error:', e?.message); return json({ error: 'gateway error' }, 500); }
+}
+
+// GET /admin/navigator-gateway/answers — super admin review of AI-generated (template) answers.
+async function handleAdminGatewayAnswers(request, user, env) {
+  const g = requireRole(user, 'super_admin'); if (g) return g;
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Only available on the AWS Canada backend.', 404);
+  await ensureGatewayTables(env.DB);
+  const [answers, events] = await Promise.all([
+    env.DB.prepare(`SELECT cache_key, template_id, params, query, answer, status, model, created_at, served_count, last_served_at, reviewed_by, reviewed_at FROM acia_gateway_answers ORDER BY created_at DESC LIMIT 200`).all(),
+    env.DB.prepare(`SELECT kind, COUNT(*) AS n FROM acia_gateway_events GROUP BY kind`).all(),
+  ]);
+  return json({ answers: answers.results ?? [], eventCounts: events.results ?? [] });
+}
+// POST /admin/navigator-gateway/answers/{block|unblock} — body { cache_key }
+async function handleAdminGatewayAnswerStatus(request, user, env, action) {
+  const g = requireRole(user, 'super_admin'); if (g) return g;
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Only available on the AWS Canada backend.', 404);
+  await ensureGatewayTables(env.DB);
+  const body = await request.json().catch(() => ({}));
+  if (!body.cache_key) return err('cache_key required');
+  await env.DB.prepare(`UPDATE acia_gateway_answers SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE cache_key = ?`)
+    .bind(action === 'block' ? 'blocked' : 'active', user.sub, new Date().toISOString(), body.cache_key).run();
+  await audit(env.DB, `admin_gateway_answer_${action}`, user.sub, 'acia_gateway_answer', { cache_key: body.cache_key });
+  return json({ ok: true, status: action === 'block' ? 'blocked' : 'active' });
 }
 
 // POST /navigator/webhook — Stripe webhook handler (raw body, signature verified)
@@ -16810,6 +16831,8 @@ async function _routeRequest(request, env, ctx) {
 
     // ── Career Navigator consent store — AWS Canada only, shared-key protected ──
     if (path.startsWith('/auth/navigator-consent/')) return handleConsentStore(request, env, path.slice('/auth/navigator-consent/'.length));
+    // ── AACP Intelligence Gateway (ACIA™) — AWS Canada only, shared-key protected ──
+    if (path === '/auth/navigator-gateway/ask' && request.method === 'POST') return handleGatewayAsk(request, env);
 
     // ── Career Navigator — public (no JWT) ───────────────────────────────────
     if (path === '/navigator/consent/guardian/lookup'  && request.method === 'POST') return handleNavigatorGuardianLink(request, env, 'lookup');
@@ -17145,6 +17168,9 @@ async function _routeRequest(request, env, ctx) {
     }
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
     if (path === '/admin/navigator-consent'                             && request.method === 'GET')    return handleAdminNavigatorConsent(request, user, env);
+    if (path === '/admin/navigator-gateway/answers'                     && request.method === 'GET')    return handleAdminGatewayAnswers(request, user, env);
+    if (path === '/admin/navigator-gateway/answers/block'               && request.method === 'POST')   return handleAdminGatewayAnswerStatus(request, user, env, 'block');
+    if (path === '/admin/navigator-gateway/answers/unblock'             && request.method === 'POST')   return handleAdminGatewayAnswerStatus(request, user, env, 'unblock');
     if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
     if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {
       const codeId = path.split('/')[4];
