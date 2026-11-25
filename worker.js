@@ -15130,6 +15130,7 @@ async function handleNavigatorCheckout(request, user, env) {
 
   if (!NAVIGATOR_PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
   if (!env.STRIPE_SECRET_KEY) return json({ error: 'Payments are not available yet. Please try again later.' }, 503);
+  const consentErr = await requireNavigatorConsent(env, userId, 'payments'); if (consentErr) return consentErr;
   const planMeta = NAVIGATOR_PLANS[plan];
   const priceId = env[planMeta.priceEnv];
   if (!priceId) return json({ error: `Price ID not configured for plan ${plan}` }, 500);
@@ -15257,6 +15258,14 @@ async function handleNavigatorAccountRegister(request, env, ctx) {
   }
 
   await audit(env.DB, 'navigator_account_register', userId, 'user', { email, navigatorRole });
+
+  // Consent given on the sign-up form → AWS Canada store. Best effort: if it can't be
+  // reached, the app asks again after sign-in (restricted features stay locked until then).
+  const signupConsents = sanitizeConsentInput(body.consents).filter(c => c.status === 'granted');
+  if (signupConsents.length && ctx) {
+    ctx.waitUntil(consentStore(env, 'POST', '/record', { user_id: userId, records: signupConsents.map(c => ({ ...c, source: 'signup_form' })) })
+      .catch(e => console.error('signup consent record failed:', e?.message)));
+  }
 
   // Send verification email — account activates on click
   const verToken = randomHex(32);
@@ -15493,6 +15502,7 @@ async function handleNavigatorSharingCreate(request, user, env, ctx) {
   const relationship = body?.relationship;
   if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Enter a valid email address.');
   if (!SHARE_RELATIONSHIPS.includes(relationship)) return err('Choose parent or guardian, teacher, or guidance counsellor.');
+  const consentErr = await requireNavigatorConsent(env, user.sub, 'sharing'); if (consentErr) return consentErr;
 
   const rlKey = `nav_share:${user.sub}`;
   if (await countAllAttempts(env.DB, rlKey, 60 * 60 * 1000) >= 20) return err('Too many invitations. Please try again in an hour.', 429);
@@ -15545,6 +15555,7 @@ async function handleNavigatorSharingAction(request, user, env, shareId, action)
 
   if (action === 'accept' || action === 'decline') {
     if (!isViewer) return err('Only the invited person can respond.', 403);
+    if (action === 'accept') { const consentErr = await requireNavigatorConsent(env, user.sub, 'sharing'); if (consentErr) return consentErr; }
     if (s.status !== 'pending') return err('This invitation is no longer pending.', 409);
     const status = action === 'accept' ? 'active' : 'declined';
     await env.DB.prepare(`UPDATE navigator_plan_shares SET status = ?, responded_at = ? WHERE id = ? AND status = 'pending'`).bind(status, now, shareId).run();
@@ -15587,6 +15598,375 @@ async function handleNavigatorSharingView(request, user, env, shareId) {
     pathway: p, pathwayUpdatedAt: profile?.updated_at ?? null,
     coursePlan, coursePlanUpdatedAt: course?.updated_at ?? null,
   });
+}
+
+// ══ Consent management (Career Navigator) ═══════════════════════════════════
+// Consent records live ONLY in the AWS Canada (ca-central-1) PostgreSQL database.
+// The same worker.js runs in two places:
+//   • ECS/AWS (env.CONSENT_STORE_ROLE === 'store', set in src/env-builder.js) — owns the
+//     consent tables and serves /auth/navigator-consent/* to the Cloudflare Worker only
+//     (shared secret in the X-Consent-Store-Key header), plus a super-admin history view.
+//   • Cloudflare (Career Navigator API) — never stores consent; it reads and writes
+//     through consentStore(), and gates restricted features on the result.
+// Consent types are separate and versioned. Records are append-only (a DB trigger
+// rejects UPDATE/DELETE); the current state is the latest record per type.
+const CONSENT_POLICIES = {
+  age_eligibility:        { version: '2026-11-25', required: true },
+  privacy_policy:         { version: '2026-10-04', required: true },
+  terms:                  { version: null,         required: true },  // switched on when Terms of Use are published
+  acia_ai_processing:     { version: '2026-11-25', required: false }, // needed only for ACIA™ chat
+  guardian_authorization: { version: '2026-11-25', required: false }, // needed when age band is under_13
+};
+const CONSENT_AGE_BANDS = ['under_13', '13_17', '18_plus'];
+const CONSENT_SELF_TYPES = ['age_eligibility', 'privacy_policy', 'terms', 'acia_ai_processing'];
+const CONSENT_WITHDRAWABLE = ['acia_ai_processing'];
+const GUARDIAN_LINK_DAYS = 7;
+const CONSENT_STORE_DEFAULT_URL = 'https://aviationaerospacecompetency.com/auth/navigator-consent';
+
+function constantTimeEqual(a, b) {
+  a = String(a ?? ''); b = String(b ?? '');
+  if (!a || a.length !== b.length) return false;
+  let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+// ── Store side (AWS only) ───────────────────────────────────────────────────
+let consentStoreReady = false;
+async function ensureConsentStore(db) {
+  if (consentStoreReady) return;
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS consent_records (
+      id             TEXT PRIMARY KEY,
+      user_id        TEXT NOT NULL,
+      consent_type   TEXT NOT NULL,
+      status         TEXT NOT NULL,
+      policy_version TEXT,
+      source         TEXT NOT NULL,
+      details        TEXT,
+      recorded_at    TEXT NOT NULL
+    )`).run();
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_consent_user_type ON consent_records(user_id, consent_type, recorded_at)`).run();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS consent_policy_versions (
+      policy_type  TEXT NOT NULL,
+      version      TEXT NOT NULL,
+      effective_at TEXT NOT NULL,
+      PRIMARY KEY (policy_type, version)
+    )`).run();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS consent_guardian_requests (
+      id             TEXT PRIMARY KEY,
+      user_id        TEXT NOT NULL,
+      guardian_email TEXT,
+      token_hash     TEXT NOT NULL UNIQUE,
+      status         TEXT NOT NULL,
+      created_at     TEXT NOT NULL,
+      expires_at     TEXT NOT NULL,
+      responded_at   TEXT
+    )`).run();
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_guardian_user ON consent_guardian_requests(user_id, created_at)`).run();
+  // Append-only history: reject UPDATE/DELETE on consent_records (PostgreSQL on AWS; SQLite for local tests).
+  await db.prepare(`
+    CREATE OR REPLACE FUNCTION consent_records_append_only() RETURNS trigger AS $fn$
+    BEGIN RAISE EXCEPTION 'consent_records is append-only'; END; $fn$ LANGUAGE plpgsql`).run()
+    .then(() => db.prepare(`DROP TRIGGER IF EXISTS consent_records_no_change ON consent_records`).run())
+    .then(() => db.prepare(`CREATE TRIGGER consent_records_no_change BEFORE UPDATE OR DELETE ON consent_records FOR EACH ROW EXECUTE FUNCTION consent_records_append_only()`).run())
+    .catch(async () => {
+      await db.prepare(`CREATE TRIGGER IF NOT EXISTS consent_records_no_update BEFORE UPDATE ON consent_records BEGIN SELECT RAISE(ABORT, 'consent_records is append-only'); END`).run().catch(() => {});
+      await db.prepare(`CREATE TRIGGER IF NOT EXISTS consent_records_no_delete BEFORE DELETE ON consent_records BEGIN SELECT RAISE(ABORT, 'consent_records is append-only'); END`).run().catch(() => {});
+    });
+  // Policy update history: record every version this code knows about.
+  const now = new Date().toISOString();
+  for (const [type, p] of Object.entries(CONSENT_POLICIES)) {
+    if (!p.version) continue;
+    await db.prepare(`INSERT INTO consent_policy_versions (policy_type, version, effective_at) VALUES (?, ?, ?) ON CONFLICT (policy_type, version) DO NOTHING`)
+      .bind(type, p.version, now).run().catch(() => {});
+  }
+  consentStoreReady = true;
+}
+
+async function consentLatest(db, userId) {
+  const { results } = await db.prepare(
+    `SELECT consent_type, status, policy_version, source, details, recorded_at FROM consent_records WHERE user_id = ? ORDER BY recorded_at ASC, id ASC`
+  ).bind(userId).all();
+  const latest = {};
+  for (const r of results ?? []) latest[r.consent_type] = { status: r.status, version: r.policy_version, source: r.source, details: r.details ? JSON.parse(r.details) : null, at: r.recorded_at };
+  return latest;
+}
+
+async function consentAppend(db, { userId, type, status, version, source, details }) {
+  const at = new Date().toISOString();
+  await db.prepare(
+    `INSERT INTO consent_records (id, user_id, consent_type, status, policy_version, source, details, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), userId, type, status, version ?? null, source, details ? JSON.stringify(details) : null, at).run();
+  return at;
+}
+
+// /auth/navigator-consent/* — AWS store API, called only by the Cloudflare Worker.
+async function handleConsentStore(request, env, sub) {
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Not found', 404);
+  if (!env.CONSENT_STORE_KEY || !constantTimeEqual(request.headers.get('X-Consent-Store-Key'), env.CONSENT_STORE_KEY)) return err('Not found', 404);
+  const db = env.DB;
+  await ensureConsentStore(db);
+  const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+  const userId = String(body.user_id ?? new URL(request.url).searchParams.get('user_id') ?? '');
+  const now = new Date().toISOString();
+
+  if (sub === 'state' && request.method === 'GET') {
+    if (!userId) return err('user_id required');
+    const latest = await consentLatest(db, userId);
+    const g = await db.prepare(`SELECT status, guardian_email, created_at, expires_at, responded_at FROM consent_guardian_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`).bind(userId).first();
+    const masked = g?.guardian_email ? g.guardian_email.replace(/^(.)(.*)(@.*)$/, (m, a, b, c) => a + '•'.repeat(Math.min(6, b.length)) + c) : null;
+    return json({ latest, guardianRequest: g ? { status: g.status, emailMasked: masked, createdAt: g.created_at, expiresAt: g.expires_at, respondedAt: g.responded_at } : null });
+  }
+  if (sub === 'record' && request.method === 'POST') {
+    const items = Array.isArray(body.records) ? body.records.slice(0, 10) : [];
+    if (!userId || !items.length) return err('user_id and records required');
+    for (const it of items) {
+      if (!CONSENT_POLICIES[it.type] || !['granted', 'withdrawn', 'declined'].includes(it.status)) return err('invalid record');
+      await consentAppend(db, { userId, type: it.type, status: it.status, version: it.version, source: String(it.source || 'self').slice(0, 40), details: it.details ?? null });
+    }
+    return json({ ok: true });
+  }
+  if (sub === 'guardian/request' && request.method === 'POST') {
+    const email = String(body.guardian_email ?? '').trim().toLowerCase();
+    if (!userId || !email) return err('user_id and guardian_email required');
+    await db.prepare(`UPDATE consent_guardian_requests SET status = 'cancelled', responded_at = ? WHERE user_id = ? AND status = 'pending'`).bind(now, userId).run();
+    const token = randomHex(32);
+    const id = crypto.randomUUID();
+    const expires = new Date(Date.now() + GUARDIAN_LINK_DAYS * 86400000).toISOString();
+    await db.prepare(`INSERT INTO consent_guardian_requests (id, user_id, guardian_email, token_hash, status, created_at, expires_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)`)
+      .bind(id, userId, email, await sha256hex(token), now, expires).run();
+    return json({ token, requestId: id, expiresAt: expires });
+  }
+  if ((sub === 'guardian/lookup' || sub === 'guardian/respond') && request.method === 'POST') {
+    const token = String(body.token ?? '');
+    if (!/^[0-9a-f]{64}$/.test(token)) return err('Invalid link', 404);
+    const g = await db.prepare(`SELECT id, user_id, status, expires_at FROM consent_guardian_requests WHERE token_hash = ?`).bind(await sha256hex(token)).first();
+    if (!g) return err('Invalid link', 404);
+    const expired = g.status === 'pending' && new Date(g.expires_at) < new Date();
+    if (sub === 'guardian/lookup') return json({ requestId: g.id, userId: g.user_id, status: expired ? 'expired' : g.status, expiresAt: g.expires_at });
+    const decision = body.decision;
+    if (decision === 'approve' || decision === 'decline') {
+      if (g.status !== 'pending' || expired) return err(expired ? 'This link has expired. Ask the student to send a new one.' : 'This request has already been answered.', 409);
+      const status = decision === 'approve' ? 'approved' : 'declined';
+      await db.prepare(`UPDATE consent_guardian_requests SET status = ?, responded_at = ? WHERE id = ? AND status = 'pending'`).bind(status, now, g.id).run();
+      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: decision === 'approve' ? 'granted' : 'declined', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id } });
+      return json({ status, userId: g.user_id });
+    }
+    if (decision === 'withdraw') {
+      if (g.status !== 'approved') return err('There is no active authorization to withdraw.', 409);
+      await db.prepare(`UPDATE consent_guardian_requests SET status = 'withdrawn', responded_at = ? WHERE id = ?`).bind(now, g.id).run();
+      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: 'withdrawn', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id } });
+      return json({ status: 'withdrawn', userId: g.user_id });
+    }
+    return err('decision must be approve, decline or withdraw');
+  }
+  if (sub === 'erase' && request.method === 'POST') {
+    // Account deletion: remove the guardian's email; consent history (no personal data) is kept as evidence.
+    if (!userId) return err('user_id required');
+    await db.prepare(`UPDATE consent_guardian_requests SET guardian_email = NULL, status = CASE WHEN status = 'pending' THEN 'cancelled' ELSE status END WHERE user_id = ?`).bind(userId).run();
+    await consentAppend(db, { userId, type: 'account', status: 'withdrawn', version: null, source: 'account_deleted', details: null });
+    return json({ ok: true });
+  }
+  return err('Not found', 404);
+}
+
+// GET /admin/navigator-consent?user_id= — super-admin only, on AWS (restricted administrative access).
+async function handleAdminNavigatorConsent(request, user, env) {
+  const g = requireRole(user, 'super_admin'); if (g) return g;
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Consent records are only available on the AWS Canada backend.', 404);
+  const userId = new URL(request.url).searchParams.get('user_id');
+  if (!userId) return err('user_id required');
+  await ensureConsentStore(env.DB);
+  const [hist, reqs, pol] = await Promise.all([
+    env.DB.prepare(`SELECT consent_type, status, policy_version, source, details, recorded_at FROM consent_records WHERE user_id = ? ORDER BY recorded_at ASC`).bind(userId).all(),
+    env.DB.prepare(`SELECT id, status, created_at, expires_at, responded_at FROM consent_guardian_requests WHERE user_id = ? ORDER BY created_at ASC`).bind(userId).all(),
+    env.DB.prepare(`SELECT policy_type, version, effective_at FROM consent_policy_versions ORDER BY policy_type, effective_at`).all(),
+  ]);
+  await audit(env.DB, 'admin_view_navigator_consent', user.sub, 'consent_records', { user_id: userId });
+  return json({ userId, history: hist.results ?? [], guardianRequests: reqs.results ?? [], policyVersions: pol.results ?? [] });
+}
+
+// ── Cloudflare side: client for the AWS store ───────────────────────────────
+async function consentStore(env, method, path, body) {
+  if (!env.CONSENT_STORE_KEY) throw new Error('consent store not configured');
+  const base = (env.CONSENT_STORE_URL || CONSENT_STORE_DEFAULT_URL).replace(/\/$/, '');
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const res = await fetch(base + path, {
+      method, signal: ctl.signal,
+      headers: { 'X-Consent-Store-Key': env.CONSENT_STORE_KEY, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { const e = new Error(data.error || `consent store ${res.status}`); e.status = res.status; throw e; }
+    return data;
+  } finally { clearTimeout(t); }
+}
+
+// Turn the store's latest-per-type records into what the app needs.
+function consentSummary(latest, guardianRequest) {
+  const cur = t => {
+    const r = latest[t]; const v = CONSENT_POLICIES[t].version;
+    return !!(r && r.status === 'granted' && (!v || r.version === v));
+  };
+  const ageBand = latest.age_eligibility?.status === 'granted' ? latest.age_eligibility.details?.age_band ?? null : null;
+  const missing = ['age_eligibility', 'privacy_policy', 'terms'].filter(t => CONSENT_POLICIES[t].version && CONSENT_POLICIES[t].required && !cur(t));
+  const needsGuardian = ageBand === 'under_13';
+  const guardianGranted = latest.guardian_authorization?.status === 'granted';
+  const baseOk = missing.length === 0 && (!needsGuardian || guardianGranted);
+  return {
+    ageBand, missing,
+    outdated: missing.filter(t => latest[t]?.status === 'granted'), // accepted an older version → policy update
+    needsGuardian, guardianStatus: needsGuardian ? (guardianGranted ? 'approved' : (guardianRequest?.status ?? 'none')) : 'not_required',
+    guardianEmailMasked: guardianRequest?.emailMasked ?? null,
+    aciaConsent: cur('acia_ai_processing'),
+    allowed: { acia: baseOk && cur('acia_ai_processing'), sharing: baseOk, payments: baseOk },
+    policies: Object.fromEntries(Object.entries(CONSENT_POLICIES).map(([k, p]) => [k, p.version])),
+  };
+}
+
+async function navigatorConsentState(env, userId) {
+  const s = await consentStore(env, 'GET', `/state?user_id=${encodeURIComponent(userId)}`);
+  return consentSummary(s.latest || {}, s.guardianRequest || null);
+}
+
+// Gate for restricted features: returns a Response to send, or null when allowed. Fails closed.
+async function requireNavigatorConsent(env, userId, feature) {
+  let state;
+  try { state = await navigatorConsentState(env, userId); }
+  catch (e) {
+    console.error('consent store unavailable:', e?.message);
+    return json({ error: 'We couldn’t check your consent settings just now. Please try again in a moment.', code: 'consent_unavailable' }, 503);
+  }
+  if (state.allowed[feature]) return null;
+  let msg;
+  if (state.missing.length) msg = 'Please review and accept the privacy information in My Career Plan → Privacy & consent first.';
+  else if (state.needsGuardian && state.guardianStatus !== 'approved') msg = 'A parent or guardian needs to approve this first. You can send them a request in My Career Plan → Privacy & consent.';
+  else if (feature === 'acia') msg = 'ACIA™ needs your permission to process your messages with AI. You can turn it on in My Career Plan → Privacy & consent.';
+  else msg = 'This feature isn’t available yet.';
+  return json({ error: msg, code: 'consent_required', feature, consent: state }, 403);
+}
+
+// GET /navigator/consent
+async function handleNavigatorConsentGet(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  try { return json(await navigatorConsentState(env, user.sub)); }
+  catch (e) { console.error('consent state failed:', e?.message); return json({ error: 'Consent settings are unavailable right now. Please try again.', code: 'consent_unavailable' }, 503); }
+}
+
+function sanitizeConsentInput(list) {
+  const out = [];
+  for (const c of (Array.isArray(list) ? list : []).slice(0, 6)) {
+    const type = c?.type;
+    if (!CONSENT_SELF_TYPES.includes(type) || !CONSENT_POLICIES[type].version) continue;
+    const status = c.status === 'withdrawn' ? 'withdrawn' : 'granted';
+    if (status === 'withdrawn' && !CONSENT_WITHDRAWABLE.includes(type)) continue;
+    let details = null;
+    if (type === 'age_eligibility') {
+      if (!CONSENT_AGE_BANDS.includes(c.ageBand)) continue;
+      details = { age_band: c.ageBand };
+    }
+    out.push({ type, status, version: CONSENT_POLICIES[type].version, details });
+  }
+  return out;
+}
+
+// POST /navigator/consent — body { consents: [{ type, status?, ageBand? }] }
+async function handleNavigatorConsentUpdate(request, user, env) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  const body = await request.json().catch(() => null);
+  const items = sanitizeConsentInput(body?.consents);
+  if (!items.length) return err('Nothing to record.');
+  try {
+    // A student who has said they're under 13 can't change that to skip parent authorization.
+    if (items.some(i => i.type === 'age_eligibility')) {
+      const cur = await navigatorConsentState(env, user.sub);
+      const next = items.find(i => i.type === 'age_eligibility').details.age_band;
+      if (cur.ageBand === 'under_13' && next !== 'under_13' && cur.guardianStatus !== 'approved') {
+        return err('Your age range can only be changed after a parent or guardian has approved your account. Please ask them, or contact us.', 409);
+      }
+    }
+    await consentStore(env, 'POST', '/record', { user_id: user.sub, records: items.map(i => ({ ...i, source: 'self_web' })) });
+    await audit(env.DB, 'navigator_consent_update', user.sub, 'consent', { types: items.map(i => `${i.type}:${i.status}`) });
+    return json(await navigatorConsentState(env, user.sub));
+  } catch (e) {
+    console.error('consent update failed:', e?.message);
+    return json({ error: 'We couldn’t save your choices just now. Please try again.', code: 'consent_unavailable' }, 503);
+  }
+}
+
+async function emailGuardianRequest(env, { guardianEmail, studentFirstName, token }) {
+  const url = `${NAVIGATOR_URL}?guardian=${token}`;
+  const who = htmlEsc(studentFirstName);
+  const html = emailLayout({
+    preheader: `${studentFirstName} is asking for your permission to use AACP Career Navigator.`,
+    body: eH1('A student is asking for your permission') +
+      eP(`<strong>${who}</strong> has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, some features need your approval:`) +
+      eP('• <strong>ACIA™</strong>, an AI career assistant (messages are sent to an AI provider to generate answers and are not stored by us)<br>• <strong>Sharing</strong> their career plan with a teacher, counsellor or family member<br>• <strong>Buying</strong> a Premium subscription') +
+      eBtn('Review and respond', url) +
+      eP(`The link works for ${GUARDIAN_LINK_DAYS} days. You can approve or decline, and if you approve you can withdraw your approval later from the same link.`) +
+      eNote('If you don’t know this student, you can ignore this email or choose Decline. We only use your email address for this authorization.'),
+  });
+  return sendEmail(env, {
+    event: 'navigator_guardian_request', to: guardianEmail,
+    subject: `${studentFirstName} is asking for your permission — AACP Career Navigator`,
+    text: `${studentFirstName} has created an AACP Career Navigator account and gave your email as their parent or guardian. Because they are under 13, using ACIA (an AI career assistant), sharing their plan, and buying Premium need your approval.\n\nReview and respond (link valid ${GUARDIAN_LINK_DAYS} days): ${url}\n\nIf you don't know this student, ignore this email or choose Decline.`,
+    html,
+  });
+}
+
+// POST /navigator/consent/guardian — body { email } — student asks a parent/guardian
+async function handleNavigatorGuardianRequest(request, user, env, ctx) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  const body = await request.json().catch(() => null);
+  const email = String(body?.email ?? '').trim().toLowerCase();
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Enter a valid email address for your parent or guardian.');
+  if (email === String(user.email ?? '').toLowerCase()) return err('Use your parent or guardian’s email address, not your own.');
+  const rl = `nav_guardian:${user.sub}`;
+  if (await countAllAttempts(env.DB, rl, 24 * 60 * 60 * 1000) >= 5) return err('You’ve sent several requests today. Please try again tomorrow.', 429);
+  try {
+    const state = await navigatorConsentState(env, user.sub);
+    if (!state.needsGuardian) return err('Parent or guardian approval isn’t needed for your account.', 409);
+    if (state.guardianStatus === 'approved') return err('A parent or guardian has already approved your account.', 409);
+    await recordAttempt(env.DB, rl, true);
+    const r = await consentStore(env, 'POST', '/guardian/request', { user_id: user.sub, guardian_email: email });
+    const row = await env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first();
+    const first = String(row?.name || 'A student').trim().split(/\s+/)[0];
+    if (ctx) fireEmail(ctx, emailGuardianRequest(env, { guardianEmail: email, studentFirstName: first, token: r.token }), 'navigator_guardian_request');
+    await audit(env.DB, 'navigator_guardian_request', user.sub, 'consent', { request_id: r.requestId });
+    return json({ sent: true, expiresAt: r.expiresAt, consent: await navigatorConsentState(env, user.sub) });
+  } catch (e) {
+    console.error('guardian request failed:', e?.message);
+    return json({ error: 'We couldn’t send the request just now. Please try again.', code: 'consent_unavailable' }, 503);
+  }
+}
+
+// POST /navigator/consent/guardian/lookup { token } and /respond { token, decision } — the parent's link (no sign-in).
+async function handleNavigatorGuardianLink(request, env, action) {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const rl = `nav_guardian_link:${ip}`;
+  if (await countAllAttempts(env.DB, rl, 60 * 60 * 1000) >= 30) return err('Too many attempts. Please try again later.', 429);
+  await recordAttempt(env.DB, rl, true);
+  const body = await request.json().catch(() => null);
+  const token = String(body?.token ?? '');
+  try {
+    if (action === 'lookup') {
+      const g = await consentStore(env, 'POST', '/guardian/lookup', { token });
+      const row = await env.DB.prepare(`SELECT name, status FROM users WHERE id = ?`).bind(g.userId).first();
+      if (!row || row.status === 'deleted') return err('This request is no longer active.', 404);
+      return json({ studentFirstName: String(row.name || 'The student').trim().split(/\s+/)[0], status: g.status, expiresAt: g.expiresAt });
+    }
+    const r = await consentStore(env, 'POST', '/guardian/respond', { token, decision: body?.decision });
+    await audit(env.DB, `navigator_guardian_${r.status}`, r.userId, 'consent', { via: 'guardian_email_link' });
+    return json({ status: r.status });
+  } catch (e) {
+    if (e.status && e.status < 500) return err(e.message, e.status);
+    console.error('guardian link failed:', e?.message);
+    return json({ error: 'We couldn’t process this just now. Please try again.' }, 503);
+  }
 }
 
 // ── Delete my account (Career Navigator) ───────────────────────────────────
@@ -15693,6 +16073,10 @@ async function handleNavigatorAccountDelete(request, user, env, ctx) {
   if (cols.has('email_verified')) sets.push('email_verified = 0');
   for (const c of USER_PII_COLUMNS) if (cols.has(c)) sets.push(c === 'phone_normalized' ? `${c} = ''` : `${c} = NULL`);
   await db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, row.id).run();
+
+  // Consent store (AWS Canada): remove the parent/guardian email; consent history has no personal data and is kept.
+  try { await consentStore(env, 'POST', '/erase', { user_id: row.id }); }
+  catch (e) { console.error('navigator delete: consent erase failed', e?.message); }
 
   // Keep the audit trail, minus personal details.
   await run(`UPDATE audit_log SET details = ? WHERE user_id = ?`, JSON.stringify({ redacted: 'account_deleted' }), row.id);
@@ -16109,6 +16493,8 @@ async function handleNavigatorChat(request, user, env) {
   if (plan === 'free' || plan === 'expired') {
     return err('Active Navigator premium subscription required', 403);
   }
+  // AI processing authorization (and, for under-13s, a parent or guardian's approval).
+  const consentErr = await requireNavigatorConsent(env, user.sub, 'acia'); if (consentErr) return consentErr;
 
   // Rate limit: 30 requests per hour per user
   const attempts = await countAllAttempts(env.DB, `nav_chat:${user.sub}`, 60 * 60 * 1000);
@@ -16422,7 +16808,12 @@ async function _routeRequest(request, env, ctx) {
     // ── Consent audit log (no auth, no PII) ───────────────────────────────────
     if (path === '/consent/record' && request.method === 'POST') return handleConsentRecord(request, env);
 
+    // ── Career Navigator consent store — AWS Canada only, shared-key protected ──
+    if (path.startsWith('/auth/navigator-consent/')) return handleConsentStore(request, env, path.slice('/auth/navigator-consent/'.length));
+
     // ── Career Navigator — public (no JWT) ───────────────────────────────────
+    if (path === '/navigator/consent/guardian/lookup'  && request.method === 'POST') return handleNavigatorGuardianLink(request, env, 'lookup');
+    if (path === '/navigator/consent/guardian/respond' && request.method === 'POST') return handleNavigatorGuardianLink(request, env, 'respond');
     if (path === '/navigator/webhook'          && request.method === 'POST') return handleNavigatorWebhook(request, env);
     if (path === '/navigator/invite/validate'  && request.method === 'POST') return handleNavigatorInviteValidate(request, env);
     if (path === '/navigator/pilot/redeem'     && request.method === 'POST') return handleNavigatorPilotRedeem(request, env);
@@ -16742,6 +17133,9 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/course-plan'  && request.method === 'GET')  return handleNavigatorCoursePlanGet(request, user, env);
     if (path === '/navigator/course-plan'  && request.method === 'PUT')  return handleNavigatorCoursePlanUpdate(request, user, env);
     if (path === '/navigator/account/delete' && request.method === 'POST') return handleNavigatorAccountDelete(request, user, env, ctx);
+    if (path === '/navigator/consent'          && request.method === 'GET')  return handleNavigatorConsentGet(request, user, env);
+    if (path === '/navigator/consent'          && request.method === 'POST') return handleNavigatorConsentUpdate(request, user, env);
+    if (path === '/navigator/consent/guardian' && request.method === 'POST') return handleNavigatorGuardianRequest(request, user, env, ctx);
     if (path === '/navigator/sharing'      && request.method === 'GET')  return handleNavigatorSharingList(request, user, env);
     if (path === '/navigator/sharing'      && request.method === 'POST') return handleNavigatorSharingCreate(request, user, env, ctx);
     {
@@ -16750,6 +17144,7 @@ async function _routeRequest(request, env, ctx) {
       if (m && m[2] !== 'view' && request.method === 'POST') return handleNavigatorSharingAction(request, user, env, m[1], m[2]);
     }
     if (path === '/admin/navigator'                                     && request.method === 'GET')    return handleAdminNavigatorDashboard(request, user, env);
+    if (path === '/admin/navigator-consent'                             && request.method === 'GET')    return handleAdminNavigatorConsent(request, user, env);
     if (path === '/admin/navigator/pilot-codes'                         && request.method === 'POST')   return handleAdminNavigatorPilotCodesCreate(request, user, env);
     if (path.startsWith('/admin/navigator/pilot-codes/') && path.endsWith('/revoke') && request.method === 'POST') {
       const codeId = path.split('/')[4];

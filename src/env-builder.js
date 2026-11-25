@@ -19,5 +19,9 @@ export function buildEnv() {
     AACP_REFRESH_TOKEN_SECRET:    process.env.AACP_REFRESH_TOKEN_SECRET,
     AACP_AUTH_TEST_MODE:          process.env.AACP_AUTH_TEST_MODE,
     AACP_PUBLIC_ORIGIN:           process.env.AACP_PUBLIC_ORIGIN,
+    // Career Navigator consent records are stored only here (AWS ca-central-1 RDS).
+    // The Cloudflare Worker reaches /auth/navigator-consent/* with this shared key.
+    CONSENT_STORE_ROLE:           'store',
+    CONSENT_STORE_KEY:            process.env.CONSENT_STORE_KEY,
   };
 }
