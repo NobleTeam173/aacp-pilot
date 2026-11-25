@@ -13583,7 +13583,7 @@ async function handleGetCohortInviteInfo(request, env) {
   });
 }
 
-async function handleAcceptCohortInvite(request, env) {
+async function handleAcceptCohortInvite(request, env, ctx) {
   const url = new URL(request.url);
   const rawToken = url.pathname.replace('/cohort/invite/', '').split('/')[0];
   if (!rawToken) return err('Invalid invitation link', 400);
@@ -13699,6 +13699,10 @@ async function handleAcceptCohortInvite(request, env) {
   await audit(env.DB, 'cohort_registration_completed', id, 'user', {
     invitationId: inv.id, role: inv.pilot_role, cohortName: inv.cohort_name ?? null, hubType: null,
   });
+  fireEmail(ctx, emailAdminNewRegistration(env, {
+    name: fullName, email: inv.invited_email, role: inv.pilot_role,
+    organizationName: inv.invited_organization ?? null, institutionName: null,
+  }), 'admin_cohort_registration');
   return json({
     success: true,
     userId: id, name: fullName, role: inv.pilot_role,
@@ -16163,7 +16167,7 @@ async function _routeRequest(request, env, ctx) {
 
     // Cohort invite — public (token-gated, no JWT required)
     if (path.startsWith('/cohort/invite/') && request.method === 'GET')  return handleGetCohortInviteInfo(request, env);
-    if (path.startsWith('/cohort/invite/') && request.method === 'POST') return handleAcceptCohortInvite(request, env);
+    if (path.startsWith('/cohort/invite/') && request.method === 'POST') return handleAcceptCohortInvite(request, env, ctx);
 
     // Public badge verification (no auth required)
     if (path.startsWith('/badge/verify/') && request.method === 'GET') {
