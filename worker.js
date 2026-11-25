@@ -2016,9 +2016,20 @@ async function runMigrations(db) {
       provider_id   TEXT NOT NULL,
       provider_email TEXT,
       created_at    TEXT NOT NULL,
+      updated_at    TEXT,
       UNIQUE(provider, provider_id)
     )
   `).run().catch(() => {});
+  // The live D1 table predates this definition: it has no provider_email and a
+  // NOT NULL updated_at, so sign-in inserts failed there. Make both columns exist
+  // everywhere; upsertOAuthUser always writes both.
+  const oauthCols = await getTableColumns(db, 'oauth_providers');
+  if (oauthCols.length && !oauthCols.includes('provider_email')) {
+    await db.prepare(`ALTER TABLE oauth_providers ADD COLUMN provider_email TEXT`).run().catch(() => {});
+  }
+  if (oauthCols.length && !oauthCols.includes('updated_at')) {
+    await db.prepare(`ALTER TABLE oauth_providers ADD COLUMN updated_at TEXT`).run().catch(() => {});
+  }
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_providers(user_id)`).run().catch(() => {});
 }
 
@@ -15265,8 +15276,10 @@ async function handleNavigatorProfileGet(request, user, env) {
   const [profile, sub, userRow] = await Promise.all([
     env.DB.prepare(`SELECT navigator_role, pathway_data FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first(),
     env.DB.prepare(`SELECT plan, status, trial_ends_at FROM navigator_subscriptions WHERE user_id = ?`).bind(user.sub).first(),
-    env.DB.prepare(`SELECT name FROM users WHERE id = ?`).bind(user.sub).first(),
+    env.DB.prepare(`SELECT name, status FROM users WHERE id = ?`).bind(user.sub).first(),
   ]);
+  // Deleted (or missing) account: treat the token as signed out on every device.
+  if (!userRow || userRow.status === 'deleted') return json({ error: 'Account not found' }, 401);
   let plan = sub?.plan ?? 'free';
   if (plan !== 'free' && sub?.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) plan = 'expired';
   return json({
@@ -15576,6 +15589,119 @@ async function handleNavigatorSharingView(request, user, env, shareId) {
   });
 }
 
+// ── Delete my account (Career Navigator) ───────────────────────────────────
+// Self-service erasure. Personal information is removed immediately:
+//   • rows keyed to the user in other tables are deleted;
+//   • the users row is kept but anonymised (no name/email/phone/etc., random
+//     password, status 'deleted') so billing and audit records stay consistent —
+//     the D1 guard blocks hard deletes of Career Navigator accounts by design;
+//   • navigator_* rows are emptied (guarded tables are updated, never deleted);
+//   • all sharing is revoked and any paid subscription is cancelled first.
+// The audit trail keeps the action but its details are redacted.
+const ERASE_BY_USER_ID = [
+  'refresh_tokens', 'email_verifications', 'password_resets', 'oauth_providers', 'cookie_consent_log',
+  'acia_results', 'acia_assessments', 'acia_badges', 'acia_m2_responses', 'acia_assembly_evidence', 'acia_wm_evidence',
+  'competency_scores', 'transition_profiles', 'transition_results', 'program_interest', 'program_enrollments',
+  'pilot_feedback', 'professional_profiles', 'talent_network', 'program_waitlist', 'program_routing_reviews',
+  'rpas_profiles', 'organization_memberships', 'industry_professional_contributors',
+  'network_org_memberships', 'network_expressions_of_interest', 'network_event_registrations',
+  'network_subscriptions', 'network_notifications',
+];
+const ERASE_BY_PARTICIPANT_ID = [
+  'competency_evidence', 'career_alignment_snapshots', 'acia_save_attempts', 'acia_checkpoints',
+  'competency_alignment_results', 'external_industry_evidence', 'participant_career_context', 'vr_evidence',
+  'participant_activity_instances', 'participant_reflections', 'participant_directions', 'participant_handoffs',
+  'handoff_consents', 'handoff_outcomes', 'handoff_followups', 'rpas_session_logs',
+];
+const USER_PII_COLUMNS = ['phone', 'phone_normalized', 'organization_name', 'job_title', 'institution_name', 'region', 'province',
+  'program_area', 'routing_data', 'recommended_program', 'recommended_specialization', 'mfa_secret', 'invitation_id', 'pilot_cohort'];
+
+async function emailNavigatorAccountDeleted(env, { name, email }) {
+  const html = emailLayout({
+    preheader: 'Your AACP Career Navigator account has been deleted.',
+    body: eH1('Your account has been deleted') +
+      eP(`Hi ${htmlEsc(name)},`) +
+      eP('As you requested, your AACP Career Navigator account and the personal information in it have been deleted, and any plan sharing has been stopped. You won’t be able to sign in with this email any more, but you’re welcome to create a new account at any time.') +
+      eNote('If you didn’t request this, please contact us right away by replying to this email.'),
+  });
+  return sendEmail(env, {
+    event: 'navigator_account_deleted', to: email, subject: 'Your account has been deleted — AACP Career Navigator',
+    text: `Hi ${name},\n\nAs you requested, your AACP Career Navigator account and the personal information in it have been deleted, and any plan sharing has been stopped.\n\nIf you didn't request this, please contact us right away by replying to this email.`,
+    html,
+  });
+}
+
+// POST /navigator/account/delete — body { confirm: 'DELETE', password? }
+async function handleNavigatorAccountDelete(request, user, env, ctx) {
+  const authErr = requireAuth(user); if (authErr) return authErr;
+  const body = await request.json().catch(() => null);
+  if (body?.confirm !== 'DELETE') return err('Type DELETE to confirm.');
+
+  const rlKey = `nav_delete:${user.sub}`;
+  if (await countAllAttempts(env.DB, rlKey, 60 * 60 * 1000) >= 5) return err('Too many attempts. Please try again in an hour.', 429);
+  await recordAttempt(env.DB, rlKey, true);
+
+  const db = env.DB;
+  const row = await db.prepare(`SELECT id, email, name, role, status, password_hash FROM users WHERE id = ?`).bind(user.sub).first();
+  if (!row || row.status === 'deleted') return err('Account not found.', 404);
+  // Only Career Navigator accounts use this route; main AACP accounts are handled by AACP.
+  let isNavigator = row.role === 'navigator';
+  if (!isNavigator) isNavigator = !!(await db.prepare(`SELECT 1 AS ok FROM navigator_accounts WHERE user_id = ?`).bind(row.id).first().catch(() => null));
+  if (!isNavigator) return err('This account is managed by the main AACP site. Please contact AACP to delete it.', 403);
+
+  // Re-authenticate: password accounts must enter their password; Google/Microsoft-only accounts confirm by typing DELETE.
+  const oauth = await db.prepare(`SELECT 1 AS ok FROM oauth_providers WHERE user_id = ?`).bind(row.id).first().catch(() => null);
+  if (body.password) {
+    const pw = await verifyPassword(String(body.password), row.password_hash);
+    if (!pw.valid) return err('That password is incorrect.', 401);
+  } else if (!oauth) {
+    return err('Enter your password to confirm.', 400);
+  }
+
+  // Stop billing before erasing anything.
+  const sub = await db.prepare(`SELECT stripe_subscription_id, status FROM navigator_subscriptions WHERE user_id = ?`).bind(row.id).first().catch(() => null);
+  if (sub?.stripe_subscription_id && !['canceled', 'cancelled'].includes(sub.status)) {
+    if (!env.STRIPE_SECRET_KEY) return err('We couldn’t cancel your subscription automatically. Please contact us to delete your account.', 503);
+    try { await stripeRequest(env, 'DELETE', `/subscriptions/${encodeURIComponent(sub.stripe_subscription_id)}`); }
+    catch (e) {
+      if (!/No such subscription|resource_missing/i.test(String(e?.message))) {
+        console.error('navigator delete: stripe cancel failed', e?.message);
+        return err('We couldn’t cancel your subscription. Please try again or contact us.', 502);
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  const originalEmail = row.email, originalName = row.name || 'there';
+  const run = (sql, ...args) => db.prepare(sql).bind(...args).run().catch(() => null); // table may not exist on this backend
+
+  for (const t of ERASE_BY_USER_ID) await run(`DELETE FROM ${t} WHERE user_id = ?`, row.id);
+  for (const t of ERASE_BY_PARTICIPANT_ID) await run(`DELETE FROM ${t} WHERE participant_id = ?`, row.id);
+  await run(`DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?`, originalEmail, `nav_login:${originalEmail}`);
+
+  // Career Navigator tables (guarded against deletes) — empty them instead.
+  await run(`UPDATE navigator_profiles SET pathway_data = NULL, updated_at = ? WHERE user_id = ?`, now, row.id);
+  await run(`UPDATE navigator_course_plans SET plan_data = '{}', updated_at = ? WHERE user_id = ?`, now, row.id);
+  await run(`UPDATE navigator_subscriptions SET plan = 'free', status = 'canceled', cancel_at_period_end = 0, invites_remaining = 0, updated_at = ? WHERE user_id = ?`, now, row.id);
+  await run(`UPDATE navigator_invite_codes SET status = 'revoked', updated_at = ? WHERE advisor_user_id = ?`, now, row.id);
+  await run(`UPDATE navigator_plan_shares SET status = 'revoked', revoked_at = ?, revoked_by = 'deleted' WHERE (student_user_id = ? OR viewer_user_id = ?) AND status IN ('pending','active')`, now, row.id, row.id);
+
+  // Anonymise the account row.
+  const cols = new Set(await getTableColumns(db, 'users'));
+  const sets = [`email = ?`, `name = ?`, `password_hash = ?`, `status = 'deleted'`, `updated_at = ?`];
+  const vals = [`deleted-${row.id}@deleted.invalid`, 'Deleted user', await hashPassword(randomHex(32)), now];
+  if (cols.has('email_verified')) sets.push('email_verified = 0');
+  for (const c of USER_PII_COLUMNS) if (cols.has(c)) sets.push(c === 'phone_normalized' ? `${c} = ''` : `${c} = NULL`);
+  await db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, row.id).run();
+
+  // Keep the audit trail, minus personal details.
+  await run(`UPDATE audit_log SET details = ? WHERE user_id = ?`, JSON.stringify({ redacted: 'account_deleted' }), row.id);
+  await audit(db, 'navigator_account_delete', row.id, 'user', { by: 'self' });
+
+  if (ctx) fireEmail(ctx, emailNavigatorAccountDeleted(env, { name: originalName, email: originalEmail }), 'navigator_account_deleted');
+  return json({ deleted: true });
+}
+
 // POST /navigator/auth/login — navigator-specific login with email verification enforcement
 async function handleNavigatorAuthLogin(request, env) {
   const clientIp = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ?? 'unknown';
@@ -15817,16 +15943,16 @@ async function upsertOAuthUser(env, { provider, providerId, email, name }) {
     const emailUser = await env.DB.prepare(`SELECT id, email, role FROM users WHERE email = ?`).bind(normalEmail).first();
     if (emailUser) {
       userId = emailUser.id; userEmail = emailUser.email; userRole = emailUser.role;
-      await env.DB.prepare(`INSERT OR IGNORE INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run().catch(() => {});
+      await env.DB.prepare(`INSERT OR IGNORE INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now, now).run().catch(() => {});
       await env.DB.prepare(`UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0`).bind(now, userId).run().catch(() => {});
     } else {
       userId = crypto.randomUUID(); userEmail = normalEmail; userRole = 'navigator';
       const dummyHash = await sha256hex('oauth_no_password_' + providerId);
       await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, role, status, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 'navigator', 'active', 1, ?, ?)`)
         .bind(userId, userEmail, name, dummyHash, now, now).run();
-      await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now).run();
+      await env.DB.prepare(`INSERT INTO oauth_providers (id, user_id, provider, provider_id, provider_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), userId, provider, providerId, normalEmail, now, now).run();
       await audit(env.DB, 'navigator_oauth_register', userId, 'user', { provider, email: userEmail });
     }
   }
@@ -16615,6 +16741,7 @@ async function _routeRequest(request, env, ctx) {
     if (path === '/navigator/profile'      && request.method === 'PUT')  return handleNavigatorProfileUpdate(request, user, env);
     if (path === '/navigator/course-plan'  && request.method === 'GET')  return handleNavigatorCoursePlanGet(request, user, env);
     if (path === '/navigator/course-plan'  && request.method === 'PUT')  return handleNavigatorCoursePlanUpdate(request, user, env);
+    if (path === '/navigator/account/delete' && request.method === 'POST') return handleNavigatorAccountDelete(request, user, env, ctx);
     if (path === '/navigator/sharing'      && request.method === 'GET')  return handleNavigatorSharingList(request, user, env);
     if (path === '/navigator/sharing'      && request.method === 'POST') return handleNavigatorSharingCreate(request, user, env, ctx);
     {

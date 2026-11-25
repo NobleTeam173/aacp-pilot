@@ -1105,6 +1105,11 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .co-panel.share-view-panel{background:var(--surface);color:var(--fg);max-width:640px}
 .share-view-panel h4{font-size:14px;font-weight:700;margin:16px 0 6px}
 .share-view-panel ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:var(--fg2)}
+.del-account-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.del-link{background:none;border:0;padding:4px 0;font:inherit;font-size:13px;color:#c0392b;text-decoration:underline;cursor:pointer;min-height:32px}
+.del-list{margin:0 0 4px}
+.btn-primary.del-btn{background:#c0392b}
+.btn-primary.del-btn:hover{background:#a93226}
 .co-panel{background:#ffffff;color:#30313d;width:100%;max-width:520px;border-radius:12px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .co-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .co-title{font-size:16px;font-weight:700}
@@ -2772,6 +2777,40 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
       </div>
       <!-- Subscription status banner -->
       <div id="subStatusBanner" style="display:none;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid;margin-top:14px;font-size:13px"></div>
+      <div class="del-account-row">
+        <button type="button" class="del-link" onclick="navOpenDeleteAccount()">Delete my account</button>
+      </div>
+    </div>
+
+    <!-- Delete my account — confirmation -->
+    <div id="deleteAccountModal" class="co-overlay" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+      <div class="co-panel share-view-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">
+          <h2 id="delTitle" style="font-size:18px;font-weight:700;margin:0">Delete my account</h2>
+          <button type="button" onclick="navCloseDeleteAccount()" aria-label="Close" style="background:none;border:none;color:var(--fg3);font-size:22px;cursor:pointer;line-height:1">&times;</button>
+        </div>
+        <p class="share-sub">This permanently deletes your Career Navigator account straight away. It can’t be undone.</p>
+        <ul class="del-list">
+          <li>Your name, email and sign-in details are erased.</li>
+          <li>Your saved careers, career goal, next steps and course plan are deleted.</li>
+          <li>Anyone you shared your plan with loses access, and plans shared with you are removed.</li>
+          <li>Any paid subscription is cancelled, so you won’t be charged again.</li>
+          <li>You’ll get a confirmation email. You can create a new account later if you want.</li>
+        </ul>
+        <form onsubmit="event.preventDefault();navDeleteAccount()">
+          <label class="share-field" style="margin-top:12px"><span>Password <span style="font-weight:400">(leave blank if you sign in with Google or Microsoft)</span></span>
+            <input id="delPassword" type="password" autocomplete="current-password" maxlength="128">
+          </label>
+          <label class="share-field" style="margin-top:10px"><span>Type DELETE to confirm</span>
+            <input id="delConfirm" type="text" autocomplete="off" maxlength="10" placeholder="DELETE">
+          </label>
+          <p id="delMsg" class="share-msg" role="status" aria-live="polite"></p>
+          <div class="share-actions" style="margin-top:10px">
+            <button type="submit" class="btn-primary del-btn" id="delBtn">Delete my account</button>
+            <button type="button" class="btn-secondary" onclick="navCloseDeleteAccount()">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Student plans (default + student role) -->
@@ -4168,6 +4207,41 @@ async function navShareView(id) {
     navLoadSharing();
   }
 }
+/* ── Delete my account ─────────────────────────────────────────────── */
+function navOpenDeleteAccount() {
+  ['delPassword', 'delConfirm'].forEach(function (id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  var m = document.getElementById('delMsg'); if (m) { m.textContent = ''; m.className = 'share-msg'; }
+  document.getElementById('deleteAccountModal').classList.add('open');
+}
+function navCloseDeleteAccount() { var el = document.getElementById('deleteAccountModal'); if (el) el.classList.remove('open'); }
+async function navDeleteAccount() {
+  var msg = document.getElementById('delMsg'), btn = document.getElementById('delBtn');
+  var confirmText = document.getElementById('delConfirm').value.trim();
+  if (confirmText !== 'DELETE') { msg.textContent = 'Type DELETE in capitals to confirm.'; msg.className = 'share-msg err'; return; }
+  var token = navShareToken();
+  if (!token) { msg.textContent = 'Please sign in first.'; msg.className = 'share-msg err'; return; }
+  btn.disabled = true; msg.textContent = 'Deleting your account…'; msg.className = 'share-msg';
+  try {
+    var res = await fetch(NAV_API + '/navigator/account/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ confirm: 'DELETE', password: document.getElementById('delPassword').value || undefined })
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error || 'We couldn’t delete your account. Please try again.');
+    // Remove everything this browser kept for the account too.
+    ['navigatorToken', 'navigatorRole', PATHWAY_KEY, typeof MC_STORAGE_KEY !== 'undefined' ? MC_STORAGE_KEY : 'navigatorCoursePlan'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    navCloseDeleteAccount();
+    signOut();
+    showToast('Your account has been deleted. A confirmation email is on its way.');
+  } catch (e) {
+    msg.textContent = e.message; msg.className = 'share-msg err';
+  }
+  btn.disabled = false;
+}
+
 // After sign-in: load sharing and point the person to any new invitation.
 async function navSharingAfterLogin() {
   var d = await navLoadSharing();
