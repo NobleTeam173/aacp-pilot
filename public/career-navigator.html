@@ -1116,6 +1116,30 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
 .consent-check input{margin-top:3px;accent-color:var(--crimson);flex-shrink:0;width:16px;height:16px}
 .consent-check a{color:var(--crimson)}
 .consent-overlay{z-index:1300}
+#guardianWaitModal{z-index:1250}
+body:has(#guardianWaitModal.open) .acia-fab,body:has(#guardianModal.open) .acia-fab{display:none}
+.share-sub a{color:var(--crimson)}
+.legal-privacy{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--fg2);margin:18px 0 0}
+.legal-privacy svg{color:var(--crimson);flex-shrink:0}
+.legal-links{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:13px;margin:16px 0 6px}
+.legal-links a,.cn-footer a,.legal-mini a{color:var(--crimson);text-decoration:underline}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .legal-links a,:root:not([data-theme="light"]) .cn-footer a,:root:not([data-theme="light"]) .legal-mini a{color:#f08aa4}}
+:root[data-theme="dark"] .legal-links a,:root[data-theme="dark"] .cn-footer a,:root[data-theme="dark"] .legal-mini a{color:#f08aa4}
+.legal-copy{text-align:center;font-size:12px;color:var(--fg3);margin:0}
+.legal-mini{font-size:12px;color:var(--fg3);margin:12px 0 0;text-align:center}
+.cn-footer{max-width:1100px;margin:32px auto 0;padding:20px 16px 96px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--fg3)}
+.cn-footer-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:6px;font-size:13px}
+.consent-docs{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.consent-doc a{color:var(--crimson)}
+.gform{display:flex;flex-direction:column;gap:10px}
+.gform fieldset{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin:0}
+.gform legend{font-size:13px;font-weight:700;padding:0 4px;color:var(--fg)}
+.gform .consent-check{margin-top:6px}
+.gform-row{display:flex;gap:10px;flex-wrap:wrap}
+.gform-row .share-field{flex:1 1 200px}
+.gform-meta{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;color:var(--fg2);background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.gform-meta dt{font-weight:600;color:var(--fg)}
+.gform-meta dd{margin:0;overflow-wrap:anywhere}
 .sid-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
 .sid-label{font-size:12px;font-weight:600;color:var(--fg2)}
 .sid-code{font-size:22px;font-weight:800;letter-spacing:.04em;color:var(--crimson);margin:4px 0;font-variant-numeric:tabular-nums}
@@ -1166,6 +1190,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
     <div id="authStep0">
       <button onclick="showAuthStep('register')" class="btn-primary" style="width:100%;justify-content:center;margin-bottom:12px">Create Free Account</button>
       <button onclick="showAuthStep('signin')" class="btn-secondary" style="width:100%;justify-content:center;background:var(--surface2)">Sign In</button>
+      <p class="legal-privacy"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.4-8 9-4.6-.6-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg> Designed with student privacy in mind.</p>
     </div>
 
     <!-- Register step -->
@@ -1195,7 +1220,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
           </label>
           <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;margin-bottom:8px">
             <input type="checkbox" id="authConsentPrivacy" style="margin-top:2px;cursor:pointer;accent-color:var(--crimson);flex-shrink:0">
-            <span style="font-size:12px;color:var(--fg2);line-height:1.5">I have read and accept the <a href="privacy.html" target="_blank" style="color:var(--crimson)">Privacy Policy</a>. AACP collects only the information needed to personalise your career pathway.</span>
+            <span style="font-size:12px;color:var(--fg2);line-height:1.5">I have read and accept the <a href="career-navigator-privacy.html" target="_blank" style="color:var(--crimson)">Privacy Policy</a>. AACP collects only the information needed to personalise your career pathway.</span>
           </label>
           <label id="authConsentTermsRow" style="display:none;align-items:flex-start;gap:9px;cursor:pointer;margin-bottom:8px">
             <input type="checkbox" id="authConsentTerms" style="margin-top:2px;cursor:pointer;accent-color:var(--crimson);flex-shrink:0">
@@ -1275,6 +1300,9 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
         </div>
       </div>
     </div>
+
+    <div class="legal-links"><a href="career-navigator-privacy.html" target="_blank">Privacy Policy</a><a href="career-navigator-terms.html" target="_blank">Terms of Use</a></div>
+    <p class="legal-copy">© 2026 Aviation &amp; Aerospace Competency Program (AACP™)</p>
 
   </div>
 </div>
@@ -1386,7 +1414,7 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
         </label>
       </div>
       <label class="consent-check" id="consentPrivacyRow"><input type="checkbox" id="consentPrivacy">
-        <span>I have read and accept the <a href="privacy.html" target="_blank">Privacy Policy</a><span id="consentPrivacyUpdated" style="display:none"> (updated)</span>.</span></label>
+        <span>I have read and accept the <a href="career-navigator-privacy.html" target="_blank">Privacy Policy</a><span id="consentPrivacyUpdated" style="display:none"> (updated)</span>.</span></label>
       <label class="consent-check" id="consentTermsRow" style="display:none"><input type="checkbox" id="consentTerms">
         <span>I accept the <a id="consentTermsLink" href="#" target="_blank">Terms of Use</a>.</span></label>
       <label class="consent-check" id="consentAciaRow"><input type="checkbox" id="consentAcia">
@@ -1401,10 +1429,31 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
   </div>
 </div>
 
+<!-- Under-13: nothing is available until a parent or guardian authorizes participation -->
+<div class="co-overlay consent-overlay" id="guardianWaitModal" role="dialog" aria-modal="true" aria-labelledby="guardianWaitTitle">
+  <div class="co-panel share-view-panel">
+    <h2 id="guardianWaitTitle" style="font-size:18px;font-weight:700;margin:0 0 6px">Ask a parent or guardian</h2>
+    <p class="share-sub">Because you’re under 13, a parent or legal guardian needs to complete the <a href="career-navigator-parental-authorization.html" target="_blank">Parental or Guardian Authorization Form</a> before you can use Career Navigator. We’ll email them a secure link. We only use their email for this.</p>
+    <div id="guardianWaitStatus" class="share-meta" style="margin-bottom:10px"></div>
+    <form class="share-form" onsubmit="event.preventDefault();navGuardianRequest('wait')">
+      <label class="share-field"><span>Parent or guardian’s email</span>
+        <input id="guardianWaitEmail" type="email" autocomplete="off" maxlength="254" placeholder="parent@example.com"></label>
+      <button type="submit" class="btn-primary share-btn" id="guardianWaitBtn">Send request</button>
+    </form>
+    <p id="guardianWaitMsg" class="share-msg" role="status" aria-live="polite"></p>
+    <div class="share-actions" style="margin-top:10px">
+      <button type="button" class="btn-secondary" onclick="navConsentRecheck()">I’ve been authorized — check again</button>
+      <button type="button" class="btn-secondary" onclick="navGuardianWaitClose();signOut()">Sign out</button>
+    </div>
+    <p class="legal-mini"><a href="career-navigator-privacy.html" target="_blank">Privacy Policy</a> · <a href="career-navigator-terms.html" target="_blank">Terms of Use</a></p>
+  </div>
+</div>
+
 <!-- Parent / guardian authorization page (opened from the emailed link; no sign-in) -->
 <div class="co-overlay consent-overlay" id="guardianModal" role="dialog" aria-modal="true" aria-labelledby="guardianTitle">
   <div class="co-panel share-view-panel">
-    <h2 id="guardianTitle" style="font-size:18px;font-weight:700;margin:0 0 6px">Parent or guardian authorization</h2>
+    <h2 id="guardianTitle" style="font-size:18px;font-weight:700;margin:0 0 2px">Parental or Guardian Authorization Form</h2>
+    <p class="share-meta" style="margin:0 0 10px">Aviation &amp; Aerospace Competency Program (AACP™) · Revision date: November 25, 2026</p>
     <div id="guardianBody"><p class="share-meta">Loading…</p></div>
   </div>
 </div>
@@ -3054,6 +3103,11 @@ body:not([data-role="teacher"]):not([data-role="advisor"]) .tab-panel{padding-bo
   </div><!-- /plansSection -->
 </main>
 
+<footer class="cn-footer" aria-label="Legal">
+  <div class="cn-footer-links"><a href="career-navigator-privacy.html" target="_blank">Privacy Policy</a><a href="career-navigator-terms.html" target="_blank">Terms of Use</a><a href="career-navigator-parental-authorization.html" target="_blank">Parental or Guardian Authorization Form</a></div>
+  <div>© 2026 Aviation &amp; Aerospace Competency Program (AACP™)</div>
+</footer>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 /* ── Tab navigation ────────────────────────────────────────────── */
@@ -4153,6 +4207,7 @@ function signOut() {
   if (shs) { shs.style.display = 'none'; ['shareOutList', 'shareInList', 'shareViewBody'].forEach(function (id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; }); navShareMsg(''); }
   navShareCloseView();
   navConsentClose();
+  navGuardianWaitClose();
   navConsentState = null;
   var cst = document.getElementById('consentStatus'); if (cst) cst.innerHTML = '';
   var cgw = document.getElementById('consentGuardian'); if (cgw) cgw.style.display = 'none';
@@ -4298,7 +4353,9 @@ async function navShareView(id) {
    and changes them through /navigator/consent. Separate consents: age range,
    Privacy Policy, Terms of Use (once published) and ACIA™ AI-assisted career guidance; plus
    parent/guardian authorization for under-13s (ACIA™, sharing, payments). */
-var NAV_TERMS_URL = null; // set to the Terms of Use URL when published (server: CONSENT_POLICIES.terms.version)
+var NAV_TERMS_URL = 'career-navigator-terms.html'; // approved Terms of Use (rev. Nov 25, 2026) — server: CONSENT_POLICIES.terms.version
+var NAV_PRIVACY_URL = 'career-navigator-privacy.html';
+var NAV_GUARDIAN_FORM_URL = 'career-navigator-parental-authorization.html';
 var navConsentState = null;
 var CONSENT_AGE_LABEL = { under_13: 'Under 13', '13_17': '13 to 17', '18_plus': '18 or older' };
 async function navConsentApi(path, method, body) {
@@ -4314,25 +4371,57 @@ async function navConsentApi(path, method, body) {
   return data;
 }
 function navConsentCardMsg(t, k) { var el = document.getElementById('consentCardMsg'); if (el) { el.textContent = t || ''; el.className = 'share-msg' + (k ? ' ' + k : ''); } }
+var GUARDIAN_FEATURE_LABEL = { platform_use: 'Use Career Navigator', save_plans: 'Create and save plans', acia: 'ACIA™ AI-assisted career guidance', sharing: 'Career plan sharing' };
+function navConsentDate(iso) { try { return iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''; } catch (e) { return ''; } }
 function navRenderConsent(s) {
   var el = document.getElementById('consentStatus'); if (!el) return;
   if (!s) { el.innerHTML = '<span class="consent-no">Unavailable right now.</span> ACIA™, sharing and payments stay locked until we can check your settings.'; return; }
-  var done = function (ok) { return ok ? '<span class="consent-ok">Accepted</span>' : '<span class="consent-no">Needed</span>'; };
+  var d = s.documents || {};
+  var docRow = function (label, key, url) {
+    var x = d[key] || {};
+    var st = x.current ? '<span class="consent-ok">Accepted</span> <span class="share-meta">' + escHtml(navConsentDate(x.acceptedAt)) + '</span>'
+      : (x.acceptedVersion ? '<span class="consent-no">Updated — please review</span>' : '<span class="consent-no">Needed</span>');
+    return '<div class="consent-row consent-doc"><span><a href="' + url + '" target="_blank">' + label + '</a> <span class="share-meta">rev. ' + escHtml(x.version || '') + '</span></span><span>' + st + '</span></div>';
+  };
   var rows = [];
   rows.push('<div class="consent-row"><span>Age range</span><span>' + (s.ageBand ? escHtml(CONSENT_AGE_LABEL[s.ageBand] || s.ageBand) : '<span class="consent-no">Needed</span>') + '</span></div>');
-  rows.push('<div class="consent-row"><span>Privacy Policy</span>' + done(s.missing.indexOf('privacy_policy') < 0) + '</div>');
-  if (s.policies && s.policies.terms) rows.push('<div class="consent-row"><span>Terms of Use</span>' + done(s.missing.indexOf('terms') < 0) + '</div>');
-  rows.push('<div class="consent-row"><span>ACIA™ AI-assisted career guidance</span><span>' + (s.aciaConsent ? '<span class="consent-ok">On</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(false)">Turn off</button>' : '<span class="consent-wait">Off</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(true)">Turn on</button>') + '</span></div>');
+  rows.push(docRow('Privacy Policy', 'privacy_policy', NAV_PRIVACY_URL));
+  if (s.policies && s.policies.terms) rows.push(docRow('Terms of Use', 'terms', NAV_TERMS_URL));
+  var ai = d.acia_ai_processing || {};
+  rows.push('<div class="consent-row"><span>ACIA™ AI-assisted career guidance <span class="share-meta">(optional)</span></span><span>' + (s.aciaConsent
+    ? '<span class="consent-ok">On</span> <span class="share-meta">' + escHtml(navConsentDate(ai.acceptedAt)) + '</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(false)">Withdraw</button>'
+    : '<span class="consent-wait">Off</span> <button type="button" class="btn-secondary" onclick="navConsentAcia(true)">Turn on</button>') + '</span></div>');
   if (s.needsGuardian) {
-    var gs = { approved: '<span class="consent-ok">Approved</span>', pending: '<span class="consent-wait">Waiting for reply</span>' + (s.guardianEmailMasked ? ' <span class="share-meta">(' + escHtml(s.guardianEmailMasked) + ')</span>' : ''), declined: '<span class="consent-no">Declined</span>', withdrawn: '<span class="consent-no">Withdrawn</span>', cancelled: '<span class="consent-no">Not sent</span>', expired: '<span class="consent-no">Link expired</span>', none: '<span class="consent-no">Needed</span>' };
-    rows.push('<div class="consent-row"><span>Parent or guardian approval</span><span>' + (gs[s.guardianStatus] || gs.none) + '</span></div>');
+    var gs = { approved: '<span class="consent-ok">Authorized</span> <span class="share-meta">' + escHtml(navConsentDate(s.guardianAt)) + '</span>', pending: '<span class="consent-wait">Waiting for reply</span>' + (s.guardianEmailMasked ? ' <span class="share-meta">(' + escHtml(s.guardianEmailMasked) + ')</span>' : ''), declined: '<span class="consent-no">Declined</span>', withdrawn: '<span class="consent-no">Withdrawn</span>', renewal_needed: '<span class="consent-no">Renewal needed (form updated)</span>', cancelled: '<span class="consent-no">Not sent</span>', expired: '<span class="consent-no">Link expired</span>', none: '<span class="consent-no">Needed</span>' };
+    rows.push('<div class="consent-row"><span><a href="' + NAV_GUARDIAN_FORM_URL + '" target="_blank">Parent or guardian authorization</a></span><span>' + (gs[s.guardianStatus] || gs.none) + '</span></div>');
+    if (s.guardianStatus === 'approved' && s.guardianFeatures) {
+      rows.push('<div class="share-meta" style="margin:-2px 0 2px">Authorized: ' + (s.guardianFeatures.length ? s.guardianFeatures.map(function (f) { return escHtml(GUARDIAN_FEATURE_LABEL[f] || f); }).join(' · ') : 'none') + '. Your parent or guardian can change this from their email link.</div>');
+    }
   }
-  el.innerHTML = '<div class="consent-rows">' + rows.join('') + '</div>';
+  el.innerHTML = '<div class="consent-rows">' + rows.join('') + '</div>' +
+    ((s.missing && s.missing.length) ? '<div class="share-actions" style="margin-top:8px"><button type="button" class="btn-primary" onclick="navConsentOpen()">Review and accept</button></div>' : '');
   var gw = document.getElementById('consentGuardian');
   if (gw) {
     gw.style.display = s.needsGuardian && s.guardianStatus !== 'approved' ? '' : 'none';
     var gb = document.getElementById('guardianBtn'); if (gb) gb.textContent = s.guardianStatus === 'pending' ? 'Send again' : 'Send request';
   }
+  navRenderGuardianWait(s);
+}
+// Under-13 students: nothing is available until a parent authorizes participation.
+function navRenderGuardianWait(s) {
+  var m = document.getElementById('guardianWaitModal'); if (!m) return;
+  var block = !!(s && s.needsGuardian && !(s.missing && s.missing.length) && !(s.allowed && s.allowed.participation));
+  m.classList.toggle('open', block);
+  if (!block) return;
+  var st = { pending: 'We sent a request' + (s.guardianEmailMasked ? ' to ' + s.guardianEmailMasked : '') + '. Ask them to check their email — the link works for 7 days.', declined: 'Your parent or guardian declined. You can send a new request.', withdrawn: 'Your parent or guardian withdrew their authorization.', renewal_needed: 'The authorization form has been updated, so your parent or guardian needs to complete it again.', expired: 'The last link expired. Send a new request.', approved: 'Your parent or guardian hasn’t authorized using Career Navigator.' };
+  document.getElementById('guardianWaitStatus').textContent = st[s.guardianStatus] || 'No request has been sent yet.';
+  var b = document.getElementById('guardianWaitBtn'); if (b) b.textContent = s.guardianStatus === 'pending' ? 'Send again' : 'Send request';
+}
+function navGuardianWaitClose() { var m = document.getElementById('guardianWaitModal'); if (m) m.classList.remove('open'); }
+async function navConsentRecheck() {
+  var s = await navLoadConsent(false);
+  if (s && s.allowed && s.allowed.participation) showToast('You’re all set — your parent or guardian has authorized Career Navigator.');
+  else { var m = document.getElementById('guardianWaitMsg'); if (m) { m.textContent = 'Not authorized yet.'; m.className = 'share-msg'; } }
 }
 async function navLoadConsent(openIfMissing) {
   if (!navShareToken()) return null;
@@ -4394,7 +4483,7 @@ async function navConsentSubmit() {
     navRenderConsent(navConsentState);
     navConsentClose();
     if (navConsentState.needsGuardian && navConsentState.guardianStatus !== 'approved') {
-      showToast('Saved. Ask a parent or guardian to approve ACIA™, sharing and payments in My Career Plan → Privacy & consent.');
+      showToast('Saved. A parent or guardian now needs to complete the authorization form.');
     } else { showToast('Your choices have been saved.'); }
   } catch (e) { msg.textContent = e.message; msg.className = 'share-msg err'; }
   btn.disabled = false;
@@ -4407,17 +4496,20 @@ async function navConsentAcia(on) {
     navConsentCardMsg(on ? 'ACIA™ AI-assisted career guidance is on.' : 'ACIA™ AI-assisted career guidance is off.', 'ok');
   } catch (e) { navConsentCardMsg(e.message, 'err'); }
 }
-async function navGuardianRequest() {
-  var email = document.getElementById('guardianEmail').value.trim();
-  var btn = document.getElementById('guardianBtn');
-  if (!email) { navConsentCardMsg('Enter your parent or guardian’s email.', 'err'); return; }
-  btn.disabled = true; navConsentCardMsg('Sending…');
+async function navGuardianRequest(mode) {
+  var wait = mode === 'wait';
+  var input = document.getElementById(wait ? 'guardianWaitEmail' : 'guardianEmail');
+  var btn = document.getElementById(wait ? 'guardianWaitBtn' : 'guardianBtn');
+  var say = function (t, k) { if (wait) { var m = document.getElementById('guardianWaitMsg'); m.textContent = t || ''; m.className = 'share-msg' + (k ? ' ' + k : ''); } else navConsentCardMsg(t, k); };
+  var email = input.value.trim();
+  if (!email) { say('Enter your parent or guardian’s email.', 'err'); return; }
+  btn.disabled = true; say('Sending…');
   try {
     var r = await navConsentApi('/guardian', 'POST', { email: email });
-    document.getElementById('guardianEmail').value = '';
+    input.value = '';
     navConsentState = r.consent; navRenderConsent(navConsentState);
-    navConsentCardMsg('Request sent. Ask them to check their email — the link works for 7 days.', 'ok');
-  } catch (e) { navConsentCardMsg(e.message, 'err'); }
+    say('Request sent. Ask them to check their email — the link works for 7 days.', 'ok');
+  } catch (e) { say(e.message, 'err'); }
   btn.disabled = false;
 }
 // Parent / guardian link: ?guardian=<token>
@@ -4429,32 +4521,75 @@ async function navGuardianPage(token) {
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || 'This link isn’t valid.'); return d; }); });
   };
   var close = '<div class="share-actions" style="margin-top:14px"><button type="button" class="btn-secondary" onclick="document.getElementById(\'guardianModal\').classList.remove(\'open\')">Close</button></div>';
+  var docs = '<p class="legal-mini" style="text-align:left">Read: <a href="' + NAV_GUARDIAN_FORM_URL + '" target="_blank">full authorization form</a> · <a href="' + NAV_PRIVACY_URL + '" target="_blank">Privacy Policy</a> · <a href="' + NAV_TERMS_URL + '" target="_blank">Terms of Use</a></p>';
+  var REL = { parent: 'Parent', legal_guardian: 'Legal guardian' };
   try {
     var d = await post('lookup', { token: token });
-    var who = 'the student with AACP™ Student ID ' + escHtml(d.studentCode || '');
-    var what = '<ul style="margin:8px 0 12px"><li><strong>ACIA™</strong> — AACP’s career assistant. It answers from AACP’s verified career information and may use an AI service for general questions; the student’s messages and personal details are never sent to outside AI providers.</li><li><strong>Sharing</strong> their career plan (view only) with a teacher, counsellor or family member they choose.</li><li><strong>Buying</strong> a Premium subscription.</li></ul>';
-    var respond = function (decision) {
-      return async function () {
-        body.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    var code = escHtml(d.studentCode || '');
+    var v = d.versions || {};
+    var meta = '<dl class="gform-meta"><dt>Student ID</dt><dd>' + code + '</dd><dt>Age range</dt><dd>' + escHtml(CONSENT_AGE_LABEL[d.ageBand] || 'Under 13') + '</dd><dt>Reference</dt><dd>' + escHtml(d.reference || '') + '</dd><dt>Your email</dt><dd>' + escHtml(d.guardianEmail || '') + '</dd></dl>';
+    var featureBox = function (sel) {
+      sel = sel || []; // nothing pre-ticked: the parent actively chooses each authorization
+      var cb = function (f, text) { return '<label class="consent-check"><input type="checkbox" name="gf" value="' + f + '"' + (sel.indexOf(f) >= 0 ? ' checked' : '') + '><span>' + text + '</span></label>'; };
+      return '<fieldset><legend>5. Platform participation</legend>' +
+          cb('platform_use', 'I authorize my child to register and use applicable Career Navigator educational and career exploration features.') +
+          cb('save_plans', 'I authorize my child to create and save personalized career and education plans.') + '</fieldset>' +
+        '<fieldset><legend>6. ACIA™ (optional)</legend><p class="share-meta" style="margin:0">ACIA™ runs through the AACP Intelligence Gateway in Canada. Student messages, conversation histories and account identifiers are not sent to external AI providers. It is not a counselling or emergency service.</p>' +
+          cb('acia', 'I authorize my child to access ACIA™ AI-assisted career guidance.') + '</fieldset>' +
+        '<fieldset><legend>7. Student-controlled sharing</legend><p class="share-meta" style="margin:0">This doesn’t give you or anyone else access to your child’s plan; your child chooses who can view it.</p>' +
+          cb('sharing', 'I authorize my child to use applicable career plan sharing features.') + '</fieldset>';
+    };
+    var form = function (rec, isUpdate) {
+      rec = rec || {};
+      return '<form class="gform" id="gForm">' + featureBox(rec.features) +
+        '<p class="share-meta" style="margin:0"><strong>8. Payments:</strong> this authorization doesn’t allow any purchase. A parent or guardian completes any purchase separately, and paying doesn’t give access to your child’s plan.</p>' +
+        '<fieldset><legend>3. Parent or legal guardian</legend><div class="gform-row">' +
+          '<label class="share-field"><span>Full name</span><input id="gName" maxlength="100" autocomplete="name" value="' + escHtml(rec.guardianName || '') + '"></label>' +
+          '<label class="share-field"><span>Relationship to student</span><select id="gRel" class="consent-select"><option value="">Choose…</option><option value="parent"' + (rec.relationship === 'parent' ? ' selected' : '') + '>Parent</option><option value="legal_guardian"' + (rec.relationship === 'legal_guardian' ? ' selected' : '') + '>Legal guardian</option></select></label></div></fieldset>' +
+        '<fieldset><legend>11. Declaration</legend><p class="share-meta" style="margin:0 0 4px">I confirm that I am the student’s parent or legal guardian and have the authority to provide this authorization; I have reviewed the Career Navigator Privacy Policy and Terms of Use; I understand the purpose of Career Navigator and the nature of the information collected; I understand the role and limitations of ACIA™; I understand that optional authorization may be withdrawn; and I voluntarily authorize participation in the features selected above.</p>' +
+          '<label class="consent-check"><input type="checkbox" id="gDecl"><span>I confirm the declaration above.</span></label>' +
+          '<div class="gform-row" style="margin-top:6px"><label class="share-field"><span>Electronic confirmation — type your full name</span><input id="gSig" maxlength="100" autocomplete="off"></label>' +
+          '<label class="share-field"><span>Date</span><input value="' + escHtml(new Date().toLocaleDateString()) + '" disabled></label></div></fieldset>' +
+        '<p id="gMsg" class="share-msg" role="status" aria-live="polite"></p>' +
+        '<div class="share-actions"><button type="submit" class="btn-primary">' + (isUpdate ? 'Save changes' : 'Submit authorization') + '</button>' +
+          (isUpdate ? '<button type="button" class="btn-secondary" id="gWithdraw">Withdraw all authorization</button>' : '<button type="button" class="btn-secondary" id="gDecline">Decline</button>') + '</div></form>';
+    };
+    var recordView = function (rec, ref) {
+      return '<dl class="gform-meta" style="margin-top:10px"><dt>Authorization reference</dt><dd>' + escHtml(ref || '') + '</dd><dt>Verification</dt><dd>' + (rec.verification === 'email_link_verified' ? 'Email link verified' : escHtml(rec.verification || '—')) + '</dd>' +
+        '<dt>Authorized features</dt><dd>' + ((rec.features || []).map(function (f) { return escHtml(GUARDIAN_FEATURE_LABEL[f] || f); }).join(' · ') || 'None') + '</dd>' +
+        '<dt>Privacy Policy rev.</dt><dd>' + escHtml(rec.privacyVersion || '') + '</dd><dt>Terms of Use rev.</dt><dd>' + escHtml(rec.termsVersion || '') + '</dd><dt>Form rev.</dt><dd>' + escHtml(rec.formVersion || '') + '</dd>' +
+        '<dt>Date and time</dt><dd>' + escHtml(rec.at ? new Date(rec.at).toLocaleString() : '') + '</dd></dl>';
+    };
+    var wire = function (isUpdate) {
+      document.getElementById('gForm').onsubmit = async function (ev) {
+        ev.preventDefault();
+        var msg = document.getElementById('gMsg');
+        var features = [].slice.call(document.querySelectorAll('#gForm input[name="gf"]:checked')).map(function (x) { return x.value; });
         try {
-          var r = await post('respond', { token: token, decision: decision });
-          var done = { approved: 'Thank you — you’ve approved these features for ' + who + '. You can withdraw your approval later using the same link.', declined: 'You’ve declined. ' + who + ' can still explore careers, but ACIA™, sharing and payments stay off.', withdrawn: 'Your approval has been withdrawn. ACIA™, sharing and payments are off for ' + who + ' again.' };
-          body.innerHTML = '<p class="share-sub">' + (done[r.status] || 'Saved.') + '</p>' + close;
-        } catch (e) { body.innerHTML = '<p class="share-msg err">' + escHtml(e.message) + '</p>' + close; }
+          var r = await post('respond', { token: token, decision: 'approve', features: features, guardianName: document.getElementById('gName').value, relationship: document.getElementById('gRel').value, signature: document.getElementById('gSig').value, declaration: document.getElementById('gDecl').checked });
+          body.innerHTML = '<p class="share-sub">Thank you. Your authorization has been recorded for AACP™ Student ID <strong>' + code + '</strong>. You can change or withdraw it later using the same link.</p>' +
+            recordView({ features: r.features || features, verification: 'email_link_verified', privacyVersion: v.privacy, termsVersion: v.terms, formVersion: v.form, at: new Date().toISOString() }, r.reference) + close;
+        } catch (e) { msg.textContent = e.message; msg.className = 'share-msg err'; }
+      };
+      var other = document.getElementById(isUpdate ? 'gWithdraw' : 'gDecline');
+      other.onclick = async function () {
+        if (isUpdate && !confirm('Withdraw all authorization? Your child won’t be able to use Career Navigator until it’s authorized again.')) return;
+        try {
+          var r = await post('respond', { token: token, decision: isUpdate ? 'withdraw' : 'decline' });
+          body.innerHTML = '<p class="share-sub">' + (r.status === 'withdrawn' ? 'Your authorization has been withdrawn. Career Navigator is no longer available to this student until it’s authorized again.' : 'You’ve declined. The student can’t use Career Navigator unless a parent or guardian authorizes it.') + ' Reference: ' + escHtml(r.reference || '') + '</p>' + close;
+        } catch (e) { var msg = document.getElementById('gMsg'); msg.textContent = e.message; msg.className = 'share-msg err'; }
       };
     };
+    var intro = '<p class="share-sub">AACP™ Career Navigator helps students explore careers, understand education requirements and build career plans. A student under 13 gave your email as their parent or guardian. Career Navigator doesn’t collect student names — the student is identified only by an AACP™ Student ID.</p>';
     if (d.status === 'pending') {
-      body.innerHTML = '<p class="share-sub">A student under 13 (AACP™ Student ID <strong>' + escHtml(d.studentCode || '') + '</strong>) has asked for your permission to use these Career Navigator features:</p>' + what +
-        '<p class="share-sub">If you approve, it’s recorded with the date and the policy version. You can withdraw your approval later from this same link.</p>' +
-        '<div class="share-actions"><button type="button" class="btn-primary" id="gApprove">Approve</button><button type="button" class="btn-secondary" id="gDecline">Decline</button></div>';
-      document.getElementById('gApprove').onclick = respond('approve');
-      document.getElementById('gDecline').onclick = respond('decline');
-    } else if (d.status === 'approved') {
-      body.innerHTML = '<p class="share-sub">You approved these features for AACP™ Student ID <strong>' + escHtml(d.studentCode || '') + '</strong>:</p>' + what +
-        '<div class="share-actions"><button type="button" class="btn-secondary" id="gWithdraw">Withdraw my approval</button></div>';
-      document.getElementById('gWithdraw').onclick = respond('withdraw');
+      body.innerHTML = intro + meta + docs + form(null, false);
+      wire(false);
+    } else if (d.status === 'approved' && d.record) {
+      body.innerHTML = '<p class="share-sub">You authorized Career Navigator for AACP™ Student ID <strong>' + code + '</strong>. You can change the authorized features or withdraw your authorization.</p>' +
+        recordView(d.record, d.reference) + docs + form(d.record, true);
+      wire(true);
     } else {
-      var why = { declined: 'You declined this request.', withdrawn: 'You withdrew your approval.', expired: 'This link has expired. Ask ' + who + ' to send a new request.', cancelled: 'This request was replaced by a newer one. Please use the most recent email.' };
+      var why = { declined: 'You declined this request.', withdrawn: 'You withdrew your authorization. If the student sends a new request, you can authorize again.', expired: 'This link has expired. Ask the student to send a new request.', cancelled: 'This request was replaced by a newer one. Please use the most recent email.' };
       body.innerHTML = '<p class="share-sub">' + (why[d.status] || 'This request is no longer active.') + '</p>' + close;
     }
   } catch (e) {

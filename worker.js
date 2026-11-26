@@ -15294,6 +15294,7 @@ async function handleNavigatorProfileUpdate(request, user, env) {
   const now = new Date().toISOString();
   const navigatorRole = ['student', 'teacher', 'advisor'].includes(body.navigatorRole) ? body.navigatorRole : undefined;
   const pathwayData = body.pathwayData !== undefined ? JSON.stringify(body.pathwayData) : undefined;
+  if (pathwayData !== undefined) { const consentErr = await requireNavigatorConsent(env, user.sub, 'plans'); if (consentErr) return consentErr; }
 
   const existing = await env.DB.prepare(`SELECT id FROM navigator_profiles WHERE user_id = ?`).bind(user.sub).first();
   if (existing) {
@@ -15375,6 +15376,7 @@ async function requireCoursePlanAccess(env, user) {
 async function handleNavigatorCoursePlanGet(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
   const planErr = await requireCoursePlanAccess(env, user); if (planErr) return planErr;
+  const consentErr = await requireNavigatorConsent(env, user.sub, 'plans'); if (consentErr) return consentErr;
   await ensureCoursePlanTable(env.DB);
   const row = await env.DB.prepare(`SELECT plan_data, updated_at FROM navigator_course_plans WHERE user_id = ?`).bind(user.sub).first();
   let plan = null;
@@ -15386,6 +15388,7 @@ async function handleNavigatorCoursePlanGet(request, user, env) {
 async function handleNavigatorCoursePlanUpdate(request, user, env) {
   const authErr = requireAuth(user); if (authErr) return authErr;
   const planErr = await requireCoursePlanAccess(env, user); if (planErr) return planErr;
+  const consentErr = await requireNavigatorConsent(env, user.sub, 'plans'); if (consentErr) return consentErr;
   const text = await request.text().catch(() => '');
   if (!text || text.length > COURSE_PLAN_MAX_BYTES) return err('Invalid or oversized course plan', 400);
   let body;
@@ -15639,12 +15642,16 @@ async function handleNavigatorSharingView(request, user, env, shareId) {
 // rejects UPDATE/DELETE); the current state is the latest record per type.
 const CONSENT_POLICIES = {
   age_eligibility:        { version: '2026-11-25', required: true },
-  privacy_policy:         { version: '2026-10-04', required: true },
-  terms:                  { version: null,         required: true },  // switched on when Terms of Use are published
+  privacy_policy:         { version: '2026-11-25', required: true },  // career-navigator-privacy.html (approved, rev. Nov 25, 2026)
+  terms:                  { version: '2026-11-25', required: true },  // career-navigator-terms.html (approved, rev. Nov 25, 2026)
   acia_ai_processing:     { version: '2026-11-25.3', required: false }, // needed only for ACIA™ chat — wording: "ACIA™ AI-Assisted Career Guidance" (AACP text, 2026-11-25)
-  guardian_authorization: { version: '2026-11-25.2', required: false }, // needed when age band is under_13
+  guardian_authorization: { version: '2026-11-25-form', required: false }, // Parental or Guardian Authorization Form (rev. Nov 25, 2026); needed when age band is under_13
 };
 const CONSENT_AGE_BANDS = ['under_13', '13_17', '18_plus'];
+// Features a parent/guardian authorizes on the form (sections 5–7). Purchases are never
+// authorized by the form (section 8) — under-13 purchases are completed by a parent.
+const GUARDIAN_FEATURES = ['platform_use', 'save_plans', 'acia', 'sharing'];
+const GUARDIAN_RELATIONSHIPS = ['parent', 'legal_guardian'];
 const CONSENT_SELF_TYPES = ['age_eligibility', 'privacy_policy', 'terms', 'acia_ai_processing'];
 const CONSENT_WITHDRAWABLE = ['acia_ai_processing'];
 const GUARDIAN_LINK_DAYS = 7;
@@ -15692,6 +15699,12 @@ async function ensureConsentStore(db) {
       responded_at   TEXT
     )`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_guardian_user ON consent_guardian_requests(user_id, created_at)`).run();
+  // Authorization form record (section 12). The parent's name and signature live only here
+  // (erasable), never in the append-only consent_records history.
+  const gCols = new Set(await getTableColumns(db, 'consent_guardian_requests'));
+  for (const c of ['guardian_name', 'relationship', 'signature_name', 'features', 'privacy_version', 'terms_version', 'form_version', 'reference', 'verification_status']) {
+    if (gCols.size && !gCols.has(c)) await db.prepare(`ALTER TABLE consent_guardian_requests ADD COLUMN ${c} TEXT`).run().catch(() => {});
+  }
   // Append-only history: reject UPDATE/DELETE on consent_records (PostgreSQL on AWS; SQLite for local tests).
   await db.prepare(`
     CREATE OR REPLACE FUNCTION consent_records_append_only() RETURNS trigger AS $fn$
@@ -15769,30 +15782,61 @@ async function handleConsentStore(request, env, sub) {
   if ((sub === 'guardian/lookup' || sub === 'guardian/respond') && request.method === 'POST') {
     const token = String(body.token ?? '');
     if (!/^[0-9a-f]{64}$/.test(token)) return err('Invalid link', 404);
-    const g = await db.prepare(`SELECT id, user_id, status, expires_at FROM consent_guardian_requests WHERE token_hash = ?`).bind(await sha256hex(token)).first();
+    const g = await db.prepare(`SELECT id, user_id, status, expires_at, guardian_email, guardian_name, relationship, features, privacy_version, terms_version, form_version, reference, verification_status, responded_at FROM consent_guardian_requests WHERE token_hash = ?`).bind(await sha256hex(token)).first();
     if (!g) return err('Invalid link', 404);
     const expired = g.status === 'pending' && new Date(g.expires_at) < new Date();
-    if (sub === 'guardian/lookup') return json({ requestId: g.id, userId: g.user_id, status: expired ? 'expired' : g.status, expiresAt: g.expires_at });
+    if (sub === 'guardian/lookup') {
+      const latest = await consentLatest(db, g.user_id);
+      return json({
+        requestId: g.id, userId: g.user_id, status: expired ? 'expired' : g.status, expiresAt: g.expires_at,
+        guardianEmail: g.guardian_email, ageBand: latest.age_eligibility?.details?.age_band ?? null,
+        reference: g.reference || ('AUTH-' + g.id.slice(0, 8).toUpperCase()),
+        record: g.status === 'approved' || g.status === 'withdrawn' ? {
+          guardianName: g.guardian_name, relationship: g.relationship, features: g.features ? JSON.parse(g.features) : [],
+          privacyVersion: g.privacy_version, termsVersion: g.terms_version, formVersion: g.form_version,
+          verification: g.verification_status, at: g.responded_at,
+        } : null,
+        versions: { privacy: CONSENT_POLICIES.privacy_policy.version, terms: CONSENT_POLICIES.terms.version, form: CONSENT_POLICIES.guardian_authorization.version },
+      });
+    }
     const decision = body.decision;
-    if (decision === 'approve' || decision === 'decline') {
+    const reference = g.reference || ('AUTH-' + g.id.slice(0, 8).toUpperCase());
+    if (decision === 'decline') {
       if (g.status !== 'pending' || expired) return err(expired ? 'This link has expired. Ask the student to send a new one.' : 'This request has already been answered.', 409);
-      const status = decision === 'approve' ? 'approved' : 'declined';
-      await db.prepare(`UPDATE consent_guardian_requests SET status = ?, responded_at = ? WHERE id = ? AND status = 'pending'`).bind(status, now, g.id).run();
-      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: decision === 'approve' ? 'granted' : 'declined', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id } });
-      return json({ status, userId: g.user_id });
+      await db.prepare(`UPDATE consent_guardian_requests SET status = 'declined', responded_at = ?, reference = ? WHERE id = ? AND status = 'pending'`).bind(now, reference, g.id).run();
+      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: 'declined', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id, reference } });
+      return json({ status: 'declined', userId: g.user_id, reference });
+    }
+    if (decision === 'approve') {
+      // First submission (pending link) or an update of the selections on an approved authorization.
+      if (!(g.status === 'pending' && !expired) && g.status !== 'approved') return err(expired ? 'This link has expired. Ask the student to send a new one.' : 'This request is no longer active.', 409);
+      const features = Array.isArray(body.features) ? [...new Set(body.features.filter(f => GUARDIAN_FEATURES.includes(f)))] : [];
+      const name = String(body.guardian_name ?? '').trim().slice(0, 100);
+      const signature = String(body.signature_name ?? '').trim().slice(0, 100);
+      const relationship = GUARDIAN_RELATIONSHIPS.includes(body.relationship) ? body.relationship : null;
+      if (!features.length) return err('Select at least one feature to authorize, or choose Decline.');
+      if (!name || !relationship) return err('Enter your full name and your relationship to the student.');
+      if (!signature) return err('Type your full name as your electronic confirmation.');
+      if (body.declaration !== true) return err('Please confirm the declaration in section 11.');
+      const v = { privacy: CONSENT_POLICIES.privacy_policy.version, terms: CONSENT_POLICIES.terms.version, form: CONSENT_POLICIES.guardian_authorization.version };
+      await db.prepare(`UPDATE consent_guardian_requests SET status = 'approved', responded_at = ?, guardian_name = ?, relationship = ?, signature_name = ?, features = ?, privacy_version = ?, terms_version = ?, form_version = ?, reference = ?, verification_status = 'email_link_verified' WHERE id = ?`)
+        .bind(now, name, relationship, signature, JSON.stringify(features), v.privacy, v.terms, v.form, reference, g.id).run();
+      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: 'granted', version: v.form, source: 'guardian_email_link',
+        details: { request_id: g.id, reference, features, relationship, privacy_version: v.privacy, terms_version: v.terms, form_version: v.form, verification: 'email_link_verified', update: g.status === 'approved' } });
+      return json({ status: 'approved', userId: g.user_id, reference, features });
     }
     if (decision === 'withdraw') {
       if (g.status !== 'approved') return err('There is no active authorization to withdraw.', 409);
       await db.prepare(`UPDATE consent_guardian_requests SET status = 'withdrawn', responded_at = ? WHERE id = ?`).bind(now, g.id).run();
-      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: 'withdrawn', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id } });
-      return json({ status: 'withdrawn', userId: g.user_id });
+      await consentAppend(db, { userId: g.user_id, type: 'guardian_authorization', status: 'withdrawn', version: CONSENT_POLICIES.guardian_authorization.version, source: 'guardian_email_link', details: { request_id: g.id, reference } });
+      return json({ status: 'withdrawn', userId: g.user_id, reference });
     }
     return err('decision must be approve, decline or withdraw');
   }
   if (sub === 'erase' && request.method === 'POST') {
     // Account deletion: remove the guardian's email; consent history (no personal data) is kept as evidence.
     if (!userId) return err('user_id required');
-    await db.prepare(`UPDATE consent_guardian_requests SET guardian_email = NULL, status = CASE WHEN status = 'pending' THEN 'cancelled' ELSE status END WHERE user_id = ?`).bind(userId).run();
+    await db.prepare(`UPDATE consent_guardian_requests SET guardian_email = NULL, guardian_name = NULL, signature_name = NULL, status = CASE WHEN status = 'pending' THEN 'cancelled' ELSE status END WHERE user_id = ?`).bind(userId).run();
     await consentAppend(db, { userId, type: 'account', status: 'withdrawn', version: null, source: 'account_deleted', details: null });
     return json({ ok: true });
   }
@@ -15808,7 +15852,7 @@ async function handleAdminNavigatorConsent(request, user, env) {
   await ensureConsentStore(env.DB);
   const [hist, reqs, pol] = await Promise.all([
     env.DB.prepare(`SELECT consent_type, status, policy_version, source, details, recorded_at FROM consent_records WHERE user_id = ? ORDER BY recorded_at ASC`).bind(userId).all(),
-    env.DB.prepare(`SELECT id, status, created_at, expires_at, responded_at FROM consent_guardian_requests WHERE user_id = ? ORDER BY created_at ASC`).bind(userId).all(),
+    env.DB.prepare(`SELECT id, status, created_at, expires_at, responded_at, relationship, features, privacy_version, terms_version, form_version, reference, verification_status FROM consent_guardian_requests WHERE user_id = ? ORDER BY created_at ASC`).bind(userId).all(),
     env.DB.prepare(`SELECT policy_type, version, effective_at FROM consent_policy_versions ORDER BY policy_type, effective_at`).all(),
   ]);
   await audit(env.DB, 'admin_view_navigator_consent', user.sub, 'consent_records', { user_id: userId });
@@ -15844,15 +15888,31 @@ function consentSummary(latest, guardianRequest) {
   const ageBand = latest.age_eligibility?.status === 'granted' ? latest.age_eligibility.details?.age_band ?? null : null;
   const missing = ['age_eligibility', 'privacy_policy', 'terms'].filter(t => CONSENT_POLICIES[t].version && CONSENT_POLICIES[t].required && !cur(t));
   const needsGuardian = ageBand === 'under_13';
-  const guardianGranted = latest.guardian_authorization?.status === 'granted';
-  const baseOk = missing.length === 0 && (!needsGuardian || guardianGranted);
+  const g = latest.guardian_authorization;
+  const guardianCurrent = cur('guardian_authorization');
+  const gFeatures = guardianCurrent ? (g.details?.features || []) : [];
+  const gOk = f => !needsGuardian || gFeatures.includes(f);
+  const participation = missing.length === 0 && gOk('platform_use');
+  const guardianStatus = !needsGuardian ? 'not_required'
+    : guardianCurrent ? 'approved'
+    : (g?.status === 'granted' ? 'renewal_needed' : (guardianRequest?.status && guardianRequest.status !== 'approved' ? guardianRequest.status : (g?.status === 'withdrawn' ? 'withdrawn' : (g?.status === 'declined' ? 'declined' : 'none'))));
+  const doc = t => ({ version: CONSENT_POLICIES[t].version, acceptedVersion: latest[t]?.status === 'granted' ? latest[t].version : null, acceptedAt: latest[t]?.status === 'granted' ? latest[t].at : null, current: cur(t), status: latest[t]?.status ?? null, at: latest[t]?.at ?? null });
   return {
     ageBand, missing,
     outdated: missing.filter(t => latest[t]?.status === 'granted'), // accepted an older version → policy update
-    needsGuardian, guardianStatus: needsGuardian ? (guardianGranted ? 'approved' : (guardianRequest?.status ?? 'none')) : 'not_required',
+    needsGuardian, guardianStatus,
     guardianEmailMasked: guardianRequest?.emailMasked ?? null,
+    guardianFeatures: needsGuardian ? gFeatures : null,
+    guardianAt: guardianCurrent ? g.at : null,
     aciaConsent: cur('acia_ai_processing'),
-    allowed: { acia: baseOk && cur('acia_ai_processing'), sharing: baseOk, payments: baseOk },
+    allowed: {
+      participation,
+      plans: participation && gOk('save_plans'),
+      acia: participation && gOk('acia') && cur('acia_ai_processing'),
+      sharing: participation && gOk('sharing'),
+      payments: missing.length === 0 && !needsGuardian, // under-13 purchases are completed by a parent (form section 8)
+    },
+    documents: { privacy_policy: doc('privacy_policy'), terms: doc('terms'), acia_ai_processing: doc('acia_ai_processing'), guardian_authorization: doc('guardian_authorization') },
     policies: Object.fromEntries(Object.entries(CONSENT_POLICIES).map(([k, p]) => [k, p.version])),
   };
 }
@@ -15872,9 +15932,12 @@ async function requireNavigatorConsent(env, userId, feature) {
   }
   if (state.allowed[feature]) return null;
   let msg;
-  if (state.missing.length) msg = 'Please review and accept the privacy information in My Career Plan → Privacy & consent first.';
-  else if (state.needsGuardian && state.guardianStatus !== 'approved') msg = 'A parent or guardian needs to approve this first. You can send them a request in My Career Plan → Privacy & consent.';
-  else if (feature === 'acia') msg = 'ACIA™ needs your permission to process your messages with AI. You can turn it on in My Career Plan → Privacy & consent.';
+  const FEATURE_NAME = { participation: 'Career Navigator', plans: 'saving plans', acia: 'ACIA™', sharing: 'plan sharing' };
+  if (state.missing.length) msg = 'Please review and accept the Privacy Policy and Terms of Use first.';
+  else if (feature === 'payments' && state.needsGuardian) msg = 'A parent or guardian needs to complete this purchase.';
+  else if (state.needsGuardian && state.guardianStatus !== 'approved') msg = 'A parent or guardian needs to authorize this first. You can send them a request in My Career Plan → Privacy & consent.';
+  else if (state.needsGuardian && !state.allowed[feature] && (feature !== 'acia' || state.aciaConsent)) msg = `Your parent or guardian hasn’t authorized ${FEATURE_NAME[feature] || 'this feature'}.`;
+  else if (feature === 'acia') msg = 'ACIA™ needs your authorization for AI-assisted career guidance. You can turn it on in My Career Plan → Privacy & consent.';
   else msg = 'This feature isn’t available yet.';
   return json({ error: msg, code: 'consent_required', feature, consent: state }, 403);
 }
@@ -15936,8 +15999,9 @@ async function emailGuardianRequest(env, { guardianEmail, studentCode, token }) 
       eP('Hello,') +
       eP(`A student has created an AACP Career Navigator account and gave your email as their parent or guardian. Their AACP™ Student ID is <strong>${who}</strong> — they can show it to you in My Career Plan. Because they are under 13, some features need your approval:`) +
       eP('• <strong>ACIA™</strong>, AACP’s career assistant (it answers from AACP’s verified career information and may use an AI service for general questions; your child’s messages and personal details are never sent to outside AI providers)<br>• <strong>Sharing</strong> their career plan with a teacher, counsellor or family member<br>• <strong>Buying</strong> a Premium subscription') +
-      eBtn('Review and respond', url) +
-      eP(`The link works for ${GUARDIAN_LINK_DAYS} days. You can approve or decline, and if you approve you can withdraw your approval later from the same link.`) +
+      eP('Because they are under 13, they can’t use Career Navigator until a parent or legal guardian completes the <strong>Parental or Guardian Authorization Form</strong>, where you choose which features to allow.') +
+      eBtn('Review and complete the form', url) +
+      eP(`The link works for ${GUARDIAN_LINK_DAYS} days. You can authorize or decline, and you can change or withdraw your authorization later from the same link. The form doesn’t authorize purchases — any purchase is completed separately by a parent or guardian.`) +
       eNote('If you don’t know this student, you can ignore this email or choose Decline. We only use your email address for this authorization.'),
   });
   return sendEmail(env, {
@@ -15985,11 +16049,11 @@ async function handleNavigatorGuardianLink(request, env, action) {
       const g = await consentStore(env, 'POST', '/guardian/lookup', { token });
       const row = await env.DB.prepare(`SELECT status FROM users WHERE id = ?`).bind(g.userId).first();
       if (!row || row.status === 'deleted') return err('This request is no longer active.', 404);
-      return json({ studentCode: await studentCodeFor(env.DB, g.userId), status: g.status, expiresAt: g.expiresAt });
+      return json({ studentCode: await studentCodeFor(env.DB, g.userId), status: g.status, expiresAt: g.expiresAt, guardianEmail: g.guardianEmail, ageBand: g.ageBand, reference: g.reference, record: g.record, versions: g.versions });
     }
-    const r = await consentStore(env, 'POST', '/guardian/respond', { token, decision: body?.decision });
-    await audit(env.DB, `navigator_guardian_${r.status}`, r.userId, 'consent', { via: 'guardian_email_link' });
-    return json({ status: r.status });
+    const r = await consentStore(env, 'POST', '/guardian/respond', { token, decision: body?.decision, features: body?.features, guardian_name: body?.guardianName, relationship: body?.relationship, signature_name: body?.signature, declaration: body?.declaration === true });
+    await audit(env.DB, `navigator_guardian_${r.status}`, r.userId, 'consent', { via: 'guardian_email_link', reference: r.reference, features: r.features });
+    return json({ status: r.status, reference: r.reference, features: r.features || null });
   } catch (e) {
     if (e.status && e.status < 500) return err(e.message, e.status);
     console.error('guardian link failed:', e?.message);
