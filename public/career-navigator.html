@@ -3968,7 +3968,10 @@ let chatHistory = []; // {role, content} pairs for context window
 let navigatorRole = null;
 try { navigatorRole = localStorage.getItem('navigatorRole'); } catch(e) {}
 
-var NAV_API = 'https://api.aviationaerospacecompetency.com';
+// Career Navigator's API is served from AWS Canada on the page's own domain
+// (CloudFront routes /navigator/* to the ca-central-1 servers). Local previews
+// fall back to the AWS-routed main domain.
+var NAV_API = /(^|\.)aviationaerospacecompetency\.com$/.test(location.hostname) ? location.origin : 'https://careers.aviationaerospacecompetency.com';
 
 function initRolePicker() {
   var token = null;

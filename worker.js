@@ -15864,6 +15864,21 @@ async function handleAdminNavigatorConsent(request, user, env) {
 async function consentStore(env, method, path, body) { return aacpInternal(env, method, '/navigator-consent' + path, body); }
 async function aacpInternal(env, method, path, body, timeoutMs = 8000) {
   if (!env.CONSENT_STORE_KEY) throw new Error('consent store not configured');
+  // Career Navigator runs on AWS Canada itself (env.CONSENT_STORE_ROLE === 'store'):
+  // call the consent store / ACIA gateway in-process — nothing leaves the server.
+  if (env.CONSENT_STORE_ROLE === 'store') {
+    const req = new Request('https://internal.aacp' + path, {
+      method, headers: { 'X-Consent-Store-Key': env.CONSENT_STORE_KEY, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const u = new URL(req.url);
+    const res = u.pathname.startsWith('/navigator-consent/') ? await handleConsentStore(req, env, u.pathname.slice('/navigator-consent/'.length))
+      : u.pathname === '/navigator-gateway/ask' ? await handleGatewayAsk(req, env)
+      : json({ error: 'Not found' }, 404);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { const e = new Error(data.error || `consent store ${res.status}`); e.status = res.status; throw e; }
+    return data;
+  }
   const base = (env.CONSENT_STORE_URL || CONSENT_STORE_DEFAULT_URL).replace(/\/$/, '').replace(/\/navigator-consent$/, '');
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
@@ -16456,6 +16471,129 @@ async function handleNavigatorChat(request, user, env) {
   }
 }
 
+// ── Career Navigator on AWS Canada: PostgreSQL guardrail ────────────────────
+// Same protection as scripts/d1-navigator-guard.sql, for PostgreSQL: every Career
+// Navigator user is registered in navigator_accounts; deleting them, changing their
+// role, or deleting navigator_* rows is refused unless the owner has added a
+// time-limited row to navigator_guard_override by hand.
+let navGuardPgReady = false;
+async function ensureNavigatorGuardPg(env) {
+  if (navGuardPgReady || env.CONSENT_STORE_ROLE !== 'store') return;
+  const db = env.DB;
+  await ensureCoursePlanTable(db); await ensureShareTable(db); await ensureStudentCodeTable(db);
+  const run = sql => db.prepare(sql).run();
+  await run(`CREATE TABLE IF NOT EXISTS navigator_accounts (user_id TEXT PRIMARY KEY, registered_at TEXT NOT NULL DEFAULT to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))`);
+  await run(`CREATE TABLE IF NOT EXISTS navigator_guard_override (id SERIAL PRIMARY KEY, reason TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))`);
+  await run(`CREATE OR REPLACE FUNCTION nav_guard_active() RETURNS boolean AS $f$
+    SELECT NOT EXISTS (SELECT 1 FROM navigator_guard_override WHERE expires_at > to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) $f$ LANGUAGE sql`);
+  await run(`CREATE OR REPLACE FUNCTION nav_register_user() RETURNS trigger AS $f$
+    BEGIN
+      IF TG_TABLE_NAME = 'users' THEN
+        IF NEW.role = 'navigator' THEN INSERT INTO navigator_accounts (user_id) VALUES (NEW.id) ON CONFLICT DO NOTHING; END IF;
+      ELSIF TG_TABLE_NAME = 'navigator_invite_redemptions' THEN
+        IF NEW.redeemed_by IS NOT NULL THEN INSERT INTO navigator_accounts (user_id) VALUES (NEW.redeemed_by) ON CONFLICT DO NOTHING; END IF;
+      ELSIF NEW.user_id IS NOT NULL THEN
+        INSERT INTO navigator_accounts (user_id) VALUES (NEW.user_id) ON CONFLICT DO NOTHING;
+      END IF;
+      RETURN NEW;
+    END $f$ LANGUAGE plpgsql`);
+  await run(`CREATE OR REPLACE FUNCTION nav_guard_block() RETURNS trigger AS $f$
+    BEGIN
+      IF NOT nav_guard_active() THEN RETURN COALESCE(OLD, NEW); END IF;
+      IF TG_TABLE_NAME = 'users' THEN
+        IF (OLD.role = 'navigator' OR EXISTS (SELECT 1 FROM navigator_accounts WHERE user_id = OLD.id)) THEN
+          IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'navigator_guard: Career Navigator accounts cannot be deleted from main AACP'; END IF;
+          IF TG_OP = 'UPDATE' AND NEW.role IS DISTINCT FROM OLD.role THEN RAISE EXCEPTION 'navigator_guard: Career Navigator account roles cannot be changed'; END IF;
+        END IF;
+        RETURN COALESCE(NEW, OLD);
+      END IF;
+      RAISE EXCEPTION 'navigator_guard: % is protected', TG_TABLE_NAME;
+    END $f$ LANGUAGE plpgsql`);
+  const reg = { users: 'AFTER INSERT', navigator_profiles: 'AFTER INSERT', navigator_subscriptions: 'AFTER INSERT', navigator_course_plans: 'AFTER INSERT', navigator_invite_redemptions: 'AFTER INSERT', navigator_student_codes: 'AFTER INSERT' };
+  for (const [t, when] of Object.entries(reg)) {
+    await run(`DROP TRIGGER IF EXISTS nav_reg_${t} ON ${t}`);
+    await run(`CREATE TRIGGER nav_reg_${t} ${when} ON ${t} FOR EACH ROW EXECUTE FUNCTION nav_register_user()`);
+  }
+  await run(`DROP TRIGGER IF EXISTS nav_guard_users ON users`);
+  await run(`CREATE TRIGGER nav_guard_users BEFORE DELETE OR UPDATE OF role ON users FOR EACH ROW EXECUTE FUNCTION nav_guard_block()`);
+  for (const t of ['navigator_accounts', 'navigator_profiles', 'navigator_subscriptions', 'navigator_course_plans', 'navigator_invite_codes', 'navigator_invite_redemptions', 'navigator_pilot_codes', 'navigator_plan_shares', 'navigator_student_codes']) {
+    await run(`DROP TRIGGER IF EXISTS nav_guard_${t} ON ${t}`);
+    await run(`CREATE TRIGGER nav_guard_${t} BEFORE DELETE ON ${t} FOR EACH ROW EXECUTE FUNCTION nav_guard_block()`);
+  }
+  navGuardPgReady = true;
+}
+
+// ── One-time migration from Cloudflare D1 (AWS only, shared-key protected) ───
+// POST /auth/navigator-migrate/import { rows: { table: [row, …] } } — inserts with
+//   ON CONFLICT DO NOTHING, only columns that exist here, values coerced to the
+//   PostgreSQL column types. Users whose email already belongs to a different
+//   account are reported, not merged.
+// POST /auth/navigator-migrate/counts { user_ids: [...] } — per-table counts for verification.
+const NAV_MIGRATE_TABLES = ['users', 'navigator_accounts', 'navigator_student_codes', 'navigator_profiles', 'navigator_subscriptions', 'navigator_course_plans',
+  'navigator_invite_codes', 'navigator_invite_redemptions', 'navigator_pilot_codes', 'navigator_plan_shares', 'audit_log'];
+const NAV_MIGRATE_KEYS = { navigator_accounts: 'user_id', navigator_student_codes: 'user_id', users: 'id' };
+async function pgColumnTypes(db, table) {
+  const r = await db.prepare(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ?`).bind(table).all();
+  return Object.fromEntries((r.results ?? []).map(x => [x.column_name, x.data_type]));
+}
+function coerce(v, type) {
+  if (v === null || v === undefined) return null;
+  if (type === 'boolean') return v === true || v === 1 || v === '1' || v === 'true';
+  if (/integer|bigint|smallint/.test(type)) return Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : null;
+  if (/numeric|double|real/.test(type)) return Number(v);
+  if (/json/.test(type)) return typeof v === 'string' ? v : JSON.stringify(v);
+  return typeof v === 'object' ? JSON.stringify(v) : String(v);
+}
+async function handleNavigatorMigrate(request, env, sub) {
+  if (env.CONSENT_STORE_ROLE !== 'store') return err('Not found', 404);
+  if (!env.CONSENT_STORE_KEY || !constantTimeEqual(request.headers.get('X-Consent-Store-Key'), env.CONSENT_STORE_KEY)) return err('Not found', 404);
+  await ensureNavigatorGuardPg(env);
+  const db = env.DB;
+  const body = await request.json().catch(() => ({}));
+  if (sub === 'counts') {
+    const ids = Array.isArray(body.user_ids) ? body.user_ids.map(String) : [];
+    const ph = ids.map(() => '?').join(',') || "''";
+    const q = async (sql) => Number((await db.prepare(sql).bind(...ids).first())?.n ?? 0);
+    const out = {
+      users: await q(`SELECT COUNT(*) AS n FROM users WHERE id IN (${ph})`),
+      navigator_accounts: await q(`SELECT COUNT(*) AS n FROM navigator_accounts WHERE user_id IN (${ph})`),
+      navigator_student_codes: await q(`SELECT COUNT(*) AS n FROM navigator_student_codes WHERE user_id IN (${ph})`),
+      navigator_profiles: await q(`SELECT COUNT(*) AS n FROM navigator_profiles WHERE user_id IN (${ph})`),
+      navigator_subscriptions: await q(`SELECT COUNT(*) AS n FROM navigator_subscriptions WHERE user_id IN (${ph})`),
+      navigator_course_plans: await q(`SELECT COUNT(*) AS n FROM navigator_course_plans WHERE user_id IN (${ph})`),
+      audit_log: await q(`SELECT COUNT(*) AS n FROM audit_log WHERE user_id IN (${ph})`),
+    };
+    out.navigator_plan_shares = Number((await db.prepare(`SELECT COUNT(*) AS n FROM navigator_plan_shares WHERE student_user_id IN (${ph})`).bind(...ids).first())?.n ?? 0);
+    out.navigator_pilot_codes = Number((await db.prepare(`SELECT COUNT(*) AS n FROM navigator_pilot_codes`).first())?.n ?? 0);
+    out.navigator_invite_codes = Number((await db.prepare(`SELECT COUNT(*) AS n FROM navigator_invite_codes`).first())?.n ?? 0);
+    return json(out);
+  }
+  if (sub !== 'import') return err('Not found', 404);
+  const rows = body.rows && typeof body.rows === 'object' ? body.rows : {};
+  const result = {};
+  for (const table of NAV_MIGRATE_TABLES) {
+    const list = Array.isArray(rows[table]) ? rows[table] : [];
+    if (!list.length) continue;
+    const types = await pgColumnTypes(db, table);
+    const r = { inserted: 0, skipped: 0, conflicts: [] };
+    for (const row of list) {
+      if (table === 'users') {
+        const clash = await db.prepare(`SELECT id FROM users WHERE email = ? AND id <> ?`).bind(String(row.email), String(row.id)).first();
+        if (clash) { r.conflicts.push({ id: row.id, reason: 'email already used by another account' }); continue; }
+      }
+      const cols = Object.keys(row).filter(c => c in types);
+      if (!cols.length) { r.skipped++; continue; }
+      const key = NAV_MIGRATE_KEYS[table] || 'id';
+      const res = await db.prepare(`INSERT INTO ${table} (${cols.map(c => `"${c}"`).join(', ')}) VALUES (${cols.map(() => '?').join(', ')}) ON CONFLICT ("${key}") DO NOTHING`)
+        .bind(...cols.map(c => coerce(row[c], types[c]))).run();
+      if (res?.meta?.changes) r.inserted++; else r.skipped++;
+    }
+    result[table] = r;
+  }
+  await audit(db, 'navigator_migration_import', null, 'migration', Object.fromEntries(Object.entries(result).map(([t, r]) => [t, { inserted: r.inserted, skipped: r.skipped, conflicts: r.conflicts.length }])));
+  return json({ ok: true, result });
+}
+
 // ── AACP Intelligence Gateway endpoints (AWS Canada only) ───────────────────
 // POST /auth/navigator-gateway/ask — called only by the Career Navigator Worker (shared key).
 async function handleGatewayAsk(request, env) {
@@ -16757,6 +16895,13 @@ async function _routeRequest(request, env, ctx) {
 
     // ── Career Navigator consent store — AWS Canada only, shared-key protected ──
     if (path.startsWith('/auth/navigator-consent/')) return handleConsentStore(request, env, path.slice('/auth/navigator-consent/'.length));
+    if (path.startsWith('/auth/navigator-migrate/') && request.method === 'POST') return handleNavigatorMigrate(request, env, path.slice('/auth/navigator-migrate/'.length));
+    // Career Navigator served from AWS Canada: make sure the PostgreSQL guardrail is in place.
+    if (path.startsWith('/navigator/') && env.CONSENT_STORE_ROLE === 'store') await ensureNavigatorGuardPg(env).catch(e => console.error('navigator guard (pg):', e?.message));
+    // Cloudflare after cutover: Career Navigator has moved to AWS Canada — nothing is read or written here.
+    if (path.startsWith('/navigator/') && env.NAVIGATOR_MOVED === '1' && env.CONSENT_STORE_ROLE !== 'store') {
+      return json({ error: 'Career Navigator has moved. Please refresh the page.', code: 'navigator_moved' }, 410);
+    }
     // ── AACP Intelligence Gateway (ACIA™) — AWS Canada only, shared-key protected ──
     if (path === '/auth/navigator-gateway/ask' && request.method === 'POST') return handleGatewayAsk(request, env);
 

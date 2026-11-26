@@ -23,5 +23,11 @@ export function buildEnv() {
     // The Cloudflare Worker reaches /auth/navigator-consent/* with this shared key.
     CONSENT_STORE_ROLE:           'store',
     CONSENT_STORE_KEY:            process.env.CONSENT_STORE_KEY,
+    // Career Navigator payments (served from AWS Canada); unset until Stripe goes live.
+    STRIPE_SECRET_KEY:                process.env.STRIPE_SECRET_KEY,
+    STRIPE_NAVIGATOR_PRICE_STUDENT:   process.env.STRIPE_NAVIGATOR_PRICE_STUDENT,
+    STRIPE_NAVIGATOR_PRICE_INVITED:   process.env.STRIPE_NAVIGATOR_PRICE_INVITED,
+    STRIPE_NAVIGATOR_PRICE_ADVISOR:   process.env.STRIPE_NAVIGATOR_PRICE_ADVISOR,
+    STRIPE_NAVIGATOR_WEBHOOK_SECRET:  process.env.STRIPE_NAVIGATOR_WEBHOOK_SECRET,
   };
 }

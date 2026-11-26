@@ -70,9 +70,9 @@ invite-code `discounts`.
 
 ## Setup
 
-### 1. Worker secrets (Cloudflare Worker `aacp-backend`)
+### 1. Secrets (AWS Secrets Manager → ECS task `aacp-api`)
 
-Set each with `npx wrangler secret put <NAME> --config wrangler.toml` (you'll be prompted for the value — don't put keys in code or in this file):
+Career Navigator now runs on AWS Canada (ECS). Store each value in AWS Secrets Manager as `aacp/<NAME>` and add it to the ECS task definition `secrets` (src/env-builder.js already passes these names through). Don’t put keys in code or in this file.
 
 | Secret | Value |
 |--------|-------|
@@ -88,7 +88,7 @@ Price IDs above were read from the live account on 2026-11-23.
 
 Stripe currently has **no** webhook endpoints. In [Workbench → Webhooks](https://dashboard.stripe.com/workbench/webhooks) add:
 
-- **URL:** `https://api.aviationaerospacecompetency.com/navigator/webhook`
+- **URL:** `https://careers.aviationaerospacecompetency.com/navigator/webhook`
 - **Events:** `checkout.session.completed` (the only event the Worker handles today)
 
 Copy its signing secret into `STRIPE_NAVIGATOR_WEBHOOK_SECRET`.
@@ -143,7 +143,7 @@ first. Test cards (any future expiry, any CVC, any postal code):
 | Declined | `4000 0000 0000 9995` |
 
 Test webhooks with the [Stripe CLI](https://docs.stripe.com/stripe-cli):
-`stripe listen --forward-to https://api.aviationaerospacecompetency.com/navigator/webhook`
+`stripe listen --forward-to https://careers.aviationaerospacecompetency.com/navigator/webhook`
 
 ## Next steps
 
